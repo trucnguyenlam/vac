@@ -1,0 +1,28 @@
+TRANSLATE TOOL
+================
+
+INTRODUCTION
+************
+Translate is the tool that can translate the Administrative Role Based Access Control model (ARBAC) into analysable programs that can be verified.
+Example of an ARBAC format file can be found in examples directory
+
+INSTALLATION
+************
+Please refer to the INSTALL file (in the same directory)
+
+USAGE
+*****
+You can invoke the tool by using
+	ARBACTransform OPTIONS FILE
+
+Detail can be found by invoking --help option
+
+WEB
+***
+The translate tool can be found in http://users.ecs.soton.ac.uk/gp4/VAC.html
+
+BUGS
+****
+Please report bugs to trucnguyenlam@gmail.com (developer)
+
+

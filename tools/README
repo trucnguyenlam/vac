@@ -1,0 +1,15 @@
+VAC Static Executable
+===============================================================================================================
+
+Please invoke the command below for VAC help
+
+    ./vac.sh -h
+
+By default you can run ./vac.sh input-file
+
+The default option first run the abstract transformer followed by Interproc.
+If a proof cannot be provided, VAC runs the precise transformer followed by CBMC (unwind set to 2) to look for a counterexample. Otherwise, it executes Z3 (muZ module) for complete analysis.
+
+For more specific options, please refer to ./vac -h
+
+Note: Require Java Development Kit (JDK) or Java Runtime Environment (JRE) 1.6 or higher to run Eldarica Backend.

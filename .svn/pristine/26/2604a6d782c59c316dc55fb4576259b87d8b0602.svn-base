@@ -1,0 +1,14 @@
+AUTOMAKE_OPTIONS = foreign
+
+bin_PROGRAMS = simplify
+simplify_CFLAGS = -I../../ccl/include/ -static -O3
+simplify_LDADD = ../../ccl/lib/libccl.a -lm
+simplify_SOURCES = ARBACReduceAdmin.c \
+			ARBACPreCheck.c \
+			ARBACImmaterial.c \
+			ARBACPruning.c \
+			ARBACSlicing.c \
+			ARBACLexer.c \
+			ARBACParser.c \
+			ARBACUtil.c \
+			ARBACIO.c

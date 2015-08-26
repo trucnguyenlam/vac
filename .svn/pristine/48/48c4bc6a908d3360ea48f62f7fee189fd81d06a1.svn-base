@@ -1,0 +1,27 @@
+SIMPLIFY TOOL
+================
+
+INTRODUCTION
+************
+Simplify is the tool that can simplify the Administrative Role Based Access Control model (ARBAC).
+
+INSTALLATION
+************
+Please refer to the INSTALL file (in the same directory)
+
+USAGE
+*****
+You can invoke the tool by using
+	simplify FILE
+
+Detail can be found by invoking --help option
+
+WEB
+***
+The tool can be found on VAC main website: http://users.ecs.soton.ac.uk/gp4/VAC.html
+
+BUGS
+****
+Please report bugs to trucnguyenlam@gmail.com (developer)
+
+
