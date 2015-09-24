@@ -137,11 +137,13 @@ preprocess()
 		ca_array[ca_array_size-1].positive_role_array[1] = goal_role_index;
 		goal_role_index = role_array_size-1;
 	}
+
+	// TODO: Remove rules which do not contain administrative as the first component
 }
 
 /**********************************************************************
  * Function free_ARBAC_data
- * Free the entire data allocated 
+ * Free the entire data allocated
  **********************************************************************/
 void
 free_data()
@@ -301,10 +303,10 @@ void print_ca_comment_hsf(FILE * outputFile, int ca_rule)
 {
 	int i;
 	int has_head = 0;
-	
+
 	fprintf(outputFile, "%%--------------------------Can assign rule------------------------\n");
 	fprintf(outputFile, "%%---------  ");
-	
+
 	if(ca_array[ca_rule].type == 0)
 	{
 		fprintf(outputFile, "<%s,", role_array[ca_array[ca_rule].admin_role_index]);
@@ -320,7 +322,7 @@ void print_ca_comment_hsf(FILE * outputFile, int ca_rule)
 				has_head = 1;
 			}
 		}
-		
+
 		for(i = 0; i < ca_array[ca_rule].negative_role_array_size; i++)
 		{
 			if(has_head)
@@ -345,7 +347,7 @@ void print_ca_comment_hsf(FILE * outputFile, int ca_rule)
 	{
 		fprintf(outputFile, "<%s,NEW,%s>", role_array[ca_array[ca_rule].admin_role_index], role_array[ca_array[ca_rule].target_role_index]);
 	}
-	
+
 	fprintf(outputFile, "\n%%---------------------------------------------------------------\n");
 }
 
@@ -353,10 +355,10 @@ void print_ca_comment_smt2(FILE * outputFile, int ca_rule)
 {
 	int i;
 	int has_head = 0;
-	
+
 	fprintf(outputFile, ";--------------------------Can assign rule------------------------\n");
 	fprintf(outputFile, ";---------  ");
-	
+
 	if(ca_array[ca_rule].type == 0)
 	{
 		fprintf(outputFile, "<%s,", role_array[ca_array[ca_rule].admin_role_index]);
@@ -372,7 +374,7 @@ void print_ca_comment_smt2(FILE * outputFile, int ca_rule)
 				has_head = 1;
 			}
 		}
-		
+
 		for(i = 0; i < ca_array[ca_rule].negative_role_array_size; i++)
 		{
 			if(has_head)
@@ -397,7 +399,7 @@ void print_ca_comment_smt2(FILE * outputFile, int ca_rule)
 	{
 		fprintf(outputFile, "<%s,NEW,%s>", role_array[ca_array[ca_rule].admin_role_index], role_array[ca_array[ca_rule].target_role_index]);
 	}
-	
+
 	fprintf(outputFile, "\n;---------------------------------------------------------------\n");
 }
 
@@ -422,7 +424,7 @@ void print_cr_comment_hsf(FILE * outputFile, int cr_rule)
 {
 	fprintf(outputFile, "%%-----------------------Can revoke rule------------------------\n");
 	fprintf(outputFile, "%%-----------   ");
-	
+
 	fprintf(outputFile, "<%s,%s>", role_array[cr_array[cr_rule].admin_role_index], role_array[cr_array[cr_rule].target_role_index]);
 	fprintf(outputFile, "\n%%------------------------------------------------------------\n");
 }
@@ -431,7 +433,7 @@ void print_cr_comment_smt2(FILE * outputFile, int cr_rule)
 {
 	fprintf(outputFile, ";-----------------------Can revoke rule------------------------\n");
 	fprintf(outputFile, ";-----------   ");
-	
+
 	fprintf(outputFile, "<%s,%s>", role_array[cr_array[cr_rule].admin_role_index], role_array[cr_array[cr_rule].target_role_index]);
 	fprintf(outputFile, "\n;------------------------------------------------------------\n");
 }

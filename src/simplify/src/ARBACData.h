@@ -1,9 +1,10 @@
 #ifndef _ARBACData_H
 #define _ARBACData_H
 
+// CCL library
 #include "containers.h"
 
-// Difine Data Structure of the ARBAC system
+// Define Data Structure of the ARBAC system
 
 // A user role assignment element
 typedef struct __UA

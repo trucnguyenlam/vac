@@ -899,7 +899,7 @@ can_apply(int *curr_conf, int curr_conf_size, int rule_number, int rule_type)
 }
 
 // Global vars for counter example trace
-int success_path[1000];
+int success_path[1000];   // How can a counter example has 1000 tract
 int success_path_len;
 int found_success_path;
 

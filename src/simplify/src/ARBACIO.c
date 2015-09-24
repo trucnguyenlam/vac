@@ -417,8 +417,13 @@ write_trace(FILE *output)
 	fprintf(output, "Trace\n");
 	for (i = 0; i < trace_array_size; i++)
 	{
-		fprintf(output, "%d -> %d -> %d + %d -> %d + %d\n", trace_array[i].simplify_rule, trace_array[i].affected_role_index, trace_array[i].affected_rule_index, trace_array[i].affected_rule_type,
-				trace_array[i].related_rule_index, trace_array[i].related_rule_type);
+		fprintf(output, "%d -> %d -> %d + %d -> %d + %d\n",
+			trace_array[i].simplify_rule,
+			trace_array[i].affected_role_index,
+			trace_array[i].affected_rule_index,
+			trace_array[i].affected_rule_type,
+			trace_array[i].related_rule_index,
+			trace_array[i].related_rule_type);
 	}
 	fprintf(output, "EndTrace\n");
 }
@@ -592,7 +597,7 @@ write_ARBAC(char *fileName)
 	if(goal_user_index != -13)
 	{
 		fprintf(output, " %s", get_user(goal_user_index));
-	} 
+	}
 	fprintf(output, " %s ;", get_role(goal_role_index));
 
 	write_trace(simplifyLog);

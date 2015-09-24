@@ -2,7 +2,7 @@
 
 # Clean built source files
 if [[ $1 = 'clean' ]]; then
-	echo "Cleaning built files..."	
+	echo "Cleaning built files..."
 	cd src/ccl/src
 	make clean
 	cd ..
@@ -11,14 +11,17 @@ if [[ $1 = 'clean' ]]; then
 	cd ..
 	cd src/simplify
 	make distclean
+	rm -rf autom4te.cache
 	cd ..
 	cd ..
 	cd src/translate
 	make distclean
+	rm -rf autom4te.cache
 	cd ..
 	cd ..
 	cd src/counterexample
 	make distclean
+	rm -rf autom4te.cache
 	cd ..
 	cd ..
 	rm -rf vac_static

@@ -24,6 +24,7 @@ reduceAdmin(char *inputFile)
     // Launch Pruning algorithm
     while (1)
     {
+        // Applying heuristic to quickly find things
         if (precheck(hasPruning, inputFile))
         {
             precheck_success = 1;
@@ -62,7 +63,12 @@ main(int argc, char **argv)
     FILE *logfile;
     FILE *debugfile;
 
-    static struct option long_options[] = { { "logfile", required_argument, 0, 'l' }, { "debug", no_argument, 0, 'g' }, { "help", no_argument, 0, 'h' }, { 0, 0, 0, 0 } };
+    static struct option long_options[] = {
+        { "logfile", required_argument, 0, 'l' },
+        { "debug", no_argument, 0, 'g' },
+        { "help", no_argument, 0, 'h' },
+        { 0, 0, 0, 0 }
+    };
 
     while (1)
     {

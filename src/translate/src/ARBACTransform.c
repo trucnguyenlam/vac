@@ -12,9 +12,11 @@ main(int argc, char **argv)
     char *format_arg = 0;
     char *filename = 0;
 
-    static struct option long_options[] = { { "algorithm", required_argument, 0, 'a' }, { "format", required_argument, 0, 'f' }, { "help",
-            no_argument, 0, 'h'
-        }, { 0, 0, 0, 0 }
+    static struct option long_options[] = {
+        { "algorithm", required_argument, 0, 'a' },
+        { "format", required_argument, 0, 'f' },
+        { "help", no_argument, 0, 'h'},
+        { 0, 0, 0, 0 }
     };
 
     while (1)

@@ -18,6 +18,9 @@ partition(int a[], int l, int r)
     return j;
 }
 
+/**
+ * Borrowed quick sort algorithm
+ */
 static void
 quickSort(int a[], int l, int r)
 {
@@ -277,7 +280,7 @@ write_small_policy(int hasPruning, int rules[], int rules_size, char *inputFile)
     if(hasPruning && hasSuper)
     {
         fprintf(output, "SUPER_USER ");
-    }    
+    }
     fprintf(output, ";\n\n");
 
     //Write the SPEC

@@ -239,12 +239,13 @@ slicing_forward()
             // Not a removed rules
             if (ca_array[i].admin_role_index != -13)
             {
+                // Always keep admin roles first
+                if (ca_array[i].admin_role_index != -10)
+                {
+                    admins = add_element(admins, ca_array[i].admin_role_index);
+                }
                 if (property_forward(i, S_star))
                 {
-                    if (ca_array[i].admin_role_index != -10)
-                    {
-                        admins = add_element(admins, ca_array[i].admin_role_index);
-                    }
                     S_star = add_element(S_star, ca_array[i].target_role_index);
                 }
             }
@@ -344,14 +345,15 @@ slicing_backward()
         {
             if (ca_array[i].admin_role_index != -13)
             {
+                // Always keep admin roles first
+                if (ca_array[i].admin_role_index != -10)
+                {
+                    admins = add_element(admins, ca_array[i].admin_role_index);
+                }
                 if (belong_to(S_star.array, S_star.array_size, ca_array[i].target_role_index) != -1)
                 {
                     tmp = union_precondition(i);
                     S_star = union_set(S_star, tmp);
-                    if (ca_array[i].admin_role_index != -10)
-                    {
-                        admins = add_element(admins, ca_array[i].admin_role_index);
-                    }
                 }
             }
         }
