@@ -40,6 +40,9 @@ typedef struct _Trace
 Trace * trace_array;
 int trace_array_size;
 
+// One of the user will become super user
+set promoted_users;
+
 // Log file of the program
 FILE *tmplog;
 FILE *simplifyLog;
@@ -73,6 +76,11 @@ void
 read_ARBAC(char *);
 void
 write_ARBAC(char *);
+
+void
+generateADMIN(void);
+void
+write_ARBACMOHAWK(char *);
 
 // Free data structure
 void

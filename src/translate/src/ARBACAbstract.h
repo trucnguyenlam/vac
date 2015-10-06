@@ -10,16 +10,18 @@
 /*****************************************************************
  *  Define the data structure for tranformation                  *
  *****************************************************************/
-// Data type for a Venn region 
+// Data type for a Venn region
 typedef struct _venn_region
 {
 	set P; // P set
-	set N; // N set	 
+	set N; // N set
 } venn_region;
 
 // Define the Track set
 venn_region* Track;
 int Track_size;
+
+char * query;
 
 // The Venn region string array generated from Track
 char** venn_region_array;
@@ -29,18 +31,18 @@ int venn_region_array_size;
 set * user_config_array;
 int user_config_array_size;
 
-void 
+void
 build_user_configurations();
 
-int 
+int
 get_number_of_venn_region(venn_region);
 
 void
 build_Track();
 
-void 
+void
 build_Venn_region_string_array();
 
-void 
+void
 free_abstract_temp_data();
 #endif

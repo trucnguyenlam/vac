@@ -792,10 +792,16 @@ implied_property(int ca1, int ca2)
         return 0;
     }
 
-    // Rule with TRUE in the precondition can implie every other rules
-    if (ca_array[ca1].type == 1)
+    // Rule with TRUE in the precondition can imply every other rules
+    if (ca_array[ca1].type == 1 && ca_array[ca2].type == 0)
     {
         return 1;
+    }
+
+    // New cannot imply any other rules
+    if (ca_array[ca1].type == 2)
+    {
+        return 0;
     }
 
     if (ca_array[ca1].type != 0 && ca_array[ca2].type != 0)

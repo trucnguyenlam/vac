@@ -40,7 +40,8 @@ static void relation_with_admin_shorthand(FILE *outputFile, int user_index, int 
     fprintf(outputFile, ", %s=1", track_variable_name(user_index, admin_role_index));
 }
 
-static void configuration_user(FILE *outputFile, int user_index)
+static void
+configuration_user(FILE *outputFile, int user_index)
 {
     int i, j;
 
@@ -77,6 +78,40 @@ static void configuration_user(FILE *outputFile, int user_index)
 }
 
 static void
+configuration_user_with_counter(FILE *outputFile, int user_index, int i)
+{
+    int j;
+
+    fprintf(outputFile, "u%d(b_%d_1", i, i);
+
+    for (j = 0; j < role_array_size; j++)
+    {
+        if (belong_to(user_config_array[user_index].array, user_config_array[user_index].array_size, j))
+        {
+            fprintf(outputFile, ", %s_1", track_variable_name(i, j));
+        }
+        else
+        {
+            fprintf(outputFile, ", %s", track_variable_name(i, j));
+        }
+    }
+    fprintf(outputFile, ") :- ");
+
+    relation_shorthand(outputFile, i);
+
+    fprintf(outputFile, ", b_%d=0, b_%d_1=1", i, i);
+    for (j = 0; j < role_array_size; j++)
+    {
+        fprintf(outputFile, ", %s=0", track_variable_name(i, j));
+        if (belong_to(user_config_array[user_index].array, user_config_array[user_index].array_size, j))
+        {
+            fprintf(outputFile, ", %s_1=1", track_variable_name(i, j));
+        }
+    }
+    fprintf(outputFile, ".\n");
+}
+
+static void
 configuration_new_user(FILE *outputFile, int role_index)
 {
     int i, j;
@@ -91,7 +126,7 @@ configuration_new_user(FILE *outputFile, int role_index)
             {
                 fprintf(outputFile, ", %s_1", track_variable_name(i, j));
             }
-            else if(j == role_array_size-2 && hasGoalUserMode && goal_user_index == -1)
+            else if (j == role_array_size - 2 && hasGoalUserMode && goal_user_index == -1)
             {
                 fprintf(outputFile, ", %s_1", track_variable_name(i, j));
             }
@@ -112,7 +147,7 @@ configuration_new_user(FILE *outputFile, int role_index)
             {
                 fprintf(outputFile, ", %s_1=1", track_variable_name(i, j));
             }
-            if(j == role_array_size-2 && hasGoalUserMode && goal_user_index == -1)
+            if (j == role_array_size - 2 && hasGoalUserMode && goal_user_index == -1)
             {
                 fprintf(outputFile, ", %s_1=1", track_variable_name(i, j));
             }
@@ -121,22 +156,93 @@ configuration_new_user(FILE *outputFile, int role_index)
     }
 }
 
+static void
+configuration_new_user_with_counter(FILE *outputFile, int role_index, int i)
+{
+    int j;
+
+    fprintf(outputFile, "u%d(b_%d_1", i, i);
+
+    for (j = 0; j < role_array_size; j++)
+    {
+        if (j == role_index)
+        {
+            fprintf(outputFile, ", %s_1", track_variable_name(i, j));
+        }
+        else if (j == role_array_size - 2 && hasGoalUserMode && goal_user_index == -1)
+        {
+            fprintf(outputFile, ", %s_1", track_variable_name(i, j));
+        }
+        else
+        {
+            fprintf(outputFile, ", %s", track_variable_name(i, j));
+        }
+    }
+    fprintf(outputFile, ") :- ");
+
+    relation_shorthand(outputFile, i);
+
+    fprintf(outputFile, ", b_%d=0, b_%d_1=1", i, i);
+    for (j = 0; j < role_array_size; j++)
+    {
+        fprintf(outputFile, ", %s=0", track_variable_name(i, j));
+        if (j == role_index)
+        {
+            fprintf(outputFile, ", %s_1=1", track_variable_name(i, j));
+        }
+        if (j == role_array_size - 2 && hasGoalUserMode && goal_user_index == -1)
+        {
+            fprintf(outputFile, ", %s_1=1", track_variable_name(i, j));
+        }
+    }
+    fprintf(outputFile, ".\n");
+}
+
 // Initialize configuration of user
 static void initialize_variables(FILE *outputFile)
 {
     int i;
 
-    for (i = 0; i < user_array_size; i++)
-    {
-        configuration_user(outputFile, i);
-    }
-
-    // For new user mode only
+    int NUM_USER_IN_SYSTEM = user_array_size;
     if (hasNewUserMode)
     {
-        for (i = 0; i < initialize_role_array_size; i++)
+        NUM_USER_IN_SYSTEM += initialize_role_array_size;
+    }
+
+    // There will be two cases for this
+    if (NUM_USER_IN_SYSTEM > NUM_USER_TO_TRACK)
+    {
+        for (i = 0; i < user_array_size; i++)
         {
-            configuration_new_user(outputFile, initialize_role_array[i]);
+            configuration_user(outputFile, i);
+        }
+
+        // For new user mode only
+        if (hasNewUserMode)
+        {
+            for (i = 0; i < initialize_role_array_size; i++)
+            {
+                configuration_new_user(outputFile, initialize_role_array[i]);
+            }
+        }
+    }
+    else
+    {
+        int counter = 0;
+        for (i = 0; i < user_array_size; i++)
+        {
+            configuration_user_with_counter(outputFile, i, counter);
+            counter++;
+        }
+
+        // For new user mode only
+        if (hasNewUserMode)
+        {
+            for (i = 0; i < initialize_role_array_size; i++)
+            {
+                configuration_new_user_with_counter(outputFile, initialize_role_array[i], counter);
+                counter++;
+            }
         }
     }
 }
@@ -190,7 +296,7 @@ static void simulate_can_assign_rule(FILE *outputFile, int ca_rule)
     }
 }
 
-static void 
+static void
 simulate_can_assigns(FILE *outputFile)
 {
     int i;
@@ -203,7 +309,7 @@ simulate_can_assigns(FILE *outputFile)
     }
 }
 
-static void 
+static void
 simulate_can_revoke_rule(FILE *outputFile, int cr_rule)
 {
     int i, j, h;

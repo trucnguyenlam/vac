@@ -213,6 +213,7 @@ slicing_forward()
     S_star.array_size = 0;
     if (ua_array_size == 0)
     {
+        // Do not perform slicing forward or may?
         return 0;
     }
 
@@ -310,6 +311,12 @@ union_precondition(int ca_index)
     P = build_set(ca_array[ca_index].positive_role_array, ca_array[ca_index].positive_role_array_size);
     N = build_set(ca_array[ca_index].negative_role_array, ca_array[ca_index].negative_role_array_size);
 
+    // Special treatment for rule with NEW in precondition
+    if (ca_array[ca_index].type == 2)
+    {
+        P = add_element(P, ca_array[ca_index].target_role_index);
+    }
+
     result = union_set(P, N);
 
     return result;
@@ -354,6 +361,11 @@ slicing_backward()
                 {
                     tmp = union_precondition(i);
                     S_star = union_set(S_star, tmp);
+                    // New change, now the admin should be in consideration otherwise things go wrong
+                    if (ca_array[i].admin_role_index != -10)
+                    {
+                        S_star = add_element(S_star, ca_array[i].admin_role_index);
+                    }
                 }
             }
         }

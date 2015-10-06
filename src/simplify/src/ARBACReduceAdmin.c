@@ -21,6 +21,10 @@ reduceAdmin(char *inputFile)
 
     trace_array = 0;
     trace_array_size = 0;
+
+    promoted_users.array = 0;
+    promoted_users.array_size = 0;
+
     // Launch Pruning algorithm
     while (1)
     {
@@ -52,12 +56,27 @@ reduceAdmin(char *inputFile)
     free_data();
 }
 
+
+void
+generateMohawk(char * inputFile)
+{
+    // Read ARBAC Policy
+    read_ARBAC(inputFile);
+
+    generateADMIN();
+
+    write_ARBACMOHAWK(inputFile);
+    // Free data structure
+    free_data();
+}
+
 int
 main(int argc, char **argv)
 {
     int c;
     int help_opt = 0;
     int debug_opt = 0;
+    int mohawk_opt = 0;
     char *l_arg = 0;
     char *debugfilename;
     FILE *logfile;
@@ -66,6 +85,7 @@ main(int argc, char **argv)
     static struct option long_options[] = {
         { "logfile", required_argument, 0, 'l' },
         { "debug", no_argument, 0, 'g' },
+        { "mohawk", no_argument, 0, 'm' },
         { "help", no_argument, 0, 'h' },
         { 0, 0, 0, 0 }
     };
@@ -74,7 +94,7 @@ main(int argc, char **argv)
     {
         int option_index = 0;
 
-        c = getopt_long(argc, argv, "hgl:", long_options, &option_index);
+        c = getopt_long(argc, argv, "hgl:m", long_options, &option_index);
 
         if (c == -1)
             break;
@@ -88,6 +108,7 @@ main(int argc, char **argv)
 					\nRSimplify ARBAC policies to their fixed point.\
 					\n\n  -l, --logfile {log_name}\t\t:Produce the log file\
                     \n  -g, --debug\t\t\t\t:Generate simplify log one-to-one map\
+                    \n  -m, --mohawk\t\t\t\t:Generate equivalen Mohawk benchmark\
 					\n  -h, --help\t\t\t\t:This message\
 					\nFILE is the input ARBAC format file\
 					\nReturn ARBAC policies file in the same directory as input FILE\n");
@@ -100,6 +121,9 @@ main(int argc, char **argv)
         case 'g':
             debug_opt = 1;
             break;
+        case 'm':
+            mohawk_opt = 1;
+            break;
         default:
             abort();
         }
@@ -107,6 +131,12 @@ main(int argc, char **argv)
 
     if (optind < argc)
     {
+        if (mohawk_opt)
+        {
+            generateMohawk(argv[optind]);
+            return 0;
+        }
+
         tmplog = tmpfile(); // Temp file
         simplifyLog = tmpfile(); // Temp file
         reduceAdmin(argv[optind]);

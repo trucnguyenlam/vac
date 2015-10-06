@@ -98,9 +98,11 @@ partition_configs()
 
     for (i = 0; i < configs_size; i++)
     {
+        // If there are roles associate to that user, i  is a user index
         if (configs[i].array_size != -1)
         {
             // Add the user i to the partition config of size of the configuration of user i
+            // All user with the same |ROLES| is add to the partition
             partition_users[configs[i].array_size] = add_last_element(partition_users[configs[i].array_size], i);
         }
     }
@@ -206,13 +208,15 @@ admin_roles_size()
 
     // Plus one rule for the SUPER ROLE
     if (super_exist)
+    {
         result++;
+    }
     return result;
 }
 
 // Helper function of replace super user
 static void
-replace_super_help(int admin_role)
+replace_super_help(int admin_role, int condition)
 {
     int i;
 
@@ -247,7 +251,7 @@ replace_super_help(int admin_role)
 
 // Replace super in ARBAC system
 static void
-replace_super()
+replace_super(int condition)
 {
     int i;
 
@@ -255,7 +259,7 @@ replace_super()
     for (i = 0; i < immaterial_admins.array_size; i++)
     {
         fprintf(tmplog, "Immaterial administrative role %s is made regular\n", get_role(immaterial_admins.array[i]));
-        replace_super_help(immaterial_admins.array[i]);
+        replace_super_help(immaterial_admins.array[i], condition);
     }
 
     // Free variables
@@ -325,6 +329,8 @@ immaterial_condition_1_help(int admin_role)
     {
         if (ua_array[i].user_index != -13 && ua_array[i].role_index == admin_role)
         {
+            // Add this user to the list of promoted user
+            promoted_users = add_element(promoted_users, ua_array[i].user_index);
             return 1;
         }
     }
@@ -359,7 +365,7 @@ immaterial_condition_1()
     if (flag)
     {
         super_exist = 1;
-        replace_super();
+        replace_super(1);
     }
     return flag;
 }
@@ -376,6 +382,7 @@ spare()
 
     int no_admins = admin_roles_size();
 
+    // For the set of users with the same role combination, remove the rest apart from K+1 users
     for (i = 0; i < equal_config_array_size; i++)
     {
         // Remove spare users
@@ -422,7 +429,9 @@ immaterial_condition_2()
             // Test if these users are in the administrative role
             for (i = 0; i < admin_role_array_index_size; i++)
             {
-                if (admin_role_array_index[i] != -13 && belong_to(configs[equal_config_array[j].array[0]].array, configs[equal_config_array[j].array[0]].array_size, admin_role_array_index[i]) != -1)
+                if (admin_role_array_index[i] != -13
+                    // These user have the same role membership
+                    && belong_to(configs[equal_config_array[j].array[0]].array, configs[equal_config_array[j].array[0]].array_size, admin_role_array_index[i]) != -1)
                 {
                     // Show that this successfully find super role
                     flag = 1;
@@ -430,6 +439,9 @@ immaterial_condition_2()
                     fprintf(tmplog, "Satisfy immaterial condition 2 ------------------\n");
                     fprintf(tmplog, "Immaterial administrative role is %s\n", get_role(admin_role_array_index[i]));
                     fprintf(tmplog, "--------------------------------------\n");
+
+                    // Add the last member of equal_config_array[j], which is likely to be removed
+                    promoted_users = add_element(promoted_users, equal_config_array[j].array[equal_config_array[j].array_size - 1]);
 
                     // Add this admin role to the immaterial admin roles set
                     immaterial_admins = add_last_element(immaterial_admins, admin_role_array_index[i]);
@@ -442,9 +454,10 @@ immaterial_condition_2()
     if (flag)
     {
         super_exist = 1;
-        replace_super();
+        replace_super(2);
     }
 
+    // Remove spare users
     flag += spare();
     return flag;
 }

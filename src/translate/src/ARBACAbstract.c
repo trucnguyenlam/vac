@@ -1,5 +1,39 @@
 #include "ARBACAbstract.h"
 
+static int
+partition(int a[], int l, int r)
+{
+    int pivot, i, j, t;
+    pivot = a[l];
+    i = l; j = r + 1;
+
+    while (1)
+    {
+        do ++i; while ( ca_array[a[i]].positive_role_array_size <= ca_array[pivot].positive_role_array_size && i <= r );
+        do --j; while ( ca_array[a[j]].positive_role_array_size > ca_array[pivot].positive_role_array_size );
+        if ( i >= j ) break;
+        t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    t = a[l]; a[l] = a[j]; a[j] = t;
+    return j;
+}
+
+/**
+ * Borrowed quick sort algorithm
+ */
+static void
+quickSort(int a[], int l, int r)
+{
+    int j;
+
+    if ( l < r )
+    {
+        j = partition( a, l, r);
+        quickSort( a, l, j - 1);
+        quickSort( a, j + 1, r);
+    }
+}
+
 /**********************************************************************
  * Function free_Venn_region
  * Free a Venn region data
@@ -116,6 +150,38 @@ get_number_of_administrator(int admin_role_index)
 }
 
 /**********************************************************************
+ * Function Venn_region2string
+ * Convert a Venn region ro string as a variable C(P,N)
+ **********************************************************************/
+static char *
+Venn_region2string(venn_region v)
+{
+    int i;
+    char tmp_str[2000] = "";
+    char re_str[2000] = "";
+
+    strcat(tmp_str, "n");
+
+    for (i = 0; i < v.P.array_size; i++)
+    {
+        strcat(tmp_str, "_");
+        strcat(tmp_str, role_array[v.P.array[i]]);
+    }
+
+    for (i = 0; i < v.N.array_size; i++)
+    {
+        strcat(tmp_str, "_0");
+        strcat(tmp_str, role_array[v.N.array[i]]);
+    }
+
+    strcpy(re_str, tmp_str);
+
+    memset(tmp_str, 0, sizeof(tmp_str));
+
+    return strdup(re_str);
+}
+
+/**********************************************************************
  * Function build_Track
  * Build the Track set following the paper theory
  **********************************************************************/
@@ -144,6 +210,15 @@ build_Track()
             v.P = build_set(ca_array[i].positive_role_array, ca_array[i].positive_role_array_size);
             v.N = build_set(ca_array[i].negative_role_array, ca_array[i].negative_role_array_size);
 
+            // // Sort venn region
+            // if (v.P.array_size > 0)
+            // {
+            //     quickSort(v.P.array, 0, v.P.array_size - 1);
+            // }
+            // if (v.N.array_size > 0)
+            // {
+            //     quickSort(v.N.array, 0, v.N.array_size - 1);
+            // }
             // Add to Track
             add_Venn_region_to_Track(v);
 
@@ -193,42 +268,13 @@ build_Track()
     v.P = build_set(tmp, 1);
     v.N = build_set(0, 0);
 
+    query = Venn_region2string(v);
+
     add_Venn_region_to_Track(v);
+
     free(tmp);
     free(v.P.array);
     v.P.array = 0;
-}
-
-/**********************************************************************
- * Function Venn_region2string
- * Convert a Venn region ro string as a variable C(P,N)
- **********************************************************************/
-static char *
-Venn_region2string(venn_region v)
-{
-    int i;
-    char tmp_str[2000] = "";
-    char re_str[2000] = "";
-
-    strcat(tmp_str, "n");
-
-    for (i = 0; i < v.P.array_size; i++)
-    {
-        strcat(tmp_str, "_");
-        strcat(tmp_str, role_array[v.P.array[i]]);
-    }
-
-    for (i = 0; i < v.N.array_size; i++)
-    {
-        strcat(tmp_str, "_0");
-        strcat(tmp_str, role_array[v.N.array[i]]);
-    }
-
-    strcpy(re_str, tmp_str);
-
-    memset(tmp_str, 0, sizeof(tmp_str));
-
-    return strdup(re_str);
 }
 
 /**********************************************************************

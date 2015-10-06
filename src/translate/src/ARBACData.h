@@ -54,10 +54,15 @@ int goal_role_index;
 char* goal_temp;
 // Variable to determine the positive or negative property of role
 int iNeg;
+
 // Variable to indicate mode to translate
 int hasNewUserMode;
 int * initialize_role_array;
 int initialize_role_array_size;
+int * new_rule_array;
+int new_rule_array_size;
+
+
 
 int hasGoalUserMode;
 

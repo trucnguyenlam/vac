@@ -1,0 +1,226 @@
+../regression/stefano/admin.arbac
+===== ../regression/stefano/admin.arbac =====
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Role to check REACHABILITY: RoleE
+
+==> Step 1:
+Target User: user0
+CAN ASSIGN rule applied to user0: <RoleB,TRUE,RoleA>
+Administrative user to invoke the rule: user0
+Role configuration of user0 before applying rule: RoleB
+Role configuration of user0 after applying rule: RoleB RoleA
+
+==> Step 2:
+Target User: user0
+CAN ASSIGN rule applied to user0: <RoleB,RoleA,RoleD>
+Administrative user to invoke the rule: user0
+Role configuration of user0 before applying rule: RoleB RoleA
+Role configuration of user0 after applying rule: RoleB RoleA RoleD
+
+==> Step 3:
+Target User: user0
+CAN ASSIGN rule applied to user0: <RoleD,TRUE,RoleE>
+Administrative user to invoke the rule: user0
+Role configuration of user0 before applying rule: RoleB RoleA RoleD
+Role configuration of user0 after applying rule: RoleB RoleA RoleD RoleE
+
+user0 can REACH RoleE
+RoleE is REACHABLE
+
+Test with backend interproc  ==> UNSAFE  ==> UNSAFE OK
+Test with backend moped  ==> UNSAFE  ==> UNSAFE OK
+Test with backend z3  ==> UNSAFE  ==> UNSAFE OK
+Test with backend cbmc  ==> UNSAFE  ==> UNSAFE OK
+Test with backend hsf  ==> UNSAFE  ==> UNSAFE OK
+Test with backend eldarica  ==> UNSAFE  ==> UNSAFE OK
+*********CONSISTENT******************
+
+../regression/stefano/admin.arbac_mohawk.arbac
+===== ../regression/stefano/admin.arbac_mohawk.arbac =====
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Role to check REACHABILITY: RoleE
+
+==> Step 1:
+Target User: user0
+CAN ASSIGN rule applied to user0: <RoleB,TRUE,RoleA>
+Administrative user to invoke the rule: user0
+Role configuration of user0 before applying rule: RoleB
+Role configuration of user0 after applying rule: RoleB RoleA
+
+==> Step 2:
+Target User: user0
+CAN ASSIGN rule applied to user0: <RoleB,RoleA,RoleD>
+Administrative user to invoke the rule: user0
+Role configuration of user0 before applying rule: RoleB RoleA
+Role configuration of user0 after applying rule: RoleB RoleA RoleD
+
+==> Step 3:
+Target User: user0
+CAN ASSIGN rule applied to user0: <RoleD,TRUE,RoleE>
+Administrative user to invoke the rule: user0
+Role configuration of user0 before applying rule: RoleB RoleA RoleD
+Role configuration of user0 after applying rule: RoleB RoleA RoleD RoleE
+
+user0 can REACH RoleE
+RoleE is REACHABLE
+
+Test with backend interproc  ==> UNSAFE  ==> UNSAFE OK
+Test with backend moped  ==> UNSAFE  ==> UNSAFE OK
+Test with backend z3  ==> UNSAFE  ==> UNSAFE OK
+Test with backend cbmc  ==> UNSAFE  ==> UNSAFE OK
+Test with backend hsf  ==> UNSAFE  ==> UNSAFE OK
+Test with backend eldarica  ==> UNSAFE  ==> UNSAFE OK
+*********CONSISTENT******************
+
+../regression/stefano/minified.arbac
+===== ../regression/stefano/minified.arbac =====
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Role to check REACHABILITY: RoleE
+
+==> Step 1:
+Target User: user0
+CAN ASSIGN rule applied to user0: <RoleB,TRUE,RoleA>
+Administrative user to invoke the rule: user0
+Role configuration of user0 before applying rule: RoleB
+Role configuration of user0 after applying rule: RoleB RoleA
+
+==> Step 2:
+Target User: user0
+CAN ASSIGN rule applied to user0: <RoleB,RoleA,RoleD>
+Administrative user to invoke the rule: user0
+Role configuration of user0 before applying rule: RoleB RoleA
+Role configuration of user0 after applying rule: RoleB RoleA RoleD
+
+==> Step 3:
+Target User: user0
+CAN ASSIGN rule applied to user0: <RoleD,TRUE,RoleE>
+Administrative user to invoke the rule: user0
+Role configuration of user0 before applying rule: RoleB RoleA RoleD
+Role configuration of user0 after applying rule: RoleB RoleA RoleD RoleE
+
+user0 can REACH RoleE
+RoleE is REACHABLE
+
+Test with backend interproc  ==> UNSAFE  ==> UNSAFE OK
+Test with backend moped  ==> UNSAFE  ==> UNSAFE OK
+Test with backend z3  ==> UNSAFE  ==> UNSAFE OK
+Test with backend cbmc  ==> UNSAFE  ==> UNSAFE OK
+Test with backend hsf  ==> UNSAFE  ==> UNSAFE OK
+Test with backend eldarica  ==> UNSAFE  ==> UNSAFE OK
+*********CONSISTENT******************
+
+../regression/stefano/prova.arbac
+===== ../regression/stefano/prova.arbac =====
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Role to check REACHABILITY: RoleB
+
+==> Step 1:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Super,TRUE,RoleC>
+Administrative user to invoke the rule: user0
+Role configuration of user0 before applying rule: Admin Super
+Role configuration of user0 after applying rule: Admin Super RoleC
+
+==> Step 2:
+Target User: user0
+CAN ASSIGN rule applied to user0: <RoleC,TRUE,RoleA>
+Administrative user to invoke the rule: user0
+Role configuration of user0 before applying rule: Admin Super RoleC
+Role configuration of user0 after applying rule: Admin Super RoleC RoleA
+
+==> Step 3:
+Target User: user0
+CAN ASSIGN rule applied to user0: <RoleA,TRUE,RoleB>
+Administrative user to invoke the rule: user0
+Role configuration of user0 before applying rule: Admin Super RoleC RoleA
+Role configuration of user0 after applying rule: Admin Super RoleC RoleA RoleB
+
+user0 can REACH RoleB
+RoleB is REACHABLE
+
+Test with backend interproc  ==> UNSAFE  ==> UNSAFE OK
+Test with backend moped  ==> UNSAFE  ==> UNSAFE OK
+Test with backend z3  ==> UNSAFE  ==> UNSAFE OK
+Test with backend cbmc  ==> UNSAFE  ==> UNSAFE OK
+Test with backend hsf  ==> UNSAFE  ==> UNSAFE OK
+Test with backend eldarica  ==> UNSAFE  ==> UNSAFE OK
+*********CONSISTENT******************
+
+../regression/stefano/prova_new.arbac
+===== ../regression/stefano/prova_new.arbac =====
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Role to check REACHABILITY: RoleB
+
+==> Step 1:
+Target User: user0
+CAN ASSIGN rule applied to user0: <RoleA,TRUE,RoleB>
+Administrative user to invoke the rule: user0
+Role configuration of user0 before applying rule: Admin Super RoleC RoleA
+Role configuration of user0 after applying rule: Admin Super RoleC RoleA RoleB
+
+user0 can REACH RoleB
+RoleB is REACHABLE
+
+Test with backend interproc  ==> UNSAFE  ==> UNSAFE OK
+Test with backend moped  ==> UNSAFE  ==> UNSAFE OK
+Test with backend z3  ==> UNSAFE  ==> UNSAFE OK
+Test with backend cbmc  ==> UNSAFE  ==> UNSAFE OK
+Test with backend hsf  ==> UNSAFE  ==> UNSAFE OK
+Test with backend eldarica  ==> UNSAFE  ==> UNSAFE OK
+*********CONSISTENT******************
+
+../regression/stefano/revised.arbac
+===== ../regression/stefano/revised.arbac =====
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Role to check REACHABILITY: RoleB
+
+==> Step 1:
+Target User: fakeuser
+CAN ASSIGN rule applied to fakeuser: <RoleA,TRUE,RoleB>
+Administrative user to invoke the rule: fakeuser
+Role configuration of fakeuser before applying rule: RoleC RoleA
+Role configuration of fakeuser after applying rule: RoleC RoleA RoleB
+
+fakeuser can REACH RoleB
+RoleB is REACHABLE
+
+Test with backend interproc  ==> UNSAFE  ==> UNSAFE OK
+Test with backend moped  ==> UNSAFE  ==> UNSAFE OK
+Test with backend z3  ==> UNSAFE  ==> UNSAFE OK
+Test with backend cbmc  ==> U

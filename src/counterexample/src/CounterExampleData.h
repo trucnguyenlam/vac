@@ -8,6 +8,7 @@ typedef struct _CBMCAssignment
 	int track_user;
 	int value;
 	char* role;
+	int type;
 } CBMCAssignment;
 CBMCAssignment * assignment_array;
 int assignment_array_size;
@@ -23,15 +24,15 @@ typedef struct _RuleTranslated
 	int rule_number;
 	int rule_type; // 0 mean CA, 1 mean CR
 } RuleTranslated;
+RuleTranslated * rule_translated_array;
+int rule_translated_array_size;
 
 typedef struct _Configuration_user
 {
 	int line;
 	char *user_name;
+	int rule_index;
 } Configuration_user;
-
-RuleTranslated * rule_translated_array;
-int rule_translated_array_size;
 
 Configuration_user *user_configuration_array;
 int user_configuration_array_size;
@@ -43,6 +44,7 @@ typedef struct _map
 	int after;
 } map;
 
+// Associate each user with track user
 typedef struct _Translated_user
 {
 	char *user_name;
@@ -57,11 +59,15 @@ int user_translated_array_size;
 // Trace data for counter example
 typedef struct _Trace
 {
-	char *admin_track_user;
+	char *administrative_user;
+	char *target_user;
 	int rule_number;
 	int rule_type;
 	int *config_array;
 	int config_array_size;
+	int *config_array_before;
+	int config_array_before_size;
+
 } Trace;
 
 Trace *trace_array;
@@ -157,6 +163,7 @@ typedef struct RelatedRules
 	int related_size;
 	int rule_index;
 } RelatedRules;
+
 
 // typedef struct NodeArray
 // {

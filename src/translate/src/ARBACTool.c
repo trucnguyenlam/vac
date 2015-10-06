@@ -137,8 +137,6 @@ preprocess()
 		ca_array[ca_array_size-1].positive_role_array[1] = goal_role_index;
 		goal_role_index = role_array_size-1;
 	}
-
-	// TODO: Remove rules which do not contain administrative as the first component
 }
 
 /**********************************************************************

@@ -217,43 +217,43 @@ pANTLR3_UINT8   ARBACParserTokenNames[20+4]
 
 // Forward declare the locally static matching functions we have generated.
 //
-static 
+static
  void
 	parse    (pARBACParser ctx);
-static 
+static
  void
 	node    (pARBACParser ctx);
-static 
+static
  void
 	roles    (pARBACParser ctx);
-static 
+static
  void
 	users    (pARBACParser ctx);
-static 
+static
  void
 	ua    (pARBACParser ctx);
-static 
+static
  void
 	cr    (pARBACParser ctx);
-static 
+static
  void
 	ca    (pARBACParser ctx);
-static 
+static
  void
 	ca_entry    (pARBACParser ctx);
-static 
+static
  void
 	precondition    (pARBACParser ctx);
-static 
+static
  void
 	atom    (pARBACParser ctx);
-static 
+static
  void
 	admin    (pARBACParser ctx);
-static 
+static
  void
 	spec    (pARBACParser ctx);
-static 
+static
  void
 	spec_tail    (pARBACParser ctx);
 static void	ARBACParserFree(pARBACParser ctx);
@@ -384,7 +384,7 @@ ARBACParserReset (pARBACParser ctx)
     return;
  }
 
-/** Return token names used by this 
+/** Return token names used by this
 parser
 
  *
@@ -616,13 +616,15 @@ parse(pARBACParser ctx)
               goal_user_index = -1;
               goal_role_index = -1;
               goal_temp = 0;
-              iNeg = 0;   
+              iNeg = 0;
               //super_exist = 0; // For Simplify
               hasNewUserMode = 0; // For Translate
               initialize_role_array = 0;
               initialize_role_array_size = 0;
+              new_rule_array = 0;
+              new_rule_array_size = 0;
               hasGoalUserMode = 0; // For Translate
-              
+
     {
         // /home/trucnguyenlam/ides/antlr/workspace/ARBACFinal_Translate/src/ARBAC.g:64:8: ( ( node )+ )
         // /home/trucnguyenlam/ides/antlr/workspace/ARBACFinal_Translate/src/ARBAC.g:64:10: ( node )+
@@ -971,7 +973,7 @@ roles(pARBACParser ctx)
             	                                    role_array = realloc(role_array, role_array_size*sizeof(char*));
             	                                    role_array[role_array_size-1] = malloc(strlen((id->getText(id))->chars)+1);
             	                                    strcpy(role_array[role_array_size-1], (id->getText(id))->chars);
-            	                                  
+
             	        }
 
 
@@ -996,7 +998,7 @@ roles(pARBACParser ctx)
             {
 
                                       	create_role_dict();
-                                      
+
             }
 
 
@@ -1085,7 +1087,7 @@ users(pARBACParser ctx)
             	                                      user_array = realloc(user_array, user_array_size*sizeof(char*));
             	                                      user_array[user_array_size-1] = malloc(strlen((id->getText(id))->chars)+1);
             	                                      strcpy(user_array[user_array_size-1], (id->getText(id))->chars);
-            	                                  
+
             	        }
 
 
@@ -1110,7 +1112,7 @@ users(pARBACParser ctx)
             {
 
                                         create_user_dict();
-                                      
+
             }
 
 
@@ -1190,7 +1192,7 @@ ua(pARBACParser ctx)
 
             	                                ua_array_size++;
             	                                ua_array = realloc(ua_array, ua_array_size*sizeof(_UA));
-            	                              
+
             	        }
 
 
@@ -1204,7 +1206,7 @@ ua(pARBACParser ctx)
             	        {
 
             	                                ua_array[ua_array_size-1].user_index = find_user_from_dict((id1->getText(id1))->chars);
-            	                              
+
             	        }
 
 
@@ -1223,9 +1225,9 @@ ua(pARBACParser ctx)
 
 
             	        {
-            	                                            
+
             	                                ua_array[ua_array_size-1].role_index = find_role_from_dict((id2->getText(id2))->chars);
-            	                              
+
             	        }
 
 
@@ -1329,7 +1331,7 @@ cr(pARBACParser ctx)
             	        {
 
             	            			iNeg = 0;
-            	                              
+
             	        }
 
 
@@ -1388,7 +1390,7 @@ cr(pARBACParser ctx)
             	        	        {
 
             	        	                                iNeg = 1;
-            	        	                              
+
             	        	        }
 
 
@@ -1434,7 +1436,7 @@ cr(pARBACParser ctx)
             	                                }
             	                                cr_array[cr_array_size-1].target_role_index = find_role_from_dict((id2->getText(id2))->chars);
             	                              }
-            	                              
+
             	        }
 
 
@@ -1519,8 +1521,8 @@ ca(pARBACParser ctx)
 
             	                          ca_array_size++;
             	                          ca_array = realloc(ca_array, ca_array_size*sizeof(_CA));
-            	                          ca_array[ca_array_size-1].type = 0;              
-            	                       
+            	                          ca_array[ca_array_size-1].type = 0;
+
             	        }
 
 
@@ -1613,7 +1615,7 @@ ca_entry(pARBACParser ctx)
                                             admin_role_array_index = realloc(admin_role_array_index, admin_role_array_index_size*sizeof(int));
                                             admin_role_array_index[admin_role_array_index_size-1] = ca_array[ca_array_size-1].admin_role_index;
                                           }
-                                        
+
             }
 
 
@@ -1656,9 +1658,13 @@ ca_entry(pARBACParser ctx)
                                           {
                                           	initialize_role_array_size++;
                                           	initialize_role_array = realloc(initialize_role_array, initialize_role_array_size*sizeof(int));
-                                          	initialize_role_array[initialize_role_array_size-1] = ca_array[ca_array_size-1].target_role_index;	
+                                          	initialize_role_array[initialize_role_array_size-1] = ca_array[ca_array_size-1].target_role_index;
+                                            new_rule_array_size++;
+                                            new_rule_array = realloc(new_rule_array, new_rule_array_size*sizeof(int));
+                                            new_rule_array[new_rule_array_size - 1] = ca_array_size-1;
+
                                           }
-                                        
+
             }
 
 
@@ -1820,7 +1826,7 @@ precondition(pARBACParser ctx)
         	        {
 
         	                            ca_array[ca_array_size-1].type = 1;
-        	                          
+
         	        }
 
 
@@ -1840,7 +1846,7 @@ precondition(pARBACParser ctx)
 
         	                            ca_array[ca_array_size-1].type = 2;
         	                            hasNewUserMode = 1; // For translate
-        	                          
+
         	        }
 
 
@@ -1941,7 +1947,7 @@ atom(pARBACParser ctx)
                             ca_array[ca_array_size-1].negative_role_array = realloc(ca_array[ca_array_size-1].negative_role_array, ca_array[ca_array_size-1].negative_role_array_size*sizeof(int));
                             ca_array[ca_array_size-1].negative_role_array[ca_array[ca_array_size-1].negative_role_array_size-1] = find_role_from_dict((id->getText(id))->chars);
                           }
-                       
+
             }
 
 
@@ -2020,7 +2026,7 @@ admin(pARBACParser ctx)
             	                                  admin_array_index_size++;
             	                                  admin_array_index = realloc(admin_array_index, admin_array_index_size*sizeof(int));
             	                                  admin_array_index[admin_array_index_size-1] = find_user_from_dict((id->getText(id))->chars);
-            	                                  
+
             	        }
 
 
@@ -2177,7 +2183,7 @@ spec_tail(pARBACParser ctx)
             	            			free(goal_temp);
             	            			goal_temp = 0;
             	            			hasGoalUserMode = 1; // For translate
-            	            		      
+
             	        }
 
 
@@ -2199,9 +2205,9 @@ spec_tail(pARBACParser ctx)
                                     if(goal_temp != NULL)
                                     {
                                     	goal_role_index = find_role_from_dict(goal_temp);
-                                    	free(goal_temp);                    	
+                                    	free(goal_temp);
                                     }
-                                   
+
             }
 
 

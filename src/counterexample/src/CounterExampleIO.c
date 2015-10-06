@@ -91,6 +91,7 @@ readARBAC(char *inputFile)
     pARBACParser parser;
 
     input = antlr3AsciiFileStreamNew((pANTLR3_UINT8) inputFile);
+
     lex = ARBACLexerNew(input);
     tokens = antlr3CommonTokenStreamSourceNew(ANTLR3_SIZE_HINT, TOKENSOURCE(lex));
     parser = ARBACParserNew(tokens);
@@ -105,10 +106,24 @@ readARBAC(char *inputFile)
     input->close(input);
 }
 
+static void
+printCBMCAssignment(CBMCAssignment a)
+{
+    if (a.type == 0)
+    {
+        fprintf(debugFile, "Assignment in line %d with track_user %d with value %d with role %s\n", a.line, a.track_user, a.value, a.role);
+    }
+    else
+    {
+        fprintf(debugFile, "Assignment in line %d with track_user %d with value %d\n", a.line, a.track_user, a.value);
+    }
+}
+
 // Read CBMC XML Log file
 void
 readCBMCXMLLog(char *inputfile)
 {
+    // 1306 is the maximum string length
     char tmp1[1306] = " ";
     char tmp2[6] = " ";
     char tmp_role[1306] = " ";
@@ -117,6 +132,12 @@ readCBMCXMLLog(char *inputfile)
     assignment_array = 0;
     assignment_array_size = 0;
     node_t *root = roxml_load_doc(inputfile);
+    if(!root)
+    {
+        fprintf(stderr, "error: please input the correct log file from CBMC\n");
+        abort();
+    }
+
     node_t *cprover = roxml_get_chld(root, NULL, 0);
 
     roxml_get_content(roxml_get_chld(cprover, "cprover-status", 0), tmp1, 1306, &a);
@@ -128,6 +149,8 @@ readCBMCXMLLog(char *inputfile)
         hasCounterExample = 0;
         return;
     }
+
+    fprintf(debugFile, "READ CBMC XML LOG\n");
 
     // Counter Example trace
     node_t *goto_trace = roxml_get_chld(cprover, "goto_trace", 0);
@@ -144,7 +167,7 @@ readCBMCXMLLog(char *inputfile)
             roxml_get_content(display_name, tmp1, 1306, &a);
 
             // Only consider assignment to track variable
-            if (strstr(tmp1, "track") != NULL)
+            if (strstr(tmp1, "track_") != NULL)
             {
                 sscanf(tmp1, "track_%d_%s", &track_user, tmp_role);
                 assignment_array_size++;
@@ -157,6 +180,22 @@ readCBMCXMLLog(char *inputfile)
                 assignment_array[assignment_array_size - 1].value = atoi(tmp2);
                 roxml_get_content(line_attr, tmp2, 6, &a);
                 assignment_array[assignment_array_size - 1].line = atoi(tmp2);
+                assignment_array[assignment_array_size - 1].type = 0;
+                printCBMCAssignment(assignment_array[assignment_array_size - 1]);
+            }
+            else if (strstr(tmp1, "b_") != NULL)
+            {
+                sscanf(tmp1, "b_%d", &track_user);
+                assignment_array_size++;
+                assignment_array = realloc(assignment_array, assignment_array_size * sizeof(CBMCAssignment));
+                assignment_array[assignment_array_size - 1].track_user = track_user;
+                assignment_array[assignment_array_size - 1].role = 0;
+                roxml_get_content(value, tmp2, 6, &a);
+                assignment_array[assignment_array_size - 1].value = atoi(tmp2);
+                roxml_get_content(line_attr, tmp2, 6, &a);
+                assignment_array[assignment_array_size - 1].line = atoi(tmp2);
+                assignment_array[assignment_array_size - 1].type = 1;
+                printCBMCAssignment(assignment_array[assignment_array_size - 1]);
             }
         }
     }
@@ -197,6 +236,7 @@ readCBMCTranslated(char *inputFile)
     configuration_lim = 0;
     rule_translated_array = 0;
     rule_translated_array_size = 0;
+
     user_configuration_array = 0;
     user_configuration_array_size = 0;
 
@@ -222,6 +262,18 @@ readCBMCTranslated(char *inputFile)
                 user_configuration_array[user_configuration_array_size - 1].user_name = malloc(strlen(tmp1) + 1);
                 strcpy(user_configuration_array[user_configuration_array_size - 1].user_name, tmp1);
                 user_configuration_array[user_configuration_array_size - 1].line = line_count;
+                user_configuration_array[user_configuration_array_size - 1].rule_index = -1;
+            }
+            else if (strstr(c, "Configuration OF") != NULL)
+            {
+                int rule_index;
+                sscanf(c, "%s OF %s WITH %d", tmp2, tmp1, &rule_index);
+                user_configuration_array_size++;
+                user_configuration_array = realloc(user_configuration_array, user_configuration_array_size * sizeof(Configuration_user));
+                user_configuration_array[user_configuration_array_size - 1].user_name = malloc(strlen(tmp1) + 1);
+                strcpy(user_configuration_array[user_configuration_array_size - 1].user_name, tmp1);
+                user_configuration_array[user_configuration_array_size - 1].line = line_count;
+                user_configuration_array[user_configuration_array_size - 1].rule_index = rule_index;
             }
             else if (strstr(c, "SIMULATION") != NULL)
             {
@@ -333,7 +385,7 @@ readSimplifyLog(char *inputFile)
         if (strcmp(c, "EndTrace\n") != 0)
         {
             sscanf(c, "%d -> %d -> %d + %d -> %d + %d", &i1, &i2, &i3, &i4, &i5, &i6);
-            // Will consider can revoke rule in the next development if it is worth doing that.            
+            // Will consider can revoke rule in the next development if it is worth doing that.
             if(i1 != 2)
             {
                 simplify_steps_size++;

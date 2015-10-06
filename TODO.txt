@@ -1,2 +1,4 @@
-1. Make
-2. 
+1. Make SUPER_ROLE and SUPER_USER a normal role and user
+2. Fix counter example module (once for all)
+3. Fix translation module for PRECISE things
+3. Preventing input error (reject) (fix vac.sh)

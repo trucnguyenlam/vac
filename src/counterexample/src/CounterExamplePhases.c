@@ -4,6 +4,8 @@
 #include "ARBACData.h"
 #include "CounterExample.h"
 
+int debug = 0;
+
 // Get role name from the index
 static char *
 get_role(int role_index)
@@ -20,62 +22,26 @@ get_role(int role_index)
     {
         return "removed_role";
     }
+    if (role_index >= role_array_size)
+    {
+        return "OUTBOUNDED_ROLE";
+    }
     return role_array[role_index];
 }
 
-// Debugging purpose
-// static void
-// print_ca_debug(int ca_index)
-// {
-//     int j, has_head = 0;
-//     // Check for the precondition of each role
-//     if (ca_array[ca_index].type == 0)
-//     {
-//         printf("<%s,", get_role(ca_array[ca_index].admin_role_index));
-//         for (j = 0; j < ca_array[ca_index].positive_role_array_size; j++)
-//         {
-//             if (ca_array[ca_index].positive_role_array[j] != -13)
-//             {
-//                 if (has_head)
-//                 {
-//                     printf("&%s", get_role(ca_array[ca_index].positive_role_array[j]));
-//                 }
-//                 else
-//                 {
-//                     printf("%s", get_role(ca_array[ca_index].positive_role_array[j]));
-//                     has_head = 1;
-//                 }
-//             }
-//         }
-
-//         for (j = 0; j < ca_array[ca_index].negative_role_array_size; j++)
-//         {
-//             if (ca_array[ca_index].negative_role_array[j] != -13)
-//             {
-//                 if (has_head)
-//                 {
-//                     printf("&-%s", get_role(ca_array[ca_index].negative_role_array[j]));
-//                 }
-//                 else
-//                 {
-//                     printf("-%s", get_role(ca_array[ca_index].negative_role_array[j]));
-//                     has_head = 1;
-//                 }
-//             }
-//         }
-//         printf(",%s> ", get_role(ca_array[ca_index].target_role_index));
-//         has_head = 0;
-//     }
-//     else if (ca_array[ca_index].type == 1)
-//     {
-//         printf("<%s,TRUE,%s> ", get_role(ca_array[ca_index].admin_role_index), get_role(ca_array[ca_index].target_role_index));
-//     }
-//     else if (ca_array[ca_index].type == 2)
-//     {
-//         printf("<%s,NEW,%s> ", get_role(ca_array[ca_index].admin_role_index), get_role(ca_array[ca_index].target_role_index));
-//     }
-//     printf("\n");
-// }
+static char *
+get_user(int user_index)
+{
+    if (user_index == -1)
+    {
+        return "NEW_USER";
+    }
+    if (user_index >= user_array_size)
+    {
+        return "OUTBOUNDED_USER";
+    }
+    return user_array[user_index];
+}
 
 // Check if an element belong to an array
 static int
@@ -202,7 +168,7 @@ print_no_counter_example(FILE *outputFILE)
     {
         if (goal_user_index == -1)
         {
-            fprintf(outputFILE, "NEW USER cannot reach %s.\n", role_array[goal_role_index]);
+            fprintf(outputFILE, "NEW_USER cannot reach %s.\n", role_array[goal_role_index]);
         }
         else
         {
@@ -220,24 +186,29 @@ print_cant_find_counter_example(FILE *outputFILE)
 
 // Print counter example result
 static void
-print_result_trace(Trace *trace, int trace_size, FILE *outputFILE)
+print_trace(Trace *trace, int trace_size, FILE *outputFILE)
 {
     int i, j, flag = 0;
     fprintf(outputFILE, "Counter Example Trace:\n");
 
+    if (trace_array_size == 0)
+    {
+        fprintf(outputFILE, "error: Empty counter example trace.\n");
+    }
+
     if (hasGoalUserMode)
     {
-        fprintf(outputFILE, "Specification of query: Can %s REACH %s ?\n\n", trace[0].admin_track_user, role_array[goal_role_index]);
+        fprintf(outputFILE, "Specification of query: Can %s REACH %s ?\n\n", trace[trace_size - 1].target_user, get_role(goal_role_index));
     }
     else
     {
-        fprintf(outputFILE, "Role to check REACHABILITY: %s\n\n", role_array[goal_role_index]);
+        fprintf(outputFILE, "Role to check REACHABILITY: %s\n\n", get_role(goal_role_index));
     }
 
-    for (i = 1; i < trace_size; i++)
+    for (i = 0; i < trace_size; i++)
     {
-        fprintf(outputFILE, "==> Step %d:\n", i);
-        fprintf(outputFILE, "Target User: %s\n", trace[0].admin_track_user);
+        fprintf(outputFILE, "==> Step %d:\n", i + 1);
+        fprintf(outputFILE, "Target User: %s\n", trace[i].target_user);
         if (trace[i].rule_type == 0)
         {
             fprintf(outputFILE, "CAN ASSIGN ");
@@ -246,15 +217,16 @@ print_result_trace(Trace *trace, int trace_size, FILE *outputFILE)
         {
             fprintf(outputFILE, "CAN REVOKE ");
         }
-        fprintf(outputFILE, "rule applied to %s: ", trace[0].admin_track_user);
+        fprintf(outputFILE, "rule applied to %s: ", trace[i].target_user);
         print_rule(trace[i].rule_number, trace[i].rule_type, outputFILE);
-        fprintf(outputFILE, "\nAdministrative user to invoke the rule: %s", trace[i].admin_track_user);
-        fprintf(outputFILE, "\nRole configuration of %s before applying rule:", trace[0].admin_track_user);
-        for (j = 0; j < trace[i - 1].config_array_size; j++)
+        fprintf(outputFILE, "\nAdministrative user to invoke the rule: %s", trace[i].administrative_user);
+
+        fprintf(outputFILE, "\nRole configuration of %s before applying rule:", trace[i].target_user);
+        for (j = 0; j < trace[i].config_array_before_size; j++)
         {
-            if (trace[i - 1].config_array[j] != -13)
+            if (trace[i].config_array_before[j] != -13)
             {
-                fprintf(outputFILE, " %s", role_array[trace[i - 1].config_array[j]]);
+                fprintf(outputFILE, " %s", get_role(trace[i].config_array_before[j]));
                 flag = 1;
             }
         }
@@ -263,12 +235,14 @@ print_result_trace(Trace *trace, int trace_size, FILE *outputFILE)
             fprintf(outputFILE, " No role");
         }
         flag = 0;
-        fprintf(outputFILE, "\nRole configuration of %s after applying rule:", trace[0].admin_track_user);
+
+        fprintf(outputFILE, "\nRole configuration of %s after applying rule:", trace[i].target_user);
+
         for (j = 0; j < trace[i].config_array_size; j++)
         {
             if (trace[i].config_array[j] != -13)
             {
-                fprintf(outputFILE, " %s", role_array[trace[i].config_array[j]]);
+                fprintf(outputFILE, " %s", get_role(trace[i].config_array[j]));
                 flag = 1;
             }
         }
@@ -279,15 +253,51 @@ print_result_trace(Trace *trace, int trace_size, FILE *outputFILE)
         flag = 0;
         fprintf(outputFILE, "\n\n");
     }
-    fprintf(outputFILE, "%s can REACH %s\n", trace[0].admin_track_user, role_array[goal_role_index]);
+    fprintf(outputFILE, "%s can REACH %s\n", trace[trace_size - 1].target_user, role_array[goal_role_index]);
     fprintf(outputFILE, "%s is REACHABLE\n", role_array[goal_role_index]);
+}
+
+// Print counter example result
+static void
+print_trace_special(FILE *outputFILE)
+{
+    int i, j;
+    fprintf(outputFILE, "Counter Example Trace:\n");
+
+    if (hasGoalUserMode)
+    {
+        fprintf(outputFILE, "Specification of query: Can %s REACH %s ?\n\n", get_user(goal_user_index), get_role(goal_role_index));
+        for (i = 0; i < ua_array_size; i++)
+        {
+            if (ua_array[i].user_index == goal_user_index && ua_array[i].role_index == goal_role_index)
+            {
+                fprintf(outputFILE, "==> %s already REACH in initial configuration\n", get_role(goal_role_index));
+                return;
+            }
+        }
+    }
+    else
+    {
+        fprintf(outputFILE, "Role to check REACHABILITY: %s\n\n", get_role(goal_role_index));
+        for (i = 0; i < ua_array_size; i++)
+        {
+            if (ua_array[i].role_index == goal_role_index)
+            {
+                fprintf(outputFILE, "==> %s already REACH in initial configuration\n", get_role(goal_role_index));
+                return;
+            }
+        }
+    }
 }
 
 /*===============================================================
  PHASE 1 : Produce Counter Example from Simplified ARBAC Policies
  ================================================================*/
+/**
+ * Search on CBMCAssignment Array to find the line number
+ */
 static int
-binary_search1(CBMCAssignment *array, int array_size, int value)
+find_assignment_index_via_line(CBMCAssignment *array, int array_size, int value)
 {
     int start = 0, end = array_size - 1, mid;
     if (value > array[end].line)
@@ -314,7 +324,7 @@ binary_search1(CBMCAssignment *array, int array_size, int value)
 }
 
 static int
-binary_search2(Configuration_user *array, int array_size, int value)
+get_realuser_index_via_line(Configuration_user *array, int array_size, int value)
 {
     int start = 0, end = array_size - 1, mid;
     if (value > array[end].line)
@@ -341,7 +351,7 @@ binary_search2(Configuration_user *array, int array_size, int value)
 }
 
 static int
-binary_search3(RuleTranslated *array, int array_size, int value)
+find_real_rule_index_via_line(RuleTranslated *array, int array_size, int value)
 {
     int start = 0, end = array_size - 1, mid;
     if (value > array[end].line)
@@ -382,7 +392,7 @@ get_real_user_index_from_track_index(int track_user)
 }
 
 static char *
-find_admin_user(int rule_number, int rule_type)
+find_administrative_user(int rule_number, int rule_type)
 {
     int admin_role_index, i;
     // Find real admin
@@ -402,7 +412,21 @@ find_admin_user(int rule_number, int rule_type)
             return strdup(user_translated_array[i].user_name);
         }
     }
-    return strdup("No way!!!");
+    return strdup("SUPER_USER");
+}
+
+static char *
+find_target_user(int track_user_index)
+{
+    int i;
+    for (i = 0; i < user_translated_array_size; i++)
+    {
+        if (track_user_index ==  user_translated_array[i].track_user)
+        {
+            return strdup(user_translated_array[i].user_name);
+        }
+    }
+    return strdup("INVALID_USER");
 }
 
 static void
@@ -463,10 +487,13 @@ free_first_phase_data()
     free_ARBAC_data();
 }
 
+int original_goal_role_index = 0;
+
 static int
 preprocess_ARBAC()
 {
     int return_val = role_array_size;
+    original_goal_role_index = goal_role_index;
     if (hasGoalUserMode)
     {
         // Add a specific role name ToCheckRole to that specific user
@@ -500,7 +527,35 @@ preprocess_ARBAC()
         ca_array[ca_array_size - 1].positive_role_array[1] = goal_role_index;
         goal_role_index = role_array_size - 1;
     }
-    return return_val;
+    return original_goal_role_index;
+}
+
+static int
+find_real_user_from_SUPER_USER(void)
+{
+    int i;
+    for (i = 0; i < user_map_array_size; i++)
+    {
+        if (user_map_array[i] == -10)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static int
+find_trace_index_same_user(Trace * trace, int trace_size, char* user_name)
+{
+    int i;
+    for (i = trace_size - 1; i >= 0; i--)
+    {
+        if (strcmp(user_name, trace[i].target_user) == 0)
+        {
+            return i;
+        }
+    }
+    return i;
 }
 
 static void
@@ -508,201 +563,277 @@ postprocess_counter_example_trace(int ToCheckRole_index)
 {
     if (hasGoalUserMode)
     {
-        // Remove last Trace
-        free(trace_array[trace_array_size - 1].admin_track_user);
-        free(trace_array[trace_array_size - 1].config_array);
-        trace_array_size--;
+        int trace_index = find_trace_index_same_user(trace_array, trace_array_size - 1 , trace_array[trace_array_size - 1].target_user);
+
+        if (trace_index == -1)
+        {
+            // There is only one chance when this happen, a NEW_USER with role as the target
+            int i;
+            for (i = 0; i < trace_array_size; i++)
+            {
+                int index = belong_to(trace_array[i].config_array, trace_array[i].config_array_size, ToCheckRole_index);
+                if (index != -1)
+                {
+                    trace_array[i].config_array[index] = -13; // Mark as removal
+                }
+                index = belong_to(trace_array[i].config_array_before, trace_array[i].config_array_before_size, ToCheckRole_index);
+                if (index != -1)
+                {
+                    trace_array[i].config_array_before[index] = -13; // Mark as removal
+                }
+            }
+            return;
+        }
+
+        int i;
+        for (i = trace_array_size - 1; i > trace_index; i--)
+        {
+            // Remove last Trace
+            free(trace_array[i].administrative_user);
+            free(trace_array[i].target_user);
+            free(trace_array[i].config_array);
+            free(trace_array[i].config_array_before);
+        }
+
+        trace_array_size = trace_index + 1;
         trace_array = realloc(trace_array, trace_array_size * sizeof(Trace));
 
         // Remove from the trace array all the configuration that has ToCheckRole
-        int i;
         for (i = 0; i < trace_array_size; i++)
         {
             int index = belong_to(trace_array[i].config_array, trace_array[i].config_array_size, ToCheckRole_index);
-            if (index != -1) // Of course
+            if (index != -1)
             {
                 trace_array[i].config_array[index] = -13; // Mark as removal
+            }
+            index = belong_to(trace_array[i].config_array_before, trace_array[i].config_array_before_size, ToCheckRole_index);
+            if (index != -1)
+            {
+                trace_array[i].config_array_before[index] = -13; // Mark as removal
             }
         }
     }
 }
 
-// Produce counter example from the simplify ARBAC file
+
+int reached_initially = 0;
+int countNEWAlready = 0;
+
+/**
+ * Produce Counter Example from XML CBMC, TRANSLATED FILE, SIMPLIFIED FILE
+ */
 static void
-produce_counter_example(FILE *outputFILE)
+produce_counter_example(FILE *outputFILE, int silence)
 {
     int i, j, flag = 0, invalid_rule = 0;
-    int tracked_user_index = 0, ToCheckRole_index;
-    int target_translated_user_index;
-    char *goal_user = 0;
+    int ToCheckRole_index;
     int init_lim_index, config_lim_index;
 
-    // Do preprocess
+    // Do preprocess to identify what is the role to check for reachability
     ToCheckRole_index = preprocess_ARBAC();
 
-    int *listed_users = 0;
-    int listed_users_size = 0;
+    fprintf(debugFile, "ToCheckRole_index is %d\n", ToCheckRole_index);
 
     user_translated_array = 0;
     user_translated_array_size = 0;
+
+    // Store the trace of execution (CA or CR)
     trace_array = 0;
     trace_array_size = 0;
 
-    init_lim_index = binary_search1(assignment_array, assignment_array_size, initialize_lim);
-    config_lim_index = binary_search1(assignment_array, assignment_array_size, configuration_lim);
+    // Find limit line number of INITIALIZATIION, initialize_lim is the last line of INIT
+    init_lim_index = find_assignment_index_via_line(assignment_array, assignment_array_size, initialize_lim);
+    fprintf(debugFile, "Limit INDEX of INITIALIZATIION is %d\n", init_lim_index);
 
-    // Find the user (tracked) who reached the goal
-    for (i = assignment_array_size - 1; i >= config_lim_index; i--)
-    {
-        if (assignment_array[i].value == 1 && strcmp(assignment_array[i].role, role_array[goal_role_index]) == 0)
-        {
-            tracked_user_index = assignment_array[i].track_user;
-            break;
-        }
-    }
+    // Find limit line number of CONFIGURATION USER, configuration_lim is the last line of CONFIG
+    config_lim_index = find_assignment_index_via_line(assignment_array, assignment_array_size, configuration_lim);
+    fprintf(debugFile, "Limit INDEX of CONFIGURATION USER is line %d\n", config_lim_index);
 
-    // Get all user configuration
+    // Get all user configuration (now include new user here, which will be in the trace
     for (i = init_lim_index + 1; i <= config_lim_index; i++)
     {
-        if (assignment_array[i].value == 1)
+        if (assignment_array[i].value == 1)    // if there is any assignment to track user
         {
-            j = binary_search2(user_configuration_array, user_configuration_array_size, assignment_array[i].line);
+            j = get_realuser_index_via_line(user_configuration_array, user_configuration_array_size, assignment_array[i].line);
+
+            fprintf(debugFile, "line %d and realuser is %d\n", assignment_array[i].line, j);
 
             if (j != -1)
             {
-                listed_users_size++;
-                listed_users = realloc(listed_users, listed_users_size * sizeof(int));
-                listed_users[listed_users_size - 1] = j;
                 int index = get_real_user_index_from_track_index(assignment_array[i].track_user);
+                fprintf(debugFile, "Get real index %d from track user %d\n", index, assignment_array[i].track_user);
+
                 if (index == -1)
                 {
+                    // Create a new user which associated everything (from track_user to username)
                     user_translated_array_size++;
                     user_translated_array = realloc(user_translated_array, user_translated_array_size * sizeof(Translated_user));
                     user_translated_array[user_translated_array_size - 1].track_user = assignment_array[i].track_user;
+
                     user_translated_array[user_translated_array_size - 1].user_name = malloc(strlen(user_configuration_array[j].user_name) + 1);
                     strcpy(user_translated_array[user_translated_array_size - 1].user_name, user_configuration_array[j].user_name);
+
                     user_translated_array[user_translated_array_size - 1].config_array_size = 0;
                     user_translated_array[user_translated_array_size - 1].config_array = 0;
-                    user_translated_array[user_translated_array_size - 1].config_array_size++;
-                    user_translated_array[user_translated_array_size - 1].config_array = realloc(user_translated_array[user_translated_array_size - 1].config_array,
-                            user_translated_array[user_translated_array_size - 1].config_array_size * sizeof(int));
-                    user_translated_array[user_translated_array_size - 1].config_array[user_translated_array[user_translated_array_size - 1].config_array_size - 1] = get_role_index(role_array,
-                            role_array_size, assignment_array[i].role);
+                    if (assignment_array[i].type == 0)
+                    {
+                        user_translated_array[user_translated_array_size - 1].config_array_size = 1;
+                        user_translated_array[user_translated_array_size - 1].config_array = malloc(sizeof(int));
+                        user_translated_array[user_translated_array_size - 1].config_array[0] = get_role_index(role_array, role_array_size, assignment_array[i].role);
+                    }
                 }
-                else
+                else    // Already in the list
                 {
-                    user_translated_array[index].config_array_size++;
-                    user_translated_array[index].config_array = realloc(user_translated_array[index].config_array, user_translated_array[index].config_array_size * sizeof(int));
-                    user_translated_array[index].config_array[user_translated_array[index].config_array_size - 1] = get_role_index(role_array, role_array_size, assignment_array[i].role);
+                    // Add role to the init configuration of this user
+                    if (assignment_array[i].type == 0)
+                    {
+                        user_translated_array[index].config_array_size++;
+                        user_translated_array[index].config_array = realloc(user_translated_array[index].config_array, user_translated_array[index].config_array_size * sizeof(int));
+                        user_translated_array[index].config_array[user_translated_array[index].config_array_size - 1] = get_role_index(role_array, role_array_size, assignment_array[i].role);
+                    }
+                }
+
+                if (
+                    assignment_array[i].type == 0
+                    && strstr(user_configuration_array[j].user_name, "NEW_USER") != NULL
+                    && strcmp(user_configuration_array[j].user_name, "NEW_USER") != 0
+                )
+                {
+                    countNEWAlready = 1;
+
+                    char * administrative_user = find_administrative_user(user_configuration_array[j].rule_index, 0);
+                    // Create trace for each new user
+                    trace_array_size++;
+                    trace_array = realloc(trace_array, trace_array_size * sizeof(Trace));
+
+                    trace_array[trace_array_size - 1].rule_number = user_configuration_array[j].rule_index;
+                    trace_array[trace_array_size - 1].rule_type = 0;
+
+                    trace_array[trace_array_size - 1].administrative_user = administrative_user;
+
+                    trace_array[trace_array_size - 1].target_user = malloc(strlen(user_configuration_array[j].user_name) + 1);
+                    strcpy(trace_array[trace_array_size - 1].target_user, user_configuration_array[j].user_name);
+
+                    // User configuration before applying the rule
+                    trace_array[trace_array_size - 1].config_array_before_size = 0;
+                    trace_array[trace_array_size - 1].config_array_before = 0;
+
+                    trace_array[trace_array_size - 1].config_array_size = 1;
+                    trace_array[trace_array_size - 1].config_array = malloc(sizeof(int));
+                    trace_array[trace_array_size - 1].config_array[0] = get_role_index(role_array, role_array_size, assignment_array[i].role);
+                }
+                else if (
+                    assignment_array[i].type == 0
+                    && get_role_index(role_array, role_array_size, assignment_array[i].role) == original_goal_role_index
+                )
+                {
+                    reached_initially = 1;
+                    goto END;
                 }
             }
-            // Find real target user name
-            if (assignment_array[i].track_user == tracked_user_index && !flag)
-            {
-                goal_user = malloc(strlen(user_configuration_array[j].user_name) + 1);
-                strcpy(goal_user, user_configuration_array[j].user_name);
-                flag = 1;
-            }
         }
     }
-
-    // Cannot find from the assignment above
-    if (goal_user == 0)
-    {
-        // Create an additional translated user
-        for (i = 0; i < user_configuration_array_size; i++)
-        {
-            if (belong_to(listed_users, listed_users_size, i) == -1)
-            {
-                flag = i;
-                break;
-            }
-        }
-        goal_user = malloc(strlen(user_configuration_array[flag].user_name) + 1);
-        strcpy(goal_user, user_configuration_array[flag].user_name);
-        user_translated_array_size++;
-        user_translated_array = realloc(user_translated_array, user_translated_array_size * sizeof(Translated_user));
-        user_translated_array[user_translated_array_size - 1].track_user = tracked_user_index;
-        user_translated_array[user_translated_array_size - 1].user_name = malloc(strlen(goal_user) + 1);
-        strcpy(user_translated_array[user_translated_array_size - 1].user_name, goal_user);
-        user_translated_array[user_translated_array_size - 1].config_array_size = 0;
-        user_translated_array[user_translated_array_size - 1].config_array = 0;
-    }
-    free(listed_users);
-
-    target_translated_user_index = get_real_user_index_from_track_index(tracked_user_index);
-    trace_array_size++;
-    trace_array = realloc(trace_array, trace_array_size * sizeof(Trace));
-    trace_array[trace_array_size - 1].admin_track_user = malloc(strlen(goal_user) + 1);
-    strcpy(trace_array[trace_array_size - 1].admin_track_user, goal_user);
-    trace_array[trace_array_size - 1].config_array_size = user_translated_array[target_translated_user_index].config_array_size;
-    trace_array[trace_array_size - 1].config_array = 0;
-    trace_array[trace_array_size - 1].config_array = malloc(trace_array[trace_array_size - 1].config_array_size * sizeof(int));
-    memcpy(trace_array[trace_array_size - 1].config_array, user_translated_array[target_translated_user_index].config_array, trace_array[trace_array_size - 1].config_array_size * sizeof(int));
 
     // Show the evolution of the track user in the simulation
     for (i = config_lim_index + 1; i < assignment_array_size; i++)
     {
         // Simulate the assignment for track variable
-        int index = get_real_user_index_from_track_index(assignment_array[i].track_user);
-        if (index != -1)
+        if (assignment_array[i].type == 0)   // Rule assignment (not b_* = something)
         {
-            if (assignment_array[i].value == 1) // Assign
+            int index = get_real_user_index_from_track_index(assignment_array[i].track_user);
+            fprintf(debugFile, "Track user is %d and index is %d\n", assignment_array[i].track_user, index);
+            if (index != -1)
             {
-                user_translated_array[index].config_array_size++;
-                user_translated_array[index].config_array = realloc(user_translated_array[index].config_array, user_translated_array[index].config_array_size * sizeof(int));
-                user_translated_array[index].config_array[user_translated_array[index].config_array_size - 1] = get_role_index(role_array, role_array_size, assignment_array[i].role);
-            }
-            if (assignment_array[i].value == 0) // Revoke
-            {
-                int role_index_target = belong_to(user_translated_array[index].config_array, user_translated_array[index].config_array_size, get_role_index(role_array, role_array_size, assignment_array[i].role));
-                if (role_index_target != -1)
+                // Create a trace for this invocation
+                // Find the rule number
+                int rule_translated_index = find_real_rule_index_via_line(rule_translated_array, rule_translated_array_size, assignment_array[i].line);
+                if (rule_translated_index != -1)
                 {
-                    user_translated_array[index].config_array[role_index_target] = -13; // Deleted
-                }
-                else // Wrong assignment
-                {
-                    invalid_rule = 1;
-                }
-            }
+                    trace_array_size++;
+                    trace_array = realloc(trace_array, trace_array_size * sizeof(Trace));
 
-            // Copy configuration to trace data
-            if (assignment_array[i].track_user == tracked_user_index)
-            {
-                if (invalid_rule != 1)
-                {
-                    // Find the rule number
-                    int rule_translated_index = binary_search3(rule_translated_array, rule_translated_array_size, assignment_array[i].line);
-                    if (rule_translated_index != -1)
+                    trace_array[trace_array_size - 1].rule_number = rule_translated_array[rule_translated_index].rule_number;
+                    trace_array[trace_array_size - 1].rule_type = rule_translated_array[rule_translated_index].rule_type;
+
+                    trace_array[trace_array_size - 1].administrative_user = find_administrative_user(trace_array[trace_array_size - 1].rule_number, trace_array[trace_array_size - 1].rule_type);
+                    trace_array[trace_array_size - 1].target_user = find_target_user(assignment_array[i].track_user);
+
+                    // User configuration before applying the rule
+                    trace_array[trace_array_size - 1].config_array_before_size = user_translated_array[index].config_array_size;
+                    trace_array[trace_array_size - 1].config_array_before = malloc(trace_array[trace_array_size - 1].config_array_before_size * sizeof(int));
+                    memcpy(trace_array[trace_array_size - 1].config_array_before, user_translated_array[index].config_array, trace_array[trace_array_size - 1].config_array_before_size * sizeof(int));
+
+                    // Assignment rule
+                    if (assignment_array[i].value == 1)
                     {
-                        trace_array_size++;
-                        trace_array = realloc(trace_array, trace_array_size * sizeof(Trace));
-                        trace_array[trace_array_size - 1].rule_number = rule_translated_array[rule_translated_index].rule_number;
-                        trace_array[trace_array_size - 1].rule_type = rule_translated_array[rule_translated_index].rule_type;
-                        trace_array[trace_array_size - 1].admin_track_user = find_admin_user(trace_array[trace_array_size - 1].rule_number, trace_array[trace_array_size - 1].rule_type);
-                        trace_array[trace_array_size - 1].config_array_size = user_translated_array[target_translated_user_index].config_array_size;
-                        trace_array[trace_array_size - 1].config_array = malloc(trace_array[trace_array_size - 1].config_array_size * sizeof(int));
-                        memcpy(trace_array[trace_array_size - 1].config_array, user_translated_array[target_translated_user_index].config_array,
-                               trace_array[trace_array_size - 1].config_array_size * sizeof(int));
-                        if (trace_array[trace_array_size - 1].rule_type == 0)
+                        // Add role to configuration of that user
+                        user_translated_array[index].config_array_size++;
+                        user_translated_array[index].config_array = realloc(user_translated_array[index].config_array, user_translated_array[index].config_array_size * sizeof(int));
+                        user_translated_array[index].config_array[user_translated_array[index].config_array_size - 1] = get_role_index(role_array, role_array_size, assignment_array[i].role);
+
+                    }
+                    else if (assignment_array[i].value == 0) // Revocation rule
+                    {
+                        int role_index_target = belong_to(user_translated_array[index].config_array, user_translated_array[index].config_array_size, get_role_index(role_array, role_array_size, assignment_array[i].role));
+                        if (role_index_target != -1)   // If this is a valid role
                         {
-                            if (ca_array[trace_array[trace_array_size - 1].rule_number].target_role_index == goal_role_index)
-                            {
-                                break;
-                            }
+                            user_translated_array[index].config_array[role_index_target] = -13; // Deleted
+                        }
+                        else // Wrong rovocation
+                        {
+                            invalid_rule = 1;
                         }
                     }
+                    if (!invalid_rule)
+                    {
+                        // Copy user configuration to the trace
+                        trace_array[trace_array_size - 1].config_array_size = user_translated_array[index].config_array_size;
+                        trace_array[trace_array_size - 1].config_array = malloc(trace_array[trace_array_size - 1].config_array_size * sizeof(int));
+                        memcpy(trace_array[trace_array_size - 1].config_array, user_translated_array[index].config_array, trace_array[trace_array_size - 1].config_array_size * sizeof(int));
+                    }
+                    else
+                    {
+                        fprintf(stderr, "error: there is some thing wrong with the counter example from CBMC\n");
+                        abort();
+                    }
                 }
+                else
+                {
+                    fprintf(stderr, "error: there is some problem with the counter example\n");
+                    abort();
+                }
+
+                if (trace_array[trace_array_size - 1].rule_type == 0)
+                {
+                    // Stop if it stop at goal role
+                    if (ca_array[trace_array[trace_array_size - 1].rule_number].target_role_index == goal_role_index)
+                    {
+                        break;
+                    }
+                }
+
+            }
+            else
+            {
+                fprintf(stderr, "error: there is some problem with the counter example\n");
+                abort();
             }
         }
         invalid_rule = 0;
     }
 
-    // print_result_trace(trace_array, trace_array_size, stdout);
+    if (debug)
+    {
+        print_trace(trace_array, trace_array_size, stdout);
+    }
 
     postprocess_counter_example_trace(ToCheckRole_index);
+    if (!silence)
+    {
+        print_trace(trace_array, trace_array_size, outputFILE);
+    }
 
-    free(goal_user);
+END:
     free_first_phase_data();
 }
 
@@ -728,10 +859,10 @@ array_subset_of(int *array1, int array1_size, int *array2, int array2_size)
 }
 
 static int
-check_condition_for_new_ca(int config_array_size)
+check_precondition_NEW_CA(int config_array_size, char * target_user)
 {
     int i;
-    if (strcmp(original_trace_array[0].admin_track_user, "NEW_USER") != 0)
+    if (strstr(target_user, "NEW_USER") == NULL)
     {
         return 0;
     }
@@ -747,7 +878,7 @@ check_condition_for_new_ca(int config_array_size)
 
 // Check if a user configuration satisfy the precondition
 static int
-check_condition_for_ca(int ca_index, int *config_array, int config_array_size)
+check_precondition_CA(int ca_index, int *config_array, int config_array_size, char* target_user)
 {
     int i;
 
@@ -760,7 +891,7 @@ check_condition_for_ca(int ca_index, int *config_array, int config_array_size)
     // NEW in precondition
     if (ca_array[ca_index].type == 2)
     {
-        return check_condition_for_new_ca(config_array_size);
+        return check_precondition_NEW_CA(config_array_size, target_user);
     }
 
     if (!array_subset_of(ca_array[ca_index].positive_role_array, ca_array[ca_index].positive_role_array_size, config_array, config_array_size))
@@ -791,6 +922,21 @@ get_admin_user_index(int admin_role_index)
     return -1;
 }
 
+static char *
+find_admin_user_from_trace(Trace * trace, int trace_size, int admin_role_index)
+{
+    int i;
+    for (i = trace_size - 1; i >= 0; i--)
+    {
+        if (belong_to(trace[i].config_array, trace[i].config_array_size, admin_role_index) != -1)
+        {
+            return strdup(trace[i].target_user);
+        }
+    }
+    return strdup("SUPER_USER");
+}
+
+
 static int
 get_original_rule_index(int simplify_rule_index, int simplify_rule_type)
 {
@@ -806,77 +952,254 @@ get_original_rule_index(int simplify_rule_index, int simplify_rule_type)
 }
 
 static void
-generate_trace_ca_rule(int rule_index)
+generate_trace_CA(Trace t)
 {
-    original_trace_array_size++;
-    original_trace_array = realloc(original_trace_array, original_trace_array_size * sizeof(Trace));
-    original_trace_array[original_trace_array_size - 1].rule_number = rule_index;
-    original_trace_array[original_trace_array_size - 1].rule_type = 0;
-    int admin_index = get_admin_user_index(ca_array[rule_index].admin_role_index);
-    if (admin_index == -1)
+    int * temp_config_array = 0;
+    int temp_config_array_size = 0;
+
+    int trace_index = find_trace_index_same_user(original_trace_array, original_trace_array_size, t.target_user);
+    if (trace_index == -1)   // First time this user show up on the trace
     {
-        original_trace_array[original_trace_array_size - 1].admin_track_user = 0;
-        original_trace_array[original_trace_array_size - 1].admin_track_user = malloc(strlen(original_trace_array[0].admin_track_user) + 1);
-        strcpy(original_trace_array[original_trace_array_size - 1].admin_track_user, original_trace_array[0].admin_track_user);
+        temp_config_array = 0;
+        temp_config_array_size = 0;
+
+        int user_index = find_user_from_dict(t.target_user);
+        if (user_index > -1)    // Super user
+        {
+            int y;
+            for (y = 0; y < ua_array_size; y++)
+            {
+                if (ua_array[y].user_index == user_index)
+                {
+                    temp_config_array_size++;
+                    temp_config_array = realloc(temp_config_array, temp_config_array_size * sizeof(int));
+                    temp_config_array[temp_config_array_size - 1] = ua_array[y].role_index;
+                }
+            }
+        }
     }
     else
     {
-        original_trace_array[original_trace_array_size - 1].admin_track_user = 0;
-        original_trace_array[original_trace_array_size - 1].admin_track_user = malloc(strlen(user_array[admin_index]) + 1);
-        strcpy(original_trace_array[original_trace_array_size - 1].admin_track_user, user_array[admin_index]);
+        temp_config_array_size = original_trace_array[trace_index].config_array_size;
+        temp_config_array = original_trace_array[trace_index].config_array;
     }
-    original_trace_array[original_trace_array_size - 1].config_array_size = original_trace_array[original_trace_array_size - 2].config_array_size;
-    original_trace_array[original_trace_array_size - 1].config_array = 0;
-    original_trace_array[original_trace_array_size - 1].config_array = malloc(original_trace_array[original_trace_array_size - 1].config_array_size * sizeof(int));
-    memcpy(original_trace_array[original_trace_array_size - 1].config_array, original_trace_array[original_trace_array_size - 2].config_array,
-           original_trace_array[original_trace_array_size - 1].config_array_size * sizeof(int));
 
-    original_trace_array[original_trace_array_size - 1].config_array_size++;
-    original_trace_array[original_trace_array_size - 1].config_array = realloc(original_trace_array[original_trace_array_size - 1].config_array,
-            original_trace_array[original_trace_array_size - 1].config_array_size * sizeof(int));
-    original_trace_array[original_trace_array_size - 1].config_array[original_trace_array[original_trace_array_size - 1].config_array_size - 1] = ca_array[rule_index].target_role_index;
+    int administrative_user_index = get_admin_user_index(ca_array[t.rule_number].admin_role_index);
+    char * admin_user = 0;
+    if (administrative_user_index == -1) // Cannot find administrative user
+    {
+        admin_user = find_admin_user_from_trace(original_trace_array, original_trace_array_size, ca_array[t.rule_number].admin_role_index);
+    }
+    else
+    {
+        admin_user = user_array[administrative_user_index];
+    }
+
+    original_trace_array_size++;
+    original_trace_array = realloc(original_trace_array, original_trace_array_size * sizeof(Trace));
+
+    original_trace_array[original_trace_array_size - 1].rule_number = t.rule_number;
+    original_trace_array[original_trace_array_size - 1].rule_type = 0;  // CAN ASSIGN RULE
+
+    original_trace_array[original_trace_array_size - 1].target_user = malloc(strlen(t.target_user) + 1);
+    strcpy(original_trace_array[original_trace_array_size - 1].target_user, t.target_user);
+
+    original_trace_array[original_trace_array_size - 1].administrative_user = malloc(strlen(admin_user) + 1);
+    strcpy(original_trace_array[original_trace_array_size - 1].administrative_user, admin_user);
+
+    // Previous configuration
+    original_trace_array[original_trace_array_size - 1].config_array_before_size = temp_config_array_size;
+    original_trace_array[original_trace_array_size - 1].config_array_before = malloc(original_trace_array[original_trace_array_size - 1].config_array_before_size * sizeof(int));
+    memcpy(original_trace_array[original_trace_array_size - 1].config_array_before, temp_config_array, original_trace_array[original_trace_array_size - 1].config_array_before_size * sizeof(int));
+
+    original_trace_array[original_trace_array_size - 1].config_array_size = original_trace_array[original_trace_array_size - 1].config_array_before_size + 1;
+    original_trace_array[original_trace_array_size - 1].config_array = malloc(original_trace_array[original_trace_array_size - 1].config_array_size * sizeof(int));
+    int i;
+    for (i = 0; i < original_trace_array[original_trace_array_size - 1].config_array_before_size; i++)
+    {
+        original_trace_array[original_trace_array_size - 1].config_array[i] = original_trace_array[original_trace_array_size - 1].config_array_before[i];
+    }
+    original_trace_array[original_trace_array_size - 1].config_array[i] = ca_array[t.rule_number].target_role_index;
 }
 
 static void
-generate_trace_cr_rule(int rule_index)
+generate_trace_CA_version2(int rule_number, char* target_user)
 {
-    int role_target_index = belong_to(original_trace_array[original_trace_array_size - 1].config_array, original_trace_array[original_trace_array_size - 1].config_array_size,
-                                      cr_array[rule_index].target_role_index);
+    int * temp_config_array = 0;
+    int temp_config_array_size = 0;
+
+    int trace_index = find_trace_index_same_user(original_trace_array, original_trace_array_size, target_user);
+    if (trace_index == -1)   // First time this user show up on the trace
+    {
+        temp_config_array = 0;
+        temp_config_array_size = 0;
+
+        int user_index = find_user_from_dict(target_user);
+        if (user_index > -1)    // Super user
+        {
+            int y;
+            for (y = 0; y < ua_array_size; y++)
+            {
+                if (ua_array[y].user_index == user_index)
+                {
+                    temp_config_array_size++;
+                    temp_config_array = realloc(temp_config_array, temp_config_array_size * sizeof(int));
+                    temp_config_array[temp_config_array_size - 1] = ua_array[y].role_index;
+                }
+            }
+        }
+    }
+    else
+    {
+        temp_config_array = original_trace_array[trace_index].config_array;
+        temp_config_array_size = original_trace_array[trace_index].config_array_size;
+    }
+
+    int administrative_user_index = get_admin_user_index(ca_array[rule_number].admin_role_index);
+    char * admin_user;
+    if (administrative_user_index == -1) // Cannot find administrative user
+    {
+        admin_user = find_admin_user_from_trace(original_trace_array, original_trace_array_size, ca_array[rule_number].admin_role_index);
+    }
+    else
+    {
+        admin_user = user_array[administrative_user_index];
+    }
+
+    original_trace_array_size++;
+    original_trace_array = realloc(original_trace_array, original_trace_array_size * sizeof(Trace));
+    original_trace_array[original_trace_array_size - 1].rule_number = rule_number;
+    original_trace_array[original_trace_array_size - 1].rule_type = 0;  // CAN ASSIGN RULE
+    original_trace_array[original_trace_array_size - 1].target_user = malloc(strlen(target_user) + 1);
+    strcpy(original_trace_array[original_trace_array_size - 1].target_user, target_user);
+
+    original_trace_array[original_trace_array_size - 1].administrative_user = malloc(strlen(admin_user) + 1);
+    strcpy(original_trace_array[original_trace_array_size - 1].administrative_user, admin_user);
+
+    // Copy configuration
+    original_trace_array[original_trace_array_size - 1].config_array_before_size = temp_config_array_size;
+    original_trace_array[original_trace_array_size - 1].config_array_before = malloc(original_trace_array[original_trace_array_size - 1].config_array_before_size * sizeof(int));
+    memcpy(original_trace_array[original_trace_array_size - 1].config_array_before, temp_config_array, original_trace_array[original_trace_array_size - 1].config_array_before_size * sizeof(int));
+
+    original_trace_array[original_trace_array_size - 1].config_array_size = original_trace_array[original_trace_array_size - 1].config_array_before_size + 1;
+    original_trace_array[original_trace_array_size - 1].config_array = malloc(original_trace_array[original_trace_array_size - 1].config_array_size * sizeof(int));
+    memcpy(original_trace_array[original_trace_array_size - 1].config_array, original_trace_array[original_trace_array_size - 1].config_array_before, original_trace_array[original_trace_array_size - 1].config_array_before_size * sizeof(int));
+    original_trace_array[original_trace_array_size - 1].config_array[original_trace_array[original_trace_array_size - 1].config_array_size - 1] = ca_array[rule_number].target_role_index;
+}
+
+
+static void
+generate_trace_CA_NEW_USER(int rule_index, char* target_user)
+{
+    int administrative_user_index = get_admin_user_index(ca_array[rule_index].admin_role_index);
+
+    char * admin_user = 0;
+    if (administrative_user_index == -1) // Cannot find administrative user
+    {
+        admin_user = find_admin_user_from_trace(original_trace_array, original_trace_array_size, ca_array[rule_index].admin_role_index);
+    }
+    else
+    {
+        admin_user = user_array[administrative_user_index];
+    }
+    original_trace_array_size++;
+    original_trace_array = realloc(original_trace_array, original_trace_array_size * sizeof(Trace));
+    original_trace_array[original_trace_array_size - 1].rule_number = rule_index;
+    original_trace_array[original_trace_array_size - 1].rule_type = 0;  // CAN ASSIGN RULE
+    original_trace_array[original_trace_array_size - 1].target_user = malloc(strlen(target_user) + 1);
+    strcpy(original_trace_array[original_trace_array_size - 1].target_user, target_user);
+
+    original_trace_array[original_trace_array_size - 1].administrative_user = malloc(strlen(admin_user) + 1);
+    strcpy(original_trace_array[original_trace_array_size - 1].administrative_user, admin_user);
+
+
+    original_trace_array[original_trace_array_size - 1].config_array_before_size = 0;
+    original_trace_array[original_trace_array_size - 1].config_array_before = 0;
+
+    original_trace_array[original_trace_array_size - 1].config_array_size = 1;
+    original_trace_array[original_trace_array_size - 1].config_array = malloc(sizeof(int));
+    original_trace_array[original_trace_array_size - 1].config_array[0] = ca_array[rule_index].target_role_index;
+}
+
+static void
+generate_trace_CR(Trace t)
+{
+    int * temp_config_array = 0;
+    int temp_config_array_size = 0;
+
+    int trace_index = find_trace_index_same_user(original_trace_array, original_trace_array_size, t.target_user);
+    if (trace_index == -1)   // First time this user show up on the trace
+    {
+        temp_config_array = 0;
+        temp_config_array_size = 0;
+
+        int user_index = find_user_from_dict(t.target_user);
+        if (user_index > -1)    // Super user
+        {
+            int y;
+            for (y = 0; y < ua_array_size; y++)
+            {
+                if (ua_array[y].user_index == user_index)
+                {
+                    temp_config_array_size++;
+                    temp_config_array = realloc(temp_config_array, temp_config_array_size * sizeof(int));
+                    temp_config_array[temp_config_array_size - 1] = ua_array[y].role_index;
+                }
+            }
+        }
+    }
+    else
+    {
+        temp_config_array = original_trace_array[trace_index].config_array;
+        temp_config_array_size = original_trace_array[trace_index].config_array_size;
+    }
+
+    int role_target_index = belong_to(temp_config_array, temp_config_array_size, cr_array[t.rule_number].target_role_index);
+
     if (role_target_index != -1)
     {
-        original_trace_array_size++;
-        original_trace_array = realloc(original_trace_array, original_trace_array_size * sizeof(Trace));
-        original_trace_array[original_trace_array_size - 1].rule_number = rule_index;
-        original_trace_array[original_trace_array_size - 1].rule_type = 1;
+        // Make a trace
+        int administrative_user_index = get_admin_user_index(cr_array[t.rule_number].admin_role_index);
 
-        int admin_index = get_admin_user_index(cr_array[rule_index].admin_role_index);
-        if (admin_index == -1)
+        char * admin_user = 0;
+        if (administrative_user_index == -1) // Cannot find administrative user
         {
-            original_trace_array[original_trace_array_size - 1].admin_track_user = 0;
-            original_trace_array[original_trace_array_size - 1].admin_track_user = malloc(strlen(original_trace_array[0].admin_track_user) + 1);
-            strcpy(original_trace_array[original_trace_array_size - 1].admin_track_user, original_trace_array[0].admin_track_user);
+            admin_user = find_admin_user_from_trace(original_trace_array, original_trace_array_size, ca_array[t.rule_number].admin_role_index);
         }
         else
         {
-            original_trace_array[original_trace_array_size - 1].admin_track_user = 0;
-            original_trace_array[original_trace_array_size - 1].admin_track_user = malloc(strlen(user_array[admin_index]) + 1);
-            strcpy(original_trace_array[original_trace_array_size - 1].admin_track_user, user_array[admin_index]);
+            admin_user = user_array[administrative_user_index];
         }
-        original_trace_array[original_trace_array_size - 1].config_array_size = original_trace_array[original_trace_array_size - 2].config_array_size;
-        original_trace_array[original_trace_array_size - 1].config_array = 0;
+
+        original_trace_array_size++;
+        original_trace_array = realloc(original_trace_array, original_trace_array_size * sizeof(Trace));
+        original_trace_array[original_trace_array_size - 1].rule_number = t.rule_number;
+        original_trace_array[original_trace_array_size - 1].rule_type = 1;
+
+        original_trace_array[original_trace_array_size - 1].target_user = malloc(strlen(t.target_user) + 1);
+        strcpy(original_trace_array[original_trace_array_size - 1].target_user, t.target_user);
+
+        original_trace_array[original_trace_array_size - 1].administrative_user = malloc(strlen(admin_user) + 1);
+        strcpy(original_trace_array[original_trace_array_size - 1].administrative_user, admin_user);
+
+        // Copy configuration
+        original_trace_array[original_trace_array_size - 1].config_array_before_size = temp_config_array_size;
+        original_trace_array[original_trace_array_size - 1].config_array_before = malloc(original_trace_array[original_trace_array_size - 1].config_array_before_size * sizeof(int));
+        memcpy(original_trace_array[original_trace_array_size - 1].config_array_before, temp_config_array, original_trace_array[original_trace_array_size - 1].config_array_before_size * sizeof(int));
+
+        original_trace_array[original_trace_array_size - 1].config_array_size = temp_config_array_size;
         original_trace_array[original_trace_array_size - 1].config_array = malloc(original_trace_array[original_trace_array_size - 1].config_array_size * sizeof(int));
-        memcpy(original_trace_array[original_trace_array_size - 1].config_array, original_trace_array[original_trace_array_size - 2].config_array,
-               original_trace_array[original_trace_array_size - 1].config_array_size * sizeof(int));
-        original_trace_array[original_trace_array_size - 1].config_array[role_target_index] = -13;
+        memcpy(original_trace_array[original_trace_array_size - 1].config_array, temp_config_array, original_trace_array[original_trace_array_size - 1].config_array_size * sizeof(int));
+        original_trace_array[original_trace_array_size - 1].config_array[role_target_index] = -13;  // Mark as removed
     }
 }
 
 static int
-can_apply(int *curr_conf, int curr_conf_size, int rule_number, int rule_type)
+can_apply(int *curr_conf, int curr_conf_size, int rule_number, int rule_type, char * target_user)
 {
     if (rule_type == 0) // Can Assign
     {
-        if (check_condition_for_ca(rule_number, curr_conf, curr_conf_size))
+        if (check_precondition_CA(rule_number, curr_conf, curr_conf_size, target_user))
         {
             return 1;
         }
@@ -904,25 +1227,20 @@ int success_path_len;
 int found_success_path;
 
 static int
-check_success_path_reverse(int path[], int pathLen)
+check_success_path_reverse(int path[], int pathLen, int * curr_config, int curr_config_size, char* target_user)
 {
     int i, flag = 1;
-    int *current_config = 0;
-    int current_config_size = 0;
 
-    // Calculate current configuration
-    if (original_trace_array[original_trace_array_size - 1].config_array_size != 0)
-    {
-        current_config_size = original_trace_array[original_trace_array_size - 1].config_array_size;
-        current_config = malloc(current_config_size * sizeof(int));
-        memcpy(current_config, original_trace_array[original_trace_array_size - 1].config_array, current_config_size * sizeof(int));
-    }
+    int * current_config = 0;
+    int current_config_size = curr_config_size;
+    current_config = malloc(current_config_size * sizeof(int));
+    memcpy(current_config, curr_config, current_config_size * sizeof(int));
 
     for (i = 0; i < pathLen; i++)
     {
         if (path[i] != -13)
         {
-            if (can_apply(current_config, current_config_size, path[i], 0))
+            if (can_apply(current_config, current_config_size, path[i], 0, target_user))
             {
                 if (belong_to(current_config, current_config_size, ca_array[path[i]].target_role_index) == -1)
                 {
@@ -943,10 +1261,7 @@ check_success_path_reverse(int path[], int pathLen)
         }
     }
 
-    if (current_config_size != 0)
-    {
-        free(current_config);
-    }
+    free(current_config);
     current_config = 0;
     current_config_size = 0;
 
@@ -961,7 +1276,7 @@ check_success_path_reverse(int path[], int pathLen)
 }
 
 static void
-generate_and_check_trace_reverse(Node *traces, int trace_size, int path[], int pathLen, int depth)
+generate_and_check_trace_reverse(Node *traces, int trace_size, int path[], int pathLen, int depth, int * current_config, int current_config_size, char * target_user)
 {
     int i;
 
@@ -969,7 +1284,7 @@ generate_and_check_trace_reverse(Node *traces, int trace_size, int path[], int p
     {
         if (depth == trace_size)
         {
-            if (check_success_path_reverse(path, pathLen))
+            if (check_success_path_reverse(path, pathLen, current_config, current_config_size, target_user))
             {
                 // Store success path
                 success_path_len = pathLen;
@@ -988,22 +1303,22 @@ generate_and_check_trace_reverse(Node *traces, int trace_size, int path[], int p
                 if (depth == 0)
                 {
                     path[pathLen] = traces[depth].siblings[i];
-                    generate_and_check_trace_reverse(traces, trace_size, path, pathLen + 1, depth + 1);
+                    generate_and_check_trace_reverse(traces, trace_size, path, pathLen + 1, depth + 1, current_config, current_config_size, target_user);
                 }
                 else
                 {
-                    if (pathLen >= 1 && !check_success_path_reverse(path, pathLen))
+                    if (pathLen >= 1 && !check_success_path_reverse(path, pathLen, current_config, current_config_size, target_user))
                     {
                         return;
                     }
                     if (belong_to(path, pathLen, traces[depth].siblings[i]) == -1)
                     {
                         path[pathLen] = traces[depth].siblings[i];
-                        generate_and_check_trace_reverse(traces, trace_size, path, pathLen + 1, depth + 1);
+                        generate_and_check_trace_reverse(traces, trace_size, path, pathLen + 1, depth + 1, current_config, current_config_size, target_user);
                     }
                     else
                     {
-                        generate_and_check_trace_reverse(traces, trace_size, path, pathLen, depth + 1);
+                        generate_and_check_trace_reverse(traces, trace_size, path, pathLen, depth + 1, current_config, current_config_size, target_user);
                     }
                 }
             }
@@ -1063,12 +1378,16 @@ find_related_traces_reverse(Node *traces, int traces_size)
     }
 }
 
+/**
+ * Core of tracking back algorithm
+ */
 static int
-generate_additional_traces(int rule_index)
+generate_additional_traces(Trace t)
 {
     int i, j, success_index = -1, return_val = 1;
     int path[1000], max_level = -1, flag, success_path_index = -1;
 
+    // A Trace
     Node *atraces = 0;
     int atraces_size = 0;
 
@@ -1088,9 +1407,40 @@ generate_additional_traces(int rule_index)
     atraces = malloc(sizeof(Node));
     atraces[0].siblings_size = 1;
     atraces[0].siblings = malloc(sizeof(int));
-    atraces[0].siblings[0] = rule_index;
+    atraces[0].siblings[0] = t.rule_number;
     atraces[0].level = 0;
     max_level = 0;
+
+    int * temp_config_array = 0;
+    int temp_config_array_size = 0;
+
+    int trace_index = find_trace_index_same_user(original_trace_array, original_trace_array_size, t.target_user);
+    if (trace_index == -1)   // First time this user show up on the trace
+    {
+        temp_config_array = 0;
+        temp_config_array_size = 0;
+
+        int user_index = find_user_from_dict(t.target_user);
+        if (user_index > -1)    // Super user
+        {
+            int y;
+            for (y = 0; y < ua_array_size; y++)
+            {
+                if (ua_array[y].user_index == user_index)
+                {
+                    temp_config_array_size++;
+                    temp_config_array = realloc(temp_config_array, temp_config_array_size * sizeof(int));
+                    temp_config_array[temp_config_array_size - 1] = ua_array[y].role_index;
+                }
+            }
+        }
+    }
+    else
+    {
+        temp_config_array_size = original_trace_array[trace_index].config_array_size;
+        temp_config_array = original_trace_array[trace_index].config_array;
+    }
+
 
     // Generate addditional trace from simplify rules
     for (i = simplify_steps_size - 1; i >= 0; i--)
@@ -1105,7 +1455,7 @@ generate_additional_traces(int rule_index)
                 int flag = 1;
                 int index1 = simplify_steps[i].related_rule_index;
 
-                // Check if this node is child of all siblings
+                // Check if this node is the child of all siblings
                 for (j = 0; j < atraces[index].siblings_size; j++)
                 {
                     int index2 = atraces[index].siblings[j];
@@ -1218,7 +1568,8 @@ generate_additional_traces(int rule_index)
     // Find success path
     found_success_path = 0;
     // generate_and_check_trace(final_traces, final_traces_size, path, 0, 0);
-    generate_and_check_trace_reverse(reverse_final_traces, reverse_final_traces_size, path, 0, 0);
+
+    generate_and_check_trace_reverse(reverse_final_traces, reverse_final_traces_size, path, 0, 0, temp_config_array, temp_config_array_size, t.target_user);
 
     if (found_success_path)
     {
@@ -1226,7 +1577,7 @@ generate_additional_traces(int rule_index)
         {
             if (success_path[i] != -13)
             {
-                generate_trace_ca_rule(success_path[i]);
+                generate_trace_CA_version2(success_path[i], t.target_user);
             }
         }
     }
@@ -1236,7 +1587,7 @@ generate_additional_traces(int rule_index)
         find_related_traces_reverse(reverse_final_traces, reverse_final_traces_size);
 
         // generate_and_check_trace(related_traces, related_traces_size, path, 0, 0);
-        generate_and_check_trace_reverse(related_traces, related_traces_size, path, 0, 0);
+        generate_and_check_trace_reverse(related_traces, related_traces_size, path, 0, 0, temp_config_array, temp_config_array_size, t.target_user);
 
         if (found_success_path)
         {
@@ -1244,7 +1595,7 @@ generate_additional_traces(int rule_index)
             {
                 if (success_path[i] != -13)
                 {
-                    generate_trace_ca_rule(success_path[i]);
+                    generate_trace_CA_version2(success_path[i], t.target_user);
                 }
             }
         }
@@ -1300,12 +1651,13 @@ free_second_phase_data()
     free(ca_map_array);
     for (i = 0; i < trace_array_size; i++)
     {
-        free(trace_array[i].admin_track_user);
+        free(trace_array[i].administrative_user);
         free(trace_array[i].config_array);
     }
     free(trace_array);
     free_ARBAC_data();
 }
+
 
 RelatedRules *related_rules;
 int related_rules_size;
@@ -1348,87 +1700,192 @@ find_related_rules(Trace *traces, int traces_size)
 }
 
 static int
-produce_original_counter_example_help(char *original_target_user, FILE *ceFILE)
+produce_original_counter_example_help(void)
 {
     int original_target_user_index, i, j, return_val = 1;
 
+    // Set of related rules to a rule
     related_rules = 0;
     related_rules_size = 0;
 
     original_trace_array = 0;
     original_trace_array_size = 0;
 
-    // Find index of the original target user
-    original_target_user_index = find_user_from_dict(original_target_user);
+    int * temp_config_array = 0;
+    int temp_config_array_size = 0;
 
-    // First trace
-    // Compute the target user configuration
-    original_trace_array_size++;
-    original_trace_array = realloc(original_trace_array, original_trace_array_size * sizeof(Trace));
-    original_trace_array[0].admin_track_user = 0;
-    original_trace_array[0].admin_track_user = malloc(strlen(original_target_user) + 1);
-    strcpy(original_trace_array[0].admin_track_user, original_target_user);
-    original_trace_array[0].config_array = 0;
-    original_trace_array[0].config_array_size = 0;
+    // From the trace of SIMPLIFIED counter example, find the original rule
+    int super_index = find_real_user_from_SUPER_USER();
 
-    for (i = 1; i < trace_array_size; i++)
+    // Change target user and administrative user if they are SUPER_USER
+    for (i = 0; i < trace_array_size; i++)
     {
-        // Find the original rule
-        int rule_index = get_original_rule_index(trace_array[i].rule_number, trace_array[i].rule_type);
-        trace_array[i].rule_number = rule_index;
-    }
-
-    for (i = 0; i < ua_array_size; i++)
-    {
-        if (ua_array[i].user_index == original_target_user_index)
-        {
-            original_trace_array[0].config_array_size++;
-            original_trace_array[0].config_array = realloc(original_trace_array[0].config_array, original_trace_array[0].config_array_size * sizeof(int));
-            original_trace_array[0].config_array[original_trace_array[0].config_array_size - 1] = ua_array[i].role_index;
-        }
-    }
-
-    if (strcmp(original_target_user, "NEW_USER") == 0)
-    {
-        if (trace_array_size > 1 && trace_array[1].rule_type == 0)
-        {
-            int ca_rule = trace_array[1].rule_number;
-            for (i = 0; i < new_rule_array_size; i++)
+        // Assign the original rule index to the SIMPLIFIED TRACE
+        trace_array[i].rule_number = get_original_rule_index(trace_array[i].rule_number, trace_array[i].rule_type);
+        // Change user
+        if (super_index != -1)
+        {   if (strcmp(trace_array[i].administrative_user, "SUPER_USER") == 0)
             {
-                if (belong_to(ca_array[ca_rule].positive_role_array, ca_array[ca_rule].positive_role_array_size, ca_array[new_rule_array[i]].target_role_index) != -1)
-                {
-                    generate_trace_ca_rule(new_rule_array[i]);
-                    break;
-                }
+                free(trace_array[i].administrative_user);
+                trace_array[i].administrative_user = malloc(strlen(user_array[super_index]) + 1);
+                strcpy(trace_array[i].administrative_user, user_array[super_index]);
+            }
+            if (strcmp(trace_array[i].target_user, "SUPER_USER") == 0)
+            {
+                free(trace_array[i].target_user);
+                trace_array[i].target_user = malloc(strlen(user_array[super_index]) + 1);
+                strcpy(trace_array[i].target_user, user_array[super_index]);
             }
         }
     }
 
+    char * original_target_user = 0;
+
+    // From the trace already obtained
+    if (trace_array_size == 0)
+    {
+        fprintf(stderr, "error: there is something wrong with original counterexample\n");
+        abort();
+    }
+    else
+    {
+        original_target_user = malloc(strlen(trace_array[trace_array_size - 1].target_user) + 1);
+        strcpy(original_target_user, trace_array[trace_array_size - 1].target_user);
+    }
+
+    // If original target user is a new user
+    if (!countNEWAlready && original_target_user != NULL && strstr(original_target_user, "NEW_USER") != NULL)
+    {
+        int new_trace_index = -1;
+        for (i = 0; i < trace_array_size; i++)
+        {
+            if (strstr(trace_array[i].target_user, "NEW_USER") != NULL)
+            {
+                new_trace_index = i;
+                break;
+            }
+        }
+
+        if (new_trace_index == -1) // There is only one trace
+        {
+            // Never happen
+            fprintf(stderr, "error: there is something wrong with the trace\n");
+            abort();
+        }
+        else
+        {
+            // Build up to the first trace since NEW_USER are assign a role in the beginning of time
+            int ca_rule = trace_array[new_trace_index].rule_number;
+            int succeeded = 0;
+            for (i = 0; i < new_rule_array_size; i++)
+            {
+                if (
+                    (belong_to(ca_array[ca_rule].positive_role_array, ca_array[ca_rule].positive_role_array_size, ca_array[new_rule_array[i]].target_role_index) != -1 || ca_array[ca_rule].positive_role_array_size == 0)
+                    && belong_to(ca_array[ca_rule].negative_role_array, ca_array[ca_rule].negative_role_array_size, ca_array[new_rule_array[i]].target_role_index) == -1
+                )
+                {
+                    succeeded = 1;
+                    generate_trace_CA_NEW_USER(new_rule_array[i], original_target_user);
+                    break;
+                }
+            }
+
+            if (!succeeded)
+            {
+                int i;
+                for (i = simplify_steps_size - 1; i >= 0; i--)
+                {
+                    // Sibling nodes
+                    if (simplify_steps[i].simplify_rule == 5)
+                    {
+                        if (simplify_steps[i].affected_rule_index == ca_rule)
+                        {
+                            int new_ca_rule = simplify_steps[i].related_rule_index;
+                            for (i = 0; i < new_rule_array_size; i++)
+                            {
+                                if (
+                                    (belong_to(ca_array[new_ca_rule].positive_role_array, ca_array[new_ca_rule].positive_role_array_size, ca_array[new_rule_array[i]].target_role_index) != -1 || ca_array[new_ca_rule].positive_role_array_size == 0)
+                                    && belong_to(ca_array[new_ca_rule].negative_role_array, ca_array[new_ca_rule].negative_role_array_size, ca_array[new_rule_array[i]].target_role_index) == -1
+                                )
+                                {
+                                    succeeded = 1;
+                                    generate_trace_CA_NEW_USER(new_rule_array[i], original_target_user);
+                                    goto SUCC;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!succeeded)
+            {
+                if (new_rule_array_size > 0)
+                {
+                    // Any rule with NEW in precondition can be applied
+                    generate_trace_CA_NEW_USER(new_rule_array[0], original_target_user);
+                }
+            }
+
+SUCC:;
+        }
+    }
+
+
     // Loop on trace till the end
-    for (i = 1; i < trace_array_size; i++)
+    for (i = 0; i < trace_array_size; i++)
     {
         // Can revoke rule
         if (trace_array[i].rule_type == 1)
         {
-            generate_trace_cr_rule(trace_array[i].rule_number);
+            generate_trace_CR(trace_array[i]);
         }
         // Can assign rule
         if (trace_array[i].rule_type == 0)
         {
-            // Normal rule
+            int trace_index = find_trace_index_same_user(original_trace_array, original_trace_array_size, trace_array[i].target_user);
+
+            if (trace_index == -1)   // First time this user show up on the trace
+            {
+                temp_config_array = 0;
+                temp_config_array_size = 0;
+
+                int user_index = find_user_from_dict(trace_array[i].target_user);
+                if (user_index > -1)    // Super user
+                {
+                    int y;
+                    for (y = 0; y < ua_array_size; y++)
+                    {
+                        if (ua_array[y].user_index == user_index)
+                        {
+                            temp_config_array_size++;
+                            temp_config_array = realloc(temp_config_array, temp_config_array_size * sizeof(int));
+                            temp_config_array[temp_config_array_size - 1] = ua_array[y].role_index;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                temp_config_array = original_trace_array[trace_index].config_array;
+                temp_config_array_size = original_trace_array[trace_index].config_array_size;
+            }
+
+            // Normal CA rule
             if (ca_array[trace_array[i].rule_number].type == 0)
             {
-                if (check_condition_for_ca(trace_array[i].rule_number, original_trace_array[original_trace_array_size - 1].config_array, original_trace_array[original_trace_array_size - 1].config_array_size))
+                if (check_precondition_CA(trace_array[i].rule_number, temp_config_array, temp_config_array_size, trace_array[i].target_user))
                 {
-                    if (belong_to(original_trace_array[original_trace_array_size - 1].config_array, original_trace_array[original_trace_array_size - 1].config_array_size, ca_array[trace_array[i].rule_number].target_role_index) == -1)
+                    // This precondition for the rule can be apply with current user
+                    if (belong_to(temp_config_array, temp_config_array_size, ca_array[trace_array[i].rule_number].target_role_index) == -1)
                     {
-                        generate_trace_ca_rule(trace_array[i].rule_number);
+                        generate_trace_CA(trace_array[i]);
                     }
                 }
                 else
                 {
-                    // Generate additional traces
-                    if (!generate_additional_traces(trace_array[i].rule_number))
+                    // Generate additional traces when this is not satisfiable
+                    if (!generate_additional_traces(trace_array[i]))
                     {
                         if (related_rules_size == 0)
                         {
@@ -1438,12 +1895,12 @@ produce_original_counter_example_help(char *original_target_user, FILE *ceFILE)
                         int check = 0;
                         for (j = 0; j < related_rules[i].related_size; j++)
                         {
-                            if (check_condition_for_ca(related_rules[i].related[j], original_trace_array[original_trace_array_size - 1].config_array, original_trace_array[original_trace_array_size - 1].config_array_size))
+                            if (check_precondition_CA(related_rules[i].related[j], temp_config_array, temp_config_array_size, trace_array[i].target_user))
                             {
-                                if (belong_to(original_trace_array[original_trace_array_size - 1].config_array, original_trace_array[original_trace_array_size - 1].config_array_size, ca_array[related_rules[i].related[j]].target_role_index) == -1)
+                                if (belong_to(temp_config_array, temp_config_array_size, ca_array[related_rules[i].related[j]].target_role_index) == -1)
                                 {
                                     check = 1;
-                                    generate_trace_ca_rule(related_rules[i].related[j]);
+                                    generate_trace_CA_version2(related_rules[i].related[j], trace_array[i].target_user);
                                     break;
                                 }
                             }
@@ -1459,16 +1916,16 @@ produce_original_counter_example_help(char *original_target_user, FILE *ceFILE)
             /*Always can apply the rule since the precondition is TRUE*/
             else if (ca_array[trace_array[i].rule_number].type == 1)
             {
-                if (belong_to(original_trace_array[original_trace_array_size - 1].config_array, original_trace_array[original_trace_array_size - 1].config_array_size, ca_array[trace_array[i].rule_number].target_role_index) == -1)
+                if (belong_to(temp_config_array, temp_config_array_size, ca_array[trace_array[i].rule_number].target_role_index) == -1)
                 {
-                    generate_trace_ca_rule(trace_array[i].rule_number);
+                    generate_trace_CA(trace_array[i]);
                 }
             }
             else
             {
-                if (check_condition_for_new_ca(original_trace_array[original_trace_array_size - 1].config_array_size))
+                if (check_precondition_NEW_CA(temp_config_array_size, trace_array[i].target_user))
                 {
-                    generate_trace_ca_rule(trace_array[i].rule_number);
+                    generate_trace_CA_NEW_USER(trace_array[i].rule_number, trace_array[i].target_user);
                 }
                 else
                 {
@@ -1478,12 +1935,18 @@ produce_original_counter_example_help(char *original_target_user, FILE *ceFILE)
             }
         }
 
-        if (belong_to(original_trace_array[original_trace_array_size - 1].config_array, original_trace_array[original_trace_array_size - 1].config_array_size, goal_role_index) != -1)
+        // Stop when figuring out the last step
+        if (original_trace_array_size > 0)
         {
-            return_val = 1;
-            break;
+            if (belong_to(original_trace_array[original_trace_array_size - 1].config_array, original_trace_array[original_trace_array_size - 1].config_array_size, goal_role_index) != -1)
+            {
+                return_val = 1;
+                break;
+            }
         }
     }
+
+    // Free things
 
     for (i = 0; i < related_rules_size; i++)
     {
@@ -1497,24 +1960,31 @@ produce_original_counter_example_help(char *original_target_user, FILE *ceFILE)
     return return_val;
 }
 
+/**
+ * Produce original counter example from counter example of simplified ARBAC
+ */
 static void
 produce_original_counter_example(FILE *ceFILE)
 {
-    int i;
-    char *original_target_user = 0;
+    if (reached_initially)
+    {
+        print_trace_special(ceFILE);
+        goto END;
+    }
 
-    original_target_user = malloc(strlen(trace_array[0].admin_track_user) + 1);
-    strcpy(original_target_user, trace_array[0].admin_track_user);
-    if (produce_original_counter_example_help(original_target_user, ceFILE))
+    if (produce_original_counter_example_help())
     {
         // Generate result trace
-        print_result_trace(original_trace_array, original_trace_array_size, ceFILE);
+        print_trace(original_trace_array, original_trace_array_size, ceFILE);
 
-        // free
+        // free data
+        int i;
         for (i = 0; i < original_trace_array_size; i++)
         {
+            free(original_trace_array[i].config_array_before);
             free(original_trace_array[i].config_array);
-            free(original_trace_array[i].admin_track_user);
+            free(original_trace_array[i].administrative_user);
+            free(original_trace_array[i].target_user);
         }
         free(original_trace_array);
     }
@@ -1522,17 +1992,20 @@ produce_original_counter_example(FILE *ceFILE)
     {
         print_cant_find_counter_example(ceFILE);
     }
-
-    free(original_target_user);
+END:
     free_second_phase_data();
 }
 
-// Generating counter example from
+
+// Generating counter example from all the files (full version)
 void
 generate_counter_example(int argc, char **argv)
 {
     char *cefilename = 0;
     FILE *ceFILE;
+
+    char *debugFilename = "cex_debug.log";
+    debugFile = fopen(debugFilename, "w");
 
     cefilename = malloc(strlen(argv[5]) + strlen("_CounterExample") + 2);
     sprintf(cefilename, "%s_CounterExample", argv[5]);
@@ -1561,7 +2034,56 @@ generate_counter_example(int argc, char **argv)
     readARBAC(argv[3]);
 
     // Produce Counter Example from simplified ARBAC policies
-    produce_counter_example(ceFILE);
+    produce_counter_example(ceFILE, 0);
+
+    fclose(ceFILE);
+    redirect_stdout(cefilename);
+    free(cefilename);
+
+    fclose(debugFile);
+
+    // Remove debug file
+    remove(debugFilename);
+}
+
+// Generating counter example from all the files (full version)
+void
+generate_counter_example_full(int argc, char **argv)
+{
+    char *cefilename = 0;
+    FILE *ceFILE;
+
+    char *debugFilename = "cex_debug.log";
+    debugFile = fopen(debugFilename, "w");
+
+    cefilename = malloc(strlen(argv[5]) + strlen("_CounterExample") + 2);
+    sprintf(cefilename, "%s_CounterExample", argv[5]);
+    ceFILE = fopen(cefilename, "w");
+
+    // Read CBMC Log XML
+    readCBMCXMLLog(argv[1]);
+
+    // No counter example found
+    if (!hasCounterExample)
+    {
+        // Read ARBAC file
+        readARBAC(argv[3]);
+        print_no_counter_example(ceFILE);
+        fclose(ceFILE);
+        redirect_stdout(cefilename);
+        free(cefilename);
+        free_ARBAC_data();
+        return;
+    }
+
+    // Read CBMC translated file
+    readCBMCTranslated(argv[2]);
+
+    // Read ARBAC file
+    readARBAC(argv[3]);
+
+    // Produce Counter Example from simplified ARBAC policies
+    produce_counter_example(ceFILE, 1);
 
     // Read simplify log file
     readSimplifyLog(argv[4]);
@@ -1574,4 +2096,12 @@ generate_counter_example(int argc, char **argv)
     fclose(ceFILE);
     redirect_stdout(cefilename);
     free(cefilename);
+
+    fclose(debugFile);
+
+    // Remove debug file
+    if (!debug)
+    {
+        remove(debugFilename);
+    }
 }

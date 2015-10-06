@@ -61,6 +61,8 @@ int admin_array_index_size;
 int *admin_role_array_index;
 int admin_role_array_index_size;
 
+// Indicate that the system has NEW USER
+int hasNewUserMode;
 //Define the specification
 int goal_user_index;
 int goal_role_index;
@@ -69,6 +71,9 @@ char * goal_temp;
 int iNeg;
 // Indicate the super user in the ARBAC system
 int super_exist;
+
+int *promoted_user_array;
+int promoted_user_array_size;
 
 Dictionary *role_dict;
 Dictionary *user_dict;

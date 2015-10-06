@@ -34,41 +34,38 @@ configuration_user(FILE *outputFile, int user_index)
 {
     int i, j;
 
-    if (strcmp(user_array[user_index], "SUPER_USER") != 0)
+    fprintf(outputFile, "\t//Configuration of %s\n", user_array[user_index]);
+
+    fprintf(outputFile, "\tif (nondet_bool()){\n");
+
+    for (i = 0; i < NUM_USER_TO_TRACK; i++)
     {
-        fprintf(outputFile, "\t//Configuration of %s\n", user_array[user_index]);
-
-        fprintf(outputFile, "\tif (nondet_bool()){\n");
-
-        for (i = 0; i < NUM_USER_TO_TRACK; i++)
+        if (i == 0)
         {
-            if (i == 0)
-            {
-                fprintf(outputFile, "\t\tif (!%s) {\n", associate_user_to_track_name(i));
-            }
-            else
-            {
-                fprintf(outputFile, "\t\telse if (!%s) {\n", associate_user_to_track_name(i));
-            }
-
-            fprintf(outputFile, "\t\t\t%s = 1;\n", associate_user_to_track_name(i));
-
-            for (j = 0; j < user_config_array[user_index].array_size; j++)
-            {
-                fprintf(outputFile, "\t\t\t%s = 1;\n", track_variable_name(i, user_config_array[user_index].array[j]));
-            }
-            fprintf(outputFile, "\t\t}\n");
+            fprintf(outputFile, "\t\tif (!%s) {\n", associate_user_to_track_name(i));
         }
-        fprintf(outputFile, "\t}\n\n");
+        else
+        {
+            fprintf(outputFile, "\t\telse if (!%s) {\n", associate_user_to_track_name(i));
+        }
+
+        fprintf(outputFile, "\t\t\t%s = 1;\n", associate_user_to_track_name(i));
+
+        for (j = 0; j < user_config_array[user_index].array_size; j++)
+        {
+            fprintf(outputFile, "\t\t\t%s = 1;\n", track_variable_name(i, user_config_array[user_index].array[j]));
+        }
+        fprintf(outputFile, "\t\t}\n");
     }
+    fprintf(outputFile, "\t}\n\n");
 }
 
 static void
-configuration_new_user(FILE *outputFile, int role_index)
+configuration_new_user(FILE *outputFile, int rule_index, int new_user_index)
 {
     int i;
 
-    fprintf(outputFile, "\t//Configuration of NEW_USER\n");
+    fprintf(outputFile, "\t//Configuration OF NEW_USER%d WITH %d\n", new_user_index, rule_index);
 
     fprintf(outputFile, "\tif (nondet_bool()){\n");
 
@@ -83,7 +80,7 @@ configuration_new_user(FILE *outputFile, int role_index)
             fprintf(outputFile, "\t\telse if (!%s) {\n", associate_user_to_track_name(i));
         }
         fprintf(outputFile, "\t\t\t%s = 1;\n", associate_user_to_track_name(i));
-        fprintf(outputFile, "\t\t\t%s = 1;\n", track_variable_name(i, role_index));
+        fprintf(outputFile, "\t\t\t%s = 1;\n", track_variable_name(i, ca_array[rule_index].target_role_index));
         if (hasGoalUserMode && goal_user_index == -1)
         {
             fprintf(outputFile, "\t\t\t%s = 1;\n", track_variable_name(i, role_array_size - 2));
@@ -129,9 +126,9 @@ initialize_variables(FILE *outputFile)
     // For new user mode only
     if (hasNewUserMode)
     {
-        for (i = 0; i < initialize_role_array_size; i++)
+        for (i = 0; i < new_rule_array_size; i++)
         {
-            configuration_new_user(outputFile, initialize_role_array[i]);
+            configuration_new_user(outputFile, new_rule_array[i], i);
         }
     }
 }
@@ -141,25 +138,17 @@ print_if_conditions(FILE *outputFile, int role_index)
 {
     int i;
     fprintf(outputFile, "\t\tif(");
-    if (strcmp(role_array[role_index], "SUPER_ROLE") != 0)
+    for (i = 0; i < NUM_USER_TO_TRACK; i++)
     {
-        for (i = 0; i < NUM_USER_TO_TRACK; i++)
+        if (i == 0)
         {
-            if (i == 0)
-            {
-                fprintf(outputFile, "%s", track_variable_name(i, role_index));
-            }
-            else
-            {
-                fprintf(outputFile, " || %s", track_variable_name(i, role_index));
-            }
+            fprintf(outputFile, "%s", track_variable_name(i, role_index));
+        }
+        else
+        {
+            fprintf(outputFile, " || %s", track_variable_name(i, role_index));
         }
     }
-    else
-    {
-        fprintf(outputFile, "1");
-    }
-
     fprintf(outputFile, "){\n");
 }
 
@@ -167,8 +156,8 @@ static void
 simulate_can_assign_rule(FILE *outputFile, int ca_rule)
 {
     int i, j;
-    print_if_conditions(outputFile, ca_array[ca_rule].admin_role_index);
 
+    print_if_conditions(outputFile, ca_array[ca_rule].admin_role_index);
     for (i = 0; i < NUM_USER_TO_TRACK; i++)
     {
         fprintf(outputFile, "\t\t\tif(nondet_bool()){\n");
@@ -218,7 +207,9 @@ simulate_can_revoke_rule(FILE *outputFile, int cr_rule)
     for (i = 0; i < NUM_USER_TO_TRACK; i++)
     {
         fprintf(outputFile, "\t\t\tif(nondet_bool()){\n");
-        fprintf(outputFile, "\t\t\t\t%s = 0;\n", track_variable_name(i, cr_array[cr_rule].target_role_index));
+        fprintf(outputFile, "\t\t\t\tif(%s && %s){\n", associate_user_to_track_name(i), track_variable_name(i, cr_array[cr_rule].target_role_index));
+        fprintf(outputFile, "\t\t\t\t\t%s = 0;\n", track_variable_name(i, cr_array[cr_rule].target_role_index));
+        fprintf(outputFile, "\t\t\t\t}\n");
         fprintf(outputFile, "\t\t\t}\n");
     }
 
@@ -303,6 +294,7 @@ transform_2_CBMC_ExactAlg(char *inputFile)
     simulate(outputFile);
     fprintf(outputFile, "\n}\n");
 
+    // Cleaning up
     fclose(outputFile);
     free(newfile);
 

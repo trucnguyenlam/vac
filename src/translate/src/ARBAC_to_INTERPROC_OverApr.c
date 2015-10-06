@@ -83,25 +83,60 @@ non_deter_assign_variables(FILE *out)
 	fprintf(out, "\n");
 }
 
+static int
+equal_Venn_regions(venn_region v1, venn_region v2)
+{
+	if (equal_set(v1.P, v2.P) && equal_set(v1.N, v2.N))
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
 // Print psi(b) function for the users as corresponding in can assign rule
 static void
 psi_user_ca(FILE *out, int ca_rule)
 {
 	int i;
 
-	fprintf(out, " and n");
+	venn_region v; /* Temporary venn_region */
 
-	for (i = 0; i < ca_array[ca_rule].positive_role_array_size; i++)
+	v.P.array = 0;
+	v.P.array_size = 0;
+	v.N.array = 0;
+	v.N.array_size = 0;
+
+	v.P = build_set(ca_array[ca_rule].positive_role_array, ca_array[ca_rule].positive_role_array_size);
+	v.N = build_set(ca_array[ca_rule].negative_role_array, ca_array[ca_rule].negative_role_array_size);
+
+	int index = -1;
+	for (i = 0; i < Track_size; i++)
 	{
-		fprintf(out, "_%s", role_array[ca_array[ca_rule].positive_role_array[i]]);
+		if (equal_Venn_regions(Track[i], v))
+		{
+			index = i;
+			break;
+		}
 	}
 
-	for (i = 0; i < ca_array[ca_rule].negative_role_array_size; i++)
+	free(v.P.array);
+	v.P.array = 0;
+	free(v.N.array);
+	v.N.array = 0;
+
+	if (index == -1)
 	{
-		fprintf(out, "_0%s", role_array[ca_array[ca_rule].negative_role_array[i]]);
+		fprintf(stderr, "error: there is something wrong when translate into INTERPROC\n");
+		abort();
+	}
+	else
+	{
+		fprintf(out, " and %s>0", venn_region_array[index]);
 	}
 
-	fprintf(out, ">0");
 }
 
 // Print psi(d) function for the administrator as corresponding in can assign rule
@@ -380,7 +415,7 @@ simulation(FILE *out)
 
 	// ERROR defined
 	fprintf(out, "\t\t//------------ ERROR Query ---------------//\n");
-	fprintf(out, "\t\tif (%s>0) then\n\t\t\tskip;\n\t\tendif;\n", venn_region_array[venn_region_array_size - 1]);
+	fprintf(out, "\t\tif (%s>0) then\n\t\t\tskip;\n\t\tendif;\n", query);
 	fprintf(out, "\tdone;  //End while loop\n");
 }
 

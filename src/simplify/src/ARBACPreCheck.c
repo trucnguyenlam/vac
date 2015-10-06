@@ -32,7 +32,6 @@ quickSort(int a[], int l, int r)
         quickSort( a, l, j - 1);
         quickSort( a, j + 1, r);
     }
-
 }
 
 // Write simplification trace in order to find counter example
@@ -47,6 +46,27 @@ write_trace(FILE *output)
                 trace_array[i].related_rule_index, trace_array[i].related_rule_type);
     }
     fprintf(output, "EndTrace\n");
+}
+
+/**
+ * Return index of the user that will become the SUPER_USER
+ */
+static int
+candidate_SUPER_USER(void)
+{
+    int i = -1;
+    for (i = promoted_users.array_size - 1; i >= 0; i--)
+    {
+        // make sure that user is not removed
+        if (0 <= promoted_users.array[i]
+                && promoted_users.array[i] < user_array_size
+                // && strcmp(user_array[promoted_users.array[i]], "removed_user") != 0
+           )
+        {
+            return i;
+        }
+    }
+    return i;
 }
 
 static void
@@ -103,6 +123,8 @@ write_small_policy(int hasPruning, int rules[], int rules_size, char *inputFile)
         keep_roles[ca_array[rules[i]].target_role_index] = 1;
     }
 
+    int super_user_index = -1;
+
     // Users: keep Admin user, goal user (if present), otherwise a user with nothing in the configuration
     if (!hasPruning) // Not yet performing pruning
     {
@@ -137,6 +159,11 @@ write_small_policy(int hasPruning, int rules[], int rules_size, char *inputFile)
                 keep_users[i] = 1;
             }
         }
+
+        if (hasSuper)
+        {
+            super_user_index = candidate_SUPER_USER();
+        }
     }
 
     //Write the roles
@@ -170,10 +197,16 @@ write_small_policy(int hasPruning, int rules[], int rules_size, char *inputFile)
     fprintf(output, "Users ");
     for (i = 0; i < user_array_size; i++)
     {
-        if (keep_users[i])
+        if (keep_users[i] && i != super_user_index)
         {
             fprintf(output, "%s ", user_array[i]);
             fprintf(simplifyLog, "%d -> %d\n", i, count);
+            count++;
+        }
+        else if (i == super_user_index)
+        {
+            fprintf(output, "SUPER_USER ");
+            fprintf(simplifyLog, "%d -> -10\n", super_user_index);
             count++;
         }
         else
@@ -181,12 +214,7 @@ write_small_policy(int hasPruning, int rules[], int rules_size, char *inputFile)
             fprintf(simplifyLog, "%d -> -1\n", i);
         }
     }
-    if (hasPruning && hasSuper)
-    {
-        fprintf(output, "SUPER_USER ");
-        fprintf(simplifyLog, "%d -> %d\n", user_array_size, count);
-        count++;
-    }
+
     fprintf(output, ";\n\n");
     fprintf(simplifyLog, "EndU\n");
 
@@ -268,26 +296,33 @@ write_small_policy(int hasPruning, int rules[], int rules_size, char *inputFile)
     fprintf(output, ";\n\n");
     fprintf(simplifyLog, "EndCA\n");
 
-    //Write the ADMIN
-    fprintf(output, "ADMIN ");
-    for (i = 0; i < admin_array_index_size; i++)
-    {
-        if (admin_array_index[i] != -13)
-        {
-            fprintf(output, "%s ", get_user(admin_array_index[i]));
-        }
-    }
-    if(hasPruning && hasSuper)
-    {
-        fprintf(output, "SUPER_USER ");
-    }
-    fprintf(output, ";\n\n");
+    // //Write the ADMIN
+    // fprintf(output, "ADMIN ");
+    // for (i = 0; i < admin_array_index_size; i++)
+    // {
+    //     if (admin_array_index[i] != -13)
+    //     {
+    //         fprintf(output, "%s ", get_user(admin_array_index[i]));
+    //     }
+    // }
+    // if(hasPruning && hasSuper)
+    // {
+    //     fprintf(output, "SUPER_USER ");
+    // }
+    // fprintf(output, ";\n\n");
 
     //Write the SPEC
     fprintf(output, "SPEC");
     if (goal_user_index != -13 && goal_user_index != -1)
     {
-        fprintf(output, " %s", get_user(goal_user_index));
+        if (goal_user_index == super_user_index)
+        {
+            fprintf(output, " SUPER_USER");
+        }
+        else
+        {
+            fprintf(output, " %s", get_user(goal_user_index));
+        }
     }
     fprintf(output, " %s ;", get_role(goal_role_index));
 
@@ -297,16 +332,18 @@ write_small_policy(int hasPruning, int rules[], int rules_size, char *inputFile)
 }
 
 static int
-admin_role_exist(int rule_index)
+exist_admin_user(int rule_index)
 {
     int i;
-    // Super role
+
     if (ca_array[rule_index].admin_role_index == -10)
     {
+        // If there is super role, there is always an administrative user
         return 1;
     }
     else
     {
+        // Search on the initial configuration
         for (i = 0; i < ua_array_size; i++)
         {
             if (ua_array[i].user_index != -13)
@@ -331,8 +368,19 @@ precheck(int hasPruning, char *inputFile)
     int collected_rules_size = 0;
     int final_collected_rules[10000];
     int final_collected_rules_size;
-    set *level2_rules = 0;
-    int level2_rules_size = 0;
+    set *level2_rules = 0;   // level  2
+    int level2_rules_size = 0; // level 2 rules
+
+    // Precheck only useful when using with seperation of administration
+    if (admin_role_array_index_size > 1)
+    {
+        return 0;
+    }
+
+    if (hasNewUserMode && goal_user_index == -1)
+    {
+        return 0;
+    }
 
     // // First compute init configuration
     // if (goal_user_index != -1 && goal_user_index != -13)
@@ -354,7 +402,7 @@ precheck(int hasPruning, char *inputFile)
     // }
 
 
-    // First collect rule with goal role as target
+    // First collect all rules with goal role as target
     for (i = 0; i < ca_array_size; i++)
     {
         // Consider in each iteration
@@ -368,7 +416,8 @@ precheck(int hasPruning, char *inputFile)
         }
     }
 
-    // Check on those collected rule and choose only the one with TRUE in precondition
+    // Check on those collected rules and choose only the one with TRUE in precondition
+    temp = 0;
     for (i = 0; i < collected_rules_size; i++)
     {
         if (ca_array[collected_rules[i]].type == 1)
@@ -381,7 +430,7 @@ precheck(int hasPruning, char *inputFile)
 
     if (temp) // If there exists one rule with TRUE in the precondition
     {
-        if (admin_role_exist(index))
+        if (exist_admin_user(index))  // If there exist one admin user
         {
             collected_rules[0] = index;
             write_small_policy(hasPruning, collected_rules, 1, inputFile);
@@ -389,6 +438,7 @@ precheck(int hasPruning, char *inputFile)
         }
         else
         {
+            // Will not consider it no more
             return 0;
         }
     }
@@ -401,7 +451,7 @@ precheck(int hasPruning, char *inputFile)
         {
             index = collected_rules[j];
 
-            level2_rules_size = ca_array[collected_rules[j]].positive_role_array_size;
+            level2_rules_size = ca_array[index].positive_role_array_size;
             level2_rules = malloc(level2_rules_size * sizeof(set));
 
             for (i = 0; i < level2_rules_size; i++)
@@ -410,12 +460,12 @@ precheck(int hasPruning, char *inputFile)
                 level2_rules[i].array_size = 0;
             }
 
-            // Find all dependent rules of this rule
+            // Find all dependent rules from this rule
             for (i = 0; i < ca_array_size; i++)
             {
                 if (ca_array[i].admin_role_index != -13)
                 {
-                    temp = belong_to(ca_array[collected_rules[j]].positive_role_array, ca_array[collected_rules[j]].positive_role_array_size, ca_array[i].target_role_index);
+                    temp = belong_to(ca_array[index].positive_role_array, ca_array[index].positive_role_array_size, ca_array[i].target_role_index);
                     if (temp != -1)
                     {
                         level2_rules[temp].array_size++;
@@ -430,14 +480,13 @@ precheck(int hasPruning, char *inputFile)
             {
                 for (temp = 0; temp < level2_rules[i].array_size; temp++)
                 {
-                    // Collect if this is the rule with TRUE in the precondition
-                    if (ca_array[level2_rules[i].array[temp]].type == 1 && admin_role_exist(level2_rules[i].array[temp]))
+                    // Collected if this is the rule with TRUE in the precondition
+                    if (ca_array[level2_rules[i].array[temp]].type == 1 && exist_admin_user(level2_rules[i].array[temp]))
                     {
                         final_collected_rules[final_collected_rules_size] = level2_rules[i].array[temp];
                         final_collected_rules_size++;
                         break;
                     }
-
                 }
             }
 
@@ -453,7 +502,8 @@ precheck(int hasPruning, char *inputFile)
             free(level2_rules);
             level2_rules = 0;
 
-            if (final_collected_rules_size == level2_rules_size)
+            if (level2_rules_size > 0
+                    && final_collected_rules_size == level2_rules_size)
             {
                 final_collected_rules[final_collected_rules_size] = index;
                 final_collected_rules_size++;

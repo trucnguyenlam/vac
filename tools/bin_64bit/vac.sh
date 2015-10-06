@@ -15,11 +15,12 @@ if [[ $# -eq 1 ]]; then
 		if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 			echo "=====> Simplification ARBAC policy =====>"
 			log=$(./bin/simplify -g $ARBAC_FILE 2>&1)
-			
+
 			#Something go wrong with the parser
 			if [[ $log =~ 'error' ]]; then
+				echo $log
 				echo "Please input correct ARBAC file format."
-				rm $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug" 
+				rm -rf $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug"
 				exit 1
 			fi
 
@@ -32,7 +33,7 @@ if [[ $# -eq 1 ]]; then
 				# USe CBMC to analyze on Precise translated file
 				echo "The ARBAC policy may not be safe."
 				echo "===> Under approximate analysis ===>"
-				./bin/translate -f cbmc -a precise $ARBAC_FILE"_reduceAdmin.arbac" 
+				./bin/translate -f cbmc -a precise $ARBAC_FILE"_reduceAdmin.arbac"
 				./bin/cbmc --unwind 2 --no-unwinding-assertions --xml-ui $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_CBMC.c" &> $ARBAC_FILE"_log.xml"
 				query_answer=`./bin/counterexample $ARBAC_FILE"_log.xml" $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_CBMC.c" $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug" $ARBAC_FILE`
 				if [[ ${query_answer} =~ 'no Counter Example' ]]; then
@@ -41,15 +42,15 @@ if [[ $# -eq 1 ]]; then
 					# Use Z3 for complete analysis
 					answer=`./bin/z3 -smt2 $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_SMT.smt2"`
 					if [[ ${answer} =~ 'unsat' ]]; then
-						./bin/cbmc --unwind 3 --no-unwinding-assertions --xml-ui $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_CBMC.c" &> $ARBAC_FILE"_log.xml"
+						./bin/cbmc --unwind 10 --no-unwinding-assertions --xml-ui $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_CBMC.c" &> $ARBAC_FILE"_log.xml"
 						answer1=`./bin/counterexample $ARBAC_FILE"_log.xml" $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_CBMC.c" $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug" $ARBAC_FILE`
 						if [[ ${answer1} =~ 'no Counter Example' ]]; then
 							echo "There is no counter example."
-							rm $ARBAC_FILE"_CounterExample"
+							rm -rf $ARBAC_FILE"_CounterExample"
 						else
 							if [[ ${answer1} =~ 'Cannot find Counter Example' ]]; then
 								echo "Cannot find the counter example."
-								rm $ARBAC_FILE"_CounterExample"
+								rm -rf $ARBAC_FILE"_CounterExample"
 							else
 								echo "=====> Produce Counter Example ====>"
 								cat $ARBAC_FILE"_CounterExample"
@@ -58,21 +59,21 @@ if [[ $# -eq 1 ]]; then
 					else
 						cat $ARBAC_FILE"_CounterExample"
 						echo "The ARBAC policy is safe."
-						rm $ARBAC_FILE"_CounterExample"
+						rm -rf $ARBAC_FILE"_CounterExample"
 					fi
 					# Delete intermediate files
-					rm $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_SMT.smt2"
+					rm -rf $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_SMT.smt2"
 				else
 					if [[ ${query_answer} =~ 'Cannot find Counter Example' ]]; then
-						./bin/cbmc --unwind 4 --no-unwinding-assertions --xml-ui $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_CBMC.c" &> $ARBAC_FILE"_log.xml"
+						./bin/cbmc --unwind 10 --no-unwinding-assertions --xml-ui $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_CBMC.c" &> $ARBAC_FILE"_log.xml"
 						answer1=`./bin/counterexample $ARBAC_FILE"_log.xml" $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_CBMC.c" $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug" $ARBAC_FILE`
 						if [[ ${answer1} =~ 'no Counter Example' ]]; then
 							echo "There is no counter example."
-							rm $ARBAC_FILE"_CounterExample"
+							rm -rf $ARBAC_FILE"_CounterExample"
 						else
 							if [[ ${answer1} =~ 'Cannot find Counter Example' ]]; then
 								echo "Cannot find the counter example."
-								rm $ARBAC_FILE"_CounterExample"
+								rm -rf $ARBAC_FILE"_CounterExample"
 							else
 								echo "=====> Produce Counter Example ====>"
 								cat $ARBAC_FILE"_CounterExample"
@@ -82,17 +83,17 @@ if [[ $# -eq 1 ]]; then
 						echo "=====> Produce Counter Example ====>"
 						cat $ARBAC_FILE"_CounterExample"
 					fi
-				fi	
+				fi
 				# Remove intermediate files
-				rm $ARBAC_FILE"_log.xml" $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_CBMC.c" $ARBAC_FILE"_reduceAdmin.arbac_OverApx_INTERPROC.cpp" $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug"
+				rm -rf $ARBAC_FILE"_log.xml" $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_CBMC.c" $ARBAC_FILE"_reduceAdmin.arbac_OverApx_INTERPROC.cpp" $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug"
 			elif [[  ${query_answer} =~ 'safe' ]]; then
 				echo "The ARBAC policy is safe."
 				# Remove intermediate files
-				rm $ARBAC_FILE"_reduceAdmin.arbac_OverApx_INTERPROC.cpp" $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug"
+				rm -rf $ARBAC_FILE"_reduceAdmin.arbac_OverApx_INTERPROC.cpp" $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug"
 			else
 				echo "There is something wrong with the analyzed file. Please check again."
 				# Remove intermediate files
-				rm $ARBAC_FILE"_reduceAdmin.arbac_OverApx_INTERPROC.cpp" $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug"
+				rm -rf $ARBAC_FILE"_reduceAdmin.arbac_OverApx_INTERPROC.cpp" $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug"
 			fi
 			exit 1
 		else
@@ -100,22 +101,23 @@ if [[ $# -eq 1 ]]; then
 			exit 1
 		fi
 	else
-    	echo	"* *                                VAC 1.0 - 2013-2014 (64-bit version)                                       * *"
+    	echo	"* *                                VAC 1.1 - 2013-2014 (64-bit version)                                       * *"
 		echo	"* *              Anna Lisa Ferrara (1), P. Madhusudan (2), Truc L. Nguyen (3), and Gennaro Parlato (3)        * *"
 		echo	"* *   (1) University of Bristol (UK), (2) University of Illinois (USA), (3) University of Southampton (UK)    * *"
 		echo
-		echo	"Usage:"                            
-		echo	 
-		echo	"  vac.sh [options] input_file"      
-		echo	 
-		echo	"Frontend options:                  Purpose:" 
+		echo	"Usage:"
+		echo
+		echo	"  vac.sh [options] input_file"
+		echo
+		echo	"Frontend options:                  Purpose:"
 		echo	"--no-pruning                        no simplification procedure"
 		echo	"--backend=NAME                      choose back-end (interproc, moped, z3, cbmc, eldarica, hsf, nusmv)"
 		echo	"--unwind=NUMBER                     unwind NUMBER times (CBMC only)"
 		echo	"--print-pruned-policy               print simplified policy only"
 		echo	"--print-translated-policy=FORMAT    print the translated program in the format FORMAT (interproc, moped, z3, cbmc, eldarica, hsf, nusmv)"
+		echo	"--mohawk                            print equivalent Mohawk benchmark"
 		echo	"-h, --help                          show help"
-		echo	
+		echo
 		echo
 		echo	"VAC without any option runs the default option: "
 		echo	"first run the abstract transformer followed by Interproc."
@@ -125,41 +127,45 @@ if [[ $# -eq 1 ]]; then
 	fi
 fi
 
-# Specific options
-PARSED_OPTIONS=$(getopt -n "$0" -a -o h -l "help,no-pruning,print-pruned-policy,print-translated-policy:,backend:,unwind:" -- "$@")
- 
+# Specify options
+PARSED_OPTIONS=$(getopt -n "$0" -a -o h -l "help,no-pruning,print-pruned-policy,print-translated-policy:,backend:,unwind:,mohawk" -- "$@")
+
 if [[ $? -ne 0 ]]; then
 	echo "Please invoke vac.sh -h for correct usage."
 	exit 1
 fi
 
-eval set -- "$PARSED_OPTIONS" 
+eval set -- "$PARSED_OPTIONS"
 
 while true;
 do
   case "$1" in
 	-h|--help)
       shift;;
- 
+
     --no-pruning)
       no_pruning_flag=1
       shift;;
- 
+
     --print-pruned-policy)
       print_pruned_policy_flag=1
       shift;;
- 
+
+    --mohawk)
+      print_mohawk=1
+      shift;;
+
     --print-translated-policy)
       print_translated_policy_flag=1
       if [ -n "$2" ]; then
         format=$2
       else
       	echo "Please specify the FORMAT of translated program. Try vac.sh -h for correct usage."
-      	exit 1  
+      	exit 1
       fi
  	  shift 2;;
 
- 	--backend)  
+ 	--backend)
       if [ -n "$2" ]; then
         backend=$2
       else
@@ -167,7 +173,7 @@ do
       	exit 1
       fi
       shift 2;;
- 
+
  	--unwind)
 	  flag=1
       if [ -n "$2" ]; then
@@ -186,6 +192,20 @@ do
 done
 
 if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
+	if [[ $print_mohawk -eq 1 ]]; then
+		log=$(./bin/simplify -m $ARBAC_FILE 2>&1)
+		if [[ $log =~ 'error' ]]; then
+			echo $log
+			echo "Please input correct ARBAC file format."
+			rm -rf $ARBAC_FILE"_mohawk.arbac"
+			exit 1
+		fi
+		cat $ARBAC_FILE"_mohawk.arbac"
+		echo
+		echo
+		exit 1
+	fi
+
 	# Print simplified ARBAC policy
 	if [[ $print_pruned_policy_flag -eq 1 ]]; then
 		echo
@@ -200,8 +220,9 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 		fi
 		log=$(./bin/simplify $ARBAC_FILE 2>&1)
 		if [[ $log =~ 'error' ]]; then
+			echo $log
 			echo "Please input correct ARBAC file format."
-			rm $ARBAC_FILE"_reduceAdmin.arbac" 
+			rm -rf $ARBAC_FILE"_reduceAdmin.arbac"
 			exit 1
 		fi
 		cat $ARBAC_FILE"_reduceAdmin.arbac"
@@ -222,19 +243,21 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 				if [[ $no_pruning_flag -eq 1 ]]; then
 					log2=$(./bin/translate -f interproc -a abstract $ARBAC_FILE 2>&1)
 					if [[ $log2 =~ 'error' ]]; then
+						echo $log2
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_OverApx_INTERPROC.cpp" 
+						rm -rf $ARBAC_FILE"_OverApx_INTERPROC.cpp"
 						exit 1
-					fi	
+					fi
 					cat $ARBAC_FILE"_OverApx_INTERPROC.cpp"
 				else
 					log=$(./bin/simplify $ARBAC_FILE 2>&1)
 					if [[ $log =~ 'error' ]]; then
+						echo $log
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_reduceAdmin.arbac" 
+						rm -rf $ARBAC_FILE"_reduceAdmin.arbac"
 						exit 1
 					fi
-					./bin/translate -f interproc -a abstract $ARBAC_FILE"_reduceAdmin.arbac" 
+					./bin/translate -f interproc -a abstract $ARBAC_FILE"_reduceAdmin.arbac"
 					cat $ARBAC_FILE"_reduceAdmin.arbac_OverApx_INTERPROC.cpp"
 				fi
 				;;
@@ -242,19 +265,21 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 				if [[ $no_pruning_flag -eq 1 ]]; then
 					log2=$(./bin/translate -f cbmc -a precise $ARBAC_FILE 2>&1)
 					if [[ $log2 =~ 'error' ]]; then
+						echo $log2
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_ExactAlg_CBMC.c" 
+						rm -rf $ARBAC_FILE"_ExactAlg_CBMC.c"
 						exit 1
-					fi	
+					fi
 					cat $ARBAC_FILE"_ExactAlg_CBMC.c"
 				else
 					log=$(./bin/simplify $ARBAC_FILE 2>&1)
 					if [[ $log =~ 'error' ]]; then
+						echo $log
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_reduceAdmin.arbac" 
+						rm -rf $ARBAC_FILE"_reduceAdmin.arbac"
 						exit 1
 					fi
-					./bin/translate -f cbmc -a precise $ARBAC_FILE"_reduceAdmin.arbac" 
+					./bin/translate -f cbmc -a precise $ARBAC_FILE"_reduceAdmin.arbac"
 					cat $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_CBMC.c"
 				fi
 				;;
@@ -262,19 +287,21 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 				if [[ $no_pruning_flag -eq 1 ]]; then
 					log2=$(./bin/translate -f moped -a precise $ARBAC_FILE 2>&1)
 					if [[ $log2 =~ 'error' ]]; then
+						echo $log2
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_ExactAlg_GETAFIX.bp" 
+						rm -rf $ARBAC_FILE"_ExactAlg_GETAFIX.bp"
 						exit 1
-					fi	
+					fi
 					cat $ARBAC_FILE"_ExactAlg_GETAFIX.bp"
 				else
 					log=$(./bin/simplify $ARBAC_FILE 2>&1)
 					if [[ $log =~ 'error' ]]; then
+						echo $log
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_reduceAdmin.arbac" 
+						rm -rf $ARBAC_FILE"_reduceAdmin.arbac"
 						exit 1
 					fi
-					./bin/translate -f moped -a precise $ARBAC_FILE"_reduceAdmin.arbac" 
+					./bin/translate -f moped -a precise $ARBAC_FILE"_reduceAdmin.arbac"
 					cat $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_GETAFIX.bp"
 				fi
 				;;
@@ -282,19 +309,21 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 				if [[ $no_pruning_flag -eq 1 ]]; then
 					log2=$(./bin/translate -f smt -a precise $ARBAC_FILE 2>&1)
 					if [[ $log2 =~ 'error' ]]; then
+						echo $log2
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_ExactAlg_SMT.smt2" 
+						rm -rf $ARBAC_FILE"_ExactAlg_SMT.smt2"
 						exit 1
-					fi	
+					fi
 					cat $ARBAC_FILE"_ExactAlg_SMT.smt2"
 				else
 					log=$(./bin/simplify $ARBAC_FILE 2>&1)
 					if [[ $log =~ 'error' ]]; then
+						echo $log
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_reduceAdmin.arbac" 
+						rm -rf $ARBAC_FILE"_reduceAdmin.arbac"
 						exit 1
 					fi
-					./bin/translate -f smt -a precise $ARBAC_FILE"_reduceAdmin.arbac" 
+					./bin/translate -f smt -a precise $ARBAC_FILE"_reduceAdmin.arbac"
 					cat $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_SMT.smt2"
 				fi
 				;;
@@ -302,19 +331,21 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 				if [[ $no_pruning_flag -eq 1 ]]; then
 					log2=$(./bin/translate -f hsf -a precise $ARBAC_FILE 2>&1)
 					if [[ $log2 =~ 'error' ]]; then
+						echo $log2
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_ExactAlg_HSF.qarmc" 
+						rm -rf $ARBAC_FILE"_ExactAlg_HSF.qarmc"
 						exit 1
-					fi	
+					fi
 					cat $ARBAC_FILE"_ExactAlg_HSF.qarmc"
 				else
 					log=$(./bin/simplify $ARBAC_FILE 2>&1)
 					if [[ $log =~ 'error' ]]; then
+						echo $log
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_reduceAdmin.arbac" 
+						rm -rf $ARBAC_FILE"_reduceAdmin.arbac"
 						exit 1
 					fi
-					./bin/translate -f hsf -a precise $ARBAC_FILE"_reduceAdmin.arbac" 
+					./bin/translate -f hsf -a precise $ARBAC_FILE"_reduceAdmin.arbac"
 					cat $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_HSF.qarmc"
 				fi
 				;;
@@ -322,50 +353,54 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 				if [[ $no_pruning_flag -eq 1 ]]; then
 					log2=$(./bin/translate -f eldarica -a precise $ARBAC_FILE 2>&1)
 					if [[ $log2 =~ 'error' ]]; then
+						echo $log2
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_ExactAlg_ELDARICA.horn" 
+						rm -rf $ARBAC_FILE"_ExactAlg_ELDARICA.horn"
 						exit 1
-					fi	
+					fi
 					cat $ARBAC_FILE"_ExactAlg_ELDARICA.horn"
 				else
 					log=$(./bin/simplify $ARBAC_FILE 2>&1)
 					if [[ $log =~ 'error' ]]; then
+						echo $log
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_reduceAdmin.arbac" 
+						rm -rf $ARBAC_FILE"_reduceAdmin.arbac"
 						exit 1
 					fi
-					./bin/translate -f eldarica -a precise $ARBAC_FILE"_reduceAdmin.arbac" 
-					cat $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_ELDARICA.horn" 
+					./bin/translate -f eldarica -a precise $ARBAC_FILE"_reduceAdmin.arbac"
+					cat $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_ELDARICA.horn"
 				fi
 				;;
 			nusmv)
 				if [[ $no_pruning_flag -eq 1 ]]; then
 					log2=$(./bin/translate -f nusmv -a precise $ARBAC_FILE 2>&1)
 					if [[ $log2 =~ 'error' ]]; then
+						echo $log2
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_ExactAlg_NuSMV.smv" 
+						rm -rf $ARBAC_FILE"_ExactAlg_NuSMV.smv"
 						exit 1
-					fi	
+					fi
 					cat $ARBAC_FILE"_ExactAlg_NuSMV.smv"
 				else
 					log=$(./bin/simplify $ARBAC_FILE 2>&1)
 					if [[ $log =~ 'error' ]]; then
+						echo $log
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_reduceAdmin.arbac" 
+						rm -rf $ARBAC_FILE"_reduceAdmin.arbac"
 						exit 1
 					fi
-					./bin/translate -f nusmv -a precise $ARBAC_FILE"_reduceAdmin.arbac" 
-					cat $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_NuSMV.smv" 
+					./bin/translate -f nusmv -a precise $ARBAC_FILE"_reduceAdmin.arbac"
+					cat $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_NuSMV.smv"
 				fi
 				;;
 			*)
 				echo "Please specify the correct FORMAT for the translation."
 				exit 1
-				;;	
+				;;
 		esac
 		echo
 		if [[ $no_pruning_flag -ne 1 ]]; then
-			rm $ARBAC_FILE"_reduceAdmin.arbac"  		
+			rm -rf $ARBAC_FILE"_reduceAdmin.arbac"
 		fi
 		exit 1
 	fi
@@ -376,10 +411,11 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 			interproc)
 				if [[ $no_pruning_flag -eq 1 ]]; then
 					echo "=====> Translation ARBAC policy =====>"
-					log3=$(./bin/translate -f interproc -a abstract $ARBAC_FILE 2>&1) 
+					log3=$(./bin/translate -f interproc -a abstract $ARBAC_FILE 2>&1)
 					if [[ $log3 =~ 'error' ]]; then
+						echo $log3
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_OverApx_INTERPROC.cpp" 
+						rm -rf $ARBAC_FILE"_OverApx_INTERPROC.cpp"
 						exit 1
 					fi
 					echo "=====> Analysis of translated ARBAC policy =====>"
@@ -394,17 +430,18 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 						echo "There is something wrong with the analyzed file. Please check again."
 					fi
 					# Remove intermediate files
-					rm $ARBAC_FILE"_OverApx_INTERPROC.cpp"
+					rm -rf $ARBAC_FILE"_OverApx_INTERPROC.cpp"
 				else
 					echo "=====> Simplification ARBAC policy =====>"
 					log=$(./bin/simplify -g $ARBAC_FILE 2>&1)
 					if [[ $log =~ 'error' ]]; then
+						echo $log
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug" 
+						rm -rf $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug"
 						exit 1
 					fi
 					echo "=====> Translation ARBAC policy =====>"
-					./bin/translate -f interproc -a abstract $ARBAC_FILE"_reduceAdmin.arbac" 
+					./bin/translate -f interproc -a abstract $ARBAC_FILE"_reduceAdmin.arbac"
 					echo "=====> Analysis of translated ARBAC policy =====>"
 					# Use interproc to analyze on Abstract translated file
 					query_answer=`./bin/interproc -domain box $ARBAC_FILE"_reduceAdmin.arbac_OverApx_INTERPROC.cpp"`
@@ -417,14 +454,14 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 						echo "There is something wrong with the analyzed file. Please check again."
 					fi
 					# Remove intermediate files
-					rm $ARBAC_FILE"_reduceAdmin.arbac_OverApx_INTERPROC.cpp"
+					rm -rf $ARBAC_FILE"_reduceAdmin.arbac_OverApx_INTERPROC.cpp"
 				fi
 				;;
 			cbmc)
 				if [[ $flag -eq 0 ]]; then
 					echo "Please specify the number of unwinding loop for CBMC."
 					if [[ $no_pruning_flag -ne 1 ]]; then
-						rm $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug" 		
+						rm -rf $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug"
 					fi
 					exit 1
 				fi
@@ -432,8 +469,9 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 					echo "=====> Translation ARBAC policy =====>"
 					log3=$(./bin/translate -f cbmc -a precise $ARBAC_FILE 2>&1)
 					if [[ $log3 =~ 'error' ]]; then
+						echo $log3
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_ExactAlg_CBMC.c"
+						rm -rf $ARBAC_FILE"_ExactAlg_CBMC.c"
 						exit 1
 					fi
 					echo "=====> Analysis of translated ARBAC policy =====>"
@@ -447,44 +485,46 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 						echo "There is something wrong with the analyzed file. Please check again."
 					fi
 					# Remove intermediate files
-					rm $ARBAC_FILE"_ExactAlg_CBMC.c" 
+					rm -rf $ARBAC_FILE"_ExactAlg_CBMC.c"
 				else
 					echo "=====> Simplification ARBAC policy =====>"
 					log=$(./bin/simplify -g $ARBAC_FILE 2>&1)
 					if [[ $log =~ 'error' ]]; then
+						echo $log
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug" 
+						rm -rf $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug"
 						exit 1
 					fi
 					echo "=====> Translation ARBAC policy =====>"
-					./bin/translate -f cbmc -a precise $ARBAC_FILE"_reduceAdmin.arbac" 
+					./bin/translate -f cbmc -a precise $ARBAC_FILE"_reduceAdmin.arbac"
 					echo "=====> Analysis of translated ARBAC policy =====>"
 					# Use CBMC to analyze on Precise translated file
 					./bin/cbmc --unwind $unwind --no-unwinding-assertions --xml-ui $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_CBMC.c" &> $ARBAC_FILE"_log.xml"
 					query_answer=`./bin/counterexample $ARBAC_FILE"_log.xml" $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_CBMC.c" $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug" $ARBAC_FILE`
 					if [[ ${query_answer} =~ 'no Counter Example' ]]; then
 						echo "The ARBAC policy may be safe at bound $unwind of unwinding."
-						rm $ARBAC_FILE"_CounterExample"
+						rm -rf $ARBAC_FILE"_CounterExample"
 					else
 						if [[ ${query_answer} =~ 'Cannot find Counter Example' ]]; then
 							echo "Cannot find counter example at bound $unwind of unwinding."
-							rm $ARBAC_FILE"_CounterExample"
+							rm -rf $ARBAC_FILE"_CounterExample"
 						else
 							echo "The ARBAC policy is not safe."
 							cat $ARBAC_FILE"_CounterExample"
 						fi
 					fi
 					# Remove intermediate files
-					rm $ARBAC_FILE"_log.xml" $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_CBMC.c"
+					rm -rf $ARBAC_FILE"_log.xml" $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_CBMC.c"
 				fi
-				;;	
+				;;
 			moped)
 				if [[ $no_pruning_flag -eq 1 ]]; then
 					echo "=====> Translation ARBAC policy =====>"
-					log3=$(./bin/translate -f moped -a precise $ARBAC_FILE 2>&1) 
+					log3=$(./bin/translate -f moped -a precise $ARBAC_FILE 2>&1)
 					if [[ $log3 =~ 'error' ]]; then
+						echo $log3
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_ExactAlg_GETAFIX.bp"
+						rm -rf $ARBAC_FILE"_ExactAlg_GETAFIX.bp"
 						exit 1
 					fi
 					echo "=====> Analysis of translated ARBAC policy =====>"
@@ -498,17 +538,18 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 						echo "There is something wrong with the analyzed file. Please check again."
 					fi
 					# Remove intermediate files
-					rm $ARBAC_FILE"_ExactAlg_GETAFIX.bp"
+					rm -rf $ARBAC_FILE"_ExactAlg_GETAFIX.bp"
 				else
 					echo "=====> Simplification ARBAC policy =====>"
 					log=$(./bin/simplify -g $ARBAC_FILE 2>&1)
 					if [[ $log =~ 'error' ]]; then
+						echo $log
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug" 
+						rm -rf $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug"
 						exit 1
 					fi
 					echo "=====> Translation ARBAC policy =====>"
-					./bin/translate -f moped -a precise $ARBAC_FILE"_reduceAdmin.arbac" 
+					./bin/translate -f moped -a precise $ARBAC_FILE"_reduceAdmin.arbac"
 					echo "=====> Analysis of translated ARBAC policy =====>"
 					# Use MOPED to analyze on Abstract translated file first
 					query_answer=`./bin/moped -b $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_GETAFIX.bp"`
@@ -520,7 +561,7 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 						echo "There is something wrong with the analyzed file. Please check again."
 					fi
 					# Remove intermediate files
-					rm $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_GETAFIX.bp"
+					rm -rf $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_GETAFIX.bp"
 				fi
 				;;
 			z3)
@@ -528,8 +569,9 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 					echo "=====> Translation ARBAC policy =====>"
 					log3=$(./bin/translate -f smt -a precise $ARBAC_FILE 2>&1)
 					if [[ $log3 =~ 'error' ]]; then
+						echo $log3
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_ExactAlg_SMT.smt2"
+						rm -rf $ARBAC_FILE"_ExactAlg_SMT.smt2"
 						exit 1
 					fi
 					echo "=====> Analysis of translated ARBAC policy =====>"
@@ -543,18 +585,19 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 						echo "There is something wrong with the analyzed file. Please check again."
 					fi
 					# Remove intermediate files
-					rm $ARBAC_FILE"_ExactAlg_SMT.smt2"	
+					rm -rf $ARBAC_FILE"_ExactAlg_SMT.smt2"
 
 				else
 					echo "=====> Simplification ARBAC policy =====>"
 					log=$(./bin/simplify -g $ARBAC_FILE 2>&1)
 					if [[ $log =~ 'error' ]]; then
+						echo $log
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug" 
+						rm -rf $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug"
 						exit 1
 					fi
 					echo "=====> Translation ARBAC policy =====>"
-					./bin/translate -f smt -a precise $ARBAC_FILE"_reduceAdmin.arbac" 
+					./bin/translate -f smt -a precise $ARBAC_FILE"_reduceAdmin.arbac"
 					echo "=====> Analysis of translated ARBAC policy =====>"
 					# Use Z3 to analyze on Abstract translated file first
 					query_answer=`./bin/z3 -smt2 $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_SMT.smt2"`
@@ -566,7 +609,7 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 						echo "There is something wrong with the analyzed file. Please check again."
 					fi
 					# Remove intermediate files
-					rm $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_SMT.smt2"	
+					rm -rf $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_SMT.smt2"
 				fi
 				;;
 			hsf)
@@ -574,8 +617,9 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 					echo "=====> Translation ARBAC policy =====>"
 					log3=$(./bin/translate -f hsf -a precise $ARBAC_FILE 2>&1)
 					if [[ $log3 =~ 'error' ]]; then
+						echo $log3
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_ExactAlg_HSF.qarmc"
+						rm -rf $ARBAC_FILE"_ExactAlg_HSF.qarmc"
 						exit 1
 					fi
 					echo "=====> Analysis of translated ARBAC policy =====>"
@@ -589,17 +633,18 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 						echo "There is something wrong with the analyzed file. Please check again."
 					fi
 					# Remove intermediate files
-					rm $ARBAC_FILE"_ExactAlg_HSF.qarmc"
+					rm -rf $ARBAC_FILE"_ExactAlg_HSF.qarmc"
 				else
 					echo "=====> Simplification ARBAC policy =====>"
 					log=$(./bin/simplify -g $ARBAC_FILE 2>&1)
 					if [[ $log =~ 'error' ]]; then
+						echo $log
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug" 
+						rm -rf $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug"
 						exit 1
 					fi
 					echo "=====> Translation ARBAC policy =====>"
-					./bin/translate -f hsf -a precise $ARBAC_FILE"_reduceAdmin.arbac" 
+					./bin/translate -f hsf -a precise $ARBAC_FILE"_reduceAdmin.arbac"
 					echo "=====> Analysis of translated ARBAC policy =====>"
 					# Use QARMC to analyze on Abstract translated file first
 					query_answer=`./bin/qarmc $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_HSF.qarmc"`
@@ -611,7 +656,7 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 						echo "There is something wrong with the analyzed file. Please check again."
 					fi
 					# Remove intermediate files
-					rm $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_HSF.qarmc"	
+					rm -rf $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_HSF.qarmc"
 				fi
 				;;
 			eldarica)
@@ -619,8 +664,9 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 					echo "=====> Translation ARBAC policy =====>"
 					log3=$(./bin/translate -f eldarica -a precise $ARBAC_FILE 2>&1)
 					if [[ $log3 =~ 'error' ]]; then
+						echo $log3
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_ExactAlg_ELDARICA.horn"
+						rm -rf $ARBAC_FILE"_ExactAlg_ELDARICA.horn"
 						exit 1
 					fi
 					echo "=====> Analysis of translated ARBAC policy =====>"
@@ -634,17 +680,18 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 						echo "There is something wrong with the analyzed file. Please check again."
 					fi
 					# Remove intermediate files
-					rm $ARBAC_FILE"_ExactAlg_ELDARICA.horn"
+					rm -rf $ARBAC_FILE"_ExactAlg_ELDARICA.horn"
 				else
 					echo "=====> Simplification ARBAC policy =====>"
 					log=$(./bin/simplify -g $ARBAC_FILE 2>&1)
 					if [[ $log =~ 'error' ]]; then
+						echo $log
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug" 
+						rm -rf $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug"
 						exit 1
 					fi
 					echo "=====> Translation ARBAC policy =====>"
-					./bin/translate -f eldarica -a precise $ARBAC_FILE"_reduceAdmin.arbac" 
+					./bin/translate -f eldarica -a precise $ARBAC_FILE"_reduceAdmin.arbac"
 					echo "=====> Analysis of translated ARBAC policy =====>"
 					# Use ELDARICA to analyze on Abstract translated file first
 					query_answer=`java -jar ./bin/eldarica-2063.jar -horn -hin -princess -bup -n $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_ELDARICA.horn"`
@@ -656,7 +703,7 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 						echo "There is something wrong with the analyzed file. Please check again."
 					fi
 					# Remove intermediate files
-					rm $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_ELDARICA.horn"
+					rm -rf $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_ELDARICA.horn"
 				fi
 				;;
 			nusmv)
@@ -664,8 +711,9 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 					echo "=====> Translation ARBAC policy =====>"
 					log3=$(./bin/translate -f nusmv -a precise $ARBAC_FILE 2>&1)
 					if [[ $log3 =~ 'error' ]]; then
+						echo $log3
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_ExactAlg_NuSMV.smv"
+						rm -rf $ARBAC_FILE"_ExactAlg_NuSMV.smv"
 						exit 1
 					fi
 					echo "=====> Analysis of translated ARBAC policy =====>"
@@ -679,17 +727,18 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 						echo "There is something wrong with the analyzed file. Please check again."
 					fi
 					# Remove intermediate files
-					rm $ARBAC_FILE"_ExactAlg_NuSMV.smv"
+					rm -rf $ARBAC_FILE"_ExactAlg_NuSMV.smv"
 				else
 					echo "=====> Simplification ARBAC policy =====>"
 					log=$(./bin/simplify -g $ARBAC_FILE 2>&1)
 					if [[ $log =~ 'error' ]]; then
+						echo $log
 						echo "Please input correct ARBAC file format."
-						rm $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug" 
+						rm -rf $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug"
 						exit 1
 					fi
 					echo "=====> Translation ARBAC policy =====>"
-					./bin/translate -f nusmv -a precise $ARBAC_FILE"_reduceAdmin.arbac" 
+					./bin/translate -f nusmv -a precise $ARBAC_FILE"_reduceAdmin.arbac"
 					echo "=====> Analysis of translated ARBAC policy =====>"
 					# Use ELDARICA to analyze on Abstract translated file first
 					query_answer=`./bin/NuSMV $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_NuSMV.smv"`
@@ -701,22 +750,22 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 						echo "There is something wrong with the analyzed file. Please check again."
 					fi
 					# Remove intermediate files
-					rm $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_NuSMV.smv"
+					rm -rf $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_NuSMV.smv"
 				fi
 				;;
 			*)
 				echo "Please specify the correct backend name for VAC."
 				exit 1
-				;;	
+				;;
 		esac
 		if [[ $no_pruning_flag -ne 1 ]]; then
-			rm $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug" 		
+			rm -rf $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug"
 		fi
 		exit 1
 	fi
 else
 	echo "Please input a valid ARBAC file."
 	exit 1
-fi	
+fi
 
 

@@ -49,7 +49,7 @@ drop_role_precondition(int role_index, int rule_index)
 	// Check if that rule become another type
 	if (ca_array[rule_index].type == 0 && ca_array[rule_index].negative_role_array_size == 0 && ca_array[rule_index].positive_role_array_size == 0)
 	{
-		ca_array[rule_index].type = 1;
+		ca_array[rule_index].type = 1; // TURN it into TRUE
 	}
 }
 
@@ -105,6 +105,8 @@ find_role_from_dict(char *name)
 	i = (int *) iDictionary.GetElement(role_dict, name);
 	if (i == NULL)
 	{
+		fprintf(stderr, "error: cannot find role %s, please check the policy again\n", name);
+		abort();
 		return -1;
 	}
 	else
@@ -122,7 +124,15 @@ find_user_from_dict(char *name)
 	i = (int *) iDictionary.GetElement(user_dict, name);
 	if (i == NULL)
 	{
-		return -1;
+		if (strcmp(name, "NEW_USER") != 0)
+		{
+			fprintf(stderr, "error: cannot find user %s, please check the policy again\n", name);
+			abort();
+		}
+		else
+		{
+			return -1;
+		}
 	}
 	else
 	{
@@ -212,6 +222,9 @@ rebuild_cr_array()
 	}
 }
 
+// Check if there is still rule with NEW precondition existing in the system
+int no_NEW_rule = 1;
+
 // Rebuild can assign array
 static void
 rebuild_ca_array()
@@ -229,9 +242,79 @@ rebuild_ca_array()
 					ca_array[j].admin_role_index = -13;
 				}
 			}
+			if (ca_array[i].type == 2)
+			{
+				no_NEW_rule = 0;
+			}
 		}
 	}
 }
+
+static void
+rebuild_admin_array(void)
+{
+	int i, j, count = 0, flag = 0;
+
+	for (i = 0; i < admin_array_index_size; i++)
+	{
+		if (admin_array_index[i] != -13)
+		{
+			if (admin_array_index[i] == -10
+			        || strcmp(get_user(admin_array_index[i]), "SUPER_USER") == 0
+			   )
+			{
+				flag = 1;
+				continue;
+			}
+			count = 0;
+			for (j = 0; j < ua_array_size; j++)
+			{
+				if (ua_array[j].user_index == admin_array_index[i]
+				        && ua_array[j].role_index != -13
+				        && (belong_to(admin_role_array_index, admin_role_array_index_size, ua_array[j].role_index) != -1 )
+				   )
+				{
+					count++;
+				}
+			}
+			if (count == 0)
+			{
+				admin_array_index[i] = -13;  // Mark as removal
+			}
+		}
+	}
+
+	if (!flag && super_exist)
+	{
+		// Create super user here
+		admin_array_index_size++;
+		admin_array_index = realloc(admin_array_index, admin_array_index_size * sizeof(int));
+		admin_array_index[admin_array_index_size - 1] = -10;   // SUPER_USER
+	}
+}
+
+/**
+ * Return index of the user that will become the SUPER_USER
+ */
+static int
+candidate_SUPER_USER(void)
+{
+	int i = -1;
+	for (i = promoted_users.array_size - 1; i >= 0; i--)
+	{
+		// make sure that user is not removed
+		if (0 <= promoted_users.array[i]
+		        && promoted_users.array[i] < user_array_size
+		        // && strcmp(user_array[promoted_users.array[i]], "removed_user") != 0
+		   )
+		{
+			return i;
+		}
+	}
+	return i;
+}
+
+int super_user_index = 0;
 
 // Rebuild ARBAC system
 static void
@@ -264,18 +347,34 @@ rebuild_ARBAC_system()
 
 	if (!flag && super_exist)
 	{
-		user_array_size++;
-		user_array = realloc(user_array, user_array_size * sizeof(char *));
-		user_array[user_array_size - 1] = malloc(strlen("SUPER_USER") + 1);
-		strcpy(user_array[user_array_size - 1], "SUPER_USER");
-
-		admin_array_index_size++;
-		admin_array_index = realloc(admin_array_index, admin_array_index_size * sizeof(int));
-		admin_array_index[admin_array_index_size - 1] = -10;
+		// Elect a user to become SUPER_USER
+		int elected_user_index = candidate_SUPER_USER();
+		if (elected_user_index == -1)
+		{
+			printf("error: there is something wrong with IMMATERIAL module\n");
+			abort();
+		}
+		else
+		{
+			// Change that user to SUPER_USER, no matter what that user is
+			free(user_array[elected_user_index]);
+			user_array[elected_user_index] = malloc(strlen("SUPER_USER") + 1);
+			strcpy(user_array[elected_user_index], "SUPER_USER");
+		}
 	}
 
 	// Rebuild user membership UA
-	if (super_exist)
+	// Test if there is UA <SUPER_USER, SUPER_ROLE>
+	flag = 0;
+	for (i = 0; i < ua_array_size; i++)
+	{
+		if (ua_array[i].role_index == -10)
+		{
+			flag = 1;
+			break;
+		}
+	}
+	if (!flag && super_exist)
 	{
 		ua_array_size++;
 		ua_array = realloc(ua_array, ua_array_size * sizeof(_UA));
@@ -283,11 +382,26 @@ rebuild_ARBAC_system()
 		ua_array[ua_array_size - 1].role_index = -10;
 	}
 
+	// Rebuild admin array
+	rebuild_admin_array();
+
 	// Rebuild can revoke rules
 	rebuild_cr_array();
 
 	// Rebuild can assign rules
 	rebuild_ca_array();
+
+	// If there is no more rule with NEW in precondition
+	if (hasNewUserMode
+	        && goal_user_index == -1
+	        && no_NEW_rule)
+	{
+		// Create a new user name NEW_USER
+		user_array_size++;
+		user_array = realloc(user_array, user_array_size * sizeof(char*));
+		user_array[user_array_size - 1] = malloc(strlen("NEW_USER") + 1);
+		strcpy(user_array[user_array_size - 1], "NEW_USER");
+	}
 }
 
 // Get user name from the index
@@ -301,6 +415,10 @@ get_user(int user_index)
 	if (user_index == -1)
 	{
 		return "NEW_USER";
+	}
+	if (user_index == -13)
+	{
+		return "removed_user";
 	}
 	return user_array[user_index];
 }
@@ -418,14 +536,151 @@ write_trace(FILE *output)
 	for (i = 0; i < trace_array_size; i++)
 	{
 		fprintf(output, "%d -> %d -> %d + %d -> %d + %d\n",
-			trace_array[i].simplify_rule,
-			trace_array[i].affected_role_index,
-			trace_array[i].affected_rule_index,
-			trace_array[i].affected_rule_type,
-			trace_array[i].related_rule_index,
-			trace_array[i].related_rule_type);
+		        trace_array[i].simplify_rule,
+		        trace_array[i].affected_role_index,
+		        trace_array[i].affected_rule_index,
+		        trace_array[i].affected_rule_type,
+		        trace_array[i].related_rule_index,
+		        trace_array[i].related_rule_type);
 	}
 	fprintf(output, "EndTrace\n");
+}
+
+
+void
+generateADMIN(void)
+{
+	if (admin_array_index_size == 0)
+	{
+		set admin_set;
+		admin_set.array = 0;
+		admin_set.array_size = 0;
+		int i;
+		for (i = 0; i < ua_array_size; i++)
+		{
+			if (belong_to(admin_role_array_index, admin_role_array_index_size, ua_array[i].role_index) != -1)
+			{
+				admin_set = add_element(admin_set, ua_array[i].user_index);
+			}
+		}
+		admin_array_index_size = admin_set.array_size;
+		admin_array_index = malloc(admin_array_index_size * sizeof(int));
+		for(i = 0; i < admin_array_index_size; i++)
+		{
+			admin_array_index[i] = admin_set.array[i];
+		}
+	}
+}
+
+
+void
+write_ARBACMOHAWK(char *fileName)
+{
+	FILE *output;
+	char *newfile = 0;
+	int i, j;
+	int count = 0;
+
+	newfile = malloc(strlen(fileName) + strlen("_mohawk.arbac") + 2);
+	sprintf(newfile, "%s_mohawk.arbac", fileName);
+	output = fopen(newfile, "w");
+
+	fprintf(output, "Roles ");
+	for (i = 0; i < role_array_size; i++)
+	{
+		fprintf(output, "%s ", role_array[i]);
+	}
+	fprintf(output, ";\n\n");
+
+	fprintf(output, "Users ");
+	for (i = 0; i < user_array_size; i++)
+	{
+		fprintf(output, "%s ", user_array[i]);
+	}
+	fprintf(output, ";\n\n");
+
+	//Write the UA
+	fprintf(output, "UA ");
+	for (i = 0; i < ua_array_size; i++)
+	{
+		fprintf(output, "<%s,%s> ", get_user(ua_array[i].user_index), get_role(ua_array[i].role_index));
+	}
+	fprintf(output, ";\n\n");
+
+	fprintf(output, "CR ");
+	for (i = 0; i < cr_array_size; i++)
+	{
+		fprintf(output, "<%s,%s> ", get_role(cr_array[i].admin_role_index), get_role(cr_array[i].target_role_index));
+	}
+	fprintf(output, ";\n\n");
+
+	int has_head = 0;
+	fprintf(output, "CA ");
+	for (i = 0; i < ca_array_size; i++)
+	{
+		// Check for the precondition of each role
+		if (ca_array[i].type == 0)
+		{
+			fprintf(output, "<%s,", get_role(ca_array[i].admin_role_index));
+
+			for (j = 0; j < ca_array[i].positive_role_array_size; j++)
+			{
+				if (has_head)
+				{
+					fprintf(output, "&%s", get_role(ca_array[i].positive_role_array[j]));
+				}
+				else
+				{
+					fprintf(output, "%s", get_role(ca_array[i].positive_role_array[j]));
+					has_head = 1;
+				}
+			}
+
+			for (j = 0; j < ca_array[i].negative_role_array_size; j++)
+			{
+				if (has_head)
+				{
+					fprintf(output, "&-%s", get_role(ca_array[i].negative_role_array[j]));
+				}
+				else
+				{
+					fprintf(output, "-%s", get_role(ca_array[i].negative_role_array[j]));
+					has_head = 1;
+				}
+			}
+			fprintf(output, ",%s> ", get_role(ca_array[i].target_role_index));
+			has_head = 0;
+		}
+		else if (ca_array[i].type == 1)
+		{
+			fprintf(output, "<%s,TRUE,%s> ", get_role(ca_array[i].admin_role_index), get_role(ca_array[i].target_role_index));
+		}
+		else if (ca_array[i].type == 2)
+		{
+			fprintf(output, "<%s,NEW,%s> ", get_role(ca_array[i].admin_role_index), get_role(ca_array[i].target_role_index));
+		}
+	}
+	fprintf(output, ";\n\n");
+
+
+	//Write the ADMIN
+	fprintf(output, "ADMIN ");
+	for (i = 0; i < admin_array_index_size; i++)
+	{
+		fprintf(output, "%s ", get_user(admin_array_index[i]));
+	}
+	fprintf(output, ";\n\n");
+
+	//Write the SPEC
+	fprintf(output, "SPEC");
+	if (goal_user_index != -13)
+	{
+		fprintf(output, " %s", get_user(goal_user_index));
+	}
+	fprintf(output, " %s ;", get_role(goal_role_index));
+
+	fclose(output);
+	free(newfile);
 }
 
 // Write ARBAC policies to a file output
@@ -476,7 +731,14 @@ write_ARBAC(char *fileName)
 		if (strcmp(user_array[i], "removed_user") != 0)
 		{
 			fprintf(output, "%s ", user_array[i]);
-			fprintf(simplifyLog, "%d -> %d\n", i, count);
+			if (super_exist && strcmp(user_array[i], "SUPER_USER") == 0)
+			{
+				fprintf(simplifyLog, "%d -> -10\n", i); // -10 is for super
+			}
+			else
+			{
+				fprintf(simplifyLog, "%d -> %d\n", i, count);
+			}
 			count++;
 		}
 		else
@@ -582,19 +844,19 @@ write_ARBAC(char *fileName)
 	fprintf(tmplog, "CA Rules: %d\n", count);
 
 	//Write the ADMIN
-	fprintf(output, "ADMIN ");
-	for (i = 0; i < admin_array_index_size; i++)
-	{
-		if (admin_array_index[i] != -13)
-		{
-			fprintf(output, "%s ", get_user(admin_array_index[i]));
-		}
-	}
-	fprintf(output, ";\n\n");
+	// fprintf(output, "ADMIN ");
+	// for (i = 0; i < admin_array_index_size; i++)
+	// {
+	// 	if (admin_array_index[i] != -13)
+	// 	{
+	// 		fprintf(output, "%s ", get_user(admin_array_index[i]));
+	// 	}
+	// }
+	// fprintf(output, ";\n\n");
 
 	//Write the SPEC
 	fprintf(output, "SPEC");
-	if(goal_user_index != -13)
+	if (goal_user_index != -13)
 	{
 		fprintf(output, " %s", get_user(goal_user_index));
 	}

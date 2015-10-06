@@ -3,6 +3,8 @@
 
 #include "CounterExampleData.h"
 
+FILE * debugFile;
+
 int
 hasCounterExample;
 
@@ -18,7 +20,10 @@ readARBAC(char *);
 void
 readSimplifyLog(char *);
 
-void 
+void
 generate_counter_example(int, char**);
+
+void
+generate_counter_example_full(int, char**);
 
 #endif /* COUNTEREXAMPLE_H_ */
