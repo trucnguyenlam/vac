@@ -17,10 +17,11 @@ def generateTest(inputfile, roles, users, newusers, hasNEW=False):
         for i in xrange(users):
             out.write(" u%s" % i)
         out.write(";\n")
+        out.write("NEWUSERS")
         if hasNEW:
             for i in xrange(newusers):
                 combination = random.sample(xrange(roles), random.randint(1, roles - 2))
-                out.write("<newuser%s, %s>\n" % (i, ["r%s" % r for r in combination].join("&")))
+                out.write("<newuser%s, %s>\n" % (i, "&".join(["r%s" % r for r in combination])))
         out.write(";\n")
 
         out.write("UA ")
@@ -62,11 +63,11 @@ def generateTest(inputfile, roles, users, newusers, hasNEW=False):
             if getChoiceByPercentage(50):
                 out.write(" newuser%s" % random.randint(0, newusers - 1))
             elif getChoiceByPercentage(30):
-                out.write(" user%s" % random.randint(0, users - 1))
+                out.write(" u%s" % random.randint(0, users - 1))
         elif getChoiceByPercentage(50):
             out.write(" u%s" % random.randint(0, users - 1))
 
-        out.write(" role%s" % random.randint(0, roles - 1))
+        out.write(" r%s" % random.randint(0, roles - 1))
         out.write(";\n")
 
 

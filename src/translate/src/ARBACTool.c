@@ -214,6 +214,14 @@ reduction_finiteARBAC(void)
 		// Reseting things
 		hasNewUserMode = 0;
 
+        // Add these user to the dictionary
+        if (user_dict != NULL);
+        {
+            iDictionary.Finalize(user_dict);
+        }
+        // create new dictionary for user
+        create_user_dict();
+
 		// Free data
 		for(i = 0; i < newuser_array_size; i++)
 		{
