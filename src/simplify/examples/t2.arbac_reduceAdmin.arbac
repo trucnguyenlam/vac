@@ -1,0 +1,11 @@
+Roles r4 SUPER_ROLE ;
+
+Users SUPER_USER u1 u2 u3 ;
+
+UA <SUPER_USER,SUPER_ROLE> ;
+
+CR ;
+
+CA <SUPER_ROLE,TRUE,r4> ;
+
+SPEC u1 r4 ;

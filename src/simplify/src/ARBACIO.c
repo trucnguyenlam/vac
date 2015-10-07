@@ -96,13 +96,41 @@ create_user_dict()
 	}
 }
 
+// create a dictionary of user
+void
+create_newuser_dict()
+{
+	int i;
+	int *nu_array = 0;
+	nu_array = malloc(newuser_array_size * sizeof(int));
+
+	for (i = 0; i < newuser_array_size; i++)
+	{
+		nu_array[i] = i;
+	}
+
+	newuser_dict = iDictionary.Create(sizeof(int *), newuser_array_size);
+
+	for (i = 0; i < newuser_array_size; i++)
+	{
+		iDictionary.Add(newuser_dict, newuser_array[i].name, &nu_array[i]);
+	}
+}
+
 // Find a role index from dictionary by its name
 int
 find_role_from_dict(char *name)
 {
 	int *i;
 
-	i = (int *) iDictionary.GetElement(role_dict, name);
+	if (role_dict != NULL)
+	{
+		i = (int *) iDictionary.GetElement(role_dict, name);
+	}
+	else
+	{
+		return -1;
+	}
 	if (i == NULL)
 	{
 		fprintf(stderr, "error: cannot find role %s, please check the policy again\n", name);
@@ -121,18 +149,40 @@ find_user_from_dict(char *name)
 {
 	int *i;
 
-	i = (int *) iDictionary.GetElement(user_dict, name);
+	if (user_dict != NULL)
+	{
+		i = (int *) iDictionary.GetElement(user_dict, name);
+	}
+	else
+	{
+		return -1;
+	}
 	if (i == NULL)
 	{
-		if (strcmp(name, "NEW_USER") != 0)
-		{
-			fprintf(stderr, "error: cannot find user %s, please check the policy again\n", name);
-			abort();
-		}
-		else
-		{
-			return -1;
-		}
+		return -1;
+	}
+	else
+	{
+		return *i;
+	}
+}
+
+// Find a user index from dictionary by his name
+int
+find_newuser_from_dict(char *name)
+{
+	int *i;
+	if (newuser_dict != NULL)
+	{
+		i = (int *) iDictionary.GetElement(newuser_dict, name);
+	}
+	else
+	{
+		return -1;
+	}
+	if (i == NULL)
+	{
+		return -1;
 	}
 	else
 	{
@@ -391,17 +441,6 @@ rebuild_ARBAC_system()
 	// Rebuild can assign rules
 	rebuild_ca_array();
 
-	// If there is no more rule with NEW in precondition
-	if (hasNewUserMode
-	        && goal_user_index == -1
-	        && no_NEW_rule)
-	{
-		// Create a new user name NEW_USER
-		user_array_size++;
-		user_array = realloc(user_array, user_array_size * sizeof(char*));
-		user_array[user_array_size - 1] = malloc(strlen("NEW_USER") + 1);
-		strcpy(user_array[user_array_size - 1], "NEW_USER");
-	}
 }
 
 // Get user name from the index
@@ -411,10 +450,6 @@ get_user(int user_index)
 	if (user_index == -10)
 	{
 		return "SUPER_USER";
-	}
-	if (user_index == -1)
-	{
-		return "NEW_USER";
 	}
 	if (user_index == -13)
 	{
@@ -565,7 +600,7 @@ generateADMIN(void)
 		}
 		admin_array_index_size = admin_set.array_size;
 		admin_array_index = malloc(admin_array_index_size * sizeof(int));
-		for(i = 0; i < admin_array_index_size; i++)
+		for (i = 0; i < admin_array_index_size; i++)
 		{
 			admin_array_index[i] = admin_set.array[i];
 		}
@@ -681,6 +716,73 @@ write_ARBACMOHAWK(char *fileName)
 
 	fclose(output);
 	free(newfile);
+}
+
+
+/**
+ * Reduction of ARBAC system with infinite users into a finite one
+ */
+void
+reduction_finiteARBAC(void)
+{
+	// For each user in NEW user, create k+1
+	if (hasNewUserMode && newuser_array_size > 0)
+	{
+		int i;
+		// Need k + 1 users in the system for each
+		int NUM_USER = admin_role_array_index_size + 1;
+		int old_user_array_size = user_array_size;
+		user_array_size += NUM_USER * newuser_array_size;
+		user_array = realloc(user_array, user_array_size * sizeof(char*));
+		int old_ua_array_size;
+
+		for (i = 0; i < newuser_array_size; i++)
+		{
+			char temp[2000];    // No way a username longer than 2000 characters
+			old_ua_array_size = ua_array_size;
+			ua_array_size += NUM_USER * newuser_array[i].role_array_size;
+			ua_array = realloc(ua_array, ua_array_size * sizeof(_UA));
+
+			// For each new user add k+1 new user to the system
+			int j;
+			for (j = 0; j < NUM_USER; j++)
+			{
+				int size = sprintf(temp, "NEWUSER%d_%s", j, newuser_array[i].name);
+				user_array[old_user_array_size + i * NUM_USER + j] = malloc(size + 1);
+				strcpy(user_array[old_user_array_size + i * NUM_USER + j], temp);
+				// Add to ua_array
+				int k;
+				for (k = 0; k < newuser_array[i].role_array_size; k++)
+				{
+					ua_array[old_ua_array_size + j * newuser_array[i].role_array_size + k].user_index = old_user_array_size + i * NUM_USER + j;
+					ua_array[old_ua_array_size + j * newuser_array[i].role_array_size + k].role_index = newuser_array[i].role_array[k];
+				}
+			}
+		}
+		// Change to SPEC if possible
+		if (hasGoalUserMode && goalUserIsNew)
+		{
+			// Translation of index
+			goal_user_index = old_user_array_size + goal_user_index * NUM_USER;
+			goalUserIsNew = 0;
+		}
+
+		// Reseting things
+		hasNewUserMode = 0;
+
+		// Free data
+		for(i = 0; i < newuser_array_size; i++)
+		{
+			free(newuser_array[i].name);
+			newuser_array[i].name = 0;
+			free(newuser_array[i].role_array);
+			newuser_array[i].role_array = 0;
+			newuser_array[i].role_array_size = 0;
+		}
+		free(newuser_array);
+		newuser_array_size = 0;
+		newuser_array = 0;
+	}
 }
 
 // Write ARBAC policies to a file output
@@ -843,17 +945,6 @@ write_ARBAC(char *fileName)
 	fprintf(simplifyLog, "EndCA\n");
 	fprintf(tmplog, "CA Rules: %d\n", count);
 
-	//Write the ADMIN
-	// fprintf(output, "ADMIN ");
-	// for (i = 0; i < admin_array_index_size; i++)
-	// {
-	// 	if (admin_array_index[i] != -13)
-	// 	{
-	// 		fprintf(output, "%s ", get_user(admin_array_index[i]));
-	// 	}
-	// }
-	// fprintf(output, ";\n\n");
-
 	//Write the SPEC
 	fprintf(output, "SPEC");
 	if (goal_user_index != -13)
@@ -909,6 +1000,16 @@ free_data()
 	}
 	free(ca_array);
 
-	iDictionary.Finalize(role_dict);
-	iDictionary.Finalize(user_dict);
+	if (role_dict != NULL)
+	{
+		iDictionary.Finalize(role_dict);
+	}
+	if (user_dict != NULL);
+	{
+		iDictionary.Finalize(user_dict);
+	}
+	if (newuser_dict != NULL)
+	{
+		iDictionary.Finalize(newuser_dict);
+	}
 }

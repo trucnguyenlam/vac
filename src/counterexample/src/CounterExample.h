@@ -21,6 +21,9 @@ void
 readSimplifyLog(char *);
 
 void
+reduction_finiteARBAC(void);
+
+void
 generate_counter_example(int, char**);
 
 void

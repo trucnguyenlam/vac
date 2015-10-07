@@ -19,6 +19,9 @@ reduceAdmin(char *inputFile)
     fprintf(tmplog, "Total rules: %d\n", cr_array_size + ca_array_size);
     fprintf(tmplog, "***************************************************\n");
 
+    // Reduction
+    reduction_finiteARBAC();
+
     trace_array = 0;
     trace_array_size = 0;
 
@@ -56,13 +59,13 @@ reduceAdmin(char *inputFile)
     free_data();
 }
 
-
 void
 generateMohawk(char * inputFile)
 {
     // Read ARBAC Policy
     read_ARBAC(inputFile);
 
+    reduction_finiteARBAC();
     generateADMIN();
 
     write_ARBACMOHAWK(inputFile);

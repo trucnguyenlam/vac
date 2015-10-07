@@ -150,25 +150,24 @@ typedef struct Pair
 	int v2;
 } Pair;
 
+typedef struct Rule
+{
+	int index;
+	int type;
+} Rule;
+
 typedef struct Node
 {
-	int * siblings;
+	Rule * siblings;
 	int siblings_size;
-	int level;
+	int level; // Level of the node
 } Node;
 
 typedef struct RelatedRules
 {
-	int * related;
+	Rule * related;
 	int related_size;
 	int rule_index;
 } RelatedRules;
-
-
-// typedef struct NodeArray
-// {
-// 	Node * array;
-// 	int array_size;
-// } NodeArray;
 
 #endif

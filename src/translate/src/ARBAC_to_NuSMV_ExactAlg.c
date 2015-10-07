@@ -1,35 +1,35 @@
 #include "ARBACExact.h"
 
-set *new_user_config_array;
-int new_user_config_array_size;
-static void
-build_config_new_user(void)
-{
-    int i;
+// set *new_user_config_array;
+// int new_user_config_array_size;
+// static void
+// build_config_new_user(void)
+// {
+//     int i;
 
-    new_user_config_array_size = initialize_role_array_size;
-    new_user_config_array = malloc(new_user_config_array_size * sizeof(set));
+//     new_user_config_array_size = initialize_role_array_size;
+//     new_user_config_array = malloc(new_user_config_array_size * sizeof(set));
 
-    for (i = 0; i < new_user_config_array_size; i++)
-    {
-        new_user_config_array[i].array_size = 0;
-        new_user_config_array[i].array = 0;
-    }
+//     for (i = 0; i < new_user_config_array_size; i++)
+//     {
+//         new_user_config_array[i].array_size = 0;
+//         new_user_config_array[i].array = 0;
+//     }
 
-    for (i = 0; i < initialize_role_array_size; i++)
-    {
-        new_user_config_array[i] = add_element(new_user_config_array[i], initialize_role_array[i]);
-    }
+//     for (i = 0; i < initialize_role_array_size; i++)
+//     {
+//         new_user_config_array[i] = add_element(new_user_config_array[i], initialize_role_array[i]);
+//     }
 
-    if (hasGoalUserMode && goal_user_index == -1)
-    {
-        // Add toCheckRole to user configuration array
-        for (i = 0; i < new_user_config_array_size; i++)
-        {
-            new_user_config_array[i] = add_element(new_user_config_array[i], role_array_size - 2);
-        }
-    }
-}
+//     if (hasGoalUserMode && goal_user_index == -1)
+//     {
+//         // Add toCheckRole to user configuration array
+//         for (i = 0; i < new_user_config_array_size; i++)
+//         {
+//             new_user_config_array[i] = add_element(new_user_config_array[i], role_array_size - 2);
+//         }
+//     }
+// }
 
 static int
 calculate_pc()
@@ -38,10 +38,10 @@ calculate_pc()
 
     ret = user_array_size + 1 + ca_array_size + cr_array_size;
 
-    if (hasNewUserMode)
-    {
-        ret += initialize_role_array_size;
-    }
+    // if (hasNewUserMode)
+    // {
+    //     ret += initialize_role_array_size;
+    // }
 
     return ret;
 }
@@ -124,20 +124,20 @@ simulate_associated_user(FILE *outputFile)
 
             fprintf(outputFile, " & !%s : TRUE;\n", associate_user_to_track_name(i));
         }
-        if (hasNewUserMode)
-        {
-            for (j = 0 ; j < initialize_role_array_size; j++)
-            {
-                fprintf(outputFile, "\t\tnondet & pc=%d", user_array_size + j + 1);
+        // if (hasNewUserMode)
+        // {
+        //     for (j = 0 ; j < initialize_role_array_size; j++)
+        //     {
+        //         fprintf(outputFile, "\t\tnondet & pc=%d", user_array_size + j + 1);
 
-                for (k = i - 1; k >= 0; k--)
-                {
-                    fprintf(outputFile, " & %s", associate_user_to_track_name(k));
-                }
+        //         for (k = i - 1; k >= 0; k--)
+        //         {
+        //             fprintf(outputFile, " & %s", associate_user_to_track_name(k));
+        //         }
 
-                fprintf(outputFile, " & !%s : TRUE;\n", associate_user_to_track_name(i));
-            }
-        }
+        //         fprintf(outputFile, " & !%s : TRUE;\n", associate_user_to_track_name(i));
+        //     }
+        // }
         fprintf(outputFile, "\t\tTRUE : %s;\n", associate_user_to_track_name(i));
         fprintf(outputFile, "\tesac;\n\n");
     }
@@ -170,26 +170,25 @@ simulate_track_user(FILE *outputFile)
                 }
             }
 
-            // New user
-            if (hasNewUserMode)
-            {
-                padding = initialize_role_array_size;
-                for (k = 0; k < new_user_config_array_size; k++)
-                {
-                    if (belong_to(new_user_config_array[k].array, new_user_config_array[k].array_size, j))
-                    {
-                        fprintf(outputFile, "\t\tnondet & pc=%d", user_array_size + k + 1);
+            // // New user
+            // if (hasNewUserMode)
+            // {
+            //     padding = initialize_role_array_size;
+            //     for (k = 0; k < new_user_config_array_size; k++)
+            //     {
+            //         if (belong_to(new_user_config_array[k].array, new_user_config_array[k].array_size, j))
+            //         {
+            //             fprintf(outputFile, "\t\tnondet & pc=%d", user_array_size + k + 1);
 
-                        for (l = i - 1; l >= 0; l--)
-                        {
-                            fprintf(outputFile, " & %s", associate_user_to_track_name(l));
-                        }
+            //             for (l = i - 1; l >= 0; l--)
+            //             {
+            //                 fprintf(outputFile, " & %s", associate_user_to_track_name(l));
+            //             }
 
-                        fprintf(outputFile, " & !%s : TRUE;\n", associate_user_to_track_name(i));
-                    }
-                }
-
-            }
+            //             fprintf(outputFile, " & !%s : TRUE;\n", associate_user_to_track_name(i));
+            //         }
+            //     }
+            // }
 
             // Simulate on can assign rule
             for (k = 0; k < ca_array_size; k++)
@@ -264,16 +263,16 @@ static void
 simulate_pc(FILE *outputFile)
 {
     fprintf(outputFile, "\tnext(pc) := case\n");
-    if (hasNewUserMode)
-    {
-        fprintf(outputFile, "\t\tpc<%d : pc+1;\n", user_array_size + 1 + ca_array_size + cr_array_size + initialize_role_array_size);
-        fprintf(outputFile, "\t\tpc=%d : %d;\n", user_array_size + 1 + ca_array_size + cr_array_size + initialize_role_array_size, user_array_size + 1 + initialize_role_array_size);
-    }
-    else
-    {
-        fprintf(outputFile, "\t\tpc<%d : pc+1;\n", user_array_size + 1 + ca_array_size + cr_array_size);
-        fprintf(outputFile, "\t\tpc=%d : %d;\n", user_array_size + 1 + ca_array_size + cr_array_size, user_array_size + 1);
-    }
+    // if (hasNewUserMode)
+    // {
+    //     fprintf(outputFile, "\t\tpc<%d : pc+1;\n", user_array_size + 1 + ca_array_size + cr_array_size + initialize_role_array_size);
+    //     fprintf(outputFile, "\t\tpc=%d : %d;\n", user_array_size + 1 + ca_array_size + cr_array_size + initialize_role_array_size, user_array_size + 1 + initialize_role_array_size);
+    // }
+    // else
+    // {
+    fprintf(outputFile, "\t\tpc<%d : pc+1;\n", user_array_size + 1 + ca_array_size + cr_array_size);
+    fprintf(outputFile, "\t\tpc=%d : %d;\n", user_array_size + 1 + ca_array_size + cr_array_size, user_array_size + 1);
+    // }
     fprintf(outputFile, "\t\tTRUE : pc;\n");
     fprintf(outputFile, "\tesac;\n\n");
 }
@@ -323,10 +322,10 @@ transform_2_NuSMV_ExactAlg(char *inputFile)
     // Preprocess the ARBAC Policies
     preprocess();
 
-    if (hasNewUserMode)
-    {
-        build_config_new_user();
-    }
+    // if (hasNewUserMode)
+    // {
+    //     build_config_new_user();
+    // }
 
     //Specify the number of user to track
     NUM_USER_TO_TRACK = admin_role_array_index_size + 1;

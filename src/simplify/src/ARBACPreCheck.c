@@ -128,9 +128,14 @@ write_small_policy(int hasPruning, int rules[], int rules_size, char *inputFile)
     // Users: keep Admin user, goal user (if present), otherwise a user with nothing in the configuration
     if (!hasPruning) // Not yet performing pruning
     {
-        for (i = 0; i < admin_array_index_size; i++)
+        for (i = 0; i < ua_array_size; i++)
         {
-            keep_users[admin_array_index[i]] = 1; // Keep admins
+            if(ua_array[i].user_index != -13
+                && ua_array[i].user_index != -10
+                && belong_to(admin_role_array_index, admin_role_array_index_size, ua_array[i].role_index) != -1)
+            {
+                keep_users[ua_array[i].user_index] = 1; // Keep admins
+            }
         }
         if (goal_user_index != -1 && goal_user_index != -13) // If there is a goal user, keep this goal user
         {
@@ -296,21 +301,6 @@ write_small_policy(int hasPruning, int rules[], int rules_size, char *inputFile)
     fprintf(output, ";\n\n");
     fprintf(simplifyLog, "EndCA\n");
 
-    // //Write the ADMIN
-    // fprintf(output, "ADMIN ");
-    // for (i = 0; i < admin_array_index_size; i++)
-    // {
-    //     if (admin_array_index[i] != -13)
-    //     {
-    //         fprintf(output, "%s ", get_user(admin_array_index[i]));
-    //     }
-    // }
-    // if(hasPruning && hasSuper)
-    // {
-    //     fprintf(output, "SUPER_USER ");
-    // }
-    // fprintf(output, ";\n\n");
-
     //Write the SPEC
     fprintf(output, "SPEC");
     if (goal_user_index != -13 && goal_user_index != -1)
@@ -377,30 +367,10 @@ precheck(int hasPruning, char *inputFile)
         return 0;
     }
 
-    if (hasNewUserMode && goal_user_index == -1)
-    {
-        return 0;
-    }
-
-    // // First compute init configuration
-    // if (goal_user_index != -1 && goal_user_index != -13)
-    // {
-    //     for (i = 0; i < ua_array_size; i++)
-    //     {
-    //         if (ua_array[i].user_index == goal_user_index)
-    //         {
-    //             init_roles_size++;
-    //             init_roles = realloc(init_roles, init_roles_size * sizeof(int));
-    //             init_roles[init_roles_size - 1] = ua_array[i].role_index;
-    //         }
-    //     }
-    // }
-
-    // if (init_roles_size > 0)
+    // if (hasNewUserMode)
     // {
     //     return 0;
     // }
-
 
     // First collect all rules with goal role as target
     for (i = 0; i < ca_array_size; i++)

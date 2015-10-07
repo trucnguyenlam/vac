@@ -82,6 +82,9 @@ generateADMIN(void);
 void
 write_ARBACMOHAWK(char *);
 
+void
+reduction_finiteARBAC(void);
+
 // Free data structure
 void
 free_data();

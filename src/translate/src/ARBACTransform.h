@@ -7,6 +7,9 @@ void
 read_ARBAC(char *);
 
 void
+reduction_finiteARBAC(void);
+
+void
 preprocess();
 
 void

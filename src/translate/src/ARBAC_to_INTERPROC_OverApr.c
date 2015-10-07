@@ -432,6 +432,8 @@ transform_2_INTERPROC_OverApr(char *fileName)
 
 	read_ARBAC(fileName);
 
+	reduction_finiteARBAC();
+
 	// Build the Track
 	build_Track();
 	build_Venn_region_string_array();

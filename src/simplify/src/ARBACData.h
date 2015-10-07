@@ -6,6 +6,13 @@
 
 // Define Data Structure of the ARBAC system
 
+typedef struct __NEWUSER
+{
+	char * name;
+	int * role_array;
+	int role_array_size;
+} _NEWUSER;
+
 // A user role assignment element
 typedef struct __UA
 {
@@ -41,6 +48,11 @@ int role_array_size;
 char **user_array;
 int user_array_size;
 
+// Define new user array
+int hasNewUserMode;
+_NEWUSER * newuser_array;
+int newuser_array_size;
+
 //Define array of user role assignment
 _UA *ua_array;
 int ua_array_size;
@@ -61,11 +73,14 @@ int admin_array_index_size;
 int *admin_role_array_index;
 int admin_role_array_index_size;
 
-// Indicate that the system has NEW USER
-int hasNewUserMode;
+
 //Define the specification
+int hasGoalUserMode;
 int goal_user_index;
 int goal_role_index;
+int goalUserIsNew;
+
+// Temporary variable
 char * goal_temp;
 // Variable to determine the positive or negative property of role
 int iNeg;
@@ -77,15 +92,20 @@ int promoted_user_array_size;
 
 Dictionary *role_dict;
 Dictionary *user_dict;
+Dictionary *newuser_dict;
 
 // Functions support
 void
 create_role_dict();
 void
 create_user_dict();
+void
+create_newuser_dict();
 int
 find_role_from_dict(char*);
 int
 find_user_from_dict(char*);
+int
+find_newuser_from_dict(char*);
 
 #endif

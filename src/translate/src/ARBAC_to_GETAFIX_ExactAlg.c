@@ -58,42 +58,42 @@ configuration_user(FILE *outputFile, int user_index)
     fprintf(outputFile, "\tfi\n\n");
 }
 
-static void
-configuration_new_user(FILE *outputFile, int role_index)
-{
-    int i;
+// static void
+// configuration_new_user(FILE *outputFile, int role_index)
+// {
+//     int i;
 
-    fprintf(outputFile, "\t//Configuration of NEW_USER\n");
+//     fprintf(outputFile, "\t//Configuration of NEW_USER\n");
 
-    fprintf(outputFile, "\tif (*) then\n");
+//     fprintf(outputFile, "\tif (*) then\n");
 
-    for (i = 0; i < NUM_USER_TO_TRACK; i++)
-    {
-        if (i == 0)
-        {
-            fprintf(outputFile, "\t\tif (!%s) then\n", associate_user_to_track_name(i));
-        }
-        else
-        {
-            fprintf(outputFile, "\t\telsif (!%s) then\n", associate_user_to_track_name(i));
-        }
+//     for (i = 0; i < NUM_USER_TO_TRACK; i++)
+//     {
+//         if (i == 0)
+//         {
+//             fprintf(outputFile, "\t\tif (!%s) then\n", associate_user_to_track_name(i));
+//         }
+//         else
+//         {
+//             fprintf(outputFile, "\t\telsif (!%s) then\n", associate_user_to_track_name(i));
+//         }
 
-        fprintf(outputFile, "\t\t\t%s := 1;\n", associate_user_to_track_name(i));
+//         fprintf(outputFile, "\t\t\t%s := 1;\n", associate_user_to_track_name(i));
 
-        fprintf(outputFile, "\t\t\t%s := 1;\n", track_variable_name(i, role_index));
+//         fprintf(outputFile, "\t\t\t%s := 1;\n", track_variable_name(i, role_index));
 
-        if(hasGoalUserMode && goal_user_index == -1)
-        {
-            fprintf(outputFile, "\t\t\t%s := 1;\n", track_variable_name(i, role_array_size-2));
-        }
+//         if(hasGoalUserMode && goal_user_index == -1)
+//         {
+//             fprintf(outputFile, "\t\t\t%s := 1;\n", track_variable_name(i, role_array_size-2));
+//         }
 
-        if (i == NUM_USER_TO_TRACK - 1)
-        {
-            fprintf(outputFile, "\t\tfi\n");
-        }
-    }
-    fprintf(outputFile, "\tfi\n\n");
-}
+//         if (i == NUM_USER_TO_TRACK - 1)
+//         {
+//             fprintf(outputFile, "\t\tfi\n");
+//         }
+//     }
+//     fprintf(outputFile, "\tfi\n\n");
+// }
 
 static void
 initialize_variables(FILE *outputFile)
@@ -128,14 +128,14 @@ initialize_variables(FILE *outputFile)
         configuration_user(outputFile, i);
     }
 
-    // For new user mode only
-    if (hasNewUserMode)
-    {
-        for (i = 0; i < initialize_role_array_size; i++)
-        {
-            configuration_new_user(outputFile, initialize_role_array[i]);
-        }
-    }
+    // // For new user mode only
+    // if (hasNewUserMode)
+    // {
+    //     for (i = 0; i < initialize_role_array_size; i++)
+    //     {
+    //         configuration_new_user(outputFile, initialize_role_array[i]);
+    //     }
+    // }
 }
 
 static void
