@@ -1,0 +1,1617 @@
+============= ../regression/original/Hospital/Hospital1.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy is safe.
+
+DEFAULT IN TIME 0.032s
+-- BACKEND --
+BACKEND: cbmc, TIME: 0.114s, ANWSER: SAFE
+BACKEND: moped, TIME: 0.032s, ANWSER: SAFE
+BACKEND: nusmv, TIME: 0.015s, ANWSER: SAFE
+BACKEND: hsf, TIME: 0.114s, ANWSER: SAFE
+BACKEND: eldarica, TIME: 2.468s, ANWSER: SAFE
+BACKEND: z3, TIME: 0.032s, ANWSER: SAFE
+BACKEND: interproc, TIME: 0.016s, ANWSER: SAFE
+-- PRUNING --
+BEFORE PRUNING: Roles: 15 Users: 1093 Rules: 25
+AFTER PRUNING: Roles: 4 Users: 7 Rules: 5
+PRUNING TIME: 0.016s
+============= ../regression/original/Hospital/Hospital2.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy is safe.
+
+DEFAULT IN TIME 0.032s
+-- BACKEND --
+BACKEND: cbmc, TIME: 0.114s, ANWSER: SAFE
+BACKEND: moped, TIME: 0.064s, ANWSER: SAFE
+BACKEND: nusmv, TIME: 0.016s, ANWSER: SAFE
+BACKEND: hsf, TIME: 0.114s, ANWSER: SAFE
+BACKEND: eldarica, TIME: 2.468s, ANWSER: SAFE
+BACKEND: z3, TIME: 0.032s, ANWSER: SAFE
+BACKEND: interproc, TIME: 0.016s, ANWSER: SAFE
+-- PRUNING --
+BEFORE PRUNING: Roles: 15 Users: 1093 Rules: 25
+AFTER PRUNING: Roles: 4 Users: 7 Rules: 5
+PRUNING TIME: 0.015s
+============= ../regression/original/Hospital/Hospital3.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Role to check REACHABILITY: target
+
+==> Step 1:
+Target User: user132
+CAN ASSIGN rule applied to user132: <Manager,-Receptionist,Doctor>
+Administrative user to invoke the rule: user1091
+Role configuration of user132 before applying rule: Nurse
+Role configuration of user132 after applying rule: Nurse Doctor
+
+==> Step 2:
+Target User: user132
+CAN ASSIGN rule applied to user132: <Admin,Doctor&Nurse,target>
+Administrative user to invoke the rule: user0
+Role configuration of user132 before applying rule: Nurse Doctor
+Role configuration of user132 after applying rule: Nurse Doctor target
+
+user132 can REACH target
+target is REACHABLE
+
+DEFAULT IN TIME 0.114s
+-- BACKEND --
+BACKEND: cbmc, TIME: 0.114s, ANWSER: UNSAFE
+BACKEND: moped, TIME: 0.007s, ANWSER: UNSAFE
+BACKEND: nusmv, TIME: 0.015s, ANWSER: UNSAFE
+BACKEND: hsf, TIME: 0.164s, ANWSER: UNSAFE
+BACKEND: eldarica, TIME: 1.867s, ANWSER: UNSAFE
+BACKEND: z3, TIME: 0.015s, ANWSER: UNSAFE
+BACKEND: interproc, TIME: 0.007s, ANWSER: UNSAFE
+-- PRUNING --
+BEFORE PRUNING: Roles: 15 Users: 1093 Rules: 25
+AFTER PRUNING: Roles: 3 Users: 5 Rules: 2
+PRUNING TIME: 0.016s
+============= ../regression/original/Hospital/Hospital4.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Role to check REACHABILITY: target
+
+==> Step 1:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Doctor,TRUE,ThirdParty>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: No role
+Role configuration of user0 after applying rule: ThirdParty
+
+==> Step 2:
+Target User: user4
+CAN ASSIGN rule applied to user4: <Doctor,TRUE,ThirdParty>
+Administrative user to invoke the rule: user1
+Role configuration of user4 before applying rule: Doctor
+Role configuration of user4 after applying rule: Doctor ThirdParty
+
+==> Step 3:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Receptionist,-PrimaryDoctor,Patient>
+Administrative user to invoke the rule: user1031
+Role configuration of user0 before applying rule: ThirdParty
+Role configuration of user0 after applying rule: ThirdParty Patient
+
+==> Step 4:
+Target User: user0
+CAN ASSIGN rule applied to user0: <ThirdParty,Patient,PatientWithTPC>
+Administrative user to invoke the rule: user0
+Role configuration of user0 before applying rule: ThirdParty Patient
+Role configuration of user0 after applying rule: ThirdParty Patient PatientWithTPC
+
+==> Step 5:
+Target User: user4
+CAN ASSIGN rule applied to user4: <Receptionist,-PrimaryDoctor,Patient>
+Administrative user to invoke the rule: user1031
+Role configuration of user4 before applying rule: Doctor ThirdParty
+Role configuration of user4 after applying rule: Doctor ThirdParty Patient
+
+==> Step 6:
+Target User: user4
+CAN ASSIGN rule applied to user4: <ThirdParty,Patient,PatientWithTPC>
+Administrative user to invoke the rule: user4
+Role configuration of user4 before applying rule: Doctor ThirdParty Patient
+Role configuration of user4 after applying rule: Doctor ThirdParty Patient PatientWithTPC
+
+==> Step 7:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Doctor,PatientWithTPC,target>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: ThirdParty Patient PatientWithTPC
+Role configuration of user0 after applying rule: ThirdParty Patient PatientWithTPC target
+
+user0 can REACH target
+target is REACHABLE
+
+DEFAULT IN TIME 0.164s
+-- BACKEND --
+BACKEND: cbmc, TIME: 0.114s, ANWSER: UNSAFE
+BACKEND: moped, TIME: 0.016s, ANWSER: UNSAFE
+BACKEND: nusmv, TIME: 0.032s, ANWSER: UNSAFE
+BACKEND: hsf, TIME: 0.264s, ANWSER: UNSAFE
+BACKEND: eldarica, TIME: 2.568s, ANWSER: UNSAFE
+BACKEND: z3, TIME: 0.064s, ANWSER: UNSAFE
+BACKEND: interproc, TIME: 0.015s, ANWSER: UNSAFE
+-- PRUNING --
+BEFORE PRUNING: Roles: 14 Users: 1093 Rules: 24
+AFTER PRUNING: Roles: 4 Users: 4 Rules: 4
+PRUNING TIME: 0.016s
+============= ../regression/original/University/University1.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy is safe.
+
+DEFAULT IN TIME 0.064s
+-- BACKEND --
+BACKEND: cbmc, TIME: 0.264s, ANWSER: SAFE
+BACKEND: moped, TIME: 17.292s, ANWSER: SAFE
+BACKEND: nusmv, TIME: 0.414s, ANWSER: SAFE
+BACKEND: hsf, TIME: 1.065s, ANWSER: SAFE
+BACKEND: eldarica, TIME: 8.579s, ANWSER: SAFE
+BACKEND: z3, TIME: 0.364s, ANWSER: SAFE
+BACKEND: interproc, TIME: 0.032s, ANWSER: SAFE
+-- PRUNING --
+BEFORE PRUNING: Roles: 34 Users: 944 Rules: 449
+AFTER PRUNING: Roles: 7 Users: 15 Rules: 15
+PRUNING TIME: 0.016s
+============= ../regression/original/University/University2.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Role to check REACHABILITY: target
+
+==> Step 1:
+Target User: user1
+CAN ASSIGN rule applied to user1: <Admin,Dean,target>
+Administrative user to invoke the rule: user0
+Role configuration of user1 before applying rule: Dean Professor
+Role configuration of user1 after applying rule: Dean Professor target
+
+user1 can REACH target
+target is REACHABLE
+
+DEFAULT IN TIME 0.364s
+-- BACKEND --
+BACKEND: cbmc, TIME: 0.264s, ANWSER: UNSAFE
+BACKEND: moped, TIME: 1.215s, ANWSER: UNSAFE
+BACKEND: nusmv, TIME: 33.371s, ANWSER: UNSAFE
+BACKEND: hsf, TIME: 0.715s, ANWSER: UNSAFE
+BACKEND: eldarica, TIME: 5.574s, ANWSER: UNSAFE
+BACKEND: z3, TIME: 0.164s, ANWSER: UNSAFE
+BACKEND: interproc, TIME: 0.032s, ANWSER: UNSAFE
+-- PRUNING --
+BEFORE PRUNING: Roles: 34 Users: 944 Rules: 451
+AFTER PRUNING: Roles: 7 Users: 15 Rules: 16
+PRUNING TIME: 0.016s
+============= ../regression/original/University/University3.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy is safe.
+
+DEFAULT IN TIME 0.064s
+-- BACKEND --
+BACKEND: cbmc, TIME: 0.564s, ANWSER: SAFE
+Segmentation fault
+
+BACKEND: moped, TIME: 478.542s, ANWSER: ERROR
+BACKEND: nusmv, TIME: 5.774s, ANWSER: SAFE
+BACKEND: hsf, TIME: 1.966s, ANWSER: SAFE
+BACKEND: eldarica, TIME: 10.682s, ANWSER: SAFE
+BACKEND: z3, TIME: 0.615s, ANWSER: SAFE
+BACKEND: interproc, TIME: 0.032s, ANWSER: SAFE
+-- PRUNING --
+BEFORE PRUNING: Roles: 34 Users: 944 Rules: 449
+AFTER PRUNING: Roles: 9 Users: 27 Rules: 25
+PRUNING TIME: 0.016s
+============= ../regression/original/University/University4.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Role to check REACHABILITY: target
+
+==> Step 1:
+Target User: user113
+CAN ASSIGN rule applied to user113: <Provost,Professor&-DeptChair&-President&-Provost,Dean>
+Administrative user to invoke the rule: user6
+Role configuration of user113 before applying rule: Professor
+Role configuration of user113 after applying rule: Professor Dean
+
+==> Step 2:
+Target User: user114
+CAN ASSIGN rule applied to user114: <Provost,Professor&-DeptChair&-President&-Provost,Dean>
+Administrative user to invoke the rule: user6
+Role configuration of user114 before applying rule: Professor
+Role configuration of user114 after applying rule: Professor Dean
+
+==> Step 3:
+Target User: user6
+CAN ASSIGN rule applied to user6: <Provost,Provost&-President,AdmissionsOfficer>
+Administrative user to invoke the rule: user6
+Role configuration of user6 before applying rule: Provost Professor
+Role configuration of user6 after applying rule: Provost Professor AdmissionsOfficer
+
+==> Step 4:
+Target User: user6
+CAN ASSIGN rule applied to user6: <Provost,Provost&-President,GradAdmissionsCommittee>
+Administrative user to invoke the rule: user6
+Role configuration of user6 before applying rule: Provost Professor AdmissionsOfficer
+Role configuration of user6 after applying rule: Provost Professor AdmissionsOfficer GradAdmissionsCommittee
+
+==> Step 5:
+Target User: user3
+CAN REVOKE rule applied to user3: <Dean,GradAdmissionsCommittee>
+Administrative user to invoke the rule: user1
+Role configuration of user3 before applying rule: GradAdmissionsCommittee
+Role configuration of user3 after applying rule: No role
+
+==> Step 6:
+Target User: user6
+CAN ASSIGN rule applied to user6: <Admin,GradAdmissionsCommittee&AdmissionsOfficer,target>
+Administrative user to invoke the rule: user0
+Role configuration of user6 before applying rule: Provost Professor AdmissionsOfficer GradAdmissionsCommittee
+Role configuration of user6 after applying rule: Provost Professor AdmissionsOfficer GradAdmissionsCommittee target
+
+user6 can REACH target
+target is REACHABLE
+
+DEFAULT IN TIME 3.619s
+-- BACKEND --
+BACKEND: cbmc, TIME: 3.319s, ANWSER: UNSAFE
+BACKEND: moped, TIME: 1200.009s, ANWSER: TIMEOUT
+BACKEND: nusmv, TIME: 1200.014s, ANWSER: TIMEOUT
+BACKEND: hsf, TIME: 731.481s, ANWSER: UNSAFE
+BACKEND: eldarica, TIME: 192.756s, ANWSER: UNSAFE
+BACKEND: z3, TIME: 11.884s, ANWSER: UNSAFE
+BACKEND: interproc, TIME: 0.114s, ANWSER: UNSAFE
+-- PRUNING --
+BEFORE PRUNING: Roles: 34 Users: 944 Rules: 449
+AFTER PRUNING: Roles: 13 Users: 41 Rules: 70
+PRUNING TIME: 0.016s
+============= ../regression/original/Bank/Bank1.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy is safe.
+
+DEFAULT IN TIME 0.264s
+-- BACKEND --
+BACKEND: cbmc, TIME: 0.114s, ANWSER: SAFE
+BACKEND: moped, TIME: 0.008s, ANWSER: SAFE
+BACKEND: nusmv, TIME: 0.007s, ANWSER: SAFE
+BACKEND: hsf, TIME: 0.064s, ANWSER: SAFE
+BACKEND: eldarica, TIME: 1.366s, ANWSER: SAFE
+BACKEND: z3, TIME: 0.007s, ANWSER: SAFE
+BACKEND: interproc, TIME: 0.008s, ANWSER: SAFE
+-- PRUNING --
+BEFORE PRUNING: Roles: 531 Users: 2000 Rules: 5141
+AFTER PRUNING: Roles: 2 Users: 2 Rules: 0
+PRUNING TIME: 0.264s
+============= ../regression/original/Bank/Bank2.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy is safe.
+
+DEFAULT IN TIME 0.264s
+-- BACKEND --
+BACKEND: cbmc, TIME: 0.114s, ANWSER: SAFE
+BACKEND: moped, TIME: 0.004s, ANWSER: SAFE
+BACKEND: nusmv, TIME: 0.008s, ANWSER: SAFE
+BACKEND: hsf, TIME: 0.064s, ANWSER: SAFE
+BACKEND: eldarica, TIME: 1.366s, ANWSER: SAFE
+BACKEND: z3, TIME: 0.007s, ANWSER: SAFE
+BACKEND: interproc, TIME: 0.008s, ANWSER: SAFE
+-- PRUNING --
+BEFORE PRUNING: Roles: 531 Users: 2000 Rules: 5126
+AFTER PRUNING: Roles: 2 Users: 2 Rules: 0
+PRUNING TIME: 0.264s
+============= ../regression/original/Bank/Bank3.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user0 REACH target ?
+
+==> Step 1:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,TRUE,Employee>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: No role
+Role configuration of user0 after applying rule: Employee
+
+==> Step 2:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,Employee&-ST1&-OB1&-SE1,FA1>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee
+Role configuration of user0 after applying rule: Employee FA1
+
+==> Step 3:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA1&-FASpecial1&-FAAsst1&-FAJunior1&-FASenior1,FAClerk1>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1
+
+==> Step 4:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA1&FAClerk1&-FASpecial1&-FAAsst1&-FAJunior1,FASenior1>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1
+
+==> Step 5:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA1&FASenior1&FAClerk1&-FASpecial1&-FAAsst1,FAJunior1>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1
+
+==> Step 6:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA1&FAJunior1&FASenior1&FAClerk1&-FAAsst1,FASpecial1>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1
+
+==> Step 7:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FAJunior1&FASenior1&FAClerk1&FASpecial1,anyfour1>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1
+
+==> Step 8:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,anyfour1,target>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 target
+
+user0 can REACH target
+target is REACHABLE
+
+DEFAULT IN TIME 0.414s
+-- BACKEND --
+BACKEND: cbmc, TIME: 0.114s, ANWSER: UNSAFE
+BACKEND: moped, TIME: 0.008s, ANWSER: UNSAFE
+BACKEND: nusmv, TIME: 0.016s, ANWSER: UNSAFE
+BACKEND: hsf, TIME: 0.164s, ANWSER: UNSAFE
+BACKEND: eldarica, TIME: 2.067s, ANWSER: UNSAFE
+BACKEND: z3, TIME: 0.032s, ANWSER: UNSAFE
+BACKEND: interproc, TIME: 0.008s, ANWSER: UNSAFE
+-- PRUNING --
+BEFORE PRUNING: Roles: 531 Users: 2000 Rules: 5142
+AFTER PRUNING: Roles: 3 Users: 2 Rules: 2
+PRUNING TIME: 0.264s
+============= ../regression/original/Bank/Bank4.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user0 REACH target ?
+
+==> Step 1:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,TRUE,Employee>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: No role
+Role configuration of user0 after applying rule: Employee
+
+==> Step 2:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,Employee&-ST3&-OB3&-SE3,FA3>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee
+Role configuration of user0 after applying rule: Employee FA3
+
+==> Step 3:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA3&-FASpecial3&-FAAsst3&-FAJunior3&-FASenior3,FAClerk3>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3
+
+==> Step 4:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA3&FAClerk3&-FASpecial3&-FAAsst3&-FAJunior3,FASenior3>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3
+
+==> Step 5:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA3&FASenior3&FAClerk3&-FASpecial3&-FAAsst3,FAJunior3>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3
+
+==> Step 6:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA3&FAJunior3&FASenior3&FAClerk3&-FAAsst3,FASpecial3>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3
+
+==> Step 7:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FAJunior3&FASenior3&FAClerk3&FASpecial3,anyfour3>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3
+
+==> Step 8:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,Employee&-ST4&-OB4&-SE4,FA4>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4
+
+==> Step 9:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA4&-FASpecial4&-FAAsst4&-FAJunior4&-FASenior4,FAClerk4>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4
+
+==> Step 10:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA4&FAClerk4&-FASpecial4&-FAAsst4&-FAJunior4,FASenior4>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4
+
+==> Step 11:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA4&FASenior4&FAClerk4&-FASpecial4&-FAAsst4,FAJunior4>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4
+
+==> Step 12:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA4&FAJunior4&FASenior4&FAClerk4&-FAAsst4,FASpecial4>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4
+
+==> Step 13:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FAJunior4&FASenior4&FAClerk4&FASpecial4,anyfour4>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4
+
+==> Step 14:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,Employee&-ST1&-OB1&-SE1,FA1>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1
+
+==> Step 15:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA1&-FASpecial1&-FAAsst1&-FAJunior1&-FASenior1,FAClerk1>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1
+
+==> Step 16:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA1&FAClerk1&-FASpecial1&-FAAsst1&-FAJunior1,FASenior1>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1
+
+==> Step 17:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA1&FASenior1&FAClerk1&-FASpecial1&-FAAsst1,FAJunior1>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1 FAJunior1
+
+==> Step 18:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA1&FAJunior1&FASenior1&FAClerk1&-FAAsst1,FASpecial1>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1 FAJunior1
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1
+
+==> Step 19:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FAJunior1&FASenior1&FAClerk1&FASpecial1,anyfour1>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1
+
+==> Step 20:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,Employee&-ST2&-OB2&-SE2,FA2>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2
+
+==> Step 21:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA2&-FASpecial2&-FAAsst2&-FAJunior2&-FASenior2,FAClerk2>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2
+
+==> Step 22:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA2&FAClerk2&-FASpecial2&-FAAsst2&-FAJunior2,FASenior2>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2
+
+==> Step 23:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA2&FASenior2&FAClerk2&-FASpecial2&-FAAsst2,FAJunior2>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2
+
+==> Step 24:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA2&FAJunior2&FASenior2&FAClerk2&-FAAsst2,FASpecial2>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2
+
+==> Step 25:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FAJunior2&FASenior2&FAClerk2&FASpecial2,anyfour2>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2
+
+==> Step 26:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,anyfour1&anyfour2&anyfour3&anyfour4,target>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2
+Role configuration of user0 after applying rule: Employee FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 target
+
+user0 can REACH target
+target is REACHABLE
+
+DEFAULT IN TIME 0.264s
+-- BACKEND --
+BACKEND: cbmc, TIME: 0.114s, ANWSER: UNSAFE
+BACKEND: moped, TIME: 0.032s, ANWSER: UNSAFE
+BACKEND: nusmv, TIME: 0.032s, ANWSER: UNSAFE
+BACKEND: hsf, TIME: 0.314s, ANWSER: UNSAFE
+BACKEND: eldarica, TIME: 2.919s, ANWSER: UNSAFE
+BACKEND: z3, TIME: 0.164s, ANWSER: UNSAFE
+BACKEND: interproc, TIME: 0.016s, ANWSER: UNSAFE
+-- PRUNING --
+BEFORE PRUNING: Roles: 531 Users: 2000 Rules: 5126
+AFTER PRUNING: Roles: 6 Users: 2 Rules: 5
+PRUNING TIME: 0.114s
+============= ../regression/testcases/mixed/test1.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user1 REACH role1 ?
+
+==> Step 1:
+Target User: user0
+CAN ASSIGN rule applied to user0: <role3,-role0,role1>
+Administrative user to invoke the rule: user4
+Role configuration of user0 before applying rule: No role
+Role configuration of user0 after applying rule: role1
+
+==> Step 2:
+Target User: user1
+CAN ASSIGN rule applied to user1: <role3,-role0,role1>
+Administrative user to invoke the rule: user4
+Role configuration of user1 before applying rule: No role
+Role configuration of user1 after applying rule: role1
+
+user1 can REACH role1
+role1 is REACHABLE
+
+DEFAULT IN TIME 0.114s
+-- PRUNING --
+BEFORE PRUNING: Roles: 4 Users: 5 Rules: 9
+AFTER PRUNING: Roles: 4 Users: 2 Rules: 5
+PRUNING TIME: 0.003s
+============= ../regression/testcases/mixed/test2.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user1 REACH role1 ?
+
+==> Step 1:
+Target User: user1
+CAN ASSIGN rule applied to user1: <role5,TRUE,role0>
+Administrative user to invoke the rule: user9
+Role configuration of user1 before applying rule: No role
+Role configuration of user1 after applying rule: role0
+
+==> Step 2:
+Target User: user1
+CAN ASSIGN rule applied to user1: <role5,role0&-role2,role1>
+Administrative user to invoke the rule: user9
+Role configuration of user1 before applying rule: role0
+Role configuration of user1 after applying rule: role0 role1
+
+user1 can REACH role1
+role1 is REACHABLE
+
+DEFAULT IN TIME 0.114s
+-- PRUNING --
+BEFORE PRUNING: Roles: 6 Users: 10 Rules: 22
+AFTER PRUNING: Roles: 4 Users: 2 Rules: 2
+PRUNING TIME: 0.004s
+============= ../regression/testcases/mixed/test3.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user41 REACH role10 ?
+
+==> Step 1:
+Target User: user0
+CAN ASSIGN rule applied to user0: <role20,-role12,role1>
+Administrative user to invoke the rule: user49
+Role configuration of user0 before applying rule: No role
+Role configuration of user0 after applying rule: role1
+
+==> Step 2:
+Target User: user41
+CAN ASSIGN rule applied to user41: <role20,-role12,role1>
+Administrative user to invoke the rule: user49
+Role configuration of user41 before applying rule: No role
+Role configuration of user41 after applying rule: role1
+
+==> Step 3:
+Target User: user41
+CAN ASSIGN rule applied to user41: <role20,-role4,role6>
+Administrative user to invoke the rule: user49
+Role configuration of user41 before applying rule: role1
+Role configuration of user41 after applying rule: role1 role6
+
+==> Step 4:
+Target User: user0
+CAN REVOKE rule applied to user0: <role20,role1>
+Administrative user to invoke the rule: user49
+Role configuration of user0 before applying rule: role1
+Role configuration of user0 after applying rule: No role
+
+==> Step 5:
+Target User: user41
+CAN REVOKE rule applied to user41: <role20,role1>
+Administrative user to invoke the rule: user49
+Role configuration of user41 before applying rule: role1 role6
+Role configuration of user41 after applying rule: role6
+
+==> Step 6:
+Target User: user0
+CAN ASSIGN rule applied to user0: <role20,TRUE,role0>
+Administrative user to invoke the rule: user49
+Role configuration of user0 before applying rule: No role
+Role configuration of user0 after applying rule: role0
+
+==> Step 7:
+Target User: user41
+CAN ASSIGN rule applied to user41: <role20,TRUE,role0>
+Administrative user to invoke the rule: user49
+Role configuration of user41 before applying rule: role6
+Role configuration of user41 after applying rule: role6 role0
+
+==> Step 8:
+Target User: user0
+CAN ASSIGN rule applied to user0: <role20,-role12,role1>
+Administrative user to invoke the rule: user49
+Role configuration of user0 before applying rule: role0
+Role configuration of user0 after applying rule: role0 role1
+
+==> Step 9:
+Target User: user41
+CAN ASSIGN rule applied to user41: <role20,-role1,role2>
+Administrative user to invoke the rule: user49
+Role configuration of user41 before applying rule: role6 role0
+Role configuration of user41 after applying rule: role6 role0 role2
+
+==> Step 10:
+Target User: user41
+CAN ASSIGN rule applied to user41: <role20,TRUE,role19>
+Administrative user to invoke the rule: user49
+Role configuration of user41 before applying rule: role6 role0 role2
+Role configuration of user41 after applying rule: role6 role0 role2 role19
+
+==> Step 11:
+Target User: user41
+CAN ASSIGN rule applied to user41: <role20,role19&-role4,role9>
+Administrative user to invoke the rule: user49
+Role configuration of user41 before applying rule: role6 role0 role2 role19
+Role configuration of user41 after applying rule: role6 role0 role2 role19 role9
+
+==> Step 12:
+Target User: user41
+CAN ASSIGN rule applied to user41: <role20,-role14,role17>
+Administrative user to invoke the rule: user49
+Role configuration of user41 before applying rule: role6 role0 role2 role19 role9
+Role configuration of user41 after applying rule: role6 role0 role2 role19 role9 role17
+
+==> Step 13:
+Target User: user41
+CAN ASSIGN rule applied to user41: <role20,role17&role9&role0,role10>
+Administrative user to invoke the rule: user49
+Role configuration of user41 before applying rule: role6 role0 role2 role19 role9 role17
+Role configuration of user41 after applying rule: role6 role0 role2 role19 role9 role17 role10
+
+user41 can REACH role10
+role10 is REACHABLE
+
+DEFAULT IN TIME 0.314s
+-- PRUNING --
+BEFORE PRUNING: Roles: 21 Users: 50 Rules: 88
+AFTER PRUNING: Roles: 12 Users: 3 Rules: 32
+PRUNING TIME: 0.004s
+============= ../regression/testcases/mixed/test4.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user39 REACH role26 ?
+
+==> Step 1:
+Target User: user0
+CAN ASSIGN rule applied to user0: <role40,TRUE,role29>
+Administrative user to invoke the rule: user99
+Role configuration of user0 before applying rule: No role
+Role configuration of user0 after applying rule: role29
+
+==> Step 2:
+Target User: user0
+CAN ASSIGN rule applied to user0: <role40,-role38,role21>
+Administrative user to invoke the rule: user99
+Role configuration of user0 before applying rule: role29
+Role configuration of user0 after applying rule: role29 role21
+
+==> Step 3:
+Target User: user0
+CAN ASSIGN rule applied to user0: <role40,role21&role29&-role22,role26>
+Administrative user to invoke the rule: user99
+Role configuration of user0 before applying rule: role29 role21
+Role configuration of user0 after applying rule: role29 role21 role26
+
+==> Step 4:
+Target User: user39
+CAN ASSIGN rule applied to user39: <role40,TRUE,role29>
+Administrative user to invoke the rule: user99
+Role configuration of user39 before applying rule: No role
+Role configuration of user39 after applying rule: role29
+
+==> Step 5:
+Target User: user39
+CAN ASSIGN rule applied to user39: <role40,-role38,role21>
+Administrative user to invoke the rule: user99
+Role configuration of user39 before applying rule: role29
+Role configuration of user39 after applying rule: role29 role21
+
+==> Step 6:
+Target User: user39
+CAN ASSIGN rule applied to user39: <role40,role21&role29&-role22,role26>
+Administrative user to invoke the rule: user99
+Role configuration of user39 before applying rule: role29 role21
+Role configuration of user39 after applying rule: role29 role21 role26
+
+user39 can REACH role26
+role26 is REACHABLE
+
+DEFAULT IN TIME 0.114s
+-- PRUNING --
+BEFORE PRUNING: Roles: 41 Users: 100 Rules: 176
+AFTER PRUNING: Roles: 4 Users: 4 Rules: 2
+PRUNING TIME: 0.003s
+============= ../regression/testcases/mixed/test5.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user197 REACH role196 ?
+
+==> Step 1:
+Target User: user197
+CAN ASSIGN rule applied to user197: <role200,TRUE,role196>
+Administrative user to invoke the rule: user499
+Role configuration of user197 before applying rule: No role
+Role configuration of user197 after applying rule: role196
+
+user197 can REACH role196
+role196 is REACHABLE
+
+DEFAULT IN TIME 0.114s
+-- PRUNING --
+BEFORE PRUNING: Roles: 201 Users: 500 Rules: 872
+AFTER PRUNING: Roles: 2 Users: 2 Rules: 1
+PRUNING TIME: 0.007s
+============= ../regression/testcases/mixed/test6.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user127 REACH role243 ?
+
+==> Step 1:
+Target User: user127
+CAN ASSIGN rule applied to user127: <role500,TRUE,role395>
+Administrative user to invoke the rule: user999
+Role configuration of user127 before applying rule: No role
+Role configuration of user127 after applying rule: role395
+
+==> Step 2:
+Target User: user127
+CAN ASSIGN rule applied to user127: <role500,role395,role243>
+Administrative user to invoke the rule: user999
+Role configuration of user127 before applying rule: role395
+Role configuration of user127 after applying rule: role395 role243
+
+user127 can REACH role243
+role243 is REACHABLE
+
+DEFAULT IN TIME 0.164s
+-- PRUNING --
+BEFORE PRUNING: Roles: 501 Users: 1000 Rules: 2201
+AFTER PRUNING: Roles: 3 Users: 2 Rules: 2
+PRUNING TIME: 0.016s
+============= ../regression/testcases/mixed/test7.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user8758 REACH role310 ?
+
+==> Step 1:
+Target User: user8758
+CAN ASSIGN rule applied to user8758: <role4000,TRUE,role310>
+Administrative user to invoke the rule: user9999
+Role configuration of user8758 before applying rule: No role
+Role configuration of user8758 after applying rule: role310
+
+user8758 can REACH role310
+role310 is REACHABLE
+
+DEFAULT IN TIME 0.314s
+-- PRUNING --
+BEFORE PRUNING: Roles: 4001 Users: 10000 Rules: 17536
+AFTER PRUNING: Roles: 2 Users: 2 Rules: 1
+PRUNING TIME: 0.114s
+============= ../regression/testcases/mixed/test8.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user12800 REACH role9728 ?
+
+==> Step 1:
+Target User: user12800
+CAN ASSIGN rule applied to user12800: <role19999,TRUE,role9728>
+Administrative user to invoke the rule: user49999
+Role configuration of user12800 before applying rule: No role
+Role configuration of user12800 after applying rule: role9728
+
+user12800 can REACH role9728
+role9728 is REACHABLE
+
+DEFAULT IN TIME 1.065s
+-- PRUNING --
+BEFORE PRUNING: Roles: 20000 Users: 50000 Rules: 81207
+AFTER PRUNING: Roles: 2 Users: 2 Rules: 1
+PRUNING TIME: 0.415s
+============= ../regression/testcases/mixed/test9.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user14473 REACH role16899 ?
+
+==> Step 1:
+Target User: user14473
+CAN ASSIGN rule applied to user14473: <role29999,TRUE,role16899>
+Administrative user to invoke the rule: user69999
+Role configuration of user14473 before applying rule: No role
+Role configuration of user14473 after applying rule: role16899
+
+user14473 can REACH role16899
+role16899 is REACHABLE
+
+DEFAULT IN TIME 1.516s
+-- PRUNING --
+BEFORE PRUNING: Roles: 30000 Users: 70000 Rules: 127713
+AFTER PRUNING: Roles: 2 Users: 2 Rules: 1
+PRUNING TIME: 0.565s
+============= ../regression/testcases/mixed/test10.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user27535 REACH role15692 ?
+
+==> Step 1:
+Target User: user27535
+CAN ASSIGN rule applied to user27535: <role40000,TRUE,role15692>
+Administrative user to invoke the rule: user99999
+Role configuration of user27535 before applying rule: No role
+Role configuration of user27535 after applying rule: role15692
+
+user27535 can REACH role15692
+role15692 is REACHABLE
+
+DEFAULT IN TIME 1.967s
+-- PRUNING --
+BEFORE PRUNING: Roles: 40001 Users: 100000 Rules: 176062
+AFTER PRUNING: Roles: 2 Users: 2 Rules: 1
+PRUNING TIME: 0.715s
+============= ../regression/testcases/mixednocr/test1.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user1 REACH role1 ?
+
+==> Step 1:
+Target User: user1
+CAN ASSIGN rule applied to user1: <role3,-role0,role1>
+Administrative user to invoke the rule: user4
+Role configuration of user1 before applying rule: No role
+Role configuration of user1 after applying rule: role1
+
+user1 can REACH role1
+role1 is REACHABLE
+
+DEFAULT IN TIME 0.114s
+-- PRUNING --
+BEFORE PRUNING: Roles: 4 Users: 2 Rules: 8
+AFTER PRUNING: Roles: 4 Users: 2 Rules: 5
+PRUNING TIME: 0.004s
+============= ../regression/testcases/mixednocr/test2.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user1 REACH role1 ?
+
+==> Step 1:
+Target User: user1
+CAN ASSIGN rule applied to user1: <role5,TRUE,role0>
+Administrative user to invoke the rule: user9
+Role configuration of user1 before applying rule: No role
+Role configuration of user1 after applying rule: role0
+
+==> Step 2:
+Target User: user1
+CAN ASSIGN rule applied to user1: <role5,role0&-role2,role1>
+Administrative user to invoke the rule: user9
+Role configuration of user1 before applying rule: role0
+Role configuration of user1 after applying rule: role0 role1
+
+user1 can REACH role1
+role1 is REACHABLE
+
+DEFAULT IN TIME 0.114s
+-- PRUNING --
+BEFORE PRUNING: Roles: 6 Users: 2 Rules: 19
+AFTER PRUNING: Roles: 4 Users: 2 Rules: 2
+PRUNING TIME: 0.003s
+============= ../regression/testcases/mixednocr/test3.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user41 REACH role10 ?
+
+==> Step 1:
+Target User: user41
+CAN ASSIGN rule applied to user41: <role20,-role1,role2>
+Administrative user to invoke the rule: user49
+Role configuration of user41 before applying rule: No role
+Role configuration of user41 after applying rule: role2
+
+==> Step 2:
+Target User: user41
+CAN ASSIGN rule applied to user41: <role20,-role0,role10>
+Administrative user to invoke the rule: user49
+Role configuration of user41 before applying rule: role2
+Role configuration of user41 after applying rule: role2 role10
+
+user41 can REACH role10
+role10 is REACHABLE
+
+DEFAULT IN TIME 0.264s
+-- PRUNING --
+BEFORE PRUNING: Roles: 21 Users: 2 Rules: 75
+AFTER PRUNING: Roles: 12 Users: 2 Rules: 26
+PRUNING TIME: 0.003s
+============= ../regression/testcases/mixednocr/test4.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user39 REACH role26 ?
+
+==> Step 1:
+Target User: user39
+CAN ASSIGN rule applied to user39: <role40,TRUE,role29>
+Administrative user to invoke the rule: user99
+Role configuration of user39 before applying rule: No role
+Role configuration of user39 after applying rule: role29
+
+==> Step 2:
+Target User: user39
+CAN ASSIGN rule applied to user39: <role40,-role38,role21>
+Administrative user to invoke the rule: user99
+Role configuration of user39 before applying rule: role29
+Role configuration of user39 after applying rule: role29 role21
+
+==> Step 3:
+Target User: user39
+CAN ASSIGN rule applied to user39: <role40,role21&role29&-role22,role26>
+Administrative user to invoke the rule: user99
+Role configuration of user39 before applying rule: role29 role21
+Role configuration of user39 after applying rule: role29 role21 role26
+
+user39 can REACH role26
+role26 is REACHABLE
+
+DEFAULT IN TIME 0.114s
+-- PRUNING --
+BEFORE PRUNING: Roles: 41 Users: 2 Rules: 154
+AFTER PRUNING: Roles: 4 Users: 2 Rules: 2
+PRUNING TIME: 0.004s
+============= ../regression/testcases/mixednocr/test5.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user197 REACH role196 ?
+
+==> Step 1:
+Target User: user197
+CAN ASSIGN rule applied to user197: <role200,TRUE,role196>
+Administrative user to invoke the rule: user499
+Role configuration of user197 before applying rule: No role
+Role configuration of user197 after applying rule: role196
+
+user197 can REACH role196
+role196 is REACHABLE
+
+DEFAULT IN TIME 0.114s
+-- PRUNING --
+BEFORE PRUNING: Roles: 199 Users: 2 Rules: 736
+AFTER PRUNING: Roles: 2 Users: 2 Rules: 1
+PRUNING TIME: 0.007s
+============= ../regression/testcases/mixednocr/test6.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user127 REACH role243 ?
+
+==> Step 1:
+Target User: user127
+CAN ASSIGN rule applied to user127: <role500,TRUE,role395>
+Administrative user to invoke the rule: user999
+Role configuration of user127 before applying rule: No role
+Role configuration of user127 after applying rule: role395
+
+==> Step 2:
+Target User: user127
+CAN ASSIGN rule applied to user127: <role500,role395,role243>
+Administrative user to invoke the rule: user999
+Role configuration of user127 before applying rule: role395
+Role configuration of user127 after applying rule: role395 role243
+
+user127 can REACH role243
+role243 is REACHABLE
+
+DEFAULT IN TIME 0.114s
+-- PRUNING --
+BEFORE PRUNING: Roles: 499 Users: 2 Rules: 1885
+AFTER PRUNING: Roles: 3 Users: 2 Rules: 2
+PRUNING TIME: 0.016s
+============= ../regression/testcases/mixednocr/test7.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user8758 REACH role310 ?
+
+==> Step 1:
+Target User: user8758
+CAN ASSIGN rule applied to user8758: <role4000,TRUE,role310>
+Administrative user to invoke the rule: user9999
+Role configuration of user8758 before applying rule: No role
+Role configuration of user8758 after applying rule: role310
+
+user8758 can REACH role310
+role310 is REACHABLE
+
+DEFAULT IN TIME 0.214s
+-- PRUNING --
+BEFORE PRUNING: Roles: 3955 Users: 2 Rules: 14857
+AFTER PRUNING: Roles: 2 Users: 2 Rules: 1
+PRUNING TIME: 0.064s
+============= ../regression/testcases/mixednocr/test8.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user12800 REACH role9728 ?
+
+==> Step 1:
+Target User: user12800
+CAN ASSIGN rule applied to user12800: <role19999,TRUE,role9728>
+Administrative user to invoke the rule: user49999
+Role configuration of user12800 before applying rule: No role
+Role configuration of user12800 after applying rule: role9728
+
+user12800 can REACH role9728
+role9728 is REACHABLE
+
+DEFAULT IN TIME 0.765s
+-- PRUNING --
+BEFORE PRUNING: Roles: 19749 Users: 2 Rules: 74324
+AFTER PRUNING: Roles: 2 Users: 2 Rules: 1
+PRUNING TIME: 0.314s
+============= ../regression/testcases/mixednocr/test9.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user14473 REACH role16899 ?
+
+==> Step 1:
+Target User: user14473
+CAN ASSIGN rule applied to user14473: <role29999,TRUE,role16899>
+Administrative user to invoke the rule: user69999
+Role configuration of user14473 before applying rule: No role
+Role configuration of user14473 after applying rule: role16899
+
+user14473 can REACH role16899
+role16899 is REACHABLE
+
+DEFAULT IN TIME 1.065s
+-- PRUNING --
+BEFORE PRUNING: Roles: 29677 Users: 2 Rules: 111800
+AFTER PRUNING: Roles: 2 Users: 2 Rules: 1
+PRUNING TIME: 0.464s
+============= ../regression/testcases/mixednocr/test10.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user27535 REACH role15692 ?
+
+==> Step 1:
+Target User: user27535
+CAN ASSIGN rule applied to user27535: <role40000,TRUE,role15692>
+Administrative user to invoke the rule: user99999
+Role configuration of user27535 before applying rule: No role
+Role configuration of user27535 after applying rule: role15692
+
+user27535 can REACH role15692
+role15692 is REACHABLE
+
+DEFAULT IN TIME 1.316s
+-- PRUNING --
+BEFORE PRUNING: Roles: 39573 Users: 2 Rules: 149156
+AFTER PRUNING: Roles: 2 Users: 2 Rules: 1
+PRUNING TIME: 0.565s
+============= ../regression/testcases/positive/test1.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user0 REACH role1 ?
+
+==> Step 1:
+Target User: user0
+CAN ASSIGN rule applied to user0: <role3,TRUE,role1>
+Administrative user to invoke the rule: user4
+Role configuration of user0 before applying rule: No role
+Role configuration of user0 after applying rule: role1
+
+user0 can REACH role1
+role1 is REACHABLE
+
+DEFAULT IN TIME 0.114s
+-- PRUNING --
+BEFORE PRUNING: Roles: 4 Users: 5 Rules: 11
+AFTER PRUNING: Roles: 2 Users: 2 Rules: 1
+PRUNING TIME: 0.003s
+============= ../regression/testcases/positive/test2.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user3 REACH role4 ?
+
+==> Step 1:
+Target User: user3
+CAN ASSIGN rule applied to user3: <role5,TRUE,role4>
+Administrative user to invoke the rule: user9
+Role configuration of user3 before applying rule: No role
+Role configuration of user3 after applying rule: role4
+
+user3 can REACH role4
+role4 is REACHABLE
+
+DEFAULT IN TIME 0.114s
+-- PRUNING --
+BEFORE PRUNING: Roles: 6 Users: 10 Rules: 20
+AFTER PRUNING: Roles: 2 Users: 2 Rules: 1
+PRUNING TIME: 0.004s
+============= ../regression/testcases/positive/test3.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user41 REACH role13 ?
+
+==> Step 1:
+Target User: user41
+CAN ASSIGN rule applied to user41: <role20,TRUE,role10>
+Administrative user to invoke the rule: user49
+Role configuration of user41 before applying rule: No role
+Role configuration of user41 after applying rule: role10
+
+==> Step 2:
+Target User: user41
+CAN ASSIGN rule applied to user41: <role20,TRUE,role8>
+Administrative user to invoke the rule: user49
+Role configuration of user41 before applying rule: role10
+Role configuration of user41 after applying rule: role10 role8
+
+==> Step 3:
+Target User: user41
+CAN ASSIGN rule applied to user41: <role20,TRUE,role3>
+Administrative user to invoke the rule: user49
+Role configuration of user41 before applying rule: role10 role8
+Role configuration of user41 after applying rule: role10 role8 role3
+
+==> Step 4:
+Target User: user41
+CAN ASSIGN rule applied to user41: <role20,role8&role3&role10,role15>
+Administrative user to invoke the rule: user49
+Role configuration of user41 before applying rule: role10 role8 role3
+Role configuration of user41 after applying rule: role10 role8 role3 role15
+
+==> Step 5:
+Target User: user41
+CAN ASSIGN rule applied to user41: <role20,role15,role13>
+Administrative user to invoke the rule: user49
+Role configuration of user41 before applying rule: role10 role8 role3 role15
+Role configuration of user41 after applying rule: role10 role8 role3 role15 role13
+
+user41 can REACH role13
+role13 is REACHABLE
+
+DEFAULT IN TIME 0.114s
+-- PRUNING --
+BEFORE PRUNING: Roles: 21 Users: 50 Rules: 89
+AFTER PRUNING: Roles: 3 Users: 4 Rules: 2
+PRUNING TIME: 0.004s
+============= ../regression/testcases/positive/test4.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user12 REACH role39 ?
+
+==> Step 1:
+Target User: user12
+CAN ASSIGN rule applied to user12: <role40,TRUE,role39>
+Administrative user to invoke the rule: user99
+Role configuration of user12 before applying rule: No role
+Role configuration of user12 after applying rule: role39
+
+user12 can REACH role39
+role39 is REACHABLE
+
+DEFAULT IN TIME 0.114s
+-- PRUNING --
+BEFORE PRUNING: Roles: 41 Users: 100 Rules: 178
+AFTER PRUNING: Roles: 2 Users: 2 Rules: 1
+PRUNING TIME: 0.004s
+============= ../regression/testcases/positive/test5.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user211 REACH role128 ?
+
+==> Step 1:
+Target User: user211
+CAN ASSIGN rule applied to user211: <role200,TRUE,role128>
+Administrative user to invoke the rule: user499
+Role configuration of user211 before applying rule: No role
+Role configuration of user211 after applying rule: role128
+
+user211 can REACH role128
+role128 is REACHABLE
+
+DEFAULT IN TIME 0.114s
+-- PRUNING --
+BEFORE PRUNING: Roles: 201 Users: 500 Rules: 880
+AFTER PRUNING: Roles: 2 Users: 2 Rules: 1
+PRUNING TIME: 0.007s
+============= ../regression/testcases/positive/test6.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user629 REACH role152 ?
+
+==> Step 1:
+Target User: user629
+CAN ASSIGN rule applied to user629: <role500,TRUE,role352>
+Administrative user to invoke the rule: user999
+Role configuration of user629 before applying rule: No role
+Role configuration of user629 after applying rule: role352
+
+==> Step 2:
+Target User: user629
+CAN ASSIGN rule applied to user629: <role500,role352,role152>
+Administrative user to invoke the rule: user999
+Role configuration of user629 before applying rule: role352
+Role configuration of user629 after applying rule: role352 role152
+
+user629 can REACH role152
+role152 is REACHABLE
+
+DEFAULT IN TIME 0.164s
+-- PRUNING --
+BEFORE PRUNING: Roles: 501 Users: 1000 Rules: 2180
+AFTER PRUNING: Roles: 3 Users: 2 Rules: 2
+PRUNING TIME: 0.016s
+============= ../regression/testcases/positive/test7.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user915 REACH role2047 ?
+
+==> Step 1:
+Target User: user915
+CAN ASSIGN rule applied to user915: <role4000,TRUE,role832>
+Administrative user to invoke the rule: user9999
+Role configuration of user915 before applying rule: No role
+Role configuration of user915 after applying rule: role832
+
+==> Step 2:
+Target User: user915
+CAN ASSIGN rule applied to user915: <role4000,TRUE,role3621>
+Administrative user to invoke the rule: user9999
+Role configuration of user915 before applying rule: role832
+Role configuration of user915 after applying rule: role832 role3621
+
+==> Step 3:
+Target User: user915
+CAN ASSIGN rule applied to user915: <role4000,role832&role3621,role2047>
+Administrative user to invoke the rule: user9999
+Role configuration of user915 before applying rule: role832 role3621
+Role configuration of user915 after applying rule: role832 role3621 role2047
+
+user915 can REACH role2047
+role2047 is REACHABLE
+
+DEFAULT IN TIME 0.314s
+-- PRUNING --
+BEFORE PRUNING: Roles: 4001 Users: 10000 Rules: 17686
+AFTER PRUNING: Roles: 4 Users: 2 Rules: 3
+PRUNING TIME: 0.114s
+============= ../regression/testcases/positive/test8.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user31009 REACH role18145 ?
+
+==> Step 1:
+Target User: user31009
+CAN ASSIGN rule applied to user31009: <role19999,TRUE,role10130>
+Administrative user to invoke the rule: user49999
+Role configuration of user31009 before applying rule: No role
+Role configuration of user31009 after applying rule: role10130
+
+==> Step 2:
+Target User: user31009
+CAN ASSIGN rule applied to user31009: <role19999,role10130,role18145>
+Administrative user to invoke the rule: user49999
+Role configuration of user31009 before applying rule: role10130
+Role configuration of user31009 after applying rule: role10130 role18145
+
+user31009 can REACH role18145
+role18145 is REACHABLE
+
+DEFAULT IN TIME 1.065s
+-- PRUNING --
+BEFORE PRUNING: Roles: 20000 Users: 50000 Rules: 83561
+AFTER PRUNING: Roles: 3 Users: 2 Rules: 2
+PRUNING TIME: 0.415s
+============= ../regression/testcases/positive/test9.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user20609 REACH role4114 ?
+
+==> Step 1:
+Target User: user20609
+CAN ASSIGN rule applied to user20609: <role29999,TRUE,role4114>
+Administrative user to invoke the rule: user69999
+Role configuration of user20609 before applying rule: No role
+Role configuration of user20609 after applying rule: role4114
+
+user20609 can REACH role4114
+role4114 is REACHABLE
+
+DEFAULT IN TIME 1.516s
+-- PRUNING --
+BEFORE PRUNING: Roles: 30000 Users: 70000 Rules: 125520
+AFTER PRUNING: Roles: 2 Users: 2 Rules: 1
+PRUNING TIME: 0.615s
+============= ../regression/testcases/positive/test10.arbac ==================
+=====> Simplification ARBAC policy =====>
+=====> Translation ARBAC policy =====>
+=====> Analysis of translated ARBAC policy =====>
+The ARBAC policy may not be safe.
+===> Under approximate analysis ===>
+=====> Produce Counter Example ====>
+Counter Example Trace:
+Specification of query: Can user57261 REACH role16626 ?
+
+==> Step 1:
+Target User: user57261
+CAN ASSIGN rule applied to user57261: <role40000,TRUE,role17451>
+Administrative user to invoke the rule: user99999
+Role configuration of user57261 before applying rule: No role
+Role configuration of user57261 after applying rule: role17451
+
+==> Step 2:
+Target User: user57261
+CAN ASSIGN rule applied to user57261: <role40000,TRUE,role21890>
+Administrative user to invoke the rule: user99999
+Role configuration of user57261 before applying rule: role17451
+Role configuration of user57261 after applying rule: role17451 role21890
+
+==> Step 3:
+Target User: user57261
+CAN ASSIGN rule applied to user57261: <role40000,role21890&role17451,role16626>
+Administrative user to invoke the rule: user99999
+Role configuration of user57261 before applying rule: role17451 role21890
+Role configuration of user57261 after applying rule: role17451 role21890 role16626
+
+user57261 can REACH role16626
+role16626 is REACHABLE
+
+DEFAULT IN TIME 2.017s
+-- PRUNING --
+BEFORE PRUNING: Roles: 40001 Users: 100000 Rules: 176796
+AFTER PRUNING: Roles: 4 Users: 2 Rules: 3
+PRUNING TIME: 0.765s

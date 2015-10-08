@@ -1899,7 +1899,8 @@ produce_original_counter_example_help(void)
         // Stop when figuring out the last step
         if (original_trace_array_size > 0)
         {
-            if (belong_to(original_trace_array[original_trace_array_size - 1].config_array, original_trace_array[original_trace_array_size - 1].config_array_size, goal_role_index) != -1)
+            if (belong_to(original_trace_array[original_trace_array_size - 1].config_array, original_trace_array[original_trace_array_size - 1].config_array_size, goal_role_index) != -1
+                && strcmp(original_trace_array[original_trace_array_size - 1].target_user, original_target_user) == 0)
             {
                 return_val = 1;
                 break;

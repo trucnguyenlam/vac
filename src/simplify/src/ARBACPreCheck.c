@@ -171,6 +171,8 @@ write_small_policy(int hasPruning, int rules[], int rules_size, char *inputFile)
         }
     }
 
+    fprintf(tmplog, "ARBAC system after reducing:\n");
+
     //Write the roles
     fprintf(simplifyLog, "Roles\n");
     fprintf(output, "Roles ");
@@ -187,6 +189,7 @@ write_small_policy(int hasPruning, int rules[], int rules_size, char *inputFile)
             fprintf(simplifyLog, "%d -> -1\n", i);
         }
     }
+
     if (hasPruning && hasSuper)
     {
         fprintf(output, "SUPER_ROLE ");
@@ -195,6 +198,7 @@ write_small_policy(int hasPruning, int rules[], int rules_size, char *inputFile)
     }
     fprintf(output, ";\n\n");
     fprintf(simplifyLog, "EndR\n");
+    fprintf(tmplog, "Roles: %d\n", count);
 
     //Write the users
     count = 0;
@@ -222,6 +226,7 @@ write_small_policy(int hasPruning, int rules[], int rules_size, char *inputFile)
 
     fprintf(output, ";\n\n");
     fprintf(simplifyLog, "EndU\n");
+    fprintf(tmplog, "Users: %d\n", count);
 
     //Write the UA
     // UA: only for keep users and keep roles
@@ -243,6 +248,7 @@ write_small_policy(int hasPruning, int rules[], int rules_size, char *inputFile)
     fprintf(simplifyLog, "CRs\n");
     fprintf(output, "CR ;\n\n");
     fprintf(simplifyLog, "EndCR\n");
+    fprintf(tmplog, "CR rules: 0\n");
 
     //Write CAs
     count = 0;
@@ -300,6 +306,8 @@ write_small_policy(int hasPruning, int rules[], int rules_size, char *inputFile)
     }
     fprintf(output, ";\n\n");
     fprintf(simplifyLog, "EndCA\n");
+    fprintf(tmplog, "CA rules: %d\n", count);
+    fprintf(tmplog, "Total rules: %d\n", count);
 
     //Write the SPEC
     fprintf(output, "SPEC");

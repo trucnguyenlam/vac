@@ -801,12 +801,13 @@ write_ARBAC(char *fileName)
 	char *newfile = 0;
 	int i, j;
 	int count = 0;
+	int total = 0;
 
 	newfile = malloc(strlen(fileName) + strlen("_reduceAdmin.arbac") + 2);
 	sprintf(newfile, "%s_reduceAdmin.arbac", fileName);
 	output = fopen(newfile, "w");
 
-	fprintf(tmplog, "ARBAC system after reducing\n");
+	fprintf(tmplog, "ARBAC system after reducing:\n");
 	// Rebuild the system before printing
 	rebuild_ARBAC_system();
 
@@ -886,7 +887,8 @@ write_ARBAC(char *fileName)
 	}
 	fprintf(output, ";\n\n");
 	fprintf(simplifyLog, "EndCR\n");
-	fprintf(tmplog, "CR Rules: %d\n", count);
+	fprintf(tmplog, "CR rules: %d\n", count);
+	total = count;
 
 	count = 0;
 	//Write the CA
@@ -951,7 +953,9 @@ write_ARBAC(char *fileName)
 	}
 	fprintf(output, ";\n\n");
 	fprintf(simplifyLog, "EndCA\n");
-	fprintf(tmplog, "CA Rules: %d\n", count);
+	fprintf(tmplog, "CA rules: %d\n", count);
+	total += count;
+	fprintf(tmplog, "Total rules: %d\n", total);
 
 	//Write the SPEC
 	fprintf(output, "SPEC");

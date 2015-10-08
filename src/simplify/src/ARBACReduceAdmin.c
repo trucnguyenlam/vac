@@ -28,6 +28,8 @@ reduceAdmin(char *inputFile)
     promoted_users.array = 0;
     promoted_users.array_size = 0;
 
+    countSuper = 0;
+
     // Launch Pruning algorithm
     while (1)
     {

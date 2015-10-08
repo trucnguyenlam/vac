@@ -101,8 +101,8 @@ def lauchTest(inputfile):
 
     overall = []
     interproc = ''
-    # for b in ("interproc", "moped", "z3", "cbmc", "hsf", "nusmv", "eldarica"):
-    for b in ("interproc", "moped", "z3", "cbmc", "hsf", "eldarica"):
+    # for b in ("interproc", "moped", "z3", "cbmc", "hsf", "eldarica"):
+    for b in ("interproc", "moped", "z3", "cbmc", "hsf", "nusmv", "eldarica"):
         print "Test with backend", b,
         result = launchonetest(inputfile, b)
         if b == "interproc":

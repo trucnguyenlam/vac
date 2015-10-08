@@ -2,7 +2,7 @@
 
 # Clean built source files
 if [[ $1 = 'clean' ]]; then
-	echo "Cleaning built files..."
+	echo "Cleaning built ..."
 	cd src/ccl/src
 	make clean
 	cd ..
@@ -35,8 +35,7 @@ make libccl.a
 cd ..
 mkdir lib
 cp src/libccl.a lib
-cd ..
-cd ..
+cd ../..
 
 # Build simplify module
 cd src/simplify
@@ -47,8 +46,7 @@ automake -a
 make
 
 # Build translate module
-cd ..
-cd ..
+cd ../..
 cd src/translate
 aclocal
 autoconf
@@ -57,8 +55,7 @@ automake -a
 make
 
 # Build counterExample module
-cd ..
-cd ..
+cd ../..
 cd src/counterexample
 aclocal
 autoconf
@@ -66,8 +63,7 @@ automake -a
 ./configure
 make
 
-cd ..
-cd ..
+cd ../..
 
 # Copy file to build directory
 echo "Copying executable files to bin directory..."
@@ -86,6 +82,8 @@ else
 	mv vac_static/bin/vac.sh vac_static
 fi
 cp tools/README vac_static
+cp tools/VAC_LICENSE vac_static
+cp -r tools/licenses vac_static
 
 echo "Done."
 echo "You can execute the VAC script from vac.sh in vac_static directory"

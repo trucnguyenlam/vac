@@ -207,7 +207,7 @@ admin_roles_size()
     }
 
     // Plus one rule for the SUPER ROLE
-    if (super_exist)
+    if (super_exist && countSuper == 1)
     {
         result++;
     }
@@ -255,6 +255,11 @@ replace_super(int condition)
 {
     int i;
 
+    // Indicate that the super already count
+    if (immaterial_admins.array_size > 0)
+    {
+        countSuper++;
+    }
     // Replace super in the can_assign and can_revoke
     for (i = 0; i < immaterial_admins.array_size; i++)
     {

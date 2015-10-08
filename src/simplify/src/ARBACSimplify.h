@@ -47,6 +47,9 @@ set promoted_users;
 FILE *tmplog;
 FILE *simplifyLog;
 
+int
+countSuper;
+
 // Define the slicing function of ReduceAdmin algorithm
 int
 slicing();
