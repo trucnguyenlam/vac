@@ -47,9 +47,6 @@ set promoted_users;
 FILE *tmplog;
 FILE *simplifyLog;
 
-int
-countSuper;
-
 // Define the slicing function of ReduceAdmin algorithm
 int
 slicing();
@@ -59,7 +56,9 @@ aggressive_pruning();
 // Define the immaterial function of ReduceAdmin algorithm
 int
 immaterial();
-
+// Remove admin role
+int 
+remove_admin_role(void);
 // Check for trivial policy
 int
 precheck(int, char *);

@@ -1,59 +1,5 @@
 #include "ARBACSimplify.h"
 
-// // Debugging purpose
-// static void
-// print_ca_debug(int ca_index)
-// {
-//     int j, has_head = 0;
-//     // Check for the precondition of each role
-//     if (ca_array[ca_index].type == 0)
-//     {
-//         printf("<%s,", get_role(ca_array[ca_index].admin_role_index));
-//         for (j = 0; j < ca_array[ca_index].positive_role_array_size; j++)
-//         {
-//             if (ca_array[ca_index].positive_role_array[j] != -13)
-//             {
-//                 if (has_head)
-//                 {
-//                     printf("&%s", get_role(ca_array[ca_index].positive_role_array[j]));
-//                 }
-//                 else
-//                 {
-//                     printf("%s", get_role(ca_array[ca_index].positive_role_array[j]));
-//                     has_head = 1;
-//                 }
-//             }
-//         }
-
-//         for (j = 0; j < ca_array[ca_index].negative_role_array_size; j++)
-//         {
-//             if (ca_array[ca_index].negative_role_array[j] != -13)
-//             {
-//                 if (has_head)
-//                 {
-//                     printf("&-%s", get_role(ca_array[ca_index].negative_role_array[j]));
-//                 }
-//                 else
-//                 {
-//                     printf("-%s", get_role(ca_array[ca_index].negative_role_array[j]));
-//                     has_head = 1;
-//                 }
-//             }
-//         }
-//         printf(",%s> ", get_role(ca_array[ca_index].target_role_index));
-//         has_head = 0;
-//     }
-//     else if (ca_array[ca_index].type == 1)
-//     {
-//         printf("<%s,TRUE,%s> ", get_role(ca_array[ca_index].admin_role_index), get_role(ca_array[ca_index].target_role_index));
-//     }
-//     else if (ca_array[ca_index].type == 2)
-//     {
-//         printf("<%s,NEW,%s> ", get_role(ca_array[ca_index].admin_role_index), get_role(ca_array[ca_index].target_role_index));
-//     }
-//     printf("\n");
-// }
-
 // Copy a temporary trace array
 void
 copy_trace_array(Trace *temp_trace, int temp_trace_size)
@@ -409,7 +355,8 @@ rule_irrelevant_role()
     for (i = 0; i < role_array_size; i++)
     {
         // If this role is administrative role or a removed role -> skip
-        if (belong_to(admin_role_array_index, admin_role_array_index_size, i) != -1 || strcmp(role_array[i], "removed_role") == 0 || i == goal_role_index)
+        if (belong_to(admin_role_array_index, admin_role_array_index_size, i) != -1
+                || strcmp(role_array[i], "removed_role") == 0 || i == goal_role_index)
         {
             continue;
         }
@@ -490,7 +437,7 @@ set init_roles;
 set *Q_super;
 int Q_super_size;
 
-// Compute initial configuration
+// Compute initial configuration of users
 static void
 compute_init_config()
 {
@@ -532,7 +479,8 @@ compute_Q_set(int ca_rule_index, set init_roles)
 
     for (i = 0; i < ca_array[ca_rule_index].positive_role_array_size; i++)
     {
-        if (ca_array[ca_rule_index].positive_role_array[i] != -13 && belong_to(init_roles.array, init_roles.array_size, ca_array[ca_rule_index].positive_role_array[i]) == -1)
+        if (ca_array[ca_rule_index].positive_role_array[i] != -13
+                && belong_to(init_roles.array, init_roles.array_size, ca_array[ca_rule_index].positive_role_array[i]) == -1)
         {
             Q = add_last_element(Q, ca_array[ca_rule_index].positive_role_array[i]);
         }
@@ -634,7 +582,8 @@ non_fireable_property_help(set Q, set Z, int ca_rule_index)
     int i;
     for (i = 0; i < ca_array_size; i++)
     {
-        if (ca_array[i].admin_role_index != -13 && i != ca_rule_index && non_fireable_property_help_term(Q, Z, i) == 1)
+        if (ca_array[i].admin_role_index != -13
+                && i != ca_rule_index && non_fireable_property_help_term(Q, Z, i) == 1)
         {
             return 0;
         }
@@ -735,7 +684,8 @@ rule_non_fireable()
     for (i = 0; i < ca_array_size; i++)
     {
         // Test the property R4 for each can assign rule
-        if (ca_array[i].admin_role_index != -13 && non_fireable_property(i))
+        if (ca_array[i].admin_role_index != -13
+                && non_fireable_property(i))
         {
             fprintf(tmplog, "CAN ASSIGN rule number %d ", i);
             print_ca_rule(i);
@@ -1141,6 +1091,60 @@ rule_combinable_and_implied()
     return change;
 }
 
+static char *
+int2str(int value)
+{
+    char temp[20];
+
+    sprintf(temp, "%d", value);
+
+    return strdup(temp);
+}
+
+int
+remove_admin_role(void)
+{
+    int i;
+    int success = 0;
+
+    Dictionary *admin_role_dict = 0;
+    admin_role_dict = iDictionary.Create(sizeof(int *), admin_role_array_index_size);
+
+    for (i = 0; i < cr_array_size; i++)
+    {
+        if (cr_array[i].admin_role_index != -13)
+        {
+            iDictionary.Add(admin_role_dict, int2str(cr_array[i].admin_role_index), &cr_array[i].admin_role_index);
+        }
+    }
+
+    for (i = 0; i < ca_array_size; i++)
+    {
+        if (ca_array[i].admin_role_index >= 0)
+        {
+            iDictionary.Add(admin_role_dict, int2str(ca_array[i].admin_role_index), &ca_array[i].admin_role_index);
+        }
+    }
+
+    for(i = 0; i < admin_role_array_index_size; i++)
+    {
+        if (admin_role_array_index[i] != -13
+            && !iDictionary.Contains(admin_role_dict, int2str(admin_role_array_index[i])))
+        {
+            admin_role_array_index[i] = -13;
+            success = 1;
+        }
+    }
+
+    // Free data
+    if (admin_role_dict != NULL)
+    {
+        iDictionary.Finalize(admin_role_dict);
+    }
+
+    return success;
+}
+
 // Aggressive pruning procedure
 int
 aggressive_pruning()
@@ -1155,5 +1159,7 @@ aggressive_pruning()
         return 0;
     }
 
-    return (rule_irrelevant_role() + rule_combinable_and_implied() + rule_non_fireable());
+    return (rule_irrelevant_role() + rule_combinable_and_implied() + rule_non_fireable() + remove_admin_role());
 }
+
+

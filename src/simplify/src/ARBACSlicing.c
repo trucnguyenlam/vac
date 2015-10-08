@@ -390,7 +390,6 @@ slicing_backward()
     }
     fprintf(tmplog, "\nSlicing Backward Removing------------\n");
 
-
     sliced_role_dict = iDictionary.Create(sizeof(int *), role_array_size);
     for (i = 0; i < X.array_size; i++)
     {

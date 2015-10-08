@@ -207,7 +207,7 @@ admin_roles_size()
     }
 
     // Plus one rule for the SUPER ROLE
-    if (super_exist && countSuper == 1)
+    if (super_exist)
     {
         result++;
     }
@@ -255,11 +255,6 @@ replace_super(int condition)
 {
     int i;
 
-    // Indicate that the super already count
-    if (immaterial_admins.array_size > 0)
-    {
-        countSuper++;
-    }
     // Replace super in the can_assign and can_revoke
     for (i = 0; i < immaterial_admins.array_size; i++)
     {
@@ -418,14 +413,14 @@ immaterial_condition_2()
 
     no_admins = admin_roles_size();
 
-    // Create an array of equal configuration users
-    process_configs();
-
     // If number of user smaller than admin role + 2 -> not satisfied
     if (user_array_size < no_admins + 2)
     {
         return 0;
     }
+
+    // Create an array of equal configuration users
+    process_configs();
 
     for (j = 0; j < equal_config_array_size; j++)
     {

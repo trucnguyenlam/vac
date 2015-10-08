@@ -28,8 +28,6 @@ reduceAdmin(char *inputFile)
     promoted_users.array = 0;
     promoted_users.array_size = 0;
 
-    countSuper = 0;
-
     // Launch Pruning algorithm
     while (1)
     {
@@ -47,7 +45,6 @@ reduceAdmin(char *inputFile)
 
         hasPruning = 1;
     }
-
     if(!precheck_success)
     {
         write_ARBAC(inputFile);
@@ -57,7 +54,7 @@ reduceAdmin(char *inputFile)
     fprintf(tmplog, "**********          END LOG           *************\n");
     fprintf(tmplog, "***************************************************\n");
 
-    // Free data structure
+    // Free data structure of ARBAC
     free_data();
 }
 
