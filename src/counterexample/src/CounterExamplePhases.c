@@ -260,7 +260,8 @@ print_trace_special(FILE *outputFILE)
         {
             if (ua_array[i].user_index == goal_user_index && ua_array[i].role_index == goal_role_index)
             {
-                fprintf(outputFILE, "==> %s already REACH in initial configuration\n", get_role(goal_role_index));
+                fprintf(outputFILE, "%s already REACH in the initial configuration\n", get_role(goal_role_index));
+                fprintf(outputFILE, "%s is REACHABLE\n", get_role(goal_role_index));
                 return;
             }
         }
@@ -272,7 +273,8 @@ print_trace_special(FILE *outputFILE)
         {
             if (ua_array[i].role_index == goal_role_index)
             {
-                fprintf(outputFILE, "==> %s already REACH in initial configuration\n", get_role(goal_role_index));
+                fprintf(outputFILE, "%s already REACH in the initial configuration\n", get_role(goal_role_index));
+                fprintf(outputFILE, "%s is REACHABLE\n", get_role(goal_role_index));
                 return;
             }
         }
@@ -661,20 +663,34 @@ produce_counter_example(FILE *outputFILE, int silence)
                         user_translated_array[index].config_array[user_translated_array[index].config_array_size - 1] = get_role_index(role_array, role_array_size, assignment_array[i].role);
                     }
                 }
-
-                if (
-                    assignment_array[i].type == 0
-                    && get_role_index(role_array, role_array_size, assignment_array[i].role) == original_goal_role_index
-                    && !hasGoalUserMode
-                )
-                {
-                    reached_initially = 1;
-                    goto END;
-                }
             }
         }
     }
 
+    if (hasGoalUserMode)
+    {
+        for(i = 0; i < user_translated_array_size; i++)
+        {
+            if(belong_to(user_translated_array[i].config_array, user_translated_array[i].config_array_size, original_goal_role_index) != -1
+                && strcmp(get_user(goal_user_index), user_translated_array[user_translated_array_size - 1].user_name) == 0
+                )
+            {
+                reached_initially = 1;
+                goto END;
+            }
+        }
+    }
+    else
+    {
+        for(i = 0; i < user_translated_array_size; i++)
+        {
+            if(belong_to(user_translated_array[i].config_array, user_translated_array[i].config_array_size, original_goal_role_index) != -1)
+            {
+                reached_initially = 1;
+                goto END;
+            }
+        }
+    }
 
     // Show the evolution of the track user in the simulation
     for (i = config_lim_index + 1; i < assignment_array_size; i++)
