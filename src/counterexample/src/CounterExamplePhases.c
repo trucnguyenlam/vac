@@ -4,7 +4,6 @@
 #include "ARBACData.h"
 #include "CounterExample.h"
 
-int debug = 0;
 int previouslyHasNewUser = 0;
 
 // Get role name from the index
@@ -622,7 +621,6 @@ produce_counter_example(FILE *outputFILE, int silence)
     trace_array = 0;
     trace_array_size = 0;
 
-
     // Find limit line number of INITIALIZATIION, initialize_lim is the last line of INIT
     init_lim_index = find_assignment_index_via_line(assignment_array, assignment_array_size, initialize_lim);
 
@@ -667,6 +665,7 @@ produce_counter_example(FILE *outputFILE, int silence)
                 if (
                     assignment_array[i].type == 0
                     && get_role_index(role_array, role_array_size, assignment_array[i].role) == original_goal_role_index
+                    && !hasGoalUserMode
                 )
                 {
                     reached_initially = 1;
@@ -765,10 +764,7 @@ produce_counter_example(FILE *outputFILE, int silence)
     }
 
     postprocess_counter_example_trace(ToCheckRole_index);
-    if(debug)
-    {
-        print_trace(trace_array, trace_array_size, stdout);
-    }
+    // print_trace(trace_array, trace_array_size, stdout);
     if (!silence)
     {
         print_trace(trace_array, trace_array_size, outputFILE);
@@ -2068,8 +2064,5 @@ generate_counter_example_full(int argc, char **argv)
     fclose(debugFile);
 
     // Remove debug file
-    if (!debug)
-    {
-        remove(debugFilename);
-    }
+    remove(debugFilename);
 }
