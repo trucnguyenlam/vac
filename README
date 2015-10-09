@@ -1,16 +1,16 @@
 ===============================================================================================
-Source code of VAC (Version 1.0)
+Source code of VAC (Version 1.1)
 ===============================================================================================
 
 YOU MUST INSTALL LIBRARIES NEEDED FIRST TO BUILD THE TOOL !
 
 "libs" directory contains the libraries needed to build VAC.
 
-Please refer to README in that directory of how to install those libraries. 
+Please refer to README in that directory of how to install those libraries.
 
 You MUST install those libraries first to build other modules.
 
-In order to install those libraries, you also need to install autoconf and automake tools on 
+In order to install those libraries, you also need to install autoconf and automake tools on
 your machine (on Ubuntu just say: sudo apt-get install automake autoconf).
 
 "src" directory contains source code of three modules of VAC:
@@ -30,11 +30,9 @@ Building VAC Tool
 ================================================================================================
 After installing the required libraries, you can use the build.sh script to build static version of VAC
 
-Use `./build.sh` to build the tool
+- Use `./build.sh` to build the tool.The static built version of VAC now is in 'vac_static' directory.
 
-The static built version of VAC now is in 'vac_static' directory.
-
-Use `./build.sh clean` to clean up
+- Use `./build.sh clean` to clean up built.
 
 ================================================================================================
 Using VAC tool
