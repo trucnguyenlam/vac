@@ -1978,9 +1978,6 @@ generate_counter_example(int argc, char **argv)
     char *cefilename = 0;
     FILE *ceFILE;
 
-    char *debugFilename = "cex_debug.log";
-    debugFile = fopen(debugFilename, "w");
-
     cefilename = malloc(strlen(argv[5]) + strlen("_CounterExample") + 2);
     sprintf(cefilename, "%s_CounterExample", argv[5]);
     ceFILE = fopen(cefilename, "w");
@@ -2014,10 +2011,6 @@ generate_counter_example(int argc, char **argv)
     redirect_stdout(cefilename);
     free(cefilename);
 
-    fclose(debugFile);
-
-    // Remove debug file
-    remove(debugFilename);
 }
 
 // Generating counter example from all the files (full version)
@@ -2026,9 +2019,6 @@ generate_counter_example_full(int argc, char **argv)
 {
     char *cefilename = 0;
     FILE *ceFILE;
-
-    char *debugFilename = "cex_debug.log";
-    debugFile = fopen(debugFilename, "w");
 
     cefilename = malloc(strlen(argv[5]) + strlen("_CounterExample") + 2);
     sprintf(cefilename, "%s_CounterExample", argv[5]);
@@ -2077,8 +2067,4 @@ generate_counter_example_full(int argc, char **argv)
     redirect_stdout(cefilename);
     free(cefilename);
 
-    fclose(debugFile);
-
-    // Remove debug file
-    remove(debugFilename);
 }

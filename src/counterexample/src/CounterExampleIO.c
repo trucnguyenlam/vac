@@ -247,11 +247,11 @@ printCBMCAssignment(CBMCAssignment a)
 {
     if (a.type == 0)
     {
-        fprintf(debugFile, "Assignment in line %d with track_user %d with value %d with role %s\n", a.line, a.track_user, a.value, a.role);
+        fprintf(stdout, "Assignment in line %d with track_user %d with value %d with role %s\n", a.line, a.track_user, a.value, a.role);
     }
     else
     {
-        fprintf(debugFile, "Assignment in line %d with track_user %d with value %d\n", a.line, a.track_user, a.value);
+        fprintf(stdout, "Assignment in line %d with track_user %d with value %d\n", a.line, a.track_user, a.value);
     }
 }
 
@@ -286,8 +286,6 @@ readCBMCXMLLog(char *inputfile)
         return;
     }
 
-    fprintf(debugFile, "READ CBMC XML LOG\n");
-
     // Counter Example trace
     node_t *goto_trace = roxml_get_chld(cprover, "goto_trace", 0);
     for (i = 0; i < roxml_get_chld_nb(goto_trace); i++)
@@ -295,7 +293,8 @@ readCBMCXMLLog(char *inputfile)
         node_t *assignment_node = roxml_get_chld(goto_trace, NULL, i);
         if (strcmp(roxml_get_name(assignment_node, NULL, 0), "assignment") == 0)
         {
-            node_t *display_name = roxml_get_chld(assignment_node, "display_name", 0);
+            // Fix for newer CBMC
+            node_t *display_name = roxml_get_attr(assignment_node, "display_name", 0);
             node_t *value = roxml_get_chld(assignment_node, "value", 0);
             node_t *location = roxml_get_chld(assignment_node, "location", 0);
             node_t *line_attr = roxml_get_attr(location, "line", 0);
@@ -317,7 +316,7 @@ readCBMCXMLLog(char *inputfile)
                 roxml_get_content(line_attr, tmp2, 6, &a);
                 assignment_array[assignment_array_size - 1].line = atoi(tmp2);
                 assignment_array[assignment_array_size - 1].type = 0;
-                printCBMCAssignment(assignment_array[assignment_array_size - 1]);
+                // printCBMCAssignment(assignment_array[assignment_array_size - 1]);
             }
             else if (strstr(tmp1, "b_") != NULL)
             {
@@ -331,7 +330,7 @@ readCBMCXMLLog(char *inputfile)
                 roxml_get_content(line_attr, tmp2, 6, &a);
                 assignment_array[assignment_array_size - 1].line = atoi(tmp2);
                 assignment_array[assignment_array_size - 1].type = 1;
-                printCBMCAssignment(assignment_array[assignment_array_size - 1]);
+                // printCBMCAssignment(assignment_array[assignment_array_size - 1]);
             }
         }
     }

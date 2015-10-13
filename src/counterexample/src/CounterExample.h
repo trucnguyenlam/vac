@@ -3,8 +3,6 @@
 
 #include "CounterExampleData.h"
 
-FILE * debugFile;
-
 int
 hasCounterExample;
 
