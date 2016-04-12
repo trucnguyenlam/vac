@@ -73,7 +73,6 @@ int admin_array_index_size;
 int *admin_role_array_index;
 int admin_role_array_index_size;
 
-
 //Define the specification
 int hasGoalUserMode;
 int goal_user_index;

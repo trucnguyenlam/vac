@@ -10,10 +10,13 @@ void
 reduction_finiteARBAC(void);
 
 void
-preprocess();
+preprocess(int);
 
 void
 free_data();
+
+int gen_comb_norep_lex_init(int *vector, const int n, const int k);
+int gen_comb_norep_lex_next(int *vector, const int n, const int k);
 
 void
 print_ca_comment(FILE *, int);

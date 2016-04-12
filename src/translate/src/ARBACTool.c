@@ -1,6 +1,63 @@
 #include "ARBACLexer.h"
 #include "ARBACParser.h"
 #include "ARBACTransform.h"
+#include "ARBACUtil.h"
+
+/**
+ * Combinatoric
+ */
+
+int gen_comb_norep_lex_init(int *vector, const int n, const int k)
+{
+	int j; //index
+
+//test for special cases
+	if (k > n)
+		return (3);
+
+	if (k == 0)
+		return (2);
+
+//initialize: vector[0, ..., k - 1] are 0, ..., k - 1
+	for (j = 0; j < k; j++)
+		vector[j] = j;
+
+	return (0);
+}
+
+int gen_comb_norep_lex_next(int *vector, const int n, const int k)
+{
+	int j; //index
+
+//easy case, increase rightmost element
+	if (vector[k - 1] < n - 1)
+	{
+		vector[k - 1]++;
+		return (0);
+	}
+
+//find rightmost element to increase
+	for (j = k - 2; j >= 0; j--)
+		if (vector[j] < n - k + j)
+			break;
+
+//terminate if vector[0] == n - k
+	if (j < 0)
+		return (1);
+
+//increase
+	vector[j]++;
+
+//set right-hand elements
+	while (j < k - 1)
+	{
+		vector[j + 1] = vector[j] + 1;
+		j++;
+	}
+
+	return (0);
+}
+
 
 // Create a dictionary of role
 void
@@ -214,16 +271,16 @@ reduction_finiteARBAC(void)
 		// Reseting things
 		hasNewUserMode = 0;
 
-        // Add these user to the dictionary
-        if (user_dict != NULL);
-        {
-            iDictionary.Finalize(user_dict);
-        }
-        // create new dictionary for user
-        create_user_dict();
+		// Add these user to the dictionary
+		if (user_dict != NULL);
+		{
+			iDictionary.Finalize(user_dict);
+		}
+		// create new dictionary for user
+		create_user_dict();
 
 		// Free data
-		for(i = 0; i < newuser_array_size; i++)
+		for (i = 0; i < newuser_array_size; i++)
 		{
 			free(newuser_array[i].name);
 			newuser_array[i].name = 0;
@@ -237,43 +294,376 @@ reduction_finiteARBAC(void)
 	}
 }
 
+/**
+ * TODO: Remove unused user in the system
+ */
+
+set *configs;
+int configs_size;
+
+set *partition_users;
+int partition_users_size;
+
+set *equal_config_array;
+int equal_config_array_size;
+
+set immaterial_admins;
+
+// Temporary variables
+int max_user_config_size;
+set temp_remain;
+
+// Free the array of set
+static void
+free_array_set(set *sets, int sets_size)
+{
+	int i;
+
+	// Free variable
+	for (i = 0; i < sets_size; i++)
+	{
+		if (sets[i].array_size != 0)
+		{
+			free(sets[i].array);
+			sets[i].array = 0;
+		}
+	}
+	free(sets);
+	sets = 0;
+	sets_size = 0;
+}
+
+// Make the configuration set for each user
+static void
+make_configs()
+{
+	int i, j;
+	int max = 0;
+
+	// The array of each configuration for each user
+	configs = calloc(user_array_size, sizeof(set));
+
+	// Size equal to the user size
+	configs_size = user_array_size;
+
+	// Create user configuration arrays, removed user have empty configurations set
+	for (i = 0; i < user_array_size; i++)
+	{
+		// If this is not a removed user
+		if (strcmp(user_array[i], "removed_user") != 0)
+		{
+			configs[i].array = 0;
+			configs[i].array_size = 0;
+			for (j = 0; j < ua_array_size; j++)
+			{
+				// Not a removed user role combination
+				if (ua_array[j].user_index != -13 && i == ua_array[j].user_index)
+				{
+					configs[i] = add_last_element(configs[i], ua_array[j].role_index);
+				}
+			}
+		} // If this is a removed user
+		else
+		{
+			configs[i].array = 0;
+			configs[i].array_size = -1;
+		}
+
+		// Also find the maximum size of configuration
+		if (max < configs[i].array_size)
+		{
+			max = configs[i].array_size;
+		}
+	}
+	// Max size of a user configuration (the maximum number of roles associated to user)
+	max_user_config_size = max;
+}
+
+// Partition the configuration sets of each user by their size
+static void
+partition_configs()
+{
+	int i;
+
+	partition_users_size = max_user_config_size + 1;
+	partition_users = calloc(partition_users_size, sizeof(set));
+
+	for (i = 0; i < partition_users_size; i++)
+	{
+		partition_users[i].array = 0;
+		partition_users[i].array_size = 0;
+	}
+
+	for (i = 0; i < configs_size; i++)
+	{
+		// If there are roles associate to that user, i  is a user index
+		if (configs[i].array_size != -1)
+		{
+			// Add the user i to the partition config of size of the configuration of user i
+			// All user with the same |ROLES| is add to the partition
+			partition_users[configs[i].array_size] = add_last_element(partition_users[configs[i].array_size], i);
+		}
+	}
+}
+
+// Recursive function to partition the configuration set of each user
+static void
+process_configs_recur(set group, int size_config)
+{
+	int i;
+	set tmp, equal;
+
+	// Equal set
+	equal.array = 0;
+	equal.array_size = 0;
+
+	if (group.array_size > 0)
+	{
+		if (size_config == 0)
+		{
+			equal_config_array_size++;
+			equal_config_array = realloc(equal_config_array, equal_config_array_size * sizeof(set));
+			equal_config_array[equal_config_array_size - 1] = build_set(group.array, group.array_size);
+			return;
+		}
+
+		tmp = build_set(configs[group.array[0]].array, configs[group.array[0]].array_size);
+		equal = add_last_element(equal, group.array[0]);
+
+		for (i = 1; i < group.array_size; i++)
+		{
+			if (equal_set(configs[group.array[i]], tmp))
+			{
+				equal = add_last_element(equal, group.array[i]);
+			}
+		}
+
+		equal_config_array_size++;
+		equal_config_array = realloc(equal_config_array, equal_config_array_size * sizeof(set));
+		equal_config_array[equal_config_array_size - 1] = build_set(equal.array, equal.array_size);
+
+		free(tmp.array);
+		tmp.array = 0;
+		tmp = duplicate_set(group);
+		free(temp_remain.array);
+		temp_remain = different_set(tmp, equal);
+
+		// Call recursive procedure in the remaining group
+		process_configs_recur(temp_remain, size_config);
+	}
+	else
+	{
+		free(temp_remain.array);
+		temp_remain.array = 0;
+		return;
+	}
+}
+
+// Process the configuration set of each user to find users with same role combination
+static void
+process_configs()
+{
+	int i;
+
+	// Initialize all array of sets variable
+	configs = 0;
+	configs_size = 0;
+
+	partition_users = 0;
+	partition_users_size = 0;
+
+	equal_config_array = 0;
+	equal_config_array_size = 0;
+
+	temp_remain.array = 0;
+	temp_remain.array_size = 0;
+
+	// Make array of user configuration
+	make_configs();
+
+	// Partition by number of roles in the configuration of each user
+	partition_configs();
+
+	for (i = 0; i < partition_users_size; i++)
+	{
+		process_configs_recur(partition_users[i], i);
+	}
+}
+
+// Remove a user from ARBAC system
+static int
+remove_user(int user_index)
+{
+	int i;
+
+	// Do not remove goal user
+	if (hasGoalUserMode && goal_user_index != -13 && user_index == goal_user_index)
+	{
+		return 0;
+	}
+
+	// Remove from user array
+	free(user_array[user_index]);
+	user_array[user_index] = 0;
+	user_array[user_index] = calloc(strlen("removed_user") + 1, sizeof(char));
+	strcpy(user_array[user_index], "removed_user");
+
+	// Remove from admin user array
+	for (i = 0; i < admin_array_index_size; i++)
+	{
+		if (admin_array_index[i] != -13 && admin_array_index[i] == user_index)
+		{
+			admin_array_index[i] = -13;
+		}
+	}
+
+	// Remove users from UA
+	for (i = 0; i < ua_array_size; i++)
+	{
+		if (ua_array[i].user_index != -13 && ua_array[i].user_index == user_index)
+		{
+			ua_array[i].user_index = -13;
+		}
+	}
+
+	return 1;
+}
+
+static void
+reduction_user(void)
+{
+	// remove all user share the same configurations
+	int i, j, flag = 0;
+
+	int no_admins = admin_role_array_index_size;
+
+	// For the set of users with the same role combination, remove the rest apart from K+1 users
+	for (i = 0; i < equal_config_array_size; i++)
+	{
+		// Remove spare users
+		for (j = no_admins + 1; j < equal_config_array[i].array_size; j++)
+		{
+			flag += remove_user(equal_config_array[i].array[j]);
+		}
+	}
+
+	free_array_set(configs, configs_size);
+	free_array_set(partition_users, partition_users_size);
+	free_array_set(equal_config_array, equal_config_array_size);
+
+	// Rebuild user array
+	// Temporary array
+	_UA *tmp_ua_array = 0;
+	int tmp_ua_array_size = 0;
+	char **tmp_user_array = 0;
+	int tmp_user_array_size = 0;
+	int *tmp_admin_array_index = 0;
+	int tmp_admin_array_index_size = 0;
+
+	int *map_user_index;
+	int map_user_index_size;
+
+	map_user_index_size = user_array_size;
+	map_user_index = calloc(map_user_index_size, sizeof(int));
+
+	// User array
+	for (i = 0; i < user_array_size; i++)
+	{
+		if (strcmp(user_array[i], "remove_user") == 0)
+		{
+			map_user_index[i] = -1;
+		}
+		else
+		{
+			tmp_user_array_size++;
+			tmp_user_array = realloc(tmp_user_array, tmp_user_array_size * sizeof(char *));
+			tmp_user_array[tmp_user_array_size - 1] = calloc(strlen(user_array[i]) + 1, sizeof(char));
+			strcpy(tmp_user_array[tmp_user_array_size - 1], user_array[i]);
+			map_user_index[i] = tmp_user_array_size - 1;
+		}
+	}
+	user_array_size = tmp_user_array_size;
+	user_array      = tmp_user_array;
+
+	// ua array
+	for (i = 0; i < ua_array_size; ++i)
+	{
+		if (ua_array[i].user_index != -13)
+		{
+			// Change index
+			ua_array[i].user_index = map_user_index[ua_array[i].user_index];
+			tmp_ua_array_size++;
+			tmp_ua_array = realloc(tmp_ua_array, tmp_ua_array_size * sizeof(_UA));
+			tmp_ua_array[tmp_ua_array_size - 1].user_index = ua_array[i].user_index;
+			tmp_ua_array[tmp_ua_array_size - 1].role_index = ua_array[i].role_index;
+		}
+	}
+	ua_array_size   = tmp_ua_array_size;
+	ua_array        = tmp_ua_array;
+	// admin user array
+	for (i = 0; i < admin_array_index_size; i++)
+	{
+		if (admin_array_index[i] != -13)
+		{
+			admin_array_index[i] = map_user_index[admin_array_index[i]];
+			tmp_admin_array_index_size++;
+			tmp_admin_array_index = realloc(tmp_admin_array_index, tmp_admin_array_index_size * sizeof(int));
+			tmp_admin_array_index[tmp_admin_array_index_size - 1] = admin_array_index[i];
+		}
+	}
+	admin_array_index_size   = tmp_admin_array_index_size;
+	admin_array_index        = tmp_admin_array_index;
+
+	// goal user index
+	if(hasGoalUserMode && goal_user_index != -13)
+	{
+		goal_user_index = map_user_index[goal_user_index];
+	}
+}
+
 void
-preprocess()
+preprocess(int require_reduction_user)
 {
 	// First reduce the system
 	reduction_finiteARBAC();
 
-	if(hasGoalUserMode)
+	// Remove non-engage user
+	if (require_reduction_user)
+	{
+		reduction_user();
+	}
+
+	if (hasGoalUserMode)
 	{
 		// Add a specific role name ToCheckRole to that specific user
 		role_array_size++;
-		role_array = realloc(role_array, role_array_size*sizeof(char*));
-		role_array[role_array_size-1] = malloc(13);
-		strcpy(role_array[role_array_size-1], "ToCheckRole");
+		role_array = realloc(role_array, role_array_size * sizeof(char*));
+		role_array[role_array_size - 1] = malloc(13);
+		strcpy(role_array[role_array_size - 1], "ToCheckRole");
 		ua_array_size++;
-		ua_array = realloc(ua_array, ua_array_size*sizeof(_UA));
-		ua_array[ua_array_size-1].user_index = goal_user_index;
-		ua_array[ua_array_size-1].role_index = role_array_size-1;
+		ua_array = realloc(ua_array, ua_array_size * sizeof(_UA));
+		ua_array[ua_array_size - 1].user_index = goal_user_index;
+		ua_array[ua_array_size - 1].role_index = role_array_size - 1;
 
 		// Add a new target role
 		role_array_size++;
-		role_array = realloc(role_array, role_array_size*sizeof(char*));
-		role_array[role_array_size-1] = malloc(13);
-		strcpy(role_array[role_array_size-1], "TargetPrime");
+		role_array = realloc(role_array, role_array_size * sizeof(char*));
+		role_array[role_array_size - 1] = malloc(13);
+		strcpy(role_array[role_array_size - 1], "TargetPrime");
 
 		// Add a fresh CA rule
 		ca_array_size++;
-		ca_array = realloc(ca_array, ca_array_size*sizeof(_CA));
-		ca_array[ca_array_size-1].type = 0;
-		ca_array[ca_array_size-1].admin_role_index = role_array_size-2; // ToCheckRole
-		ca_array[ca_array_size-1].target_role_index = role_array_size-1; // TargetPrime
-		ca_array[ca_array_size-1].negative_role_array = 0;
-		ca_array[ca_array_size-1].negative_role_array_size = 0;
-		ca_array[ca_array_size-1].positive_role_array_size = 2;
-		ca_array[ca_array_size-1].positive_role_array = malloc(2*sizeof(int));
-		ca_array[ca_array_size-1].positive_role_array[0] = role_array_size-2;
-		ca_array[ca_array_size-1].positive_role_array[1] = goal_role_index;
-		goal_role_index = role_array_size-1;
+		ca_array = realloc(ca_array, ca_array_size * sizeof(_CA));
+		ca_array[ca_array_size - 1].type = 0;
+		ca_array[ca_array_size - 1].admin_role_index = role_array_size - 2; // ToCheckRole
+		ca_array[ca_array_size - 1].target_role_index = role_array_size - 1; // TargetPrime
+		ca_array[ca_array_size - 1].negative_role_array = 0;
+		ca_array[ca_array_size - 1].negative_role_array_size = 0;
+		ca_array[ca_array_size - 1].positive_role_array_size = 2;
+		ca_array[ca_array_size - 1].positive_role_array = malloc(2 * sizeof(int));
+		ca_array[ca_array_size - 1].positive_role_array[0] = role_array_size - 2;
+		ca_array[ca_array_size - 1].positive_role_array[1] = goal_role_index;
+		goal_role_index = role_array_size - 1;
 	}
 }
 
@@ -447,12 +837,12 @@ void print_ca_comment_hsf(FILE * outputFile, int ca_rule)
 	fprintf(outputFile, "%%--------------------------Can assign rule------------------------\n");
 	fprintf(outputFile, "%%---------  ");
 
-	if(ca_array[ca_rule].type == 0)
+	if (ca_array[ca_rule].type == 0)
 	{
 		fprintf(outputFile, "<%s,", role_array[ca_array[ca_rule].admin_role_index]);
-		for(i = 0; i < ca_array[ca_rule].positive_role_array_size; i++)
+		for (i = 0; i < ca_array[ca_rule].positive_role_array_size; i++)
 		{
-			if(has_head)
+			if (has_head)
 			{
 				fprintf(outputFile, "&%s", role_array[ca_array[ca_rule].positive_role_array[i]]);
 			}
@@ -463,9 +853,9 @@ void print_ca_comment_hsf(FILE * outputFile, int ca_rule)
 			}
 		}
 
-		for(i = 0; i < ca_array[ca_rule].negative_role_array_size; i++)
+		for (i = 0; i < ca_array[ca_rule].negative_role_array_size; i++)
 		{
-			if(has_head)
+			if (has_head)
 			{
 				fprintf(outputFile, "&-%s", role_array[ca_array[ca_rule].negative_role_array[i]]);
 			}
@@ -479,11 +869,11 @@ void print_ca_comment_hsf(FILE * outputFile, int ca_rule)
 		fprintf(outputFile, ",%s>", role_array[ca_array[ca_rule].target_role_index]);
 		has_head = 0;
 	}
-	else if(ca_array[ca_rule].type == 1)
+	else if (ca_array[ca_rule].type == 1)
 	{
 		fprintf(outputFile, "<%s,TRUE,%s>", role_array[ca_array[ca_rule].admin_role_index], role_array[ca_array[ca_rule].target_role_index]);
 	}
-	else if(ca_array[ca_rule].type == 2)
+	else if (ca_array[ca_rule].type == 2)
 	{
 		fprintf(outputFile, "<%s,NEW,%s>", role_array[ca_array[ca_rule].admin_role_index], role_array[ca_array[ca_rule].target_role_index]);
 	}
@@ -499,12 +889,12 @@ void print_ca_comment_smt2(FILE * outputFile, int ca_rule)
 	fprintf(outputFile, ";--------------------------Can assign rule------------------------\n");
 	fprintf(outputFile, ";---------  ");
 
-	if(ca_array[ca_rule].type == 0)
+	if (ca_array[ca_rule].type == 0)
 	{
 		fprintf(outputFile, "<%s,", role_array[ca_array[ca_rule].admin_role_index]);
-		for(i = 0; i < ca_array[ca_rule].positive_role_array_size; i++)
+		for (i = 0; i < ca_array[ca_rule].positive_role_array_size; i++)
 		{
-			if(has_head)
+			if (has_head)
 			{
 				fprintf(outputFile, "&%s", role_array[ca_array[ca_rule].positive_role_array[i]]);
 			}
@@ -515,9 +905,9 @@ void print_ca_comment_smt2(FILE * outputFile, int ca_rule)
 			}
 		}
 
-		for(i = 0; i < ca_array[ca_rule].negative_role_array_size; i++)
+		for (i = 0; i < ca_array[ca_rule].negative_role_array_size; i++)
 		{
-			if(has_head)
+			if (has_head)
 			{
 				fprintf(outputFile, "&-%s", role_array[ca_array[ca_rule].negative_role_array[i]]);
 			}
@@ -531,11 +921,11 @@ void print_ca_comment_smt2(FILE * outputFile, int ca_rule)
 		fprintf(outputFile, ",%s>", role_array[ca_array[ca_rule].target_role_index]);
 		has_head = 0;
 	}
-	else if(ca_array[ca_rule].type == 1)
+	else if (ca_array[ca_rule].type == 1)
 	{
 		fprintf(outputFile, "<%s,TRUE,%s>", role_array[ca_array[ca_rule].admin_role_index], role_array[ca_array[ca_rule].target_role_index]);
 	}
-	else if(ca_array[ca_rule].type == 2)
+	else if (ca_array[ca_rule].type == 2)
 	{
 		fprintf(outputFile, "<%s,NEW,%s>", role_array[ca_array[ca_rule].admin_role_index], role_array[ca_array[ca_rule].target_role_index]);
 	}

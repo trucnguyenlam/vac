@@ -11,12 +11,12 @@ static void declare_variables(FILE *outputFile)
         fprintf(outputFile, "u%d(_b_%d", i, i);
         for (j = 0; j < role_array_size; j++)
         {
-            fprintf(outputFile, ", _%s", track_variable_name(i, j));
+            fprintf(outputFile, ", _%s", tracked_user_and_role(i, j));
         }
         fprintf(outputFile, ") :- _b_%d=0", i);
         for (j = 0; j < role_array_size; j++)
         {
-            fprintf(outputFile, ", _%s=0", track_variable_name(i, j));
+            fprintf(outputFile, ", _%s=0", tracked_user_and_role(i, j));
         }
         fprintf(outputFile, ".\n");
     }
@@ -37,7 +37,7 @@ static void relation_with_admin_shorthand(FILE *outputFile, int user_index, int 
         }
         else
         {
-            fprintf(outputFile, ", _%s", track_variable_name(user_index, i));
+            fprintf(outputFile, ", _%s", tracked_user_and_role(user_index, i));
         }
     }
     fprintf(outputFile, ")");
@@ -273,7 +273,7 @@ static void simulate_can_assign_rule(FILE *outputFile, int ca_rule)
                 }
                 else
                 {
-                    fprintf(outputFile, ", _%s", track_variable_name(i, j));
+                    fprintf(outputFile, ", _%s", tracked_user_and_role(i, j));
                 }
             }
             else
@@ -300,7 +300,7 @@ static void simulate_can_assign_rule(FILE *outputFile, int ca_rule)
             }
             else
             {
-                fprintf(outputFile, ", _%s", track_variable_name(i, k));
+                fprintf(outputFile, ", _%s", tracked_user_and_role(i, k));
             }
         }
         fprintf(outputFile, ").\n");
@@ -336,7 +336,7 @@ static void simulate_can_revoke_rule(FILE *outputFile, int cr_rule)
         {
             if (j != cr_array[cr_rule].target_role_index)
             {
-                fprintf(outputFile, ", _%s", track_variable_name(i, j));
+                fprintf(outputFile, ", _%s", tracked_user_and_role(i, j));
             }
             else
             {
@@ -352,7 +352,7 @@ static void simulate_can_revoke_rule(FILE *outputFile, int cr_rule)
         {
             if (j != cr_array[cr_rule].target_role_index)
             {
-                fprintf(outputFile, ", _%s", track_variable_name(i, j));
+                fprintf(outputFile, ", _%s", tracked_user_and_role(i, j));
             }
             else
             {

@@ -12,7 +12,7 @@ declare_variables(FILE *outputFile)
     {
         for (j = 0; j < role_array_size; j++)
         {
-            fprintf(outputFile, "\t%s,\n", track_variable_name(i, j));
+            fprintf(outputFile, "\t%s,\n", tracked_user_and_role(i, j));
         }
     }
 
@@ -20,11 +20,11 @@ declare_variables(FILE *outputFile)
     {
         if (i == (NUM_USER_TO_TRACK - 1))
         {
-            fprintf(outputFile, "\t%s;\n\n", associate_user_to_track_name(i));
+            fprintf(outputFile, "\t%s;\n\n", tracked_user_var(i));
         }
         else
         {
-            fprintf(outputFile, "\t%s,\n", associate_user_to_track_name(i));
+            fprintf(outputFile, "\t%s,\n", tracked_user_var(i));
         }
     }
 }
@@ -42,18 +42,18 @@ configuration_user(FILE *outputFile, int user_index)
     {
         if (i == 0)
         {
-            fprintf(outputFile, "\t\tif (!%s) {\n", associate_user_to_track_name(i));
+            fprintf(outputFile, "\t\tif (!%s) {\n", tracked_user_var(i));
         }
         else
         {
-            fprintf(outputFile, "\t\telse if (!%s) {\n", associate_user_to_track_name(i));
+            fprintf(outputFile, "\t\telse if (!%s) {\n", tracked_user_var(i));
         }
 
-        fprintf(outputFile, "\t\t\t%s = 1;\n", associate_user_to_track_name(i));
+        fprintf(outputFile, "\t\t\t%s = 1;\n", tracked_user_var(i));
 
         for (j = 0; j < user_config_array[user_index].array_size; j++)
         {
-            fprintf(outputFile, "\t\t\t%s = 1;\n", track_variable_name(i, user_config_array[user_index].array[j]));
+            fprintf(outputFile, "\t\t\t%s = 1;\n", tracked_user_and_role(i, user_config_array[user_index].array[j]));
         }
         fprintf(outputFile, "\t\t}\n");
     }
@@ -73,17 +73,17 @@ configuration_user(FILE *outputFile, int user_index)
 //     {
 //         if (i == 0)
 //         {
-//             fprintf(outputFile, "\t\tif (!%s) {\n", associate_user_to_track_name(i));
+//             fprintf(outputFile, "\t\tif (!%s) {\n", tracked_user_var(i));
 //         }
 //         else
 //         {
-//             fprintf(outputFile, "\t\telse if (!%s) {\n", associate_user_to_track_name(i));
+//             fprintf(outputFile, "\t\telse if (!%s) {\n", tracked_user_var(i));
 //         }
-//         fprintf(outputFile, "\t\t\t%s = 1;\n", associate_user_to_track_name(i));
-//         fprintf(outputFile, "\t\t\t%s = 1;\n", track_variable_name(i, ca_array[rule_index].target_role_index));
+//         fprintf(outputFile, "\t\t\t%s = 1;\n", tracked_user_var(i));
+//         fprintf(outputFile, "\t\t\t%s = 1;\n", tracked_user_and_role(i, ca_array[rule_index].target_role_index));
 //         if (hasGoalUserMode && goal_user_index == -1)
 //         {
-//             fprintf(outputFile, "\t\t\t%s = 1;\n", track_variable_name(i, role_array_size - 2));
+//             fprintf(outputFile, "\t\t\t%s = 1;\n", tracked_user_and_role(i, role_array_size - 2));
 //         }
 //         fprintf(outputFile, "\t\t}\n");
 //     }
@@ -100,7 +100,7 @@ initialize_variables(FILE *outputFile)
     // Initialize associate variable
     for (i = 0; i < NUM_USER_TO_TRACK; i++)
     {
-        fprintf(outputFile, "\t%s = 0;\n", associate_user_to_track_name(i));
+        fprintf(outputFile, "\t%s = 0;\n", tracked_user_var(i));
     }
 
     fprintf(outputFile, "\n");
@@ -110,7 +110,7 @@ initialize_variables(FILE *outputFile)
     {
         for (j = 0; j < role_array_size; j++)
         {
-            fprintf(outputFile, "\t%s = 0;\n", track_variable_name(i, j));
+            fprintf(outputFile, "\t%s = 0;\n", tracked_user_and_role(i, j));
         }
     }
 
@@ -134,11 +134,11 @@ print_if_conditions(FILE *outputFile, int role_index)
     {
         if (i == 0)
         {
-            fprintf(outputFile, "%s", track_variable_name(i, role_index));
+            fprintf(outputFile, "%s", tracked_user_and_role(i, role_index));
         }
         else
         {
-            fprintf(outputFile, " || %s", track_variable_name(i, role_index));
+            fprintf(outputFile, " || %s", tracked_user_and_role(i, role_index));
         }
     }
     fprintf(outputFile, "){\n");
@@ -153,20 +153,20 @@ simulate_can_assign_rule(FILE *outputFile, int ca_rule)
     for (i = 0; i < NUM_USER_TO_TRACK; i++)
     {
         fprintf(outputFile, "\t\t\tif(nondet_bool()){\n");
-        fprintf(outputFile, "\t\t\t\tif(%s", associate_user_to_track_name(i));
+        fprintf(outputFile, "\t\t\t\tif(%s", tracked_user_var(i));
         if (ca_array[ca_rule].type == 0)
         {
             for (j = 0; j < ca_array[ca_rule].positive_role_array_size; j++)
             {
-                fprintf(outputFile, " && %s", track_variable_name(i, ca_array[ca_rule].positive_role_array[j]));
+                fprintf(outputFile, " && %s", tracked_user_and_role(i, ca_array[ca_rule].positive_role_array[j]));
             }
             for (j = 0; j < ca_array[ca_rule].negative_role_array_size; j++)
             {
-                fprintf(outputFile, " && !%s", track_variable_name(i, ca_array[ca_rule].negative_role_array[j]));
+                fprintf(outputFile, " && !%s", tracked_user_and_role(i, ca_array[ca_rule].negative_role_array[j]));
             }
         }
         fprintf(outputFile, "){\n");
-        fprintf(outputFile, "\t\t\t\t\t%s = 1;\n", track_variable_name(i, ca_array[ca_rule].target_role_index));
+        fprintf(outputFile, "\t\t\t\t\t%s = 1;\n", tracked_user_and_role(i, ca_array[ca_rule].target_role_index));
         fprintf(outputFile, "\t\t\t\t}\n");
         fprintf(outputFile, "\t\t\t}\n");
     }
@@ -199,8 +199,8 @@ simulate_can_revoke_rule(FILE *outputFile, int cr_rule)
     for (i = 0; i < NUM_USER_TO_TRACK; i++)
     {
         fprintf(outputFile, "\t\t\tif(nondet_bool()){\n");
-        fprintf(outputFile, "\t\t\t\tif(%s && %s){\n", associate_user_to_track_name(i), track_variable_name(i, cr_array[cr_rule].target_role_index));
-        fprintf(outputFile, "\t\t\t\t\t%s = 0;\n", track_variable_name(i, cr_array[cr_rule].target_role_index));
+        fprintf(outputFile, "\t\t\t\tif(%s && %s){\n", tracked_user_var(i), tracked_user_and_role(i, cr_array[cr_rule].target_role_index));
+        fprintf(outputFile, "\t\t\t\t\t%s = 0;\n", tracked_user_and_role(i, cr_array[cr_rule].target_role_index));
         fprintf(outputFile, "\t\t\t\t}\n");
         fprintf(outputFile, "\t\t\t}\n");
     }
@@ -238,11 +238,11 @@ simulate(FILE *outputFile)
     {
         if (i == 0)
         {
-            fprintf(outputFile, "%s==1", track_variable_name(i, goal_role_index));
+            fprintf(outputFile, "%s==1", tracked_user_and_role(i, goal_role_index));
         }
         else
         {
-            fprintf(outputFile, " || %s==1", track_variable_name(i, goal_role_index));
+            fprintf(outputFile, " || %s==1", tracked_user_and_role(i, goal_role_index));
         }
     }
     fprintf(outputFile, "){\n\t\t\tassert(0);\n\t\t}\n");
@@ -261,7 +261,7 @@ transform_2_CBMC_ExactAlg(char *inputFile)
     read_ARBAC(inputFile);
 
     // Preprocess the ARBAC Policies
-    preprocess();
+    preprocess(0);
     build_config_array();
 
     //Specify the number of user to track

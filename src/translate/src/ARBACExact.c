@@ -7,7 +7,7 @@ build_config_array()
     int i;
 
     user_config_array_size = user_array_size;
-    user_config_array = malloc(user_config_array_size * sizeof(set));
+    user_config_array = calloc(user_config_array_size, sizeof(set));
 
     // Initialize this array
     for (i = 0; i < user_config_array_size; i++)
@@ -26,47 +26,27 @@ build_config_array()
     }
 }
 
-static char *
-int2str(int i)
-{
-    char buffer[10];
-    sprintf(buffer, "%d", i);
-    return strdup(buffer);
-}
-
 // Return the track variable name
 char *
-track_variable_name(int index_user_to_track, int role_index)
+tracked_user_and_role(int index_user_to_track, int role_index)
 {
-    char track_name[100] = "track_";
-    char temp[90] = "";
+    char buffer[1000];
 
-    strcpy(temp, int2str(index_user_to_track));
+    snprintf(buffer, 1000, "track_%d_%s",
+        index_user_to_track, role_array[role_index]);
 
-    strcat(track_name, temp);
-    strcat(track_name, "_");
-
-    memset(temp, 0, sizeof(temp));
-
-    strcpy(temp, role_array[role_index]);
-
-    strcat(track_name, temp);
-
-    return strdup(track_name);
+    return strdup(buffer);
 }
 
 // Return the associate variable to user name
 char *
-associate_user_to_track_name(int index_user_to_track)
+tracked_user_var(int index_user_to_track)
 {
-    char variable_name[20] = "b_";
-    char temp[10] = "";
+    char buffer[100];
 
-    strcpy(temp, int2str(index_user_to_track));
+    snprintf(buffer, 100, "b_%d", index_user_to_track);
 
-    strcat(variable_name, temp);
-
-    return strdup(variable_name);
+    return strdup(buffer);
 }
 
 void

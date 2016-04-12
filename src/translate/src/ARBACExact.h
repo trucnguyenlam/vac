@@ -13,12 +13,12 @@ int user_config_array_size;
 int NUM_USER_TO_TRACK;
 
 char*
-track_variable_name(int, int);
+tracked_user_and_role(int, int);
 char*
-associate_user_to_track_name(int);
-void 
+tracked_user_var(int);
+void
 build_config_array();
-void 
+void
 free_precise_temp_data();
 
 #endif
