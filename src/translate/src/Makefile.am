@@ -11,6 +11,7 @@ translate_SOURCES =	ARBACLexer.c \
 					ARBACExact.c \
 					ARBACAbstract.c \
 					ARBAC_to_GETAFIX_ExactAlg.c \
+					ARBAC_to_GETAFIX_parallel_ExactAlg.c \
 					ARBAC_to_CBMC_ExactAlg.c \
 					ARBAC_to_INTERPROC_OverApr.c \
 					ARBAC_to_HSF_ExactAlg.c \

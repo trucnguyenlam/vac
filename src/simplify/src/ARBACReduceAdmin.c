@@ -107,7 +107,7 @@ main(int argc, char **argv)
             printf(
                 "VAC Pruning Algorithm Tool\
 					\nUsage: simplify [OPTIONS] FILE\
-					\nRSimplify ARBAC policies to their fixed point.\
+					\nSimplify ARBAC policies to their fixed point.\
 					\n\n  -l, --logfile {log_name}\t\t:Produce the log file\
                     \n  -g, --debug\t\t\t\t:Generate simplify log one-to-one map\
                     \n  -m, --mohawk\t\t\t\t:Generate equivalen Mohawk benchmark\

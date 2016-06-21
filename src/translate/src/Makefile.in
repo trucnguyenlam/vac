@@ -104,6 +104,7 @@ am_translate_OBJECTS = translate-ARBACLexer.$(OBJEXT) \
 	translate-ARBACUtil.$(OBJEXT) translate-ARBACExact.$(OBJEXT) \
 	translate-ARBACAbstract.$(OBJEXT) \
 	translate-ARBAC_to_GETAFIX_ExactAlg.$(OBJEXT) \
+	translate-ARBAC_to_GETAFIX_parallel_ExactAlg.$(OBJEXT) \
 	translate-ARBAC_to_CBMC_ExactAlg.$(OBJEXT) \
 	translate-ARBAC_to_INTERPROC_OverApr.$(OBJEXT) \
 	translate-ARBAC_to_HSF_ExactAlg.$(OBJEXT) \
@@ -253,6 +254,7 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -272,6 +274,7 @@ translate_SOURCES = ARBACLexer.c \
 					ARBACExact.c \
 					ARBACAbstract.c \
 					ARBAC_to_GETAFIX_ExactAlg.c \
+					ARBAC_to_GETAFIX_parallel_ExactAlg.c \
 					ARBAC_to_CBMC_ExactAlg.c \
 					ARBAC_to_INTERPROC_OverApr.c \
 					ARBAC_to_HSF_ExactAlg.c \
@@ -375,6 +378,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_CBMC_ExactAlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_ELDARICA_ExactAlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_GETAFIX_ExactAlg.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_GETAFIX_parallel_ExactAlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_HSF_ExactAlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_INTERPROC_OverApr.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_NuSMV_ExactAlg.Po@am__quote@
@@ -505,6 +509,20 @@ translate-ARBAC_to_GETAFIX_ExactAlg.obj: ARBAC_to_GETAFIX_ExactAlg.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ARBAC_to_GETAFIX_ExactAlg.c' object='translate-ARBAC_to_GETAFIX_ExactAlg.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-ARBAC_to_GETAFIX_ExactAlg.obj `if test -f 'ARBAC_to_GETAFIX_ExactAlg.c'; then $(CYGPATH_W) 'ARBAC_to_GETAFIX_ExactAlg.c'; else $(CYGPATH_W) '$(srcdir)/ARBAC_to_GETAFIX_ExactAlg.c'; fi`
+
+translate-ARBAC_to_GETAFIX_parallel_ExactAlg.o: ARBAC_to_GETAFIX_parallel_ExactAlg.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -MT translate-ARBAC_to_GETAFIX_parallel_ExactAlg.o -MD -MP -MF $(DEPDIR)/translate-ARBAC_to_GETAFIX_parallel_ExactAlg.Tpo -c -o translate-ARBAC_to_GETAFIX_parallel_ExactAlg.o `test -f 'ARBAC_to_GETAFIX_parallel_ExactAlg.c' || echo '$(srcdir)/'`ARBAC_to_GETAFIX_parallel_ExactAlg.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/translate-ARBAC_to_GETAFIX_parallel_ExactAlg.Tpo $(DEPDIR)/translate-ARBAC_to_GETAFIX_parallel_ExactAlg.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ARBAC_to_GETAFIX_parallel_ExactAlg.c' object='translate-ARBAC_to_GETAFIX_parallel_ExactAlg.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-ARBAC_to_GETAFIX_parallel_ExactAlg.o `test -f 'ARBAC_to_GETAFIX_parallel_ExactAlg.c' || echo '$(srcdir)/'`ARBAC_to_GETAFIX_parallel_ExactAlg.c
+
+translate-ARBAC_to_GETAFIX_parallel_ExactAlg.obj: ARBAC_to_GETAFIX_parallel_ExactAlg.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -MT translate-ARBAC_to_GETAFIX_parallel_ExactAlg.obj -MD -MP -MF $(DEPDIR)/translate-ARBAC_to_GETAFIX_parallel_ExactAlg.Tpo -c -o translate-ARBAC_to_GETAFIX_parallel_ExactAlg.obj `if test -f 'ARBAC_to_GETAFIX_parallel_ExactAlg.c'; then $(CYGPATH_W) 'ARBAC_to_GETAFIX_parallel_ExactAlg.c'; else $(CYGPATH_W) '$(srcdir)/ARBAC_to_GETAFIX_parallel_ExactAlg.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/translate-ARBAC_to_GETAFIX_parallel_ExactAlg.Tpo $(DEPDIR)/translate-ARBAC_to_GETAFIX_parallel_ExactAlg.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ARBAC_to_GETAFIX_parallel_ExactAlg.c' object='translate-ARBAC_to_GETAFIX_parallel_ExactAlg.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-ARBAC_to_GETAFIX_parallel_ExactAlg.obj `if test -f 'ARBAC_to_GETAFIX_parallel_ExactAlg.c'; then $(CYGPATH_W) 'ARBAC_to_GETAFIX_parallel_ExactAlg.c'; else $(CYGPATH_W) '$(srcdir)/ARBAC_to_GETAFIX_parallel_ExactAlg.c'; fi`
 
 translate-ARBAC_to_CBMC_ExactAlg.o: ARBAC_to_CBMC_ExactAlg.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -MT translate-ARBAC_to_CBMC_ExactAlg.o -MD -MP -MF $(DEPDIR)/translate-ARBAC_to_CBMC_ExactAlg.Tpo -c -o translate-ARBAC_to_CBMC_ExactAlg.o `test -f 'ARBAC_to_CBMC_ExactAlg.c' || echo '$(srcdir)/'`ARBAC_to_CBMC_ExactAlg.c

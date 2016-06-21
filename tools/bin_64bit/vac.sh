@@ -111,10 +111,10 @@ if [[ $# -eq 1 ]]; then
 		echo
 		echo	"Frontend options:                  Purpose:"
 		echo	"--no-pruning                        no simplification procedure"
-		echo	"--backend=NAME                      choose back-end (interproc, moped, z3, cbmc, eldarica, hsf, nusmv)"
+		echo	"--backend=NAME                      choose back-end (interproc, moped, z3, cbmc, eldarica, hsf, nusmv, getafix)"
 		echo	"--unwind=NUMBER                     unwind NUMBER times (CBMC only)"
 		echo	"--print-pruned-policy               print simplified policy only"
-		echo	"--print-translated-policy=FORMAT    print the translated program in the format FORMAT (interproc, moped, z3, cbmc, eldarica, hsf, nusmv)"
+		echo	"--print-translated-policy=FORMAT    print the translated program in the format FORMAT (interproc, moped, z3, cbmc, eldarica, hsf, nusmv, getafix)"
 		echo	"--mohawk                            print equivalent Mohawk benchmark"
 		echo	"-h, --help                          show help"
 		echo

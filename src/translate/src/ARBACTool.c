@@ -644,6 +644,10 @@ preprocess(int require_reduction_user)
 		ua_array = realloc(ua_array, ua_array_size * sizeof(_UA));
 		ua_array[ua_array_size - 1].user_index = goal_user_index;
 		ua_array[ua_array_size - 1].role_index = role_array_size - 1;
+		// Add that role to admin role array
+		admin_role_array_index_size++;
+		admin_role_array_index = realloc(admin_role_array_index, admin_role_array_index_size * sizeof(int));
+		admin_role_array_index[admin_role_array_index_size - 1] = role_array_size - 1;
 
 		// Add a new target role
 		role_array_size++;
@@ -661,7 +665,7 @@ preprocess(int require_reduction_user)
 		ca_array[ca_array_size - 1].negative_role_array_size = 0;
 		ca_array[ca_array_size - 1].positive_role_array_size = 2;
 		ca_array[ca_array_size - 1].positive_role_array = malloc(2 * sizeof(int));
-		ca_array[ca_array_size - 1].positive_role_array[0] = role_array_size - 2;
+		ca_array[ca_array_size - 1].positive_role_array[0] = role_array_size - 2; // ToCheckRole
 		ca_array[ca_array_size - 1].positive_role_array[1] = goal_role_index;
 		goal_role_index = role_array_size - 1;
 	}

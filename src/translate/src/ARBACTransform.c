@@ -32,13 +32,21 @@ main(int argc, char **argv)
         case 'h':
             printf("ARBAC Translation Tool\
                     \nTransform ABRAC policies to analysable program.\
-                    \nUsage: translate [OPTION]...FILE\
-                    \n-a, --algorithm {precise, abstract}\t\t\t\t\t:Specify the algorithm\
-                    \n-f, --format {moped, interproc, cbmc, hsf, eldarica, smt, nusmv}\t:Output formats\
-                    \n-h, --help\t\t\t\t\t\t\t\t:This message\
+                    \nUsage: translate [OPTION]  FILE\
+                    \n-a,--algorithm {precise, abstract} :Specify the algorithm\
+                    \n-f,--format <X>                    :Output formats\
+                    \n                                      moped\
+                    \n                                      interproc\
+                    \n                                      cbmc\
+                    \n                                      hsf\
+                    \n                                      eldarica\
+                    \n                                      smt\
+                    \n                                      nusmv\
+                    \n                                      getafix\
+                    \n-h,--help                          :This message\
                     \nFILE is the input ARBAC file format\
-                    \nFor 'precise' option, there are several formats of {cbmc, moped, hsf, eldarica, smt, nusmv}\
-                    \nFor 'abstract' option, there are several formats of {interproc}\n");
+                    \nFor 'precise' option, there are several formats of {cbmc, moped, hsf, eldarica, smt, nusmv, getafix}\
+                    \nFor 'abstract' option, there is format of {interproc}\n");
             help_opt = 1;
             break;
         case 'a':
@@ -88,6 +96,10 @@ main(int argc, char **argv)
             else if (strcmp(format_arg, "nusmv") == 0)
             {
                 transform_2_NuSMV_ExactAlg(filename);
+            }
+            else if (strcmp(format_arg, "getafix") == 0)
+            {
+                transform_2_GETAFIX_parallel_ExactAlg(filename);
             }
             else
             {

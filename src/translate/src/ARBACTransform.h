@@ -41,6 +41,8 @@ print_cr_comment_smt2(FILE *, int);
 void
 transform_2_GETAFIX_ExactAlg(char *);
 void
+transform_2_GETAFIX_parallel_ExactAlg(char *);
+void
 transform_2_CBMC_ExactAlg(char *);
 void
 transform_2_HSF_ExactAlg(char *);
