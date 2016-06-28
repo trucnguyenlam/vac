@@ -728,6 +728,19 @@ free_data()
 	}
 }
 
+static char *
+get_role(int role_index)
+{
+	if (role_index >= 0 && role_index < role_array_size)
+	{
+		return role_array[role_index];
+	}
+	else
+	{
+		return strdup("FALSE");
+	}
+}
+
 // Print the comment of a CA rule
 void
 print_ca_comment(FILE * out, int ca_rule)
@@ -942,7 +955,7 @@ void
 print_cr_comment(FILE * out, int cr_rule)
 {
 	fprintf(out, "\t\t//------------------- CAN_REVOKE RULE NUMBER %d ---------------------\n\t\t// ", cr_rule);
-	fprintf(out, "<%s,%s>", role_array[cr_array[cr_rule].admin_role_index], role_array[cr_array[cr_rule].target_role_index]);
+	fprintf(out, "<%s,%s>", get_role(cr_array[cr_rule].admin_role_index), role_array[cr_array[cr_rule].target_role_index]);
 	fprintf(out, "\n\t\t//------------------------------------------------------------------\n");
 }
 
@@ -950,7 +963,7 @@ void
 print_cr_comment_z3(FILE * outputFile, int cr_rule)
 {
 	fprintf(outputFile, "#------------------- CAN_REVOKE RULE NUMBER %d ---------------------\n# ", cr_rule);
-	fprintf(outputFile, "<%s,%s>", role_array[cr_array[cr_rule].admin_role_index], role_array[cr_array[cr_rule].target_role_index]);
+	fprintf(outputFile, "<%s,%s>", get_role(cr_array[cr_rule].admin_role_index), role_array[cr_array[cr_rule].target_role_index]);
 	fprintf(outputFile, "\n#------------------------------------------------------------------\n");
 }
 
@@ -959,7 +972,7 @@ void print_cr_comment_hsf(FILE * outputFile, int cr_rule)
 	fprintf(outputFile, "%%-----------------------Can revoke rule------------------------\n");
 	fprintf(outputFile, "%%-----------   ");
 
-	fprintf(outputFile, "<%s,%s>", role_array[cr_array[cr_rule].admin_role_index], role_array[cr_array[cr_rule].target_role_index]);
+	fprintf(outputFile, "<%s,%s>", get_role(cr_array[cr_rule].admin_role_index), role_array[cr_array[cr_rule].target_role_index]);
 	fprintf(outputFile, "\n%%------------------------------------------------------------\n");
 }
 
@@ -968,6 +981,6 @@ void print_cr_comment_smt2(FILE * outputFile, int cr_rule)
 	fprintf(outputFile, ";-----------------------Can revoke rule------------------------\n");
 	fprintf(outputFile, ";-----------   ");
 
-	fprintf(outputFile, "<%s,%s>", role_array[cr_array[cr_rule].admin_role_index], role_array[cr_array[cr_rule].target_role_index]);
+	fprintf(outputFile, "<%s,%s>", get_role(cr_array[cr_rule].admin_role_index), role_array[cr_array[cr_rule].target_role_index]);
 	fprintf(outputFile, "\n;------------------------------------------------------------\n");
 }

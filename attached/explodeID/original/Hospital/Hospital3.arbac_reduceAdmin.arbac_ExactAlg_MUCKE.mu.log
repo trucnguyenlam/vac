@@ -1,0 +1,23 @@
+: 
+:                          ._ () _.
+:                            \||/
+:                         ::::[]::::
+:                            /()\
+:                           '/oo\`
+:                           ' '` `
+: 
+:       mucke-0.4.6 for Linux-2.6.26.8-57.fc8-i686 (Mon Feb 15 2016)
+: 
+:         Copyright (C) 1996 - 2008 Armin Biere
+:      University of Karlsruhe, ETH Zurich, JKU Linz
+: 
+: size of `GlobalInit' is 2^1.000 -- 2
+: size of `LocalInit' is 2^4.087 -- 17
+: size of `CanAssign' is 2^3.170 -- 9
+: size of `CanRevoke' is 2^3.585 -- 12
+: size of `UpdateGlobal' is 2^2.000 -- 4
+: size of `Reach' is 2^0.000 -- 1
+: value of
+:   exists ThreadID t_ID, Roles t_CL, Roles t_G. Reach(t_ID, t_CL, t_G) & targetReach(t_ID, t_CL)
+: is
+:   true

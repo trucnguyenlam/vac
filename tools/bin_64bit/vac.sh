@@ -111,10 +111,11 @@ if [[ $# -eq 1 ]]; then
 		echo
 		echo	"Frontend options:                  Purpose:"
 		echo	"--no-pruning                        no simplification procedure"
-		echo	"--backend=NAME                      choose back-end (interproc, moped, z3, cbmc, eldarica, hsf, nusmv, getafix)"
+		echo	"--backend=NAME                      choose back-end (interproc, moped, z3, cbmc, eldarica, hsf, nusmv, getafix, mucke)"
 		echo	"--unwind=NUMBER                     unwind NUMBER times (CBMC only)"
+		echo	"--longbman                          use longbman.so (MUCKE only)"
 		echo	"--print-pruned-policy               print simplified policy only"
-		echo	"--print-translated-policy=FORMAT    print the translated program in the format FORMAT (interproc, moped, z3, cbmc, eldarica, hsf, nusmv, getafix)"
+		echo	"--print-translated-policy=FORMAT    print the translated program in the format FORMAT (interproc, moped, z3, cbmc, eldarica, hsf, nusmv, getafix, mucke)"
 		echo	"--mohawk                            print equivalent Mohawk benchmark"
 		echo	"-h, --help                          show help"
 		echo
@@ -128,7 +129,7 @@ if [[ $# -eq 1 ]]; then
 fi
 
 # Specify options
-PARSED_OPTIONS=$(getopt -n "$0" -a -o h -l "help,no-pruning,print-pruned-policy,print-translated-policy:,backend:,unwind:,mohawk" -- "$@")
+PARSED_OPTIONS=$(getopt -n "$0" -a -o h -l "help,no-pruning,print-pruned-policy,print-translated-policy:,backend:,unwind:,mohawk,longbman" -- "$@")
 
 if [[ $? -ne 0 ]]; then
 	echo "Please invoke vac.sh -h for correct usage."
@@ -153,6 +154,10 @@ do
 
     --mohawk)
       print_mohawk=1
+      shift;;
+
+    --longbman)
+      use_longbman=1
       shift;;
 
     --print-translated-policy)
@@ -214,7 +219,7 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 			exit 1
 		fi
 		if [[ $no_pruning_flag -eq 1 ]]; then
-			echo "Cannot print pruned policy when choosing no-prunning options."
+			echo "Cannot print pruned policy when choosing no-pruning options."
 			echo "Please invoke vac.sh -h for correct usage."
 			exit 1
 		fi
@@ -305,6 +310,50 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 					cat $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_GETAFIX.bp"
 				fi
 				;;
+			getafix)
+				if [[ $no_pruning_flag -eq 1 ]]; then
+					log2=$(./bin/translate -f getafix -a precise $ARBAC_FILE 2>&1)
+					if [[ $log2 =~ 'error' ]]; then
+						echo $log2
+						echo "Please input correct ARBAC file format."
+						rm -rf $ARBAC_FILE"_ExactAlg_parallel_GETAFIX.bp"
+						exit 1
+					fi
+					cat $ARBAC_FILE"_ExactAlg_parallel_GETAFIX.bp"
+				else
+					log=$(./bin/simplify $ARBAC_FILE 2>&1)
+					if [[ $log =~ 'error' ]]; then
+						echo $log
+						echo "Please input correct ARBAC file format."
+						rm -rf $ARBAC_FILE"_reduceAdmin.arbac"
+						exit 1
+					fi
+					./bin/translate -f getafix -a precise $ARBAC_FILE"_reduceAdmin.arbac"
+					cat $ARBAC_FILE"_ExactAlg_parallel_GETAFIX.bp"
+				fi
+				;;
+            mucke)
+                if [[ $no_pruning_flag -eq 1 ]]; then
+                    log2=$(./bin/translate -f mucke -a precise $ARBAC_FILE 2>&1)
+                    if [[ $log2 =~ 'error' ]]; then
+                        echo $log2
+                        echo "Please input correct ARBAC file format."
+                        rm -rf $ARBAC_FILE"_ExactAlg_MUCKE.mu"
+                        exit 1
+                    fi
+                    cat $ARBAC_FILE"_ExactAlg_MUCKE.mu"
+                else
+                    log=$(./bin/simplify $ARBAC_FILE 2>&1)
+                    if [[ $log =~ 'error' ]]; then
+                        echo $log
+                        echo "Please input correct ARBAC file format."
+                        rm -rf $ARBAC_FILE"_reduceAdmin.arbac"
+                        exit 1
+                    fi
+                    ./bin/translate -f mucke -a precise $ARBAC_FILE"_reduceAdmin.arbac"
+                    cat $ARBAC_FILE"_ExactAlg_MUCKE.mu"
+                fi
+                ;;
 			z3)
 				if [[ $no_pruning_flag -eq 1 ]]; then
 					log2=$(./bin/translate -f smt -a precise $ARBAC_FILE 2>&1)
@@ -564,6 +613,110 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 					rm -rf $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_GETAFIX.bp"
 				fi
 				;;
+            getafix)
+                if [[ $no_pruning_flag -eq 1 ]]; then
+                    echo "=====> Translation ARBAC policy =====>"
+                    log3=$(./bin/translate -f getafix -a precise $ARBAC_FILE 2>&1)
+                    if [[ $log3 =~ 'error' ]]; then
+                        echo $log3
+                        echo "Please input correct ARBAC file format."
+                        rm -rf $ARBAC_FILE"_ExactAlg_parallel_GETAFIX.bp"
+                        exit 1
+                    fi
+                    echo "=====> Analysis of translated ARBAC policy =====>"
+                    # Use GETAFIX to analyze on Abstract translated file first
+                    query_answer=`./bin/getafix -b $ARBAC_FILE"_ExactAlg_parallel_GETAFIX.bp"`
+                    if [[ ${query_answer} =~ 'Not reachable.' ]]; then
+                        echo "The ARBAC policy is safe."
+                    elif [[ ${query_answer} =~ 'Reachable.' ]]; then
+                        echo "The ARBAC policy is not safe."
+                    else
+                        echo "There is something wrong with the analyzed file. Please check again."
+                    fi
+                    # Remove intermediate files
+                    rm -rf $ARBAC_FILE"_ExactAlg_parallel_GETAFIX.bp"
+                else
+                    echo "=====> Simplification ARBAC policy =====>"
+                    log=$(./bin/simplify -g $ARBAC_FILE 2>&1)
+                    if [[ $log =~ 'error' ]]; then
+                        echo $log
+                        echo "Please input correct ARBAC file format."
+                        rm -rf $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug"
+                        exit 1
+                    fi
+                    echo "=====> Translation ARBAC policy =====>"
+                    ./bin/translate -f getafix -a precise $ARBAC_FILE"_reduceAdmin.arbac"
+                    echo "=====> Analysis of translated ARBAC policy =====>"
+                    # Use GETAFIX to analyze on Abstract translated file first
+                    query_answer=`./bin/getafix -b $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_parallel_GETAFIX.bp"`
+                    if [[ ${query_answer} =~ 'Not reachable.' ]]; then
+                        echo "The ARBAC policy is safe."
+                    elif [[ ${query_answer} =~ 'Reachable.' ]]; then
+                        echo "The ARBAC policy is not safe."
+                    else
+                        echo "There is something wrong with the analyzed file. Please check again."
+                    fi
+                    # Remove intermediate files
+                    rm -rf $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_parallel_GETAFIX.bp"
+                fi
+                ;;
+            mucke)
+                if [[ $no_pruning_flag -eq 1 ]]; then
+                    echo "=====> Translation ARBAC policy =====>"
+                    log3=$(./bin/translate -f mucke -a precise $ARBAC_FILE 2>&1)
+                    if [[ $log3 =~ 'error' ]]; then
+                        echo $log3
+                        echo "Please input correct ARBAC file format."
+                        rm -rf $ARBAC_FILE"_ExactAlg_MUCKE.mu"
+                        exit 1
+                    fi
+                    echo "=====> Analysis of translated ARBAC policy =====>"
+                    # Use MUCKE to analyze on Abstract translated file first
+                    extra=" "
+					if [[ $use_longbman -eq 1 ]]; then
+	                    extra="-bman longbman.so"
+					fi
+                    query_answer=`./bin/mucke -f $extra $ARBAC_FILE"_ExactAlg_MUCKE.mu"`
+                    if [[ ${query_answer} =~ ':   false' ]]; then
+                        echo "The ARBAC policy is safe."
+                    elif [[ ${query_answer} =~ ':   true' ]]; then
+                        echo "The ARBAC policy is not safe."
+                    else
+                        echo "There is something wrong with the analyzed file. Please check again."
+                    fi
+                    # Remove intermediate files
+                    echo "${query_answer}" > $ARBAC_FILE"_ExactAlg_MUCKE.mu.log"
+                    # rm -rf $ARBAC_FILE"_ExactAlg_MUCKE.mu"
+                else
+                    echo "=====> Simplification ARBAC policy =====>"
+                    log=$(./bin/simplify -g $ARBAC_FILE 2>&1)
+                    if [[ $log =~ 'error' ]]; then
+                        echo $log
+                        echo "Please input correct ARBAC file format."
+                        rm -rf $ARBAC_FILE"_reduceAdmin.arbac" $ARBAC_FILE"_debug"
+                        exit 1
+                    fi
+                    echo "=====> Translation ARBAC policy =====>"
+                    ./bin/translate -f mucke -a precise $ARBAC_FILE"_reduceAdmin.arbac"
+                    echo "=====> Analysis of translated ARBAC policy =====>"
+                    # Use MUCKE to analyze on Abstract translated file first
+                    extra=" "
+					if [[ $use_longbman -eq 1 ]]; then
+	                    extra="-bman longbman.so"
+					fi
+                    query_answer=`./bin/mucke -f $extra $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_MUCKE.mu"`
+                    if [[ ${query_answer} =~ ':   false' ]]; then
+                        echo "The ARBAC policy is safe."
+                    elif [[ ${query_answer} =~ ':   true' ]]; then
+                        echo "The ARBAC policy is not safe."
+                    else
+                        echo "There is something wrong with the analyzed file. Please check again."
+                    fi
+                    # Remove intermediate files
+                    echo "${query_answer}" > $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_MUCKE.mu.log"
+                    # rm -rf $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_MUCKE.mu"
+                fi
+                ;;
 			z3)
 				if [[ $no_pruning_flag -eq 1 ]]; then
 					echo "=====> Translation ARBAC policy =====>"

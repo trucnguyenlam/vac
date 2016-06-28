@@ -43,9 +43,10 @@ main(int argc, char **argv)
                     \n                                      smt\
                     \n                                      nusmv\
                     \n                                      getafix\
+                    \n                                      mucke\
                     \n-h,--help                          :This message\
                     \nFILE is the input ARBAC file format\
-                    \nFor 'precise' option, there are several formats of {cbmc, moped, hsf, eldarica, smt, nusmv, getafix}\
+                    \nFor 'precise' option, there are several formats of {cbmc, moped, hsf, eldarica, smt, nusmv, getafix, mucke}\
                     \nFor 'abstract' option, there is format of {interproc}\n");
             help_opt = 1;
             break;
@@ -100,6 +101,10 @@ main(int argc, char **argv)
             else if (strcmp(format_arg, "getafix") == 0)
             {
                 transform_2_GETAFIX_parallel_ExactAlg(filename);
+            }
+            else if (strcmp(format_arg, "mucke") == 0)
+            {
+                transform_2_MUCKE_ExactAlg(filename);
             }
             else
             {

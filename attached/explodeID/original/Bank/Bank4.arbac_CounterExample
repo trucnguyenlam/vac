@@ -1,0 +1,187 @@
+Counter Example Trace:
+Specification of query: Can user0 REACH target ?
+
+==> Step 1:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,TRUE,Employee>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: No role
+Role configuration of user0 after applying rule: Employee
+
+==> Step 2:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,Employee&-ST1&-OB1&-SE1,FA1>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee
+Role configuration of user0 after applying rule: Employee FA1
+
+==> Step 3:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA1&-FASpecial1&-FAAsst1&-FAJunior1&-FASenior1,FAClerk1>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1
+
+==> Step 4:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA1&FAClerk1&-FASpecial1&-FAAsst1&-FAJunior1,FASenior1>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1
+
+==> Step 5:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA1&FASenior1&FAClerk1&-FASpecial1&-FAAsst1,FAJunior1>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1
+
+==> Step 6:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA1&FAJunior1&FASenior1&FAClerk1&-FAAsst1,FASpecial1>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1
+
+==> Step 7:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FAJunior1&FASenior1&FAClerk1&FASpecial1,anyfour1>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1
+
+==> Step 8:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,Employee&-ST2&-OB2&-SE2,FA2>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2
+
+==> Step 9:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA2&-FASpecial2&-FAAsst2&-FAJunior2&-FASenior2,FAClerk2>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2
+
+==> Step 10:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA2&FAClerk2&-FASpecial2&-FAAsst2&-FAJunior2,FASenior2>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2
+
+==> Step 11:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA2&FASenior2&FAClerk2&-FASpecial2&-FAAsst2,FAJunior2>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2
+
+==> Step 12:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA2&FAJunior2&FASenior2&FAClerk2&-FAAsst2,FASpecial2>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2
+
+==> Step 13:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FAJunior2&FASenior2&FAClerk2&FASpecial2,anyfour2>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2
+
+==> Step 14:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,Employee&-ST3&-OB3&-SE3,FA3>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3
+
+==> Step 15:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA3&-FASpecial3&-FAAsst3&-FAJunior3&-FASenior3,FAClerk3>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3
+
+==> Step 16:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA3&FAClerk3&-FASpecial3&-FAAsst3&-FAJunior3,FASenior3>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3
+
+==> Step 17:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA3&FASenior3&FAClerk3&-FASpecial3&-FAAsst3,FAJunior3>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3 FAJunior3
+
+==> Step 18:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA3&FAJunior3&FASenior3&FAClerk3&-FAAsst3,FASpecial3>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3 FAJunior3
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3
+
+==> Step 19:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FAJunior3&FASenior3&FAClerk3&FASpecial3,anyfour3>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3
+
+==> Step 20:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,Employee&-ST4&-OB4&-SE4,FA4>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4
+
+==> Step 21:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA4&-FASpecial4&-FAAsst4&-FAJunior4&-FASenior4,FAClerk4>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4
+
+==> Step 22:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA4&FAClerk4&-FASpecial4&-FAAsst4&-FAJunior4,FASenior4>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4
+
+==> Step 23:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA4&FASenior4&FAClerk4&-FASpecial4&-FAAsst4,FAJunior4>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4
+
+==> Step 24:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FA4&FAJunior4&FASenior4&FAClerk4&-FAAsst4,FASpecial4>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4
+
+==> Step 25:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,FAJunior4&FASenior4&FAClerk4&FASpecial4,anyfour4>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4
+
+==> Step 26:
+Target User: user0
+CAN ASSIGN rule applied to user0: <Admin,anyfour1&anyfour2&anyfour3&anyfour4,target>
+Administrative user to invoke the rule: user1
+Role configuration of user0 before applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4
+Role configuration of user0 after applying rule: Employee FA1 FAClerk1 FASenior1 FAJunior1 FASpecial1 anyfour1 FA2 FAClerk2 FASenior2 FAJunior2 FASpecial2 anyfour2 FA3 FAClerk3 FASenior3 FAJunior3 FASpecial3 anyfour3 FA4 FAClerk4 FASenior4 FAJunior4 FASpecial4 anyfour4 target
+
+user0 can REACH target
+target is REACHABLE

@@ -208,7 +208,7 @@ simulate_user(FILE *outputFile, int user_index)
 {
     int i;
 
-    fprintf(outputFile, "void %s ()\n", user_array[user_index]);
+    fprintf(outputFile, "void thread_%s ()\n", user_array[user_index]);
     fprintf(outputFile, "begin\n");
     // Declaration of local variables
     fprintf(outputFile, "\tdecl");

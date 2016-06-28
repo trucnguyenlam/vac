@@ -1,0 +1,33 @@
+Counter Example Trace:
+Role to check REACHABILITY: target
+
+==> Step 1:
+Target User: user6
+CAN ASSIGN rule applied to user6: <DeanOfAdmissions,Provost&-President,AdmissionsOfficer>
+Administrative user to invoke the rule: user5
+Role configuration of user6 before applying rule: Provost Professor
+Role configuration of user6 after applying rule: Provost Professor AdmissionsOfficer
+
+==> Step 2:
+Target User: user6
+CAN ASSIGN rule applied to user6: <DeptChair,Provost&-President,GradAdmissionsCommittee>
+Administrative user to invoke the rule: user2
+Role configuration of user6 before applying rule: Provost Professor AdmissionsOfficer
+Role configuration of user6 after applying rule: Provost Professor AdmissionsOfficer GradAdmissionsCommittee
+
+==> Step 3:
+Target User: user2
+CAN ASSIGN rule applied to user2: <Provost,DeptChair&-President,GradAdmissionsCommittee>
+Administrative user to invoke the rule: user6
+Role configuration of user2 before applying rule: DeptChair Professor
+Role configuration of user2 after applying rule: DeptChair Professor GradAdmissionsCommittee
+
+==> Step 4:
+Target User: user6
+CAN ASSIGN rule applied to user6: <Admin,GradAdmissionsCommittee&AdmissionsOfficer,target>
+Administrative user to invoke the rule: user0
+Role configuration of user6 before applying rule: Provost Professor AdmissionsOfficer GradAdmissionsCommittee
+Role configuration of user6 after applying rule: Provost Professor AdmissionsOfficer GradAdmissionsCommittee target
+
+user6 can REACH target
+target is REACHABLE
