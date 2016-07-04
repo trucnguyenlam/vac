@@ -72,6 +72,7 @@ cp src/simplify/src/simplify vac_static/bin
 cp src/translate/src/translate vac_static/bin
 # Special for formula mucke
 cp src/translate/src/formula.mu vac_static/
+cp src/translate/src/formula-new.mu vac_static/
 cp src/counterexample/src/counterexample vac_static/bin
 echo "Check your machine architecture....."
 if [[ $(uname -m) = 'x86_64' ]]; then

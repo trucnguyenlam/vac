@@ -61,10 +61,10 @@ mu bool Reach(
            (    Reach( t_ID, t_CL, t_G )
                & s_ID = t_ID
                & (
-                  ( CanAssign(t_CL, t_G, s_CL)
-                    & UpdateGlobal(s_CL, t_G, s_G)
-                  )
+                  ( CanAssign(t_CL, t_G, s_CL, s_G)
                   | CanRevoke(t_CL, t_G, s_CL, s_G)
+                  | UpdateGlobal(t_G, s_CL, s_G)
+                  )
                 )
            )
         )
