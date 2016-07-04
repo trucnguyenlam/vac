@@ -10,6 +10,8 @@
 #define TRANSLATION_TYPE4
 #define ROUNDS 4
 
+// #define TRANSLATION_TYPE5
+
 /*
     ALGORITHMS OUTLINE
 
@@ -39,7 +41,9 @@
 static int N_BIT_THREADID = 0;
 
 static int NumBits(int pc) {
-    int i = 1, bit = 1;
+    int i = 1, bit = 0;
+
+    if (pc <= 2 ) return 1;
 
     while (pc >= i) {
         i = i * 2;
@@ -252,10 +256,6 @@ simulate_can_assign_rule(FILE *outputFile, int ca_rule, int round)
         {
             fprintf(outputFile, "& (dG.h%d.%s=cG.h%d.%s)", round, role_array[admin_role_array_index[i]], round, role_array[admin_role_array_index[i]]);
         }
-        // else
-        // {
-        //     fprintf(outputFile, "& ((dG.%s=cG.%s)|(dG.%s=dL.%s))\n", role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]]);
-        // }
     }
 
     fprintf(outputFile, ")\n");
@@ -335,10 +335,6 @@ simulate_can_revoke_rule(FILE *outputFile, int cr_rule, int round)
         {
             fprintf(outputFile, "& (dG.h%d.%s=cG.h%d.%s)", round, role_array[admin_role_array_index[i]], round, role_array[admin_role_array_index[i]]);
         }
-        // else
-        // {
-        //     fprintf(outputFile, "& ((dG.%s=cG.%s)|(dG.%s=dL.%s))\n", role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]]);
-        // }
     }
     fprintf(outputFile, ")\n");
 }
@@ -384,7 +380,7 @@ simulate_admin_roles(FILE *outputFile)
         fprintf(outputFile, "(true \n");
         for (i = 0; i < admin_role_array_index_size; i++)
         {
-            fprintf(outputFile, "& ((dG.h%d.%s=cG.h%d.%s)|(dG.h%d.%s=dG.L.%s))\n", l, role_array[admin_role_array_index[i]], l, role_array[admin_role_array_index[i]], l, role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]]);
+            fprintf(outputFile, "& (dG.h%d.%s<->(cG.h%d.%s|dG.L.%s))\n", l, role_array[admin_role_array_index[i]], l, role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]]);
         }
         for (i = 0; i < role_array_size; i++)
         {
@@ -400,9 +396,6 @@ simulate_admin_roles(FILE *outputFile)
 
 
 
-
-
-
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -413,8 +406,6 @@ simulate_admin_roles(FILE *outputFile)
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
-
-
 
 
 static void

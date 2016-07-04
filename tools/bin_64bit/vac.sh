@@ -676,7 +676,7 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 					if [[ $use_longbman -eq 1 ]]; then
 	                    extra="-bman longbman.so"
 					fi
-                    query_answer=`./bin/mucke -res -f $extra $ARBAC_FILE"_ExactAlg_MUCKE.mu"`
+                    query_answer=`./bin/mucke -res $extra $ARBAC_FILE"_ExactAlg_MUCKE.mu"`
                     if [[ ${query_answer} =~ ':   false' ]]; then
                         echo "The ARBAC policy is safe."
                     elif [[ ${query_answer} =~ ':   true' ]]; then
@@ -704,7 +704,7 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
 					if [[ $use_longbman -eq 1 ]]; then
 	                    extra="-bman longbman.so"
 					fi
-                    query_answer=`./bin/mucke -res -f $extra $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_MUCKE.mu"`
+                    query_answer=`./bin/mucke -res $extra $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_MUCKE.mu"`
                     if [[ ${query_answer} =~ ':   false' ]]; then
                         echo "The ARBAC policy is safe."
                     elif [[ ${query_answer} =~ ':   true' ]]; then

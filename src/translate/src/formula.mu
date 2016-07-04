@@ -461,11 +461,10 @@ mu bool Sequ_Reach(
    // forgetting local states for  each thread
   | ( exists                    /* Sequ_Reach::@Exists14 */   // Wrong ordering
           blocktype  t_block,
-          ThreadID   t_ID,
           Roles      t_CL,
           Globals    t_G.
-       (    Sequ_Reach( t_block, s_r, t_ID, t_CL, t_G )
-          & Fake_Ordering_All (t_block, s_r, t_ID, t_CL, t_G, s_block, s_r, s_ID, s_CL, s_G)
+       (    Sequ_Reach( t_block, s_r, s_ID, t_CL, t_G )
+          & Fake_Ordering_All (t_block, s_r, s_ID, t_CL, t_G, s_block, s_r, s_ID, s_CL, s_G)
           & (
               (s_block=threadnoloc) & (t_block=thread)
             )

@@ -190,16 +190,13 @@ mu bool Sequ_Reach(
 
   // early termination
   | ( exists    /* Sequ_Reach::@Exists0 */               // There exists a state such that
-            blocktype  t_block,
             CS         t_r,
             ThreadID   t_ID,
             Globals    t_G.
-        (   Sequ_Reach( t_block, t_r, t_ID, t_G )    // That state is in fixed point and ...
-          & Fake_Ordering_All (t_block, t_r, t_ID, t_G, s_block, s_r, s_ID, s_G)
+        (
+            Sequ_Reach( thread, t_r, t_ID, t_G )    // That state is in fixed point and ...
+          & Fake_Ordering_All (thread, t_r, t_ID, t_G, s_block, s_r, s_ID, s_G)
           & (   targetReach( t_ID, t_G.L )                  // target is reached
-              & (
-                  t_block=thread                           // And block is TLI (thread linear interface)
-                )
             )
         )
      )
@@ -213,6 +210,9 @@ mu bool Sequ_Reach(
         & GlobalInit(s_G.g0)
         & LocalInit(s_ID, s_G.L)        // init of local variables
         & s_G.h0=s_G.g0                // input = output
+        & s_G.h1=s_G.g1                // input = output
+        & s_G.h2=s_G.g2                // input = output
+        & s_G.h3=s_G.g3                // input = output
      )
 
   | (   // For subsequent round
@@ -292,13 +292,16 @@ mu bool Sequ_Reach(
               ThreadID t_ID,
               Globals  t_G.
             (
-              Sequ_Reach( threadnoloc, s_r, t_ID, t_G )    // After a thread finishes its execution
+              Sequ_Reach( threadnoloc, 0, t_ID, t_G )    // After a thread finishes its execution
               & Fake_Ordering_Globals( s_G, t_G )
               & increaseThreadID ( t_ID, s_ID )
               & t_G.h0 = s_G.g0             // Map output of thread_i to input of thread_i+1
             )
          )
-       & s_G.h0=s_G.g0  // input = output
+        & s_G.h0=s_G.g0                // input = output
+        & s_G.h1=s_G.g1                // input = output
+        & s_G.h2=s_G.g2                // input = output
+        & s_G.h3=s_G.g3                // input = output
      )
 
   | ( // increase ROUND for TLI (not thread0, not the last thread)
@@ -397,7 +400,7 @@ mu bool Sequ_Reach(
          s_block=have
        & nonMaxThreadID( s_ID )
        & (    s_r=0
-            | Sequ_Reach( want, s_r, s_ID, s_G )   // There exists WRLI
+           | Sequ_Reach( want, s_r, s_ID, s_G )   // There exists WRLI
          )
        & ( exists        /* Sequ_Reach::@Exists11 */
                  Globals b_G.
@@ -433,14 +436,10 @@ mu bool Sequ_Reach(
   /*********************************************************************************/
    // forgetting local states for  each thread
   | ( exists                    /* Sequ_Reach::@Exists14 */   // Wrong ordering
-          blocktype  t_block,
-          ThreadID   t_ID,
           Globals    t_G.
-       (    Sequ_Reach( t_block, s_r, t_ID, t_G )
-          & Fake_Ordering_All (t_block, s_r, t_ID, t_G, s_block, s_r, s_ID, s_G)
-          & (
-              (s_block=threadnoloc) & (t_block=thread)
-            )
+       (    Sequ_Reach( thread, s_r, s_ID, t_G )
+          & Fake_Ordering_All (thread, s_r, s_ID, t_G, s_block, s_r, s_ID, s_G)
+          & (s_block=threadnoloc)
           & (  copy_g_g( t_G, s_G, s_r )
              & copy_h_h( t_G, s_G, s_r )
             )
