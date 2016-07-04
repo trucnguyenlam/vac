@@ -7,12 +7,8 @@
 //    2. Add ordering option by consider can assign rules
 
 // UPDATE globals in updateglobal
-// #define TRANSLATION_TYPE4
+#define TRANSLATION_TYPE4
 #define ROUNDS 4
-
-
-// same interface for canassign, canrevoke and updateglobal
-#define TRANSLATION_TYPE5
 
 /*
     ALGORITHMS OUTLINE
@@ -104,6 +100,29 @@ declare_variables(FILE *outputFile)
         fprintf(outputFile, "    bool %s;\n", role_array[i]);
     }
     fprintf(outputFile, "};\n\n");
+
+#ifdef TRANSLATION_TYPE4
+    fprintf(outputFile, "class Globals{     // Thread interface\n");
+    fprintf(outputFile, " Roles  g0;    // round 0\n");
+    fprintf(outputFile, " Roles  h0;    // round 0\n");
+    fprintf(outputFile, " Roles  g1;    // round 1\n");
+    fprintf(outputFile, " Roles  h1;    // round 1\n");
+    fprintf(outputFile, " Roles  g2;    // round 2\n");
+    fprintf(outputFile, " Roles  h2;    // round 2\n");
+    fprintf(outputFile, " Roles  g3;    // round 3\n");
+    fprintf(outputFile, " Roles  h3;    // round 3\n");
+    fprintf(outputFile, " Roles  L;\n");
+    fprintf(outputFile, "}\n");
+    fprintf(outputFile, " g0  ~+ h0,\n");
+    fprintf(outputFile, " h0  ~+  g1,\n");
+    fprintf(outputFile, " g1  ~+ h1,\n");
+    fprintf(outputFile, " h1  ~+  L,\n");
+    fprintf(outputFile, " L  ~+  g2,\n");
+    fprintf(outputFile, " g2  ~+ h2,\n");
+    fprintf(outputFile, " h2  ~+  g3,\n");
+    fprintf(outputFile, " g3  ~+ h3;\n");
+#endif
+
 }
 
 static void
@@ -380,217 +399,7 @@ simulate_admin_roles(FILE *outputFile)
 #endif
 
 
-// ######## ##    ## ########  ########    ########
-//    ##     ##  ##  ##     ## ##          ##
-//    ##      ####   ##     ## ##          ##
-//    ##       ##    ########  ######      #######
-//    ##       ##    ##        ##                ##
-//    ##       ##    ##        ##          ##    ##
-//    ##       ##    ##        ########     ######
 
-#ifdef TRANSLATION_TYPE5
-static void
-simulate_can_assign_rule(FILE *outputFile, int ca_rule)
-{
-    int i, j;
-
-    // Condition to apply a can_assign rule
-    fprintf(outputFile, "| (/* Precondition */\n");
-    // Admin role must be available
-    fprintf(outputFile, "(cG.%s=true", role_array[ca_array[ca_rule].admin_role_index]);
-    // Precondition must be satisfied
-    if (ca_array[ca_rule].type == 0)      // Has precondition
-    {
-        for (j = 0; j < ca_array[ca_rule].positive_role_array_size; j++)
-        {
-            fprintf(outputFile, " & cL.%s=true", role_array[ca_array[ca_rule].positive_role_array[j]]);
-        }
-        for (j = 0; j < ca_array[ca_rule].negative_role_array_size; j++)
-        {
-            fprintf(outputFile, " & cL.%s=false", role_array[ca_array[ca_rule].negative_role_array[j]]);
-        }
-    }
-    // Optional this user is not in this target role yet
-    fprintf(outputFile, " & cL.%s=false", role_array[ca_array[ca_rule].target_role_index]);
-    fprintf(outputFile, ") & /* Applying this rule */\n");
-    // Applying this rule
-    if (belong_to(admin_role_array_index, admin_role_array_index_size, ca_array[ca_rule].target_role_index))
-    {
-        fprintf(outputFile, " (dL.%s=true) & (dG.%s=true)\n", role_array[ca_array[ca_rule].target_role_index], role_array[ca_array[ca_rule].target_role_index]);
-    }
-    else
-    {
-        fprintf(outputFile, " (dL.%s=true)\n", role_array[ca_array[ca_rule].target_role_index]);
-    }
-
-    // Copy other variables
-    fprintf(outputFile, "/* Copy variables */\n");
-    for (i = 0; i < role_array_size; i++)
-    {
-        if (i != ca_array[ca_rule].target_role_index)
-        {
-            fprintf(outputFile, "& (dL.%s=cL.%s)", role_array[i], role_array[i]);
-        }
-    }
-    for (i = 0; i < admin_role_array_index_size; i++)
-    {
-        if (admin_role_array_index[i] != ca_array[ca_rule].target_role_index)
-        {
-            fprintf(outputFile, "& (dG.%s=cG.%s)", role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]]);
-        }
-        // else
-        // {
-        //     fprintf(outputFile, "& ((dG.%s=cG.%s)|(dG.%s=dL.%s))\n", role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]]);
-        // }
-    }
-    fprintf(outputFile, ")\n");
-}
-
-static void
-simulate_can_assigns(FILE *outputFile)
-{
-    int i;
-    fprintf(outputFile, "/*---------- CAN ASSIGN SIMULATION ---------*/\n");
-    fprintf(outputFile, "bool CanAssign(\n");
-    fprintf(outputFile, "   Roles cL,\n");
-    fprintf(outputFile, "   Roles cG,\n");
-    fprintf(outputFile, "   Roles dL,\n");
-    fprintf(outputFile, "   Roles dG\n");
-    fprintf(outputFile, ")\n");
-    fprintf(outputFile, "  cL  ~+   cG,\n");
-    fprintf(outputFile, "  cL  ~+  dL,\n");
-    fprintf(outputFile, "  dL  ~+   dG,\n");
-    fprintf(outputFile, "  cG  ~+  dG\n");
-    fprintf(outputFile, "(false \n");
-    for (i = 0; i < ca_array_size; i++)
-    {
-        print_ca_comment(outputFile, i);
-        if (ca_array[i].type != 2)
-        {
-            simulate_can_assign_rule(outputFile, i);
-        }
-        else
-        {
-            fprintf(outputFile, "\t/ *Rule with NEW in the precondition are already involved in initialization */\n");
-        }
-    }
-    fprintf(outputFile, ");\n");
-    fprintf(outputFile, "#size CanAssign;\n\n");
-}
-
-static void
-simulate_can_revoke_rule(FILE *outputFile, int cr_rule)
-{
-    int i;
-
-    // Condition to apply a can_revoke rule
-    fprintf(outputFile, "| ( /* condition */\n");
-    // Admin role must be available
-    if (cr_array[cr_rule].admin_role_index < 0)
-    {
-        fprintf(outputFile, " (true");
-    }
-    else
-    {
-        fprintf(outputFile, " (cG.%s=true", role_array[cr_array[cr_rule].admin_role_index]);
-    }
-    // The user must be in that target role
-    fprintf(outputFile, " & cL.%s=true", role_array[cr_array[cr_rule].target_role_index]);
-    fprintf(outputFile, ") & /* apply this rule */\n");
-    // Applying can_revoke rule
-    if (belong_to(admin_role_array_index, admin_role_array_index_size, cr_array[cr_rule].target_role_index))
-    {
-        fprintf(outputFile, "(dL.%s=false) & (dG.%s=false)\n", role_array[cr_array[cr_rule].target_role_index], role_array[cr_array[cr_rule].target_role_index]);
-    }
-    else
-    {
-        fprintf(outputFile, "(dL.%s=false)\n", role_array[cr_array[cr_rule].target_role_index]);
-    }
-    // Copy variables
-    // Copy other variables
-    fprintf(outputFile, "/* Copy variables */\n");
-    for (i = 0; i < role_array_size; i++)
-    {
-        if (i != cr_array[cr_rule].target_role_index)
-        {
-            fprintf(outputFile, "& (dL.%s=cL.%s)", role_array[i], role_array[i]);
-        }
-    }
-    for (i = 0; i < admin_role_array_index_size; i++)
-    {
-        if (admin_role_array_index[i] != cr_array[cr_rule].target_role_index)
-        {
-            fprintf(outputFile, "& (dG.%s=cG.%s)", role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]]);
-        }
-        // else
-        // {
-        //     fprintf(outputFile, "& ((dG.%s=cG.%s)|(dG.%s=dL.%s))\n", role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]]);
-        // }
-    }
-    fprintf(outputFile, ")\n");
-}
-
-static void
-simulate_can_revokes(FILE *outputFile)
-{
-    int i;
-    fprintf(outputFile, "/*---------- CAN REVOKE SIMULATION ---------*/\n");
-    fprintf(outputFile, "bool CanRevoke(\n");
-    fprintf(outputFile, "   Roles cL,\n");
-    fprintf(outputFile, "   Roles cG,\n");
-    fprintf(outputFile, "   Roles dL,\n");
-    fprintf(outputFile, "   Roles dG\n");
-    fprintf(outputFile, ")\n");
-    fprintf(outputFile, "  cL  ~+   cG,\n");
-    fprintf(outputFile, "  cL  ~+  dL,\n");
-    fprintf(outputFile, "  dL  ~+   dG,\n");
-    fprintf(outputFile, "  cG  ~+  dG\n");
-    fprintf(outputFile, "(false \n");
-
-    for (i = 0; i < cr_array_size; i++)
-    {
-        print_cr_comment(outputFile, i);
-        simulate_can_revoke_rule(outputFile, i);
-    }
-    fprintf(outputFile, ");\n");
-    fprintf(outputFile, "#size CanRevoke;\n\n");
-
-}
-
-static void
-simulate_admin_roles(FILE *outputFile)
-{
-    int i, j;
-    fprintf(outputFile, "/*--- ADMIN ROLE CONSISTENCY ----*/\n");
-    fprintf(outputFile, "bool UpdateGlobal(\n");
-    // fprintf(outputFile, "   Roles cL,\n");
-    fprintf(outputFile, "   Roles cG,\n");
-    fprintf(outputFile, "   Roles dL,\n");
-    fprintf(outputFile, "   Roles dG\n");
-    fprintf(outputFile, ")\n");
-    // fprintf(outputFile, "  cL  ~+  cG,\n");
-    // fprintf(outputFile, "  cL  ~+  dL,\n");
-    fprintf(outputFile, "  dL  ~+  dG,\n");
-    fprintf(outputFile, "  cG  ~+  dG\n");
-    fprintf(outputFile, "(true \n");
-    for (i = 0; i < admin_role_array_index_size; i++)
-    {
-        fprintf(outputFile, "& ((dG.%s=cG.%s)", role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]]);
-        for (j = 0; j < cr_array_size; j++)
-        {
-            if (admin_role_array_index[i] == cr_array[j].target_role_index)
-            {
-                fprintf(outputFile, "|(dG.%s=dL.%s)", role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]]);
-                break;
-            }
-        }
-        fprintf(outputFile, ")\n");
-    }
-    fprintf(outputFile, ");\n");
-    fprintf(outputFile, "#size UpdateGlobal;\n\n");
-}
-
-#endif
 
 
 

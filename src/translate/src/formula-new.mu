@@ -26,26 +26,6 @@ enum blocktype {
 /*************               Used in internal transition                 *************************/
 /*************************************************************************************************/
 
-class Globals{     // Thread interface
- Roles  g0;    // round 0
- Roles  h0;    // round 0
- Roles  g1;    // round 1
- Roles  h1;    // round 1
- Roles  g2;    // round 2
- Roles  h2;    // round 2
- Roles  g3;    // round 3
- Roles  h3;    // round 3
- Roles  L;
-}
- g0  ~+ h0,
- h0  ~+  g1,
- g1  ~+ h1,
- h1  ~+  L,
- L  ~+  g2,
- g2  ~+ h2,
- h2  ~+  g3,
- g3  ~+ h3;
-
 /*
   Copy global variable at CS 3 (mean round 3)
  */
@@ -488,204 +468,6 @@ mu bool Sequ_Reach(
 //    #       #    #       #               #
 //    #       #    #       #######         #
 
-// //*************** Round 0
-//   |  (
-//         (   s_r=0      // Round 0
-//           & (s_block=thread)
-//         )
-//       & (exists        /* Sequ_Reach::@Exists15 */              // There exists an internal state that
-//            Globals t_G.
-//            (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-//               & copy_g_and_h_0( s_G, t_G )
-//               ) & (
-//                     CanAssign_0( t_G, s_G )
-//               )
-//            )
-//       )
-//     )
-
-//   |  (
-//         (   s_r=0      // Round 0
-//           & (s_block=thread)
-//         )
-//       & (exists        /* Sequ_Reach::@Exists16 */              // There exists an internal state that
-//            Globals t_G.
-//            (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-//               & copy_g_and_h_0( s_G, t_G )
-//               )
-//             & (
-//               CanRevoke_0( t_G, s_G )
-//               )
-//            )
-//       )
-//     )
-
-//   |  (
-//         (   s_r=0      // Round 0
-//           & (s_block=thread)
-//         )
-//       & (exists        /* Sequ_Reach::@Exists17 */              // There exists an internal state that
-//            Globals t_G.
-//            (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-//               & copy_g_and_h_0( s_G, t_G )
-//               )
-//             & ( UpdateGlobal_0( t_G, s_G )
-//                // & s_G.L = t_G.L
-//               )
-//            )
-//       )
-//     )
-
-// //*************** Round 1
-//   |  (
-//         (   s_r=1      // Round 1
-//           & (s_block=thread)
-//         )
-//       & (exists      /* Sequ_Reach::@Exists18 */              // There exists an internal state that
-//            Globals t_G.
-//            (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-//               & copy_g_and_h_1( s_G, t_G )
-//               ) & (
-//                     CanAssign_1( t_G, s_G )
-//               )
-//            )
-//       )
-//     )
-//  |  (
-//         (   s_r=1      // Round 1
-//           & (s_block=thread)
-//         )
-//       & (exists      /* Sequ_Reach::@Exists19 */              // There exists an internal state that
-//            Globals t_G.
-//            (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-//               & copy_g_and_h_1( s_G, t_G )
-//               )
-//             & (
-//                     CanRevoke_1( t_G, s_G )
-//               )
-//            )
-//       )
-//     )
-//  |  (
-//         (   s_r=1      // Round 1
-//           & (s_block=thread)
-//         )
-//       & (exists      /* Sequ_Reach::@Exists20 */              // There exists an internal state that
-//            Globals t_G.
-//            (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-//               & copy_g_and_h_1( s_G, t_G )
-//               )
-//             & (
-//                 UpdateGlobal_1( t_G, s_G )
-//                // & s_G.L = t_G.L
-//               )
-//            )
-//       )
-//     )
-
-// //*************** Round 2
-//   |  (
-//         (   s_r=2      // Round 2
-//           & (s_block=thread)
-//         )
-//       & (exists         /* Sequ_Reach::@Exists21 */            // There exists an internal state that
-//            Globals t_G.
-//            (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-//               & copy_g_and_h_2( s_G, t_G )
-//               ) & (
-//                     CanAssign_2( t_G, s_G )
-//               )
-//            )
-//       )
-//     )
-//  |  (
-//         (   s_r=2      // Round 2
-//           & (s_block=thread)
-//         )
-//       & (exists         /* Sequ_Reach::@Exists22 */            // There exists an internal state that
-//            Globals t_G.
-//            (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-//               & copy_g_and_h_2( s_G, t_G )
-//               )
-//             & (
-//                 CanRevoke_2( t_G, s_G )
-//               )
-//            )
-//       )
-//     )
-//  |  (
-//         (   s_r=2      // Round 2
-//           & (s_block=thread)
-//         )
-//       & (exists         /* Sequ_Reach::@Exists23 */            // There exists an internal state that
-//            Globals t_G.
-//            (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-//               & copy_g_and_h_2( s_G, t_G )
-//               )
-//             & (
-//                 UpdateGlobal_2( t_G, s_G )
-//                // & s_G.L = t_G.L
-//               )
-//            )
-//       )
-//     )
-
-// //*************** Round 3
-//   |  (
-//         (   s_r=3     // Round 3
-//           & (s_block=thread)
-//         )
-//       & (exists        /* Sequ_Reach::@Exists24 */            // There exists an internal state that
-//            Globals t_G.
-//            (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-//               & copy_g_and_h_3( s_G, t_G )
-//               ) & (
-//                     CanAssign_3( t_G, s_G )
-//               )
-//            )
-//       )
-//     )
-//   |  (
-//         (   s_r=3     // Round 3
-//           & (s_block=thread)
-//         )
-//       & (exists        /* Sequ_Reach::@Exists25 */            // There exists an internal state that
-//            Globals t_G.
-//            (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-//               & copy_g_and_h_3( s_G, t_G )
-//               )
-//             & (
-//                  CanRevoke_3( t_G, s_G )
-//               )
-//            )
-//       )
-//     )
-//   |  (
-//         (   s_r=3     // Round 3
-//           & (s_block=thread)
-//         )
-//       & (exists        /* Sequ_Reach::@Exists26 */            // There exists an internal state that
-//            Globals t_G.
-//            (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-//               & copy_g_and_h_3( s_G, t_G )
-//               )
-//             & (
-//                 UpdateGlobal_3( t_G, s_G )
-//                // & s_G.L = t_G.L
-//               )
-//            )
-//       )
-//     )
-
-
-// ####### #     # ######  #######    #######
-//    #     #   #  #     # #          #
-//    #      # #   #     # #          #
-//    #       #    ######  #####      ######
-//    #       #    #       #                #
-//    #       #    #       #          #     #
-//    #       #    #       #######     #####
-//
 //*************** Round 0
   |  (
         (   s_r=0      // Round 0
@@ -693,10 +475,10 @@ mu bool Sequ_Reach(
         )
       & (exists        /* Sequ_Reach::@Exists15 */              // There exists an internal state that
            Globals t_G.
-           (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-              & copy_g_and_h_0( s_G, t_G )
+           (  (  Sequ_Reach( thread, 0, s_ID, t_G )
               ) & (
-                    CanAssign( t_G.L, t_G.h0, s_G.L, s_G.h0 )
+                    CanAssign_0( t_G, s_G )
+                  & copy_g_and_h_0( t_G, s_G )
               )
            )
       )
@@ -708,10 +490,11 @@ mu bool Sequ_Reach(
         )
       & (exists        /* Sequ_Reach::@Exists16 */              // There exists an internal state that
            Globals t_G.
-           (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-              & copy_g_and_h_0( s_G, t_G )
+           (  (  Sequ_Reach( thread, 0, s_ID, t_G )
               )
-            & ( CanRevoke( t_G.L, t_G.h0, s_G.L, s_G.h0 )
+            & (
+                CanRevoke_0( t_G, s_G )
+              & copy_g_and_h_0( t_G, s_G )
               )
            )
       )
@@ -723,11 +506,11 @@ mu bool Sequ_Reach(
         )
       & (exists        /* Sequ_Reach::@Exists17 */              // There exists an internal state that
            Globals t_G.
-           (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-              & copy_g_and_h_0( s_G, t_G )
+           (  (  Sequ_Reach( thread, 0, s_ID, t_G )
               )
-            & ( UpdateGlobal( t_G.h0, s_G.L, s_G.h0 )
-               & s_G.L = t_G.L
+            & (
+                UpdateGlobal_0( t_G, s_G )
+              & copy_g_and_h_0( t_G, s_G )
               )
            )
       )
@@ -740,10 +523,10 @@ mu bool Sequ_Reach(
         )
       & (exists      /* Sequ_Reach::@Exists18 */              // There exists an internal state that
            Globals t_G.
-           (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-              & copy_g_and_h_1( s_G, t_G )
+           (  (  Sequ_Reach( thread, 1, s_ID, t_G )
               ) & (
-                    CanAssign( t_G.L, t_G.h1, s_G.L, s_G.h1 )
+                    CanAssign_1( t_G, s_G )
+              & copy_g_and_h_1( t_G, s_G )
               )
            )
       )
@@ -754,10 +537,11 @@ mu bool Sequ_Reach(
         )
       & (exists      /* Sequ_Reach::@Exists19 */              // There exists an internal state that
            Globals t_G.
-           (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-              & copy_g_and_h_1( s_G, t_G )
+           (  (  Sequ_Reach( thread, 1, s_ID, t_G )
               )
-            & ( CanRevoke( t_G.L, t_G.h1, s_G.L, s_G.h1 )
+            & (
+                    CanRevoke_1( t_G, s_G )
+              & copy_g_and_h_1( t_G, s_G )
               )
            )
       )
@@ -768,11 +552,11 @@ mu bool Sequ_Reach(
         )
       & (exists      /* Sequ_Reach::@Exists20 */              // There exists an internal state that
            Globals t_G.
-           (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-              & copy_g_and_h_1( s_G, t_G )
+           (  (  Sequ_Reach( thread, 1, s_ID, t_G )
               )
-            & ( UpdateGlobal( t_G.h1, s_G.L, s_G.h1 )
-               & s_G.L = t_G.L
+            & (
+                UpdateGlobal_1( t_G, s_G )
+              & copy_g_and_h_1( t_G, s_G )
               )
            )
       )
@@ -785,10 +569,10 @@ mu bool Sequ_Reach(
         )
       & (exists         /* Sequ_Reach::@Exists21 */            // There exists an internal state that
            Globals t_G.
-           (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-              & copy_g_and_h_2( s_G, t_G )
+           (  (  Sequ_Reach( thread, 2, s_ID, t_G )
               ) & (
-                    CanAssign( t_G.L, t_G.h2, s_G.L, s_G.h2 )
+                    CanAssign_2( t_G, s_G )
+              & copy_g_and_h_2( t_G, s_G )
               )
            )
       )
@@ -799,10 +583,11 @@ mu bool Sequ_Reach(
         )
       & (exists         /* Sequ_Reach::@Exists22 */            // There exists an internal state that
            Globals t_G.
-           (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-              & copy_g_and_h_2( s_G, t_G )
+           (  (  Sequ_Reach( thread, 2, s_ID, t_G )
               )
-            & ( CanRevoke( t_G.L, t_G.h2, s_G.L, s_G.h2 )
+            & (
+                CanRevoke_2( t_G, s_G )
+              & copy_g_and_h_2( t_G, s_G )
               )
            )
       )
@@ -813,11 +598,11 @@ mu bool Sequ_Reach(
         )
       & (exists         /* Sequ_Reach::@Exists23 */            // There exists an internal state that
            Globals t_G.
-           (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-              & copy_g_and_h_2( s_G, t_G )
+           (  (  Sequ_Reach( thread, 2, s_ID, t_G )
               )
-            & ( UpdateGlobal( t_G.h2, s_G.L, s_G.h2 )
-               & s_G.L = t_G.L
+            & (
+                UpdateGlobal_2( t_G, s_G )
+              & copy_g_and_h_2( t_G, s_G )
               )
            )
       )
@@ -830,10 +615,10 @@ mu bool Sequ_Reach(
         )
       & (exists        /* Sequ_Reach::@Exists24 */            // There exists an internal state that
            Globals t_G.
-           (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-              & copy_g_and_h_3( s_G, t_G )
+           (  (  Sequ_Reach( thread, 3, s_ID, t_G )
               ) & (
-                    CanAssign( t_G.L, t_G.h3, s_G.L, s_G.h3 )
+                    CanAssign_3( t_G, s_G )
+               & copy_g_and_h_3( t_G, s_G )
               )
            )
       )
@@ -844,10 +629,11 @@ mu bool Sequ_Reach(
         )
       & (exists        /* Sequ_Reach::@Exists25 */            // There exists an internal state that
            Globals t_G.
-           (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-              & copy_g_and_h_3( s_G, t_G )
+           (  (  Sequ_Reach( thread, 3, s_ID, t_G )
               )
-            & ( CanRevoke( t_G.L, t_G.h3, s_G.L, s_G.h3 )
+            & (
+                 CanRevoke_3( t_G, s_G )
+              & copy_g_and_h_3( t_G, s_G )
               )
            )
       )
@@ -858,17 +644,15 @@ mu bool Sequ_Reach(
         )
       & (exists        /* Sequ_Reach::@Exists26 */            // There exists an internal state that
            Globals t_G.
-           (  (  Sequ_Reach( s_block, s_r, s_ID, t_G )
-              & copy_g_and_h_3( s_G, t_G )
+           (  (  Sequ_Reach( thread, 3, s_ID, t_G )
               )
-            & ( UpdateGlobal( t_G.h3, s_G.L, s_G.h3 )
-               & s_G.L = t_G.L
+            & (
+                UpdateGlobal_3( t_G, s_G )
+              & copy_g_and_h_3( t_G, s_G )
               )
            )
       )
     )
-
-
 );
 
 #size Sequ_Reach;
@@ -890,5 +674,6 @@ mu bool Sequ_Reach(
         )
     )
 );
+
 
 #timer stop;
