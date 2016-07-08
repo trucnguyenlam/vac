@@ -111,7 +111,8 @@ am_translate_OBJECTS = translate-ARBACLexer.$(OBJEXT) \
 	translate-ARBAC_to_HSF_ExactAlg.$(OBJEXT) \
 	translate-ARBAC_to_ELDARICA_ExactAlg.$(OBJEXT) \
 	translate-ARBAC_to_SMT2_ExactAlg.$(OBJEXT) \
-	translate-ARBAC_to_NuSMV_ExactAlg.$(OBJEXT)
+	translate-ARBAC_to_NuSMV_ExactAlg.$(OBJEXT) \
+	translate-varOrd.$(OBJEXT)
 translate_OBJECTS = $(am_translate_OBJECTS)
 translate_DEPENDENCIES = ../../ccl/lib/libccl.a
 translate_LINK = $(CCLD) $(translate_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
@@ -282,7 +283,8 @@ translate_SOURCES = ARBACLexer.c \
 					ARBAC_to_HSF_ExactAlg.c \
 					ARBAC_to_ELDARICA_ExactAlg.c \
 					ARBAC_to_SMT2_ExactAlg.c \
-					ARBAC_to_NuSMV_ExactAlg.c
+					ARBAC_to_NuSMV_ExactAlg.c \
+					varOrd.c
 
 all: all-am
 
@@ -386,6 +388,7 @@ include ./$(DEPDIR)/translate-ARBAC_to_INTERPROC_OverApr.Po
 include ./$(DEPDIR)/translate-ARBAC_to_MUCKE_ExactAlg.Po
 include ./$(DEPDIR)/translate-ARBAC_to_NuSMV_ExactAlg.Po
 include ./$(DEPDIR)/translate-ARBAC_to_SMT2_ExactAlg.Po
+include ./$(DEPDIR)/translate-varOrd.Po
 
 .c.o:
 	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -624,6 +627,20 @@ translate-ARBAC_to_NuSMV_ExactAlg.obj: ARBAC_to_NuSMV_ExactAlg.c
 #	$(AM_V_CC)source='ARBAC_to_NuSMV_ExactAlg.c' object='translate-ARBAC_to_NuSMV_ExactAlg.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-ARBAC_to_NuSMV_ExactAlg.obj `if test -f 'ARBAC_to_NuSMV_ExactAlg.c'; then $(CYGPATH_W) 'ARBAC_to_NuSMV_ExactAlg.c'; else $(CYGPATH_W) '$(srcdir)/ARBAC_to_NuSMV_ExactAlg.c'; fi`
+
+translate-varOrd.o: varOrd.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -MT translate-varOrd.o -MD -MP -MF $(DEPDIR)/translate-varOrd.Tpo -c -o translate-varOrd.o `test -f 'varOrd.c' || echo '$(srcdir)/'`varOrd.c
+	$(AM_V_at)$(am__mv) $(DEPDIR)/translate-varOrd.Tpo $(DEPDIR)/translate-varOrd.Po
+#	$(AM_V_CC)source='varOrd.c' object='translate-varOrd.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-varOrd.o `test -f 'varOrd.c' || echo '$(srcdir)/'`varOrd.c
+
+translate-varOrd.obj: varOrd.c
+	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -MT translate-varOrd.obj -MD -MP -MF $(DEPDIR)/translate-varOrd.Tpo -c -o translate-varOrd.obj `if test -f 'varOrd.c'; then $(CYGPATH_W) 'varOrd.c'; else $(CYGPATH_W) '$(srcdir)/varOrd.c'; fi`
+	$(AM_V_at)$(am__mv) $(DEPDIR)/translate-varOrd.Tpo $(DEPDIR)/translate-varOrd.Po
+#	$(AM_V_CC)source='varOrd.c' object='translate-varOrd.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(AM_V_CC_no)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-varOrd.obj `if test -f 'varOrd.c'; then $(CYGPATH_W) 'varOrd.c'; else $(CYGPATH_W) '$(srcdir)/varOrd.c'; fi`
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique

@@ -44,7 +44,7 @@ translate-ARBAC_to_MUCKE_ExactAlg.o: ARBAC_to_MUCKE_ExactAlg.c \
  /usr/include/x86_64-linux-gnu/bits/posix2_lim.h \
  ../../ccl/include/stringlist.h ../../ccl/include/stringlistgen.h \
  ../../ccl/include/wstringlist.h ../../ccl/include/valarray.h \
- ../../ccl/include/valarraygen.h ARBACUtil.h ARBACTransform.h
+ ../../ccl/include/valarraygen.h ARBACUtil.h ARBACTransform.h varOrd.h
 
 /usr/include/stdc-predef.h:
 
@@ -173,3 +173,5 @@ ARBACData.h:
 ARBACUtil.h:
 
 ARBACTransform.h:
+
+varOrd.h:

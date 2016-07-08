@@ -18,5 +18,6 @@ translate_SOURCES =	ARBACLexer.c \
 					ARBAC_to_HSF_ExactAlg.c \
 					ARBAC_to_ELDARICA_ExactAlg.c \
 					ARBAC_to_SMT2_ExactAlg.c \
-					ARBAC_to_NuSMV_ExactAlg.c
+					ARBAC_to_NuSMV_ExactAlg.c \
+					varOrd.c
 

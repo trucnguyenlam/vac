@@ -1,6 +1,8 @@
 #include "ARBACExact.h"
+#include "varOrd.h"
 #define EXPLODE_THREADID
 #define FORMULA_NEW
+// #define HEURISTIC_ORDER
 
 // #define OPTIMIZED_ADMIN
 
@@ -80,6 +82,54 @@ print_ID(FILE* outputFile, char *str, int pc, int num_bits) {
 }
 
 static void
+print_variable_order(FILE * outputFile)
+{
+    graph *g;
+    linkedList *orderedVertexList;
+    item *curr, *prev, *first;
+
+    int i;
+
+    g = newGraph();
+    // add node to dependency graph
+    for (i = 0; i < role_array_size; i++)
+    {
+        addNode(g, i);
+    }
+
+    // Go through the list of can assign rule to find dependency graph
+    for (i = 0; i < ca_array_size; i++)
+    {
+        if (ca_array[i].type == 0)
+        {
+            // Add relation between target role and admin role
+            addEdge(g, ca_array[i].admin_role_index, ca_array[i].target_role_index);
+            // Add relation between each role in precond and target role
+            int j;
+            for (j = 0; j < ca_array[i].positive_role_array_size; j++)
+            {
+                addEdge(g, ca_array[i].target_role_index, ca_array[i].positive_role_array[j]);
+            }
+        }
+        else
+        {
+            // Add relation between target role and admin role
+            addEdge(g, ca_array[i].admin_role_index, ca_array[i].target_role_index);
+        }
+    }
+
+    // Variable ordering
+    orderedVertexList = variableOrdering(g, 0);
+
+    first = curr = orderedVertexList->head;
+    while (curr != NULL) {
+        fprintf(outputFile, "   bool %s;\n", role_array[curr->vert->val]);
+        curr = curr->next;
+    }
+
+}
+
+static void
 declare_variables(FILE *outputFile)
 {
     int i;
@@ -101,12 +151,16 @@ declare_variables(FILE *outputFile)
     fprintf(outputFile, "};\n\n");
 #endif
     // Declaration of Global variable
-    fprintf(outputFile, "class Roles {\n");
+fprintf(outputFile, "class Roles {\n");
+#ifndef HEURISTIC_ORDER
     for (i = 0; i < role_array_size; ++i)
     {
         fprintf(outputFile, "    bool %s;\n", role_array[i]);
     }
-    fprintf(outputFile, "};\n\n");
+#else
+    print_variable_order(outputFile);
+#endif
+fprintf(outputFile, "};\n\n");
 
 #ifdef TRANSLATION_TYPE4
     fprintf(outputFile, "class Globals{     // Thread interface\n");
