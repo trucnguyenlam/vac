@@ -2,9 +2,12 @@
 #define EXPLODE_THREADID
 #define FORMULA_NEW
 
+// #define OPTIMIZED_ADMIN
+
 // TODO:
 //    1. Add optimization by only considering updating target of can_revoke rules
-//    2. Add ordering option by consider can assign rules
+//    2. Add ordering option by consider can assign rules (using GETAFIX ordering blindly)
+//    3. Design frontier algorithm
 
 // UPDATE globals in updateglobal
 #define TRANSLATION_TYPE4
@@ -87,7 +90,7 @@ declare_variables(FILE *outputFile)
 
     // Declaration of numer of threads, also thread id
 #ifndef EXPLODE_THREADID
-    fprintf(outputFile, "enum ThreadID {0..%d};\n\n", user_array_size-1);
+    fprintf(outputFile, "enum ThreadID {0..%d};\n\n", user_array_size - 1);
 #else
     N_BIT_THREADID = NumBits(user_array_size);
     fprintf(outputFile, "class ThreadID {\n");
@@ -107,24 +110,31 @@ declare_variables(FILE *outputFile)
 
 #ifdef TRANSLATION_TYPE4
     fprintf(outputFile, "class Globals{     // Thread interface\n");
-    fprintf(outputFile, " Roles  g0;    // round 0\n");
-    fprintf(outputFile, " Roles  h0;    // round 0\n");
-    fprintf(outputFile, " Roles  g1;    // round 1\n");
-    fprintf(outputFile, " Roles  h1;    // round 1\n");
-    fprintf(outputFile, " Roles  g2;    // round 2\n");
-    fprintf(outputFile, " Roles  h2;    // round 2\n");
-    fprintf(outputFile, " Roles  g3;    // round 3\n");
-    fprintf(outputFile, " Roles  h3;    // round 3\n");
+    for (i = 0; i < ROUNDS; i++)
+    {
+        fprintf(outputFile, " Roles  g%d;\n", i);
+        fprintf(outputFile, " Roles  h%d;\n", i);
+    }
     fprintf(outputFile, " Roles  L;\n");
+    fprintf(outputFile, " Roles  LP;\n");
     fprintf(outputFile, "}\n");
-    fprintf(outputFile, " g0  ~+ h0,\n");
-    fprintf(outputFile, " h0  ~+  g1,\n");
-    fprintf(outputFile, " g1  ~+ h1,\n");
-    fprintf(outputFile, " h1  ~+  L,\n");
-    fprintf(outputFile, " L  ~+  g2,\n");
-    fprintf(outputFile, " g2  ~+ h2,\n");
-    fprintf(outputFile, " h2  ~+  g3,\n");
-    fprintf(outputFile, " g3  ~+ h3;\n");
+
+    for (i = 0; i < ROUNDS; i++)
+    {
+        fprintf(outputFile, " g%d  ~+  h%d,\n", i, i);
+    }
+    for (i = 0; i < ROUNDS / 2 - 1; i++)
+    {
+        fprintf(outputFile, " h%d  ~+  g%d,\n", i, i + 1);
+    }
+    for (i = ROUNDS / 2; i < ROUNDS - 1; i++)
+    {
+        fprintf(outputFile, " h%d  ~+  g%d,\n", i, i + 1);
+
+    }
+    fprintf(outputFile, " h%d  ~+  L,\n", ROUNDS / 2 - 1 );
+    fprintf(outputFile, " L   ~+  LP,\n");
+    fprintf(outputFile, " LP   ~+  g%d;\n", ROUNDS / 2);
 #endif
 
 }
@@ -378,10 +388,33 @@ simulate_admin_roles(FILE *outputFile)
         fprintf(outputFile, ")\n");
         fprintf(outputFile, "  cG  ~+  dG\n");
         fprintf(outputFile, "(true \n");
+#ifndef OPTIMIZED_ADMIN
         for (i = 0; i < admin_role_array_index_size; i++)
         {
             fprintf(outputFile, "& (dG.h%d.%s<->(cG.h%d.%s|dG.L.%s))\n", l, role_array[admin_role_array_index[i]], l, role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]]);
         }
+#else
+        for (i = 0; i < admin_role_array_index_size; i++)
+        {
+            int flag = 0, j;
+            for (j = 0; j < cr_array_size; j++)
+            {
+                if (admin_role_array_index[i] == cr_array[j].target_role_index)
+                {
+                    flag = 1;
+                    break;
+                }
+            }
+            if (flag)
+            {
+                fprintf(outputFile, "& (dG.h%d.%s<->(cG.h%d.%s|dG.L.%s))\n", l, role_array[admin_role_array_index[i]], l, role_array[admin_role_array_index[i]], role_array[admin_role_array_index[i]]);
+            }
+            else
+            {
+                fprintf(outputFile, "& (dG.h%d.%s=cG.h%d.%s)\n", l, role_array[admin_role_array_index[i]], l, role_array[admin_role_array_index[i]]);
+            }
+        }
+#endif
         for (i = 0; i < role_array_size; i++)
         {
             fprintf(outputFile, "& (dG.L.%s=cG.L.%s)\n", role_array[i], role_array[i]);
@@ -444,13 +477,31 @@ simulate_rules(FILE * outputFile)
     simulate_error(outputFile);
 }
 
+static void
+copy_formula(FILE * outputFile)
+{
+    FILE *formula;
+    char line[1000];
+
+#ifndef FORMULA_NEW
+    if ((formula = fopen("formula.mu", "r")) == NULL)
+#else
+    if ((formula = fopen("formula-new-internal_trans-frontier-optimized.mu", "r")) == NULL)
+#endif
+    {
+        fprintf(stderr, "Cannot open formula file\n");
+    }
+
+    while (fgets(line, sizeof line, formula) != NULL)
+    {
+        fputs(line, outputFile);
+    }
+}
 
 static void
 mucke_simulate(FILE* outputFile)
 {
     int i;
-    FILE *formula;
-    char line[400];    // Increase the length of formula line
 
     fprintf(outputFile, "/*--- THREAD FUNCTIONS ----*/\n");
     fprintf(outputFile, "bool increaseThreadID(\n");
@@ -462,7 +513,7 @@ mucke_simulate(FILE* outputFile)
 #ifndef EXPLODE_THREADID
     for (i = 0; i < user_array_size - 1; i++)
     {
-        fprintf(outputFile, "| (s=%d & t=%d)\n", i, i+1);
+        fprintf(outputFile, "| (s=%d & t=%d)\n", i, i + 1);
     }
     // fprintf(outputFile, "| (s=%d & t=0)\n", i);
 #else
@@ -544,20 +595,8 @@ mucke_simulate(FILE* outputFile)
     fprintf(outputFile, "#size nonMaxThreadID;\n\n");
 
     // Copy formula here
+    copy_formula(outputFile);
 
-#ifndef FORMULA_NEW
-    if ((formula = fopen("formula.mu", "r")) == NULL)
-#else
-    if ((formula = fopen("formula-new.mu", "r")) == NULL)
-#endif
-    {
-        fprintf(stderr, "Cannot open formula file\n");
-    }
-
-    while (fgets(line, sizeof line, formula) != NULL)
-    {
-        fputs(line, outputFile);
-    }
 }
 
 

@@ -24,56 +24,52 @@ if [[ $1 = 'clean' ]]; then
 	rm -rf autom4te.cache
 	cd ..
 	cd ..
-	rm -rf vac_static
+	# rm -rf vac_static
 	exit 1
 fi
 
 echo "Compiling source files..."
-# Build ccl library first
-cd src/ccl/src
-make libccl.a
-cd ..
-mkdir lib
-cp src/libccl.a lib
-cd ../..
+# # Build ccl library first
+# cd src/ccl/src
+# make libccl.a
+# cd ..
+# mkdir lib
+# cp src/libccl.a lib
+# cd ../..
 
-# Build simplify module
-cd src/simplify
-aclocal
-autoconf
-automake -a
-./configure
-make
+# # Build simplify module
+# cd src/simplify
+# aclocal
+# autoconf
+# automake -a
+# ./configure
+# make
+# cd ../..
 
 # Build translate module
-cd ../..
 cd src/translate
 aclocal
 autoconf
 automake -a
 ./configure
 make
-
-# Build counterExample module
 cd ../..
-cd src/counterexample
-aclocal
-autoconf
-automake -a
-./configure
-make
 
-cd ../..
+# # Build counterExample module
+# cd src/counterexample
+# aclocal
+# autoconf
+# automake -a
+# ./configure
+# make
+# cd ../..
+
 
 # Copy file to build directory
 echo "Copying executable files to bin directory..."
 mkdir -p vac_static/bin
 cp src/simplify/src/simplify vac_static/bin
 cp src/translate/src/translate vac_static/bin
-# Special for formula mucke
-cp src/translate/src/formula.mu vac_static/
-cp src/translate/src/formula-new.mu vac_static/
-cp src/translate/src/formula-new-5round.mu vac_static/
 cp src/counterexample/src/counterexample vac_static/bin
 echo "Check your machine architecture....."
 if [[ $(uname -m) = 'x86_64' ]]; then

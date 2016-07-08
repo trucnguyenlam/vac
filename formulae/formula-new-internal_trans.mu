@@ -125,6 +125,32 @@ bool folding( Globals G,  Globals H, CS r )
    & (H.h2 = G.g3  | r=0  | r=1  | r=2  )
 );
 
+
+
+// copy_g_h( s_G, a_G, s_r )  // Thread1 output matches this block input
+// & folding( a_G, s_G, s_r )   // And this block output wrap thread1 input
+bool copy_folding_same_round( Globals G, Globals H, CS r )
+ r  < G,
+ G ~+ H
+(   true
+  & ( H.g0=G.h0 | (false ) )
+  & ( (H.g1=G.h1 & H.h0 = G.g1) | (false | r=0  ) )
+  & ( (H.g2=G.h2 & H.h1 = G.g2) | (false | r=0  | r=1  ) )
+  & ( (H.g3=G.h3 & H.h2 = G.g3) | (false | r=0  | r=1  | r=2  ) )
+);
+
+// copy_g_h( a_G, s_G, t_r )    // And input of RLI is the same output TLI
+// & folding( s_G, a_G, s_r )     // And output of RLI is wrapped at TLI
+bool copy_folding_diff_round( Globals G, Globals H, CS r )
+ r < G,
+ G ~+ H
+(  true
+  & ( (H.g0=G.h0 & H.h0 = G.g1) | (false | r=0  ) )
+  & ( (H.g1=G.h1 & H.h1 = G.g2) | (false | r=0  | r=1  ) )
+  & ( (H.g2=G.h2 & H.h2 = G.g3) | (false | r=0  | r=1  | r=2  ) )
+);
+
+
 /******************************************************************************/
 
 /*************************************************************************************************/
@@ -170,6 +196,166 @@ bool Fake_Ordering_Globals(
 G ~+ H
 ( true
 );
+
+
+mu bool Sequ_Reach(
+ blocktype  s_block,
+ CS         s_r,
+ ThreadID   s_ID,
+ Globals    s_G
+);
+
+
+
+mu bool Internal_Trans(
+ blocktype  s_block,
+ CS         s_r,
+ ThreadID   s_ID,
+ Globals    s_G
+)
+ s_block <  s_r,
+ s_r     <  s_ID,
+ s_ID    <  s_G
+( false
+
+//*************** Round 0
+  | ( s_r = 0
+    )
+    & (exists
+          Globals t_G.
+        (
+            Sequ_Reach( thread, 0, s_ID, t_G )
+          & (
+                t_G.L = s_G.LP
+                & s_G.LP = s_G.L
+                & t_G.h0 = s_G.g0
+                & s_G.g0 = s_G.h0
+            )
+        )
+    )
+
+  | ( s_r = 1
+    )
+    & (exists
+          Globals t_G.
+        (
+            Sequ_Reach( thread, 1, s_ID, t_G )
+          & (
+                t_G.L = s_G.LP
+                & s_G.LP = s_G.L
+                & t_G.h1 = s_G.g1
+                & s_G.g1 = s_G.h1
+            )
+        )
+    )
+
+  | ( s_r = 2
+    )
+    & (exists
+          Globals t_G.
+        (
+            Sequ_Reach( thread, 2, s_ID, t_G )
+          & (
+                t_G.L = s_G.LP
+                & s_G.LP = s_G.L
+                & t_G.h2 = s_G.g2
+                & s_G.g2 = s_G.h2
+            )
+        )
+    )
+
+  | ( s_r = 3
+    )
+    & (exists
+          Globals t_G.
+        (
+            Sequ_Reach( thread, 3, s_ID, t_G )
+          & (
+                t_G.L = s_G.LP
+                & s_G.LP = s_G.L
+                & t_G.h3 = s_G.g3
+                & s_G.g3 = s_G.h3
+            )
+        )
+    )
+
+//*************** Round 0
+  | ( true
+      & ( s_r=0      // Round 0
+        )
+      & (exists        /* Sequ_Reach::@Exists15 */              // There exists an internal state that
+           Globals t_G.
+           (  (  Internal_Trans( s_block, 0, s_ID, t_G )
+                & s_G.LP = t_G.LP
+                & t_G.g0 = s_G.g0
+              )
+            & (   CanAssign_0( t_G, s_G )
+                | CanRevoke_0( t_G, s_G )
+                | UpdateGlobal_0( t_G, s_G )
+              )
+           )
+        )
+    )
+
+//*************** Round 1
+  | ( true
+      & (   s_r=1      // Round 1
+        )
+      & (exists        /* Sequ_Reach::@Exists15 */              // There exists an internal state that
+           Globals t_G.
+           (  (  Internal_Trans( s_block, 1, s_ID, t_G )
+                & s_G.LP = t_G.LP
+                 & t_G.g1 = s_G.g1
+              )
+            & (   CanAssign_1( t_G, s_G )
+                | CanRevoke_1( t_G, s_G )
+                | UpdateGlobal_1( t_G, s_G )
+              )
+           )
+        )
+    )
+
+
+//*************** Round 2
+  | ( true
+      & (   s_r=2      // Round 2
+        )
+      & (exists        /* Sequ_Reach::@Exists15 */              // There exists an internal state that
+           Globals t_G.
+           (  (  Internal_Trans( s_block, 2, s_ID, t_G )
+                & s_G.LP = t_G.LP
+                & t_G.g2 = s_G.g2
+              )
+            & (   CanAssign_2( t_G, s_G )
+                | CanRevoke_2( t_G, s_G )
+                | UpdateGlobal_2( t_G, s_G )
+              )
+           )
+        )
+    )
+
+//*************** Round 3
+  | ( true
+      & (   s_r=3      // Round 3
+        )
+      & (exists        /* Sequ_Reach::@Exists15 */              // There exists an internal state that
+           Globals t_G.
+           (  (  Internal_Trans( s_block, 3, s_ID, t_G )
+                & s_G.LP = t_G.LP
+                & t_G.g3 = s_G.g3
+              )
+            & (   CanAssign_3( t_G, s_G )
+                | CanRevoke_3( t_G, s_G )
+                | UpdateGlobal_3( t_G, s_G )
+              )
+           )
+        )
+    )
+
+)
+;
+
+#size Internal_Trans;
 
 /*
     Fixed point
@@ -217,7 +403,7 @@ mu bool Sequ_Reach(
 
   | (   // For subsequent round
           s_block=thread       // This block is TLI
-        & s_r != 0             // Round > 0
+        & s_r != 0           // Round > 0
         & InitID0(s_ID)        // Thread ID 0
         & ( exists  /* Sequ_Reach::@Exists1 */
                 CS t_r.     // There exists round t_r, which is the previous round
@@ -228,8 +414,10 @@ mu bool Sequ_Reach(
                         Globals   a_G.
                      (   Sequ_Reach( have, t_r, t_ID, a_G ) // There is RLI at previous round
                        & increaseThreadID( s_ID, t_ID )
-                       & (   copy_g_h( a_G, s_G, t_r )    // And input of RLI is the same output TLI
-                           & folding( s_G, a_G, s_r )     // And output of RLI is wrapped at TLI
+                       & (
+                           //   copy_g_h( a_G, s_G, t_r )    // And input of RLI is the same output TLI
+                           // & folding( s_G, a_G, s_r )     // And output of RLI is wrapped at TLI
+                           copy_folding_diff_round ( s_G, a_G, s_r )
                          )
                      )
                   )
@@ -261,10 +449,13 @@ mu bool Sequ_Reach(
        & ( exists    /* Sequ_Reach::@Exists4 */
                 ThreadID  t_ID,
                 Globals   a_G.  // And there exists TLI in which
-            (   Sequ_Reach( threadnoloc, s_r, t_ID, a_G ) //Thread completes simulation in round s_r
-              & increaseThreadID( t_ID, s_ID )
-              & (   copy_g_h( s_G, a_G, s_r )  // Thread1 output matches this block input
-                  & folding( a_G, s_G, s_r )   // And this block output wrap thread1 input
+            ( (   Sequ_Reach( threadnoloc, s_r, t_ID, a_G ) //Thread completes simulation in round s_r
+                & increaseThreadID( t_ID, s_ID )
+              )
+              & (
+                  //   copy_g_h( s_G, a_G, s_r )  // Thread1 output matches this block input
+                  // & folding( a_G, s_G, s_r )   // And this block output wrap thread1 input
+                    copy_folding_same_round( a_G, s_G, s_r)
                 )
             )
          )
@@ -292,16 +483,18 @@ mu bool Sequ_Reach(
               ThreadID t_ID,
               Globals  t_G.
             (
-              Sequ_Reach( threadnoloc, 0, t_ID, t_G )    // After a thread finishes its execution
+              ( Sequ_Reach( threadnoloc, 0, t_ID, t_G )    // After a thread finishes its execution
               & Fake_Ordering_Globals( s_G, t_G )
               & increaseThreadID ( t_ID, s_ID )
+              )
               & t_G.h0 = s_G.g0             // Map output of thread_i to input of thread_i+1
             )
          )
-        & s_G.h0=s_G.g0                // input = output
+        & ( s_G.h0=s_G.g0                // input = output
         & s_G.h1=s_G.g1                // input = output
         & s_G.h2=s_G.g2                // input = output
         & s_G.h3=s_G.g3                // input = output
+        )
      )
 
   | ( // increase ROUND for TLI (not thread0, not the last thread)
@@ -316,21 +509,25 @@ mu bool Sequ_Reach(
         )
       & ( exists      /* Sequ_Reach::@Exists7 */
               Globals b_G.
-           (   Sequ_Reach( want, s_r, s_ID, b_G )    // this TLI is in WRLI block
+           (
+               Sequ_Reach( want, s_r, s_ID, b_G )    // this TLI is in WRLI block
              & ( exists    /*  Sequ_Reach::@Exists7::@Exists8 */
                        CS        t_r,
-                       ThreadID  t_ID,
                        Globals   a_G.
-                   (  (    Sequ_Reach( have, t_r, t_ID, a_G )  // There is RLI at previous round with
-                         & increaseCS( t_r, s_r )
-                         & increaseThreadID( s_ID, t_ID )
-                       )
+                   (
+                     (  ( exists ThreadID  t_ID.
+                           (    Sequ_Reach( have, t_r, t_ID, a_G )  // There is RLI at previous round with
+                              & increaseThreadID( s_ID, t_ID )
+                           )
+                        )
+                        & increaseCS( t_r, s_r )
+                     )
                      & (   copy_g_h( a_G, s_G, t_r )            // Output of TLI == input of RLI
                          & copy_h_h( a_G, b_G, t_r )            // Output of RLI == output of WRLI block
-                         & copy_g_g( b_G, s_G, s_r )                   // Input of TLI == input of WRLI block
                        )
                    )
                )
+             & copy_g_g( b_G, s_G, s_r )                   // Input of TLI == input of WRLI block
            )
         )
     )
@@ -352,8 +549,9 @@ mu bool Sequ_Reach(
       & maxThreadID( s_ID )  // last thread
       & ( exists           /* Sequ_Reach::@Exists9 */
               CS      t_r.
-            (   Sequ_Reach( thread, t_r, s_ID, s_G )  // There exists this TLI at previous round
-              & increaseCS( t_r, s_r )
+            ( (  Sequ_Reach( thread, t_r, s_ID, s_G )  // There exists this TLI at previous round
+               & increaseCS( t_r, s_r )
+              )
               & (exists   /* Sequ_Reach::@Exists9::@Exists10 */
                      Globals a_G.
                    (   Sequ_Reach( want, s_r, s_ID, a_G )    // WRLI block
@@ -379,8 +577,9 @@ mu bool Sequ_Reach(
   /*********************************************************************************/
   // last thread in WRLI (backward phase)   Figure 2 (e)
   | ( // RLI from the last TLI (stop forward propagation, start backward propagation)
-        s_block=have
+      (  s_block=have
       & maxThreadID( s_ID )
+      )
       & Sequ_Reach( threadnoloc, s_r, s_ID, s_G )
     )
 
@@ -397,8 +596,9 @@ mu bool Sequ_Reach(
   /*********************************************************************************/
   // Backward creating RLI block (backward phase)   Figure 2 (f)
   | (    // RLI generated from TLI and RLI (inside WRLI)
-         s_block=have
+       (  s_block=have
        & nonMaxThreadID( s_ID )
+       )
        & (    s_r=0
            | Sequ_Reach( want, s_r, s_ID, s_G )   // There exists WRLI
          )
@@ -414,12 +614,11 @@ mu bool Sequ_Reach(
                     )
                  &  ( exists          /* Sequ_Reach::@Exists11::@Exists13  */
                           ThreadID  t_ID.
-                         (    (   Sequ_Reach( have, s_r, t_ID, b_G )
-                                & increaseThreadID( s_ID, t_ID )
-                              )
-                            & copy_h_h( s_G, b_G, s_r )
+                         (   Sequ_Reach( have, s_r, t_ID, b_G )
+                             & increaseThreadID( s_ID, t_ID )
                          )
                     )
+                 &  copy_h_h( s_G, b_G, s_r )
               )
          )
     )
@@ -435,15 +634,17 @@ mu bool Sequ_Reach(
 
   /*********************************************************************************/
    // forgetting local states for  each thread
-  | ( exists                    /* Sequ_Reach::@Exists14 */   // Wrong ordering
+  | (
+    s_block=threadnoloc
+    & ( exists                    /* Sequ_Reach::@Exists14 */   // Wrong ordering
           Globals    t_G.
        (    Sequ_Reach( thread, s_r, s_ID, t_G )
-          & Fake_Ordering_All (thread, s_r, s_ID, t_G, s_block, s_r, s_ID, s_G)
-          & (s_block=threadnoloc)
+          & Fake_Ordering_All (thread, s_r, s_ID, t_G, threadnoloc, s_r, s_ID, s_G)
           & (  copy_g_g( t_G, s_G, s_r )
              & copy_h_h( t_G, s_G, s_r )
             )
        )
+     )
     )
 
 /*                                  |------------|
@@ -467,192 +668,234 @@ mu bool Sequ_Reach(
 //    #       #    #       #               #
 //    #       #    #       #######         #
 
-//*************** Round 0
-  |  (
-        (   s_r=0      // Round 0
-          & (s_block=thread)
-        )
-      & (exists        /* Sequ_Reach::@Exists15 */              // There exists an internal state that
-           Globals t_G.
-           (  (  Sequ_Reach( thread, 0, s_ID, t_G )
-              ) & (
-                    CanAssign_0( t_G, s_G )
-                  & copy_g_and_h_0( t_G, s_G )
-              )
-           )
-      )
-    )
+|  ( ( s_block=thread
+       & s_r=0
+     )
+   & (exists
+         Globals t_G,
+         Globals z_G.
+      (  Sequ_Reach( thread, 0, s_ID, t_G )
+       & Internal_Trans( thread, 0, s_ID, z_G )
+        & (
+                s_G.g0 =t_G.g0
+                & s_G.g1 =t_G.g1
+                & s_G.g2 =t_G.g2
+                & s_G.g3 =t_G.g3
 
-  |  (
-        (   s_r=0      // Round 0
-          & (s_block=thread)
-        )
-      & (exists        /* Sequ_Reach::@Exists16 */              // There exists an internal state that
-           Globals t_G.
-           (  (  Sequ_Reach( thread, 0, s_ID, t_G )
-              )
-            & (
-                CanRevoke_0( t_G, s_G )
-              & copy_g_and_h_0( t_G, s_G )
-              )
-           )
-      )
-    )
+                & s_G.h1 =t_G.h1
+                & s_G.h2 =t_G.h2
+                & s_G.h3 =t_G.h3
 
-  |  (
-        (   s_r=0      // Round 0
-          & (s_block=thread)
-        )
-      & (exists        /* Sequ_Reach::@Exists17 */              // There exists an internal state that
-           Globals t_G.
-           (  (  Sequ_Reach( thread, 0, s_ID, t_G )
-              )
-            & (
-                UpdateGlobal_0( t_G, s_G )
-              & copy_g_and_h_0( t_G, s_G )
-              )
-           )
-      )
-    )
+                & t_G.h0 =z_G.g0
+                & t_G.L  =z_G.LP
 
-//*************** Round 1
-  |  (
-        (   s_r=1      // Round 1
-          & (s_block=thread)
-        )
-      & (exists      /* Sequ_Reach::@Exists18 */              // There exists an internal state that
-           Globals t_G.
-           (  (  Sequ_Reach( thread, 1, s_ID, t_G )
-              ) & (
-                    CanAssign_1( t_G, s_G )
-              & copy_g_and_h_1( t_G, s_G )
-              )
-           )
-      )
-    )
- |  (
-        (   s_r=1      // Round 1
-          & (s_block=thread)
-        )
-      & (exists      /* Sequ_Reach::@Exists19 */              // There exists an internal state that
-           Globals t_G.
-           (  (  Sequ_Reach( thread, 1, s_ID, t_G )
-              )
-            & (
-                    CanRevoke_1( t_G, s_G )
-              & copy_g_and_h_1( t_G, s_G )
-              )
-           )
-      )
-    )
- |  (
-        (   s_r=1      // Round 1
-          & (s_block=thread)
-        )
-      & (exists      /* Sequ_Reach::@Exists20 */              // There exists an internal state that
-           Globals t_G.
-           (  (  Sequ_Reach( thread, 1, s_ID, t_G )
-              )
-            & (
-                UpdateGlobal_1( t_G, s_G )
-              & copy_g_and_h_1( t_G, s_G )
-              )
-           )
-      )
-    )
+                & s_G.L  =z_G.L
 
-//*************** Round 2
-  |  (
-        (   s_r=2      // Round 2
-          & (s_block=thread)
-        )
-      & (exists         /* Sequ_Reach::@Exists21 */            // There exists an internal state that
-           Globals t_G.
-           (  (  Sequ_Reach( thread, 2, s_ID, t_G )
-              ) & (
-                    CanAssign_2( t_G, s_G )
-              & copy_g_and_h_2( t_G, s_G )
-              )
-           )
+                & z_G.h0 =s_G.h0
+                & t_G.h0 =t_G.g0
+          )
       )
-    )
- |  (
-        (   s_r=2      // Round 2
-          & (s_block=thread)
-        )
-      & (exists         /* Sequ_Reach::@Exists22 */            // There exists an internal state that
-           Globals t_G.
-           (  (  Sequ_Reach( thread, 2, s_ID, t_G )
-              )
-            & (
-                CanRevoke_2( t_G, s_G )
-              & copy_g_and_h_2( t_G, s_G )
-              )
-           )
-      )
-    )
- |  (
-        (   s_r=2      // Round 2
-          & (s_block=thread)
-        )
-      & (exists         /* Sequ_Reach::@Exists23 */            // There exists an internal state that
-           Globals t_G.
-           (  (  Sequ_Reach( thread, 2, s_ID, t_G )
-              )
-            & (
-                UpdateGlobal_2( t_G, s_G )
-              & copy_g_and_h_2( t_G, s_G )
-              )
-           )
-      )
-    )
+     )
+   )
 
-//*************** Round 3
-  |  (
-        (   s_r=3     // Round 3
-          & (s_block=thread)
-        )
-      & (exists        /* Sequ_Reach::@Exists24 */            // There exists an internal state that
-           Globals t_G.
-           (  (  Sequ_Reach( thread, 3, s_ID, t_G )
-              ) & (
-                    CanAssign_3( t_G, s_G )
-               & copy_g_and_h_3( t_G, s_G )
-              )
-           )
+// |  ( ( s_block=thread
+//        & s_r=0
+//      )
+//    & Internal_Trans( thread, 0, s_ID, s_G )
+//    & (exists
+//          Globals t_G.
+//       (  Sequ_Reach( thread, 0, s_ID, t_G )
+//         & (
+//                   s_G.g0 =t_G.h0
+//                 & s_G.g1 =t_G.g1
+//                 & s_G.g2 =t_G.g2
+//                 & s_G.g3 =t_G.g3
+
+//                 & t_G.h0 =t_G.g0
+
+//                 & s_G.h1 =t_G.h1
+//                 & s_G.h2 =t_G.h2
+//                 & s_G.h3 =t_G.h3
+//                 & t_G.L  =s_G.LP
+//           )
+//       )
+//      )
+//    )
+
+|  ( ( s_block=thread
+       & s_r=1
+     )
+   & (exists
+         Globals t_G,
+         Globals z_G.
+      (  Sequ_Reach( thread, 1, s_ID, t_G )
+       & Internal_Trans( thread, 1, s_ID, z_G )
+        & (
+                s_G.g0 =t_G.g0
+                & s_G.g1 =t_G.g1
+                & s_G.g2 =t_G.g2
+                & s_G.g3 =t_G.g3
+
+
+                & s_G.h0 =t_G.h0
+                & s_G.h2 =t_G.h2
+                & s_G.h3 =t_G.h3
+
+
+                & t_G.h1 =z_G.g1
+                & t_G.L  =z_G.LP
+
+                & s_G.L  =z_G.L
+
+                & z_G.h1 =s_G.h1
+                & t_G.h1 =t_G.g1
+          )
       )
-    )
-  |  (
-        (   s_r=3     // Round 3
-          & (s_block=thread)
-        )
-      & (exists        /* Sequ_Reach::@Exists25 */            // There exists an internal state that
-           Globals t_G.
-           (  (  Sequ_Reach( thread, 3, s_ID, t_G )
-              )
-            & (
-                 CanRevoke_3( t_G, s_G )
-              & copy_g_and_h_3( t_G, s_G )
-              )
-           )
+     )
+   )
+
+// |  ( ( s_block=thread
+//        & s_r=1
+//      )
+//    & Internal_Trans( thread, 1, s_ID, s_G )
+//    & (exists
+//          Globals t_G.
+//       (  Sequ_Reach( thread, 1, s_ID, t_G )
+//         & (
+//                   s_G.g1 =t_G.h1
+//                 & s_G.g0 =t_G.g0
+//                 & s_G.g2 =t_G.g2
+//                 & s_G.g3 =t_G.g3
+
+//                 & t_G.h1 =t_G.g1
+
+//                 & s_G.h0 =t_G.h0
+//                 & s_G.h2 =t_G.h2
+//                 & s_G.h3 =t_G.h3
+//                 & t_G.L  =s_G.LP
+//           )
+//       )
+//      )
+//    )
+
+
+
+|  ( ( s_block=thread
+       & s_r=2
+     )
+   & (exists
+         Globals t_G,
+         Globals z_G.
+      (  Sequ_Reach( thread, 2, s_ID, t_G )
+       & Internal_Trans( thread, 2, s_ID, z_G )
+        & (
+                s_G.g0 =t_G.g0
+                & s_G.g1 =t_G.g1
+                & s_G.g2 =t_G.g2
+                & s_G.g3 =t_G.g3
+
+
+                & s_G.h0 =t_G.h0
+                & s_G.h1 =t_G.h1
+                & s_G.h3 =t_G.h3
+
+
+                & t_G.h2 =z_G.g2
+                & t_G.L  =z_G.LP
+
+                & s_G.L  =z_G.L
+
+                & z_G.h2 =s_G.h2
+                & t_G.h2 =t_G.g2
+          )
       )
-    )
-  |  (
-        (   s_r=3     // Round 3
-          & (s_block=thread)
-        )
-      & (exists        /* Sequ_Reach::@Exists26 */            // There exists an internal state that
-           Globals t_G.
-           (  (  Sequ_Reach( thread, 3, s_ID, t_G )
-              )
-            & (
-                UpdateGlobal_3( t_G, s_G )
-              & copy_g_and_h_3( t_G, s_G )
-              )
-           )
+     )
+   )
+
+// |  ( ( s_block=thread
+//        & s_r=2
+//      )
+//    & Internal_Trans( thread, 2, s_ID, s_G )
+//    & (exists
+//          Globals t_G.
+//       (  Sequ_Reach( thread, 2, s_ID, t_G )
+//         & (
+//                   s_G.g2 =t_G.h2
+//                 & s_G.g0 =t_G.g0
+//                 & s_G.g1 =t_G.g1
+//                 & s_G.g3 =t_G.g3
+
+//                 & t_G.h2 =t_G.g2
+
+//                 & s_G.h0 =t_G.h0
+//                 & s_G.h1 =t_G.h1
+//                 & s_G.h3 =t_G.h3
+//                 & t_G.L  =s_G.LP
+//           )
+//       )
+//      )
+//    )
+
+
+|  ( ( s_block=thread
+       & s_r=3
+     )
+   & (exists
+         Globals t_G,
+         Globals z_G.
+      (  Sequ_Reach( thread, 3, s_ID, t_G )
+       & Internal_Trans( thread, 3, s_ID, z_G )
+        & (
+                s_G.g0 =t_G.g0
+                & s_G.g1 =t_G.g1
+                & s_G.g2 =t_G.g2
+                & s_G.g3 =t_G.g3
+
+
+                & s_G.h0 =t_G.h0
+                & s_G.h1 =t_G.h1
+                & s_G.h2 =t_G.h2
+
+
+                & t_G.h3 =z_G.g3
+                & t_G.L  =z_G.LP
+
+                & s_G.L  =z_G.L
+
+                & z_G.h3 =s_G.h3
+                & t_G.h3 =t_G.g3
+          )
       )
-    )
-);
+     )
+   )
+
+// |  ( ( s_block=thread
+//        & s_r=3
+//      )
+//    & Internal_Trans( thread, 3, s_ID, s_G )
+//    & (exists
+//          Globals t_G.
+//       (  Sequ_Reach( thread, 3, s_ID, t_G )
+//         & (
+//                   s_G.g3 =t_G.h3
+//                 & s_G.g0 =t_G.g0
+//                 & s_G.g1 =t_G.g1
+//                 & s_G.g2 =t_G.g2
+
+//                 & t_G.h3 =t_G.g3
+
+//                 & s_G.h0 =t_G.h0
+//                 & s_G.h1 =t_G.h1
+//                 & s_G.h2 =t_G.h2
+//                 & t_G.L  =s_G.LP
+//           )
+//       )
+//      )
+//    )
+
+
+)
+;
 
 #size Sequ_Reach;
 #timer;
@@ -661,6 +904,8 @@ mu bool Sequ_Reach(
 //                                       Reachabibility check                                         *
 /******************************************************************************************************/
 
+// Uncomment the below line to show witness (if the query is true)
+// #wit
 ( exists
     blocktype  t_block,
     CS         t_r,
@@ -669,10 +914,10 @@ mu bool Sequ_Reach(
     (   Sequ_Reach( t_block, t_r, t_ID, t_G )
       & (
             targetReach( t_ID, t_G.L )
-          & ( t_block=thread )
+          & t_block=thread
         )
     )
 );
 
 
-#timer stop;
+// #timer stop;
