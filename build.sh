@@ -55,14 +55,14 @@ automake -a
 make
 cd ../..
 
-# # Build counterExample module
-# cd src/counterexample
-# aclocal
-# autoconf
-# automake -a
-# ./configure
-# make
-# cd ../..
+# Build counterExample module
+cd src/counterexample
+aclocal
+autoconf
+automake -a
+./configure
+make
+cd ../..
 
 
 # Copy file to build directory

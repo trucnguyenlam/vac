@@ -2,9 +2,10 @@
 #include "varOrd.h"
 #define EXPLODE_THREADID
 #define FORMULA_NEW
+
 // #define HEURISTIC_ORDER
 
-// #define OPTIMIZED_ADMIN
+#define OPTIMIZED_ADMIN
 
 // TODO:
 //    1. Add optimization by only considering updating target of can_revoke rules
@@ -13,7 +14,7 @@
 
 // UPDATE globals in updateglobal
 #define TRANSLATION_TYPE4
-#define ROUNDS 4
+#define ROUNDS 11
 
 // #define TRANSLATION_TYPE5
 
@@ -108,7 +109,7 @@ print_variable_order(FILE * outputFile)
             int j;
             for (j = 0; j < ca_array[i].positive_role_array_size; j++)
             {
-                addEdge(g, ca_array[i].target_role_index, ca_array[i].positive_role_array[j]);
+                addEdge(g, ca_array[i].positive_role_array[j], ca_array[i].target_role_index);
             }
         }
         else
@@ -151,7 +152,7 @@ declare_variables(FILE *outputFile)
     fprintf(outputFile, "};\n\n");
 #endif
     // Declaration of Global variable
-fprintf(outputFile, "class Roles {\n");
+    fprintf(outputFile, "class Roles {\n");
 #ifndef HEURISTIC_ORDER
     for (i = 0; i < role_array_size; ++i)
     {
@@ -160,7 +161,7 @@ fprintf(outputFile, "class Roles {\n");
 #else
     print_variable_order(outputFile);
 #endif
-fprintf(outputFile, "};\n\n");
+    fprintf(outputFile, "};\n\n");
 
 #ifdef TRANSLATION_TYPE4
     fprintf(outputFile, "class Globals{     // Thread interface\n");
@@ -532,6 +533,92 @@ simulate_rules(FILE * outputFile)
 }
 
 static void
+simulate_internal_transitions(FILE * outputFile)
+{
+    int i;
+
+    fprintf(outputFile, "mu bool Sequ_Reach(\n");
+    fprintf(outputFile, " bool       s_fr,\n");
+    fprintf(outputFile, " blocktype  s_block,\n");
+    fprintf(outputFile, " CS         s_r,\n");
+    fprintf(outputFile, " ThreadID   s_ID,\n");
+    fprintf(outputFile, " Globals    s_G\n");
+    fprintf(outputFile, ");\n");
+    fprintf(outputFile, "\n");
+
+    fprintf(outputFile, "mu bool Frontier(\n");
+    fprintf(outputFile, " bool       s_fr,\n");
+    fprintf(outputFile, " blocktype  s_block,\n");
+    fprintf(outputFile, " CS         s_r,\n");
+    fprintf(outputFile, " ThreadID   s_ID,\n");
+    fprintf(outputFile, " Globals    s_G\n");
+    fprintf(outputFile, ")\n");
+    fprintf(outputFile, " s_fr    <  s_block,\n");
+    fprintf(outputFile, " s_block <  s_r,\n");
+    fprintf(outputFile, " s_r     <  s_ID,\n");
+    fprintf(outputFile, " s_ID    <  s_G\n");
+    fprintf(outputFile, "(\n");
+    fprintf(outputFile, "  (exists\n");
+    fprintf(outputFile, "      Globals  t_G.\n");
+    fprintf(outputFile, "   (\n");
+    fprintf(outputFile, "       Sequ_Reach(1, s_block, s_r, s_ID, t_G)        // s is reachable\n");
+    fprintf(outputFile, "    & !Sequ_Reach(0, s_block, s_r, s_ID, t_G)\n");
+    fprintf(outputFile, "    & ( false\n");
+    for (i = 0; i < ROUNDS; i++)
+    {
+        fprintf(outputFile, "      //*************** Round %d\n", i);
+        fprintf(outputFile, "        | ( s_r = %d\n", i);
+        fprintf(outputFile, "            & t_G.L = s_G.LP\n");
+        fprintf(outputFile, "            & s_G.LP = s_G.L\n");
+        fprintf(outputFile, "            & t_G.h%d = s_G.g%d\n", i, i);
+        fprintf(outputFile, "            & s_G.g%d = s_G.h%d\n", i, i);
+        fprintf(outputFile, "        )\n\n");
+    }
+    fprintf(outputFile, "      )\n");
+    fprintf(outputFile, "    )\n");
+    fprintf(outputFile, "  )\n");
+    fprintf(outputFile, ");\n");
+    fprintf(outputFile, "\n");
+
+
+    fprintf(outputFile, "mu bool Internal_Trans(\n");
+    fprintf(outputFile, " blocktype  s_block,\n");
+    fprintf(outputFile, " CS         s_r,\n");
+    fprintf(outputFile, " ThreadID   s_ID,\n");
+    fprintf(outputFile, " Globals    s_G\n");
+    fprintf(outputFile, ")\n");
+    fprintf(outputFile, " s_block <  s_r,\n");
+    fprintf(outputFile, " s_r     <  s_ID,\n");
+    fprintf(outputFile, " s_ID    <  s_G\n");
+    fprintf(outputFile, "( false\n");
+    fprintf(outputFile, "  | Frontier(1, thread, s_r, s_ID, s_G)\n");
+    fprintf(outputFile, "\n");
+    for (i = 0; i < ROUNDS; ++i)
+    {
+        fprintf(outputFile, "//*************** Round %d\n", i);
+        fprintf(outputFile, "  | ( true\n");
+        fprintf(outputFile, "      & ( s_r=%d      // Round %d\n", i, i);
+        fprintf(outputFile, "        )\n");
+        fprintf(outputFile, "      & (exists     // There exists an internal state that\n");
+        fprintf(outputFile, "           Globals t_G.\n");
+        fprintf(outputFile, "           (  (  Internal_Trans( s_block, %d, s_ID, t_G )\n", i);
+        fprintf(outputFile, "                & s_G.LP = t_G.LP\n");
+        fprintf(outputFile, "                & t_G.g%d = s_G.g%d\n", i, i);
+        fprintf(outputFile, "              )\n");
+        fprintf(outputFile, "            & (   CanAssign_%d( t_G, s_G )\n", i);
+        fprintf(outputFile, "                | CanRevoke_%d( t_G, s_G )\n", i);
+        fprintf(outputFile, "                | UpdateGlobal_%d( t_G, s_G )\n", i);
+        fprintf(outputFile, "              )\n");
+        fprintf(outputFile, "           )\n");
+        fprintf(outputFile, "        )\n");
+        fprintf(outputFile, "    )\n");
+    }
+    fprintf(outputFile, ");\n");
+    fprintf(outputFile, "#size Internal_Trans;\n");
+}
+
+
+static void
 copy_formula(FILE * outputFile)
 {
     FILE *formula;
@@ -556,6 +643,7 @@ static void
 mucke_simulate(FILE* outputFile)
 {
     int i;
+    int j;
 
     fprintf(outputFile, "/*--- THREAD FUNCTIONS ----*/\n");
     fprintf(outputFile, "bool increaseThreadID(\n");
@@ -648,9 +736,168 @@ mucke_simulate(FILE* outputFile)
     fprintf(outputFile, ");\n");
     fprintf(outputFile, "#size nonMaxThreadID;\n\n");
 
+
+    fprintf(outputFile, "enum CS {0..%d}; // Round or context switch\n\n", ROUNDS - 1);
+
+    fprintf(outputFile, "bool increaseCS(CS s, CS t) // Increase context-switch counter\n");
+    fprintf(outputFile, "   s ~+ t\n");
+    fprintf(outputFile, "( false\n");
+    for (i = 0; i < ROUNDS - 1; i++)
+    {
+        fprintf(outputFile, "| ( s=%d & t=%d)\n", i, i + 1);
+    }
+    fprintf(outputFile, ");\n\n");
+
+
+    fprintf(outputFile, "bool copy_g_g(Globals s, Globals t, CS r)\n");
+    fprintf(outputFile, " r  <  s,\n");
+    fprintf(outputFile, " s  ~+ t\n");
+    fprintf(outputFile, "( true\n");
+    for (i = 0; i < ROUNDS; i++)
+    {
+        fprintf(outputFile, "& ( s.g%d=t.g%d | (false", i, i);
+        for (j = 0; j < i; j++)
+        {
+            fprintf(outputFile, "| r=%d ", j);
+        }
+        fprintf(outputFile, " ) )\n");
+    }
+    fprintf(outputFile, ");\n\n");
+
+    fprintf(outputFile, "bool copy_h_h(Globals s, Globals t, CS r)\n");
+    fprintf(outputFile, " r  <  s,\n");
+    fprintf(outputFile, " s  ~+ t\n");
+    fprintf(outputFile, "( true\n");
+    for (i = 0; i < ROUNDS; i++)
+    {
+        fprintf(outputFile, "& ( s.h%d=t.h%d | (false", i, i);
+        for (j = 0; j < i; j++)
+        {
+            fprintf(outputFile, "| r=%d ", j);
+        }
+        fprintf(outputFile, " ) )\n");
+    }
+    fprintf(outputFile, ");\n\n");
+
+    fprintf(outputFile, "bool copy_g_h(Globals s, Globals t, CS r)\n");
+    fprintf(outputFile, " r  <  s,\n");
+    fprintf(outputFile, " s  ~+ t\n");
+    fprintf(outputFile, "( true\n");
+    for (i = 0; i < ROUNDS; i++)
+    {
+        fprintf(outputFile, "& ( s.g%d=t.h%d | (false", i, i);
+        for (j = 0; j < i; j++)
+        {
+            fprintf(outputFile, "| r=%d ", j);
+        }
+        fprintf(outputFile, " ) )\n");
+    }
+    fprintf(outputFile, ");\n\n");
+
+    fprintf(outputFile, "bool folding( Globals G,  Globals H, CS r )\n");
+    fprintf(outputFile, " r  < G,\n");
+    fprintf(outputFile, " G ~+ H\n");
+    fprintf(outputFile, "( true\n");
+    for (i = 0; i < ROUNDS - 1; i++)
+    {
+        fprintf(outputFile, "& ( H.h%d=G.g%d ", i, i + 1);
+        for (j = 0; j <= i; j++)
+        {
+            fprintf(outputFile, "| r=%d ", j);
+        }
+        fprintf(outputFile, " )\n");
+    }
+    fprintf(outputFile, ");\n\n");
+
+    fprintf(outputFile, "bool copy_folding_same_round( Globals G, Globals H, CS r )\n");
+    fprintf(outputFile, " r  < G,\n");
+    fprintf(outputFile, " G ~+ H\n");
+    fprintf(outputFile, "(   true\n");
+    for (i = 0; i < ROUNDS; i++)
+    {
+        if (i == 0)
+        {
+            fprintf(outputFile, "& ( H.g0=G.h0 | (false ))\n");
+        }
+        else
+        {
+            fprintf(outputFile, "& ( (H.g%d=G.h%d & H.h%d=G.g%d) | (false ", i, i, i - 1, i);
+            for (j = 0; j < i; j++)
+            {
+                fprintf(outputFile, "| r=%d ", j);
+            }
+            fprintf(outputFile, " ) )\n");
+        }
+    }
+    fprintf(outputFile, ");\n\n");
+
+    fprintf(outputFile, "bool copy_folding_diff_round( Globals G, Globals H, CS r )\n");
+    fprintf(outputFile, " r  < G,\n");
+    fprintf(outputFile, " G ~+ H\n");
+    fprintf(outputFile, "(   true\n");
+    for (i = 0; i < ROUNDS - 1; i++)
+    {
+        fprintf(outputFile, "& ( (H.g%d=G.h%d & H.h%d=G.g%d) | (false ", i, i, i, i + 1);
+        for (j = 0; j <= i; j++)
+        {
+            fprintf(outputFile, "| r=%d ", j);
+        }
+        fprintf(outputFile, " ) )\n");
+    }
+    fprintf(outputFile, ");\n\n");
+
+    fprintf(outputFile, "bool InitGlobals ( Globals G )\n");
+    fprintf(outputFile, "(true \n");
+    for (i = 0; i < ROUNDS; i++)
+    {
+        fprintf(outputFile, " & G.h%d=G.g%d\n", i, i);
+    }
+    fprintf(outputFile, ");\n\n");
+
+    fprintf(outputFile, "enum blocktype {\n");
+    fprintf(outputFile, "                thread,                // TLI\n");
+    fprintf(outputFile, "                threadnoloc,           // TLI with no local\n");
+    fprintf(outputFile, "                want,                  // WRLI\n");
+    fprintf(outputFile, "                have                   // RLI\n");
+    fprintf(outputFile, "               };\n\n");
+
+
+    fprintf(outputFile, "bool copy_g( Globals G, Globals H )\n");
+    fprintf(outputFile, " G ~+ H\n");
+    fprintf(outputFile, "(true\n");
+    for (i = 0; i < ROUNDS; i++)
+    {
+        fprintf(outputFile, "& G.g%d=H.g%d\n", i, i);
+    }
+    fprintf(outputFile, ");\n\n");
+
+    fprintf(outputFile, "bool copy_no_h( Globals G, Globals H, CS r )\n");
+    fprintf(outputFile, "  r  <  G,\n");
+    fprintf(outputFile, "  G  ~+ H\n");
+    fprintf(outputFile, "(true\n");
+    for ( i = 0; i < ROUNDS; ++i)
+    {
+        fprintf(outputFile, "  & ( G.h%d = H.h%d | r=%d )\n", i, i, i);
+    }
+    fprintf(outputFile, ");\n");
+
+    fprintf(outputFile, "bool fixed_in_out( Globals s_G, Globals t_G, Globals z_G , CS r )\n");
+    fprintf(outputFile, "  r    <   s_G,\n");
+    fprintf(outputFile, "  s_G  ~+  t_G,\n");
+    fprintf(outputFile, "  t_G  ~+  z_G\n");
+    fprintf(outputFile, "(false\n");
+    for ( i = 0; i < ROUNDS; ++i)
+    {
+        fprintf(outputFile, "  | ( r=%d & t_G.h%d =z_G.g%d & z_G.h%d =s_G.h%d & t_G.h%d =t_G.g%d)\n",
+            i, i, i, i, i, i, i);
+    }
+    fprintf(outputFile, ");\n");
+
+
+    simulate_internal_transitions(outputFile);
+
     // Copy formula here
     copy_formula(outputFile);
-
 }
 
 

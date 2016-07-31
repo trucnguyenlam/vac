@@ -756,7 +756,7 @@ produce_counter_example(FILE *outputFILE, int silence)
                 }
                 else
                 {
-                    fprintf(stderr, "error: there is some problem with the counter example\n");
+                    fprintf(stderr, "error: there is a problem with the counter example\n");
                     abort();
                 }
 
@@ -772,7 +772,7 @@ produce_counter_example(FILE *outputFILE, int silence)
             }
             else
             {
-                fprintf(stderr, "error: there is some problem with the counter example\n");
+                fprintf(stderr, "error: there is some problem with the counter example %d\n", index);
                 abort();
             }
         }

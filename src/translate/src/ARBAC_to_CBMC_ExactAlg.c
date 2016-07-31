@@ -7,7 +7,7 @@ declare_variables(FILE *outputFile)
 
     fprintf(outputFile, "//---------- VARIABLES DECLARATION ---------\n");
 
-    fprintf(outputFile, "int");
+    fprintf(outputFile, "_Bool");
     for (i = 0; i < NUM_USER_TO_TRACK; i++)
     {
         for (j = 0; j < role_array_size; j++)
