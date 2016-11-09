@@ -10,11 +10,13 @@ main(int argc, char **argv)
     int help_opt = 0;
     char *algo_arg = 0;
     char *format_arg = 0;
+    char *formula_filename = 0;
     char *filename = 0;
 
     static struct option long_options[] = {
         { "algorithm", required_argument, 0, 'a' },
         { "format", required_argument, 0, 'f' },
+        { "formula", required_argument, 0, 'l' },
         { "help", no_argument, 0, 'h'},
         { 0, 0, 0, 0 }
     };
@@ -22,7 +24,7 @@ main(int argc, char **argv)
     while (1)
     {
         int option_index = 0;
-        c = getopt_long(argc, argv, "hf:a:", long_options, &option_index);
+        c = getopt_long(argc, argv, "hf:a:l:", long_options, &option_index);
 
         if (c == -1)
             break;
@@ -44,6 +46,7 @@ main(int argc, char **argv)
                     \n                                      nusmv\
                     \n                                      getafix\
                     \n                                      mucke\
+                    \n-l,--formula <X>                   :Formula for mucke\
                     \n-h,--help                          :This message\
                     \nFILE is the input ARBAC file format\
                     \nFor 'precise' option, there are several formats of {cbmc, moped, hsf, eldarica, smt, nusmv, getafix, mucke}\
@@ -57,6 +60,10 @@ main(int argc, char **argv)
         case 'f':
             format_arg = malloc(strlen(optarg) + 1);
             strcpy(format_arg, optarg);
+            break;
+        case 'l':
+            formula_filename = malloc(strlen(optarg) + 1);
+            strcpy(formula_filename, optarg);
             break;
         default:
             abort();
@@ -104,7 +111,7 @@ main(int argc, char **argv)
             }
             else if (strcmp(format_arg, "mucke") == 0)
             {
-                transform_2_MUCKE_ExactAlg(filename);
+                transform_2_MUCKE_ExactAlg(filename, formula_filename);
             }
             else
             {

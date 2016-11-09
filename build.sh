@@ -29,22 +29,22 @@ if [[ $1 = 'clean' ]]; then
 fi
 
 echo "Compiling source files..."
-# # Build ccl library first
-# cd src/ccl/src
-# make libccl.a
-# cd ..
-# mkdir lib
-# cp src/libccl.a lib
-# cd ../..
+# Build ccl library first
+cd src/ccl/src
+make libccl.a
+cd ..
+mkdir lib
+cp src/libccl.a lib
+cd ../..
 
-# # Build simplify module
-# cd src/simplify
-# aclocal
-# autoconf
-# automake -a
-# ./configure
-# make
-# cd ../..
+# Build simplify module
+cd src/simplify
+aclocal
+autoconf
+automake -a
+./configure
+make
+cd ../..
 
 # Build translate module
 cd src/translate
@@ -75,15 +75,16 @@ echo "Check your machine architecture....."
 if [[ $(uname -m) = 'x86_64' ]]; then
 	echo "64bit"
 	cp tools/bin_64bit/* vac_static/bin
-	mv vac_static/bin/vac.sh vac_static
 else
 	echo "32bit"
 	cp tools/bin_32bit/* vac_static/bin
-	mv vac_static/bin/vac.sh vac_static
 fi
-cp tools/README vac_static
-cp tools/VAC_LICENSE vac_static
+cp tools/vac.sh vac_static
+cp -r tools/formulae vac_static
+
 cp -r tools/licenses vac_static
+cp tools/VAC_LICENSE vac_static
+cp tools/README vac_static
 
 echo "Done."
 echo "You can execute the VAC script from vac.sh in vac_static directory"

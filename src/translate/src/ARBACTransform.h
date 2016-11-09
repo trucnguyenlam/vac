@@ -43,7 +43,7 @@ transform_2_GETAFIX_ExactAlg(char *);
 void
 transform_2_GETAFIX_parallel_ExactAlg(char *);
 void
-transform_2_MUCKE_ExactAlg(char *);
+transform_2_MUCKE_ExactAlg(char *, char *);
 void
 transform_2_CBMC_ExactAlg(char *);
 void

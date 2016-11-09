@@ -6,6 +6,7 @@ cp vac_static/README build/vac_static
 cp vac_static/VAC_LICENSE build/vac_static
 cp -r vac_static/licenses build/vac_static
 cp -r vac_static/bin build/vac_static
+cp -r vac_static/formulae build/vac_static
 cd build
 tar cvf vac_static.tar vac_static
 bzip2 vac_static.tar

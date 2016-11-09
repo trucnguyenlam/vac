@@ -34,3 +34,9 @@
 regression/
 vac_static/
 experiments/
+
+#big files!!!
+vac_64bit.tar.bz2
+VAC.tar.bz2
+
+

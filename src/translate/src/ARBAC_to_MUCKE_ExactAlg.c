@@ -1,7 +1,6 @@
 #include "ARBACExact.h"
 #include "varOrd.h"
 #define EXPLODE_THREADID
-#define FORMULA_NEW
 
 // #define HEURISTIC_ORDER
 
@@ -14,7 +13,7 @@
 
 // UPDATE globals in updateglobal
 #define TRANSLATION_TYPE4
-#define ROUNDS 11
+#define ROUNDS 4
 
 // #define TRANSLATION_TYPE5
 
@@ -619,18 +618,14 @@ simulate_internal_transitions(FILE * outputFile)
 
 
 static void
-copy_formula(FILE * outputFile)
+copy_formula(FILE * outputFile, char* formula_filename)
 {
     FILE *formula;
     char line[1000];
 
-#ifndef FORMULA_NEW
-    if ((formula = fopen("formula.mu", "r")) == NULL)
-#else
-    if ((formula = fopen("formula-new-internal_trans-frontier-optimized.mu", "r")) == NULL)
-#endif
+    if ((formula = fopen(formula_filename, "r")) == NULL)
     {
-        fprintf(stderr, "Cannot open formula file\n");
+        fprintf(stderr, "Cannot open file: %s\n", formula_filename);
     }
 
     while (fgets(line, sizeof line, formula) != NULL)
@@ -896,13 +891,11 @@ mucke_simulate(FILE* outputFile)
 
     simulate_internal_transitions(outputFile);
 
-    // Copy formula here
-    copy_formula(outputFile);
 }
 
 
 void
-transform_2_MUCKE_ExactAlg(char *inputFile)
+transform_2_MUCKE_ExactAlg(char *inputFile, char* formula_filename)
 {
     FILE *outputFile;
     char *newfile = 0;
@@ -926,6 +919,9 @@ transform_2_MUCKE_ExactAlg(char *inputFile)
 
     // Thread simulation
     mucke_simulate(outputFile);
+
+    // Copy formula here
+    copy_formula(outputFile, formula_filename);
 
     fclose(outputFile);
     free(newfile);
