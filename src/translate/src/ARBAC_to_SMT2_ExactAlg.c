@@ -462,14 +462,16 @@ simulate(FILE *outputFile)
 }
 
 void
-transform_2_SMT2_ExactAlg(char *inputFile)
+transform_2_SMT2_ExactAlg(char *inputFile, FILE *outputFile)
 {
+    /*
     FILE *outputFile;
     char *newfile = 0;
 
     newfile = malloc(strlen(inputFile) + strlen("_ExactAlg_SMT.smt2") + 2);
     sprintf(newfile, "%s_ExactAlg_SMT.smt2", inputFile);
     outputFile = fopen(newfile, "w");
+    */
 
     read_ARBAC(inputFile);
 
@@ -491,8 +493,8 @@ transform_2_SMT2_ExactAlg(char *inputFile)
     //Simulation in while loop
     simulate(outputFile);
 
-    fclose(outputFile);
-    free(newfile);
+    //fclose(outputFile);
+    //free(newfile);
     free_data();
     free_precise_temp_data();
 }

@@ -22,9 +22,9 @@ void
 reduction_finiteARBAC(void);
 
 void
-generate_counter_example(int, char**);
+generate_counter_example(char *, char *, char *, FILE *);
 
 void
-generate_counter_example_full(int, char**);
+generate_counter_example_full(char *, char *, char *, char *, char *, FILE *);
 
 #endif /* COUNTEREXAMPLE_H_ */

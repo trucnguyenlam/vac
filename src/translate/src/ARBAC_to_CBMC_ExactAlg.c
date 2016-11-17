@@ -250,13 +250,15 @@ simulate(FILE *outputFile)
 }
 
 void
-transform_2_CBMC_ExactAlg(char *inputFile)
+transform_2_CBMC_ExactAlg(char *inputFile, FILE *outputFile)
 {
+    /*
     FILE *outputFile;
     char *newfile = 0;
     newfile = malloc(strlen(inputFile) + strlen("_ExactAlg_CBMC.c") + 2);
     sprintf(newfile, "%s_ExactAlg_CBMC.c", inputFile);
     outputFile = fopen(newfile, "w");
+    */
 
     read_ARBAC(inputFile);
 
@@ -287,8 +289,8 @@ transform_2_CBMC_ExactAlg(char *inputFile)
     fprintf(outputFile, "\n}\n");
 
     // Cleaning up
-    fclose(outputFile);
-    free(newfile);
+    //fclose(outputFile);
+    //free(newfile);
 
     free_data();
     free_precise_temp_data();

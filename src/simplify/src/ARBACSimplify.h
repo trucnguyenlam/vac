@@ -43,9 +43,10 @@ int trace_array_size;
 // One of the user will become super user
 set promoted_users;
 
-// Log file of the program
-FILE *tmplog;
-FILE *simplifyLog;
+// Temporary files of the program
+FILE *tmp_out;
+FILE *tmp_log;
+FILE *tmp_debug;
 
 // Define the slicing function of ReduceAdmin algorithm
 int

@@ -13,7 +13,7 @@ AC_PROG_CC
 
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-lantlr3c':
-AC_CHECK_LIB([antlr3c], [antlr3AsciiFileStreamNew], [], [echo "antlr3c library is required for this program" exit -1])
+AC_CHECK_LIB([antlr3c], [antlr3AsciiFileStreamNew], [], [echo "antlr3c library is required for this program"; exit -1])
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h])

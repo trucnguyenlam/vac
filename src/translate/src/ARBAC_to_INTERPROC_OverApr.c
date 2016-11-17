@@ -421,14 +421,16 @@ simulation(FILE *out)
 
 // Transform function
 void
-transform_2_INTERPROC_OverApr(char *fileName)
+transform_2_INTERPROC_OverApr(char *fileName, FILE *outputFile)
 {
+	/*
 	FILE *out;
 	char *newfile = 0;
 
 	newfile = malloc(strlen(fileName) + strlen("_OverApx_INTERPROC.cpp") + 2);
 	sprintf(newfile, "%s_OverApx_INTERPROC.cpp", fileName);
 	out = fopen(newfile, "w");
+	*/
 
 	read_ARBAC(fileName);
 
@@ -440,23 +442,24 @@ transform_2_INTERPROC_OverApr(char *fileName)
 	build_user_configurations();
 
 	// Declare variable
-	declare_variables(out);
+	declare_variables(outputFile);
 
 	// Begin main program
-	fprintf(out, "\n//-------------- BEGIN Program --------------------//\n");
-	fprintf(out, "begin\n");
+	fprintf(outputFile, "\n//-------------- BEGIN Program --------------------//\n");
+	fprintf(outputFile, "begin\n");
 
 	// Init data
-	initialize_variables(out);
+	initialize_variables(outputFile);
 
 	// Simulation
-	simulation(out);
+	simulation(outputFile);
 
-	fprintf(out, "end  //End main\n");
+	fprintf(outputFile, "end  //End main\n");
 
 	// End
-	fclose(out);
-	free(newfile);
+	/*
+	fclose(outputFile);
+	free(newfile);*/
 	free_data();
 	free_abstract_temp_data();
 }

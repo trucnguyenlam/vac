@@ -3785,7 +3785,7 @@ _ACEOF
   LIBS="-lantlr3c $LIBS"
 
 else
-  echo "antlr3c library is required for this program" exit -1
+  echo "antlr3c library is required for this program"; exit -1
 fi
 
 

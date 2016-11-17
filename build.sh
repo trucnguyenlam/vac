@@ -1,5 +1,12 @@
 #!/bin/bash
 
+JOBS="-j1"
+
+if [[ $1 = -j* ]] 
+	then JOBS=$1
+fi
+
+
 # Clean built source files
 if [[ $1 = 'clean' ]]; then
 	echo "Cleaning built ..."
@@ -25,13 +32,13 @@ if [[ $1 = 'clean' ]]; then
 	cd ..
 	cd ..
 	# rm -rf vac_static
-	exit 1
+	exit 0
 fi
 
 echo "Compiling source files..."
 # Build ccl library first
 cd src/ccl/src
-make libccl.a
+make libccl.a $JOBS
 cd ..
 mkdir lib
 cp src/libccl.a lib
@@ -43,7 +50,7 @@ aclocal
 autoconf
 automake -a
 ./configure
-make
+make $JOBS
 cd ../..
 
 # Build translate module
@@ -52,7 +59,7 @@ aclocal
 autoconf
 automake -a
 ./configure
-make
+make $JOBS
 cd ../..
 
 # Build counterExample module
@@ -61,7 +68,7 @@ aclocal
 autoconf
 automake -a
 ./configure
-make
+make $JOBS
 cd ../..
 
 
@@ -89,4 +96,4 @@ cp tools/README vac_static
 echo "Done."
 echo "You can execute the VAC script from vac.sh in vac_static directory"
 
-
+exit 0

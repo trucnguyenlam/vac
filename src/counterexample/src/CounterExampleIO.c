@@ -505,9 +505,11 @@ readSimplifyLog(char *inputFile)
     {
         c = readline(input);
     }
+    printf("ping\n");
     while (strcmp(c, "EndR\n") != 0)
     {
         c = readline(input);
+        printf("got: %s\n", c);
         if (strcmp(c, "EndR\n") != 0)
         {
             sscanf(c, "%d -> %d", &original_index, &simplify_index);

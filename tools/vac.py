@@ -43,30 +43,35 @@ Otherwise, it executes SeaHorn for complete analysis.
 '''
     Backend parameter and options
 '''
-backendExec = {}
-backendExec['interproc'] = './bin/interproc'
-backendExec['cbmc'] = './bin/cbmc'
-backendExec['z3'] = './bin/z3'
+backendExec = {
+    'interproc': './bin/interproc',
+    'cbmc': './bin/cbmc',
+    'z3': './bin/z3'
+    }
 
-backendOptions = {}
-backendOptions['interproc'] = ' -domain box '
-backendOptions['cbmc'] = ' --no-unwinding-assertions --unwind '
-backendOptions['z3'] = ' -smt2 '
+backendOptions = {
+    'interproc': ' -domain box ',
+    'cbmc': ' --no-unwinding-assertions --unwind ',
+    'z3': ' -smt2 '
+    }
 
-backendAnswerOK = {}
-backendAnswerOK['interproc'] = 'not safe'
-backendAnswerOK['cbmc'] = 'VERIFICATION SUCCESSFUL'
-backendAnswerOK['z3'] = 'sat'
+backendAnswerOK = {
+    'interproc': 'not safe',
+    'cbmc': 'VERIFICATION SUCCESSFUL',
+    'z3': 'sat'
+    }
 
-backendAnswerFAIL = {}
-backendAnswerFAIL['interproc'] = 'safe'
-backendAnswerFAIL['cbmc'] = 'VERIFICATION FAILED'
-backendAnswerFAIL['z3'] = 'unsat'
+backendAnswerFAIL = {
+    'interproc': 'safe',
+    'cbmc': 'VERIFICATION FAILED',
+    'z3': 'unsat'
+    }
 
-vacexec = {}
-vacexec["simplify"] = './bin/simplify'
-vacexec["translate"] = './bin/translate'
-vacexec["cex"] = './bin/counterexample'
+vacexec = {
+    "simplify":   './bin/simplify',
+    "translate":  './bin/translate',
+    "cex":        './bin/counterexample'
+    }
 
 
 '''

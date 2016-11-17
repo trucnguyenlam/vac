@@ -13,7 +13,7 @@
 
 // UPDATE globals in updateglobal
 #define TRANSLATION_TYPE4
-#define ROUNDS 4
+//#define ROUNDS 4
 
 // #define TRANSLATION_TYPE5
 
@@ -42,6 +42,8 @@
        - merging CanRevoke and CanAssign
 
  */
+
+static int rounds = -1;
 
 static int N_BIT_THREADID = 0;
 
@@ -164,7 +166,7 @@ declare_variables(FILE *outputFile)
 
 #ifdef TRANSLATION_TYPE4
     fprintf(outputFile, "class Globals{     // Thread interface\n");
-    for (i = 0; i < ROUNDS; i++)
+    for (i = 0; i < rounds; i++)
     {
         fprintf(outputFile, " Roles  g%d;\n", i);
         fprintf(outputFile, " Roles  h%d;\n", i);
@@ -173,22 +175,25 @@ declare_variables(FILE *outputFile)
     fprintf(outputFile, " Roles  LP;\n");
     fprintf(outputFile, "}\n");
 
-    for (i = 0; i < ROUNDS; i++)
+    for (i = 0; i < rounds; i++)
     {
         fprintf(outputFile, " g%d  ~+  h%d,\n", i, i);
     }
-    for (i = 0; i < ROUNDS / 2 - 1; i++)
+    for (i = 0; i < rounds / 2 - 1; i++)
     {
         fprintf(outputFile, " h%d  ~+  g%d,\n", i, i + 1);
     }
-    for (i = ROUNDS / 2; i < ROUNDS - 1; i++)
+    for (i = rounds / 2; i < rounds - 1; i++)
     {
         fprintf(outputFile, " h%d  ~+  g%d,\n", i, i + 1);
 
     }
-    fprintf(outputFile, " h%d  ~+  L,\n", ROUNDS / 2 - 1 );
+    int cond = rounds / 2 - 1;
+    if (cond >= 0){
+        fprintf(outputFile, " h%d  ~+  L,\n", cond);
+    }
     fprintf(outputFile, " L   ~+  LP,\n");
-    fprintf(outputFile, " LP   ~+  g%d;\n", ROUNDS / 2);
+    fprintf(outputFile, " LP   ~+  g%d;\n", rounds / 2);
 #endif
 
 }
@@ -330,7 +335,7 @@ simulate_can_assigns(FILE *outputFile)
 {
     int i, l;
     fprintf(outputFile, "/*---------- CAN ASSIGN SIMULATION ---------*/\n");
-    for (l = 0; l < ROUNDS; l++)
+    for (l = 0; l < rounds; l++)
     {
         fprintf(outputFile, "bool CanAssign_%d(\n", l);
         fprintf(outputFile, "   Globals cG,\n");
@@ -408,7 +413,7 @@ simulate_can_revokes(FILE *outputFile)
 {
     int i, l;
     fprintf(outputFile, "/*---------- CAN REVOKE SIMULATION ---------*/\n");
-    for (l = 0; l < ROUNDS; l++)
+    for (l = 0; l < rounds; l++)
     {
         fprintf(outputFile, "bool CanRevoke_%d(\n", l);
         fprintf(outputFile, "   Globals cG,\n");
@@ -434,7 +439,7 @@ simulate_admin_roles(FILE *outputFile)
     int i, l;
 
     fprintf(outputFile, "/*--- ADMIN ROLE CONSISTENCY ----*/\n");
-    for (l = 0; l < ROUNDS ; l++)
+    for (l = 0; l < rounds ; l++)
     {
         fprintf(outputFile, "bool UpdateGlobal_%d(\n", l);
         fprintf(outputFile, "   Globals cG,\n");
@@ -563,7 +568,7 @@ simulate_internal_transitions(FILE * outputFile)
     fprintf(outputFile, "       Sequ_Reach(1, s_block, s_r, s_ID, t_G)        // s is reachable\n");
     fprintf(outputFile, "    & !Sequ_Reach(0, s_block, s_r, s_ID, t_G)\n");
     fprintf(outputFile, "    & ( false\n");
-    for (i = 0; i < ROUNDS; i++)
+    for (i = 0; i < rounds; i++)
     {
         fprintf(outputFile, "      //*************** Round %d\n", i);
         fprintf(outputFile, "        | ( s_r = %d\n", i);
@@ -592,7 +597,7 @@ simulate_internal_transitions(FILE * outputFile)
     fprintf(outputFile, "( false\n");
     fprintf(outputFile, "  | Frontier(1, thread, s_r, s_ID, s_G)\n");
     fprintf(outputFile, "\n");
-    for (i = 0; i < ROUNDS; ++i)
+    for (i = 0; i < rounds; ++i)
     {
         fprintf(outputFile, "//*************** Round %d\n", i);
         fprintf(outputFile, "  | ( true\n");
@@ -732,12 +737,12 @@ mucke_simulate(FILE* outputFile)
     fprintf(outputFile, "#size nonMaxThreadID;\n\n");
 
 
-    fprintf(outputFile, "enum CS {0..%d}; // Round or context switch\n\n", ROUNDS - 1);
+    fprintf(outputFile, "enum CS {0..%d}; // Round or context switch\n\n", rounds - 1);
 
     fprintf(outputFile, "bool increaseCS(CS s, CS t) // Increase context-switch counter\n");
     fprintf(outputFile, "   s ~+ t\n");
     fprintf(outputFile, "( false\n");
-    for (i = 0; i < ROUNDS - 1; i++)
+    for (i = 0; i < rounds - 1; i++)
     {
         fprintf(outputFile, "| ( s=%d & t=%d)\n", i, i + 1);
     }
@@ -748,7 +753,7 @@ mucke_simulate(FILE* outputFile)
     fprintf(outputFile, " r  <  s,\n");
     fprintf(outputFile, " s  ~+ t\n");
     fprintf(outputFile, "( true\n");
-    for (i = 0; i < ROUNDS; i++)
+    for (i = 0; i < rounds; i++)
     {
         fprintf(outputFile, "& ( s.g%d=t.g%d | (false", i, i);
         for (j = 0; j < i; j++)
@@ -763,7 +768,7 @@ mucke_simulate(FILE* outputFile)
     fprintf(outputFile, " r  <  s,\n");
     fprintf(outputFile, " s  ~+ t\n");
     fprintf(outputFile, "( true\n");
-    for (i = 0; i < ROUNDS; i++)
+    for (i = 0; i < rounds; i++)
     {
         fprintf(outputFile, "& ( s.h%d=t.h%d | (false", i, i);
         for (j = 0; j < i; j++)
@@ -778,7 +783,7 @@ mucke_simulate(FILE* outputFile)
     fprintf(outputFile, " r  <  s,\n");
     fprintf(outputFile, " s  ~+ t\n");
     fprintf(outputFile, "( true\n");
-    for (i = 0; i < ROUNDS; i++)
+    for (i = 0; i < rounds; i++)
     {
         fprintf(outputFile, "& ( s.g%d=t.h%d | (false", i, i);
         for (j = 0; j < i; j++)
@@ -793,7 +798,7 @@ mucke_simulate(FILE* outputFile)
     fprintf(outputFile, " r  < G,\n");
     fprintf(outputFile, " G ~+ H\n");
     fprintf(outputFile, "( true\n");
-    for (i = 0; i < ROUNDS - 1; i++)
+    for (i = 0; i < rounds - 1; i++)
     {
         fprintf(outputFile, "& ( H.h%d=G.g%d ", i, i + 1);
         for (j = 0; j <= i; j++)
@@ -808,7 +813,7 @@ mucke_simulate(FILE* outputFile)
     fprintf(outputFile, " r  < G,\n");
     fprintf(outputFile, " G ~+ H\n");
     fprintf(outputFile, "(   true\n");
-    for (i = 0; i < ROUNDS; i++)
+    for (i = 0; i < rounds; i++)
     {
         if (i == 0)
         {
@@ -830,7 +835,7 @@ mucke_simulate(FILE* outputFile)
     fprintf(outputFile, " r  < G,\n");
     fprintf(outputFile, " G ~+ H\n");
     fprintf(outputFile, "(   true\n");
-    for (i = 0; i < ROUNDS - 1; i++)
+    for (i = 0; i < rounds - 1; i++)
     {
         fprintf(outputFile, "& ( (H.g%d=G.h%d & H.h%d=G.g%d) | (false ", i, i, i, i + 1);
         for (j = 0; j <= i; j++)
@@ -843,7 +848,7 @@ mucke_simulate(FILE* outputFile)
 
     fprintf(outputFile, "bool InitGlobals ( Globals G )\n");
     fprintf(outputFile, "(true \n");
-    for (i = 0; i < ROUNDS; i++)
+    for (i = 0; i < rounds; i++)
     {
         fprintf(outputFile, " & G.h%d=G.g%d\n", i, i);
     }
@@ -860,7 +865,7 @@ mucke_simulate(FILE* outputFile)
     fprintf(outputFile, "bool copy_g( Globals G, Globals H )\n");
     fprintf(outputFile, " G ~+ H\n");
     fprintf(outputFile, "(true\n");
-    for (i = 0; i < ROUNDS; i++)
+    for (i = 0; i < rounds; i++)
     {
         fprintf(outputFile, "& G.g%d=H.g%d\n", i, i);
     }
@@ -870,7 +875,7 @@ mucke_simulate(FILE* outputFile)
     fprintf(outputFile, "  r  <  G,\n");
     fprintf(outputFile, "  G  ~+ H\n");
     fprintf(outputFile, "(true\n");
-    for ( i = 0; i < ROUNDS; ++i)
+    for ( i = 0; i < rounds; ++i)
     {
         fprintf(outputFile, "  & ( G.h%d = H.h%d | r=%d )\n", i, i, i);
     }
@@ -881,7 +886,7 @@ mucke_simulate(FILE* outputFile)
     fprintf(outputFile, "  s_G  ~+  t_G,\n");
     fprintf(outputFile, "  t_G  ~+  z_G\n");
     fprintf(outputFile, "(false\n");
-    for ( i = 0; i < ROUNDS; ++i)
+    for ( i = 0; i < rounds; ++i)
     {
         fprintf(outputFile, "  | ( r=%d & t_G.h%d =z_G.g%d & z_G.h%d =s_G.h%d & t_G.h%d =t_G.g%d)\n",
             i, i, i, i, i, i, i);
@@ -895,14 +900,23 @@ mucke_simulate(FILE* outputFile)
 
 
 void
-transform_2_MUCKE_ExactAlg(char *inputFile, char* formula_filename)
+transform_2_MUCKE_ExactAlg(char *inputFile, FILE *outputFile, char* formula_filename, int _rounds)
 {
-    FILE *outputFile;
-    char *newfile = 0;
+    /*FILE *outputFile;
+    char *newfile = 0;*/
 
-    newfile = malloc(strlen(inputFile) + strlen("_ExactAlg_MUCKE.mu") + 2);
+    if (_rounds < 1) {
+        fprintf(stderr, "Cannot simulate a number of rounds < 1\n");
+        exit(EXIT_FAILURE);
+    }
+
+    rounds = _rounds;
+
+    /*newfile = malloc(strlen(inputFile) + strlen("_ExactAlg_MUCKE.mu") + 2);
     sprintf(newfile, "%s_ExactAlg_MUCKE.mu", inputFile);
     outputFile = fopen(newfile, "w");
+    */
+
     read_ARBAC(inputFile);
     // Preprocess the ARBAC Policies
     preprocess(0);
@@ -923,8 +937,8 @@ transform_2_MUCKE_ExactAlg(char *inputFile, char* formula_filename)
     // Copy formula here
     copy_formula(outputFile, formula_filename);
 
-    fclose(outputFile);
-    free(newfile);
+    //fclose(outputFile);
+    //free(newfile);
     free_data();
     free_precise_temp_data();
 }

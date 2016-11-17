@@ -122,6 +122,7 @@ if [[ $# -eq 1 ]]; then
         echo    "                                         eldarica, hsf, nusmv, getafix, mucke"
         echo    "  --unwind=NUMBER                     unwind NUMBER times (CBMC only)"
         echo    "  --bddlib=LIB                        BDD library (MUCKE only)"
+        echo    "  --mucke-rounds=NUMBER               NUMBER of rounds (MUCKE only)"
         echo    "  --formula=FOR                       custom formula for MUCKE (required)"
         echo    "  --print-pruned-policy               print simplified policy"
         echo    "  --print-translated-policy=FORMAT    print the translated program in FORMAT from:"
@@ -140,7 +141,7 @@ if [[ $# -eq 1 ]]; then
 fi
 
 # Specify options
-PARSED_OPTIONS=$(getopt -n "$0" -a -o h -l "help,no-pruning,print-pruned-policy,print-translated-policy:,backend:,unwind:,mohawk,bddlib:,formula:" -- "$@")
+PARSED_OPTIONS=$(getopt -n "$0" -a -o h -l "help,no-pruning,print-pruned-policy,print-translated-policy:,backend:,unwind:,mohawk,bddlib:,formula:,mucke-rounds:" -- "$@")
 
 if [[ $? -ne 0 ]]; then
     echo "Please invoke vac.sh -h for correct usage."
@@ -151,6 +152,7 @@ eval set -- "$PARSED_OPTIONS"
 
 mucke_lib="longbman.so"
 mucke_formula=""
+mucke_rounds=4
 
 while true;
 do
@@ -187,6 +189,16 @@ do
         exit 1
       fi
       shift 2;;
+
+    --mucke-rounds)
+      if [ -n "$2" ]; then
+        mucke_rounds=$2
+      else
+        echo "Please specify the mucke number of rounds. Try vac.sh -h for correct usage."
+        exit 1
+      fi
+      shift 2;;
+
 
     --print-translated-policy)
       print_translated_policy_flag=1
@@ -365,8 +377,12 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
                     echo "Please set formula for MUCKE"
                     exit 1
                 fi
+                if [[ $mucke_rounds -lt 1 ]]; then
+                    echo "MUCKE number of rounds must be greater than 0"
+                    exit 1
+                fi
                 if [[ $no_pruning_flag -eq 1 ]]; then
-                    log2=$(./bin/translate -f mucke -a precise -l $mucke_formula $ARBAC_FILE 2>&1)
+                    log2=$(./bin/translate -f mucke -a precise -l $mucke_formula -r $mucke_rounds $ARBAC_FILE 2>&1)
                     if [[ $log2 =~ 'error' ]]; then
                         echo $log2
                         echo "Please input correct ARBAC file format."
@@ -382,7 +398,7 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
                         rm -rf $ARBAC_FILE"_reduceAdmin.arbac"
                         exit 1
                     fi
-                    ./bin/translate -f mucke -a precise -l $mucke_formula $ARBAC_FILE"_reduceAdmin.arbac"
+                    ./bin/translate -f mucke -a precise -l $mucke_formula -r $mucke_rounds $ARBAC_FILE"_reduceAdmin.arbac"
                     cat $ARBAC_FILE"_ExactAlg_MUCKE.mu"
                 fi
                 ;;
@@ -697,9 +713,13 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
                     echo "Please set formula for MUCKE"
                     exit 1
                 fi
+                if [[ $mucke_rounds -lt 1 ]]; then
+                    echo "MUCKE number of rounds must be greater than 0"
+                    exit 1
+                fi
                 if [[ $no_pruning_flag -eq 1 ]]; then
                     echo "=====> Translation ARBAC policy =====>"
-                    log3=$(./bin/translate -f mucke -a precise -l $mucke_formula $ARBAC_FILE 2>&1)
+                    log3=$(./bin/translate -f mucke -a precise -l $mucke_formula -r $mucke_rounds $ARBAC_FILE 2>&1)
                     if [[ $log3 =~ 'error' ]]; then
                         echo $log3
                         echo "Please input correct ARBAC file format."
@@ -710,7 +730,7 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
                     # Use MUCKE to analyze on Abstract translated file first
                     query_answer=`./bin/mucke -res -bman $mucke_lib $ARBAC_FILE"_ExactAlg_MUCKE.mu"`
                     if [[ ${query_answer} =~ ':   false' ]]; then
-                        echo "The ARBAC policy is safe."
+                        echo "The ARBAC policy may be safe."
                     elif [[ ${query_answer} =~ ':   true' ]]; then
                         echo "The ARBAC policy is not safe."
                     else
@@ -729,12 +749,12 @@ if [[ -e $ARBAC_FILE ]] && [[ -f $ARBAC_FILE ]]; then
                         exit 1
                     fi
                     echo "=====> Translation ARBAC policy =====>"
-                    ./bin/translate -f mucke -a precise -l $mucke_formula $ARBAC_FILE"_reduceAdmin.arbac"
+                    ./bin/translate -f mucke -a precise -l $mucke_formula -r $mucke_rounds $ARBAC_FILE"_reduceAdmin.arbac"
                     echo "=====> Analysis of translated ARBAC policy =====>"
                     # Use MUCKE to analyze on Abstract translated file first
                     query_answer=`./bin/mucke -res -bman $mucke_lib $ARBAC_FILE"_reduceAdmin.arbac_ExactAlg_MUCKE.mu"`
                     if [[ ${query_answer} =~ ':   false' ]]; then
-                        echo "The ARBAC policy is safe."
+                        echo "The ARBAC policy may be safe."
                     elif [[ ${query_answer} =~ ':   true' ]]; then
                         echo "The ARBAC policy is not safe."
                     else

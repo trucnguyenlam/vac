@@ -283,14 +283,18 @@ simulate(FILE *outputFile)
 }
 
 void
-transform_2_GETAFIX_parallel_ExactAlg(char *inputFile)
+transform_2_GETAFIX_parallel_ExactAlg(char *inputFile, FILE *outputFile)
 {
+    /*
     FILE *outputFile;
+    
     char *newfile = 0;
 
     newfile = malloc(strlen(inputFile) + strlen("_ExactAlg_parallel_GETAFIX.bp") + 2);
     sprintf(newfile, "%s_ExactAlg_parallel_GETAFIX.bp", inputFile);
-    outputFile = fopen(newfile, "w");
+    
+    outputFile = fopen(out_name, "w");
+    */
 
     read_ARBAC(inputFile);
 
@@ -307,8 +311,8 @@ transform_2_GETAFIX_parallel_ExactAlg(char *inputFile)
     // Declare threads (for each user, also the simulation)
     simulate(outputFile);
 
-    fclose(outputFile);
-    free(newfile);
+    /*fclose(outputFile);
+    free(newfile);*/
     free_data();
     free_precise_temp_data();
 }

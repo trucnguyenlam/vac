@@ -308,14 +308,16 @@ simulate(FILE *outputFile)
 }
 
 void
-transform_2_NuSMV_ExactAlg(char *inputFile)
+transform_2_NuSMV_ExactAlg(char *inputFile, FILE *outputFile)
 {
+    /*
     FILE *outputFile;
     char *newfile = 0;
 
     newfile = malloc(strlen(inputFile) + strlen("_ExactAlg_NuSMV.smv") + 2);
     sprintf(newfile, "%s_ExactAlg_NuSMV.smv", inputFile);
     outputFile = fopen(newfile, "w");
+    */
 
     read_ARBAC(inputFile);
 
@@ -347,8 +349,8 @@ transform_2_NuSMV_ExactAlg(char *inputFile)
     //Simulation in while loop
     simulate(outputFile);
 
-    fclose(outputFile);
-    free(newfile);
+    //fclose(outputFile);
+    //free(newfile);
 
     free_data();
     free_precise_temp_data();

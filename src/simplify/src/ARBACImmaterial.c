@@ -258,7 +258,7 @@ replace_super(int condition)
     // Replace super in the can_assign and can_revoke
     for (i = 0; i < immaterial_admins.array_size; i++)
     {
-        fprintf(tmplog, "Immaterial administrative role %s is made regular\n", get_role(immaterial_admins.array[i]));
+        fprintf(tmp_log, "Immaterial administrative role %s is made regular\n", get_role(immaterial_admins.array[i]));
         replace_super_help(immaterial_admins.array[i], condition);
     }
 
@@ -354,9 +354,9 @@ immaterial_condition_1()
         {
             flag = 1;
 
-            fprintf(tmplog, "Satisfy immaterial condition 1 ------------------------\n");
-            fprintf(tmplog, "Immaterial administrative role is %s\n", get_role(admin_role_array_index[i]));
-            fprintf(tmplog, "--------------------------------------\n");
+            fprintf(tmp_log, "Satisfy immaterial condition 1 ------------------------\n");
+            fprintf(tmp_log, "Immaterial administrative role is %s\n", get_role(admin_role_array_index[i]));
+            fprintf(tmp_log, "--------------------------------------\n");
 
             immaterial_admins = add_last_element(immaterial_admins, admin_role_array_index[i]);
         }
@@ -374,9 +374,9 @@ immaterial_condition_1()
 static int
 spare()
 {
-    fprintf(tmplog, "----------------------------\n");
-    fprintf(tmplog, "----- SPARE USER CHECK -----\n");
-    fprintf(tmplog, "----------------------------\n");
+    fprintf(tmp_log, "----------------------------\n");
+    fprintf(tmp_log, "----- SPARE USER CHECK -----\n");
+    fprintf(tmp_log, "----------------------------\n");
 
     int i, j, flag = 0;
 
@@ -388,7 +388,7 @@ spare()
         // Remove spare users
         for (j = no_admins + 1; j < equal_config_array[i].array_size; j++)
         {
-            fprintf(tmplog, "Remove spare user %s from the system\n", get_user(equal_config_array[i].array[j]));
+            fprintf(tmp_log, "Remove spare user %s from the system\n", get_user(equal_config_array[i].array[j]));
             flag += remove_user(equal_config_array[i].array[j]);
         }
     }
@@ -436,9 +436,9 @@ immaterial_condition_2()
                     // Show that this successfully find super role
                     flag = 1;
 
-                    fprintf(tmplog, "Satisfy immaterial condition 2 ------------------\n");
-                    fprintf(tmplog, "Immaterial administrative role is %s\n", get_role(admin_role_array_index[i]));
-                    fprintf(tmplog, "--------------------------------------\n");
+                    fprintf(tmp_log, "Satisfy immaterial condition 2 ------------------\n");
+                    fprintf(tmp_log, "Immaterial administrative role is %s\n", get_role(admin_role_array_index[i]));
+                    fprintf(tmp_log, "--------------------------------------\n");
 
                     // Add the last member of equal_config_array[j], which is likely to be removed
                     promoted_users = add_element(promoted_users, equal_config_array[j].array[equal_config_array[j].array_size - 1]);
@@ -466,9 +466,9 @@ immaterial_condition_2()
 int
 immaterial()
 {
-    fprintf(tmplog, "----------------------------\n");
-    fprintf(tmplog, "-- IMMATERIAL ADMIN CHECK --\n");
-    fprintf(tmplog, "----------------------------\n");
+    fprintf(tmp_log, "----------------------------\n");
+    fprintf(tmp_log, "-- IMMATERIAL ADMIN CHECK --\n");
+    fprintf(tmp_log, "----------------------------\n");
 
     // The system does not make sense if there are no user
     if (user_array_size == 0 || role_array_size == 0)

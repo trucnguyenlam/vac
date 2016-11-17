@@ -39,24 +39,24 @@ print_cr_comment_smt2(FILE *, int);
 
 // Precise translate functions
 void
-transform_2_GETAFIX_ExactAlg(char *);
+transform_2_GETAFIX_ExactAlg(char *, FILE *outputFile);
 void
-transform_2_GETAFIX_parallel_ExactAlg(char *);
+transform_2_GETAFIX_parallel_ExactAlg(char *, FILE *outputFile);
 void
-transform_2_MUCKE_ExactAlg(char *, char *);
+transform_2_MUCKE_ExactAlg(char *, FILE *outputFile, char *, int);
 void
-transform_2_CBMC_ExactAlg(char *);
+transform_2_CBMC_ExactAlg(char *, FILE *outputFile);
 void
-transform_2_HSF_ExactAlg(char *);
+transform_2_HSF_ExactAlg(char *, FILE *outputFile);
 void
-transform_2_ELDARICA_ExactAlg(char *);
+transform_2_ELDARICA_ExactAlg(char *, FILE *outputFile);
 void
-transform_2_SMT2_ExactAlg(char *);
+transform_2_SMT2_ExactAlg(char *, FILE *outputFile);
 void
-transform_2_NuSMV_ExactAlg(char *);
+transform_2_NuSMV_ExactAlg(char *, FILE *outputFile);
 
 // Abstract translate functions
 void
-transform_2_INTERPROC_OverApr(char *);
+transform_2_INTERPROC_OverApr(char *, FILE *outputFile);
 
 #endif

@@ -372,14 +372,16 @@ static void simulate(FILE *outputFile)
 }
 
 
-void transform_2_ELDARICA_ExactAlg(char *inputFile)
+void transform_2_ELDARICA_ExactAlg(char *inputFile, FILE *outputFile)
 {
+    /*
     FILE *outputFile;
     char *newfile = 0;
 
     newfile = malloc(strlen(inputFile) + strlen("_ExactAlg_ELDARICA.horn") + 2);
     sprintf(newfile, "%s_ExactAlg_ELDARICA.horn", inputFile);
     outputFile = fopen(newfile, "w");
+    */
 
     read_ARBAC(inputFile);
 
@@ -403,8 +405,8 @@ void transform_2_ELDARICA_ExactAlg(char *inputFile)
     //Simulation in while loop
     simulate(outputFile);
 
-    fclose(outputFile);
-    free(newfile);
+    //fclose(outputFile);
+    //free(newfile);
 
     free_data();
     free_precise_temp_data();
