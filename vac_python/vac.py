@@ -16,11 +16,10 @@ from os import path
 import signal
 import subprocess
 import tempfile
-import threading
 import shutil
 import time
 import functools
-import logging as l
+import logging as L
 
 
 VACDESCRIPTION = '''\
@@ -42,19 +41,65 @@ followed by CBMC (unwind set to 2) to look for a counterexample.
 Otherwise, it executes SeaHorn for complete analysis.
 '''
 
-def exists(f, xs): return reduce (lambda s, x: s if s else f(x), xs, False)
 
-def first(f, xs): return reduce (lambda s, x: x if s is None and f(x) else s, xs, None)
+class Log(object):
+    def __init__(self): pass
+    CRITICAL = 50
+    ERROR = 40
+    WARNING = 30
+    INFO = 20
+    PROFILE = 15
+    DEBUG = 10
+
+    def critical(self, msg):  # , *args, **kwargs):
+        L.log(self.CRITICAL, msg)  # , args, kwargs)
+
+    def error(self, msg):  # , *args, **kwargs):
+        L.log(self.ERROR, msg)  # , args, kwargs)
+
+    def warning(self, msg):  # , *args, **kwargs):
+        L.log(self.WARNING, msg)  # , args, kwargs)
+
+    def info(self, msg):  # , *args, **kwargs):
+        L.log(self.INFO, msg)  # , args, kwargs)
+
+    def profile(self, msg):  # , *args, **kwargs):
+        L.log(self.PROFILE, msg)  # , args, kwargs)
+
+    def debug(self, msg):  # , *args, **kwargs):
+        L.log(self.DEBUG, msg)  # , args, kwargs)
+
+    def exception(self, msg):  # , *args, **kwargs):
+        kwargs['exc_info'] = 1
+        self.error(msg)  # , *args, **kwargs)
+        # L.exception(msg, args, kwargs)
+
+l = Log()
+
+
+def exists(f, xs): return reduce(lambda s, x: s if s else f(x), xs, False)
+
+
+def first(f, xs): return reduce(lambda s, x: x if s is None and f(x) else s, xs, None)
 
 # def merge_dict(a, b):
 #     z = a.copy()
 #     z.update(b)
 #     return z
 
+
 class UnexpectedError(Exception):
     msg = ""
+
     def __init__(self, msg):
         self.msg = msg
+
+
+class MessageError(RuntimeError):
+    message = None
+
+    def __init__(self, message):
+        self.message = message
 
 
 def basename_wo_extension(fname):
@@ -73,6 +118,7 @@ class Result:
     MAYBE_UNSAFE = 4
     ERROR = 5
 
+
 def print_result(result):
     if result is Result.SAFE:
         l.info("The ARBAC policy is safe")
@@ -87,6 +133,7 @@ def print_result(result):
     else:
         l.critical("Analysis returned unexpected value {}".format(result))
 
+
 class Precision:
     def __init__(self): pass
     EXACT = 1
@@ -95,14 +142,15 @@ class Precision:
 
 
 class Solver(object):
-    name               = None  # str
-    tool_name          = None  # str
-    in_suffix          = None  # str
-    precision          = None  # Precision For checking, but not required
-    arguments          = None  # format str
-    res_interp         = None  # [(Result, [str])] # TODO: consider regex
-    cmd_format         = None  # format str
-    translation_format = None # str
+    name = None  # str
+    tool_name = None  # str
+    in_suffix = None  # str
+    precision = None  # Precision For checking, but not required
+    arguments = None  # format str
+    res_interp = None  # [(Result, [regex])]
+    cmd_format = None  # format str
+    translation_format = None  # str
+
     def __init__(self,
                  name,
                  tool_name,
@@ -112,18 +160,18 @@ class Solver(object):
                  res_interp,
                  translation_format,
                  cmd_format="{cmd_path}/{cmd_name} {arguments} {in_file}"):
-        self.name       = name
-        self.tool_name  = tool_name
-        self.in_suffix  = in_suffix
-        self.precision  = precision
-        self.arguments  = arguments
+        self.name = name
+        self.tool_name = tool_name
+        self.in_suffix = in_suffix
+        self.precision = precision
+        self.arguments = arguments
         self.res_interp = res_interp
         self.cmd_format = cmd_format
         self.translation_format = translation_format
         
     def _get_command(self, input_file, other_options=""):
         cmd = self.cmd_format.format(
-                cmd_path=Config.tool_dir,
+                cmd_path=config.tool_dir,
                 cmd_name=self.tool_name,
                 arguments="{} {}".format(self.arguments, other_options),
                 in_file=input_file)
@@ -131,8 +179,8 @@ class Solver(object):
         return cmd
 
     def _find_result(self, str_res):
-        res_p = filter(lambda (_, regexs): exists(lambda reg: reg.match(str_res) is not None, regexs), self.res_interp)
-        res = map(lambda (r, _): r, res_p)
+        res_p = filter(lambda _, regexs: exists(lambda reg: reg.match(str_res) is not None, regexs), self.res_interp)
+        res = map(lambda r, _: r, res_p)
         if len(res) != 1:
             l.error("Got zero o more than one possible results:\n\t{}".format(str(res)))
             raise MessageError("Got zero o more than one possible results:\n\t{}".format(str(res)))
@@ -151,34 +199,32 @@ class Solver(object):
 
             return ret
 
-
     def in_file_name(self):
-        fname = "{}.{}".format(Config.file_prefix, self.in_suffix)
+        fname = "{}.{}".format(config.file_prefix, self.in_suffix)
         return fname
-
 
     def _execute(self, input_file, other_options=""):
         cmd = self._get_command(input_file, other_options)
 
-        retcode, out, err = execute_cmd(cmd, self.name, input_file)
+        retcode, out, err = execute_cmd(cmd, self.name)  # , input_file)
 
         # Check result
         result = self._find_result(out)
 
         return result
 
-    def run(self, other_options = ""):
+    def run(self, other_options=""):
         mucke = self.translation_format.lower() == "mucke"
         options = other_options
         if self.name == "cbmc":
-            options = "--unwind {}".format(Config.unwind)
+            options = "--unwind {}".format(config.unwind)
         elif self.name == "interproc":
-            options = "-widening {} {}".format(Config.interproc_w_delay, Config.interproc_w_steps)
-        translate(Config.simplified_file, self.translation_format, self.in_file_name(), mucke)
+            options = "-widening {} {}".format(config.interproc_w_delay, config.interproc_w_steps)
+        translate(config.simplified_file, self.translation_format, self.in_file_name(), mucke)
         return self._execute(self.in_file_name(), options)
 
 
-def execute_cmd(cmd, name=None, input_file=None):
+def execute_cmd(cmd, name=None):  # , input_file=None):
     can_save = name is None
     if name is None:
         name = cmd
@@ -191,9 +237,9 @@ def execute_cmd(cmd, name=None, input_file=None):
         l.warning("{} got return code {}".format(name, retcode))
     if err is not "":
         l.warning("{} got {}".format(name, err))
-    if Config.preserve_tool_answer and can_save and input_file is not None:
-        out_log = "{}_{}.log".format(Config.file_prefix, name)
-        out_err = "{}_{}.err".format(Config.file_prefix, name)
+    if config.preserve_tool_answer and can_save:  # and input_file is not None:
+        out_log = "{}_{}.log".format(config.file_prefix, name)
+        out_err = "{}_{}.err".format(config.file_prefix, name)
         with open(out_log, 'w') as log_f:
             log_f.write(cmd)
             log_f.write(out)
@@ -202,55 +248,87 @@ def execute_cmd(cmd, name=None, input_file=None):
             err_f.write(err)
     return retcode, out, err
 
+
 def translate(in_file, translator_format, out_file, mucke=False):
     args = "--format {fmt} --out {out} {other}".format(
         fmt=translator_format,
         out=out_file,
-        other="--formula {} --rounds {}".format(Config.mucke_formula, Config.mucke_rounds) if mucke else "")
+        other="--formula {} --rounds {}".format(config.mucke_formula, config.mucke_rounds) if mucke else "")
     cmd = "{cmd_path}/translate {arguments} {in_file}".format(
-        cmd_path=Config.tool_dir,
-        arguments="{} {}".format(args),
+        cmd_path=config.tool_dir,
+        arguments="{}".format(args),
         in_file=in_file)
     l.warning("Got command: {}".format(cmd))
     retval, stdout, stderr = execute_cmd(cmd)
-    if  retval != 0 and \
-        stdout is not "" and \
-        stderr is not "":
+    if retval != 0 and stdout is not "" and stderr is not "":
         raise MessageError(
-            "Translation went wrong... Error in file{f}:\n\tReturn value: {r}\n\tStdout: {o}\n\tStderr: {e}\n\tCmd: {c}".format(
-                f=in_file,
-                r=retval,
-                o=stdout,
-                e=stderr,
-                c=cmd))
+            "Translation went wrong. Error in file{f}:\n\tReturn value: {r}\n\tStdout: {o}\n\tStderr: {e}\n\tCmd: {c}".
+            format(f=in_file,
+                   r=retval,
+                   o=stdout,
+                   e=stderr,
+                   c=cmd))
     return True
 
 
 def simplify():
-    if Config.no_pruning:
+    if config.no_pruning:
         raise MessageError("Should not simplify if --no-pruning")
     else:
         args = "--debug {debug} --logfile {log} --out {out}".format(
-            debug=Config.simplified_debug,
-            log=Config.simplified_log,
-            out=Config.infile)
+            debug=config.simplified_debug,
+            log=config.simplified_log,
+            out=config.simplified_file)
         cmd = "{cmd_path}/simplify {arguments} {in_file}".format(
-            cmd_path=Config.tool_dir,
+            cmd_path=config.tool_dir,
             arguments=args,
-            in_file=Config.simplified_file)
+            in_file=config.infile)
         l.warning("Got command: {}".format(cmd))
         retval, stdout, stderr = execute_cmd(cmd)
-        if  retval != 0 and \
-                        stdout is not "" and \
-                        stderr is not "":
+        if retval != 0 and stdout is not "" and stderr is not "":
             raise MessageError(
-                "Pruning went wrong... Error in file{f}:\n\tReturn value: {r}\n\tStdout: {o}\n\tStderr: {e}\n\tCmd: {c}".format(
-                    f=Config.infile,
-                    r=retval,
-                    o=stdout,
-                    e=stderr,
-                    c=cmd))
+                "Pruning went wrong. Error in file{f}:\n\tReturn value: {r}\n\tStdout: {o}\n\tStderr: {e}\n\tCmd: {c}".
+                format(f=config.infile,
+                       r=retval,
+                       o=stdout,
+                       e=stderr,
+                       c=cmd))
         return True
+
+
+# This should be enhanced
+def build_counterexample():
+    cbmc_in = "{}_counterExample.c".format(config.file_prefix)
+    translate(config.simplified_file, "cbmc", cbmc_in)
+    cbmc_cmd = "{}/cbmc --unwind {} --no-unwinding-assertions --xml-ui {}".format(
+        config.tool_dir,
+        config.counterexample_unwind,
+        config.simplified_file)
+    retval, out, err = execute_cmd(cbmc_cmd, "cbmc_counterexample")
+
+    cbmc_xml = "{}_counterExample.xml".format(config.file_prefix)
+
+    if False:  # check cbmc result
+        pass
+
+    with open(cbmc_xml, 'w') as f:
+        f.write(out)
+
+    counterexample_cmd = \
+        "{dir}/counterexample --cbmc-xml {xml} --cbmc-input {cbmc_in} {other} {orig_input}".format(
+            dir=config.tool_dir,
+            xml=cbmc_xml,
+            cbmc_in=cbmc_in,
+            other="--simplified-policy {} --simplified-debug {}".
+                  format(config.simplified_file, config.simplified_debug) if config.no_pruning else "",
+            orig_input=config.infile)
+
+    _, out, _ = execute_cmd(counterexample_cmd, "counter_example_generation")
+    if out == "":  # check better for counterexample
+        l.warning("Could not find a counterexample")
+        return None
+    # l.info(out)
+    return out
 
 # '''
 #     Backend definitions
@@ -353,7 +431,7 @@ def simplify():
 #              error_msg,
 #              invocation
 #              )
-#cbmc eldarica-2305.jar interproc moped mucke NuSMV qarmc z3
+# cbmc eldarica-2305.jar interproc moped mucke NuSMV qarmc z3
 
 
 backendOptions = {
@@ -381,130 +459,10 @@ vacexec = {
     }
 
 
-'''
-    Process Class
-'''
-
-
-class Command(object):
-    status = None
-    output = stderr = ''
-
-    def __init__(self, cmdline):
-        self.cmd = cmdline
-        self.process = None
-
-    def run(self, timeout):
-        def target():
-            # Thread started
-            self.process = subprocess.Popen(self.cmd, shell=True, preexec_fn=os.setsid, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            self.output, self.stderr = self.process.communicate()
-            # Thread finished
-
-        thread = threading.Thread(target=target)
-
-        try:
-            thread.start()
-            thread.join(timeout)
-            if thread.is_alive():
-                # Terminating process
-                # self.process.terminate()
-                os.killpg(self.process.pid, signal.SIGKILL)
-                thread.join()
-        except KeyboardInterrupt:
-            os.killpg(self.process.pid, signal.SIGKILL)
-            # self.process.kill()
-
-        return self.output, self.stderr, self.process.returncode
-
-
-def saveFile(filename, string):
-    with open(filename, "w") as outfile:
-        outfile.write(string)
-
-
-def checkVACComponent():
-    for f in vacexec:
-        if not os.path.isfile(vacexec[f]):
-            return False
-    return True
-
-
-def defaultAlgorithm(inputfile):
-    print "=====> Simplification ARBAC policy =====>"
-    simplifyCMD = vacexec['simplify'] + ' -g ' + inputfile
-    prunedfile = inputfile + '_reduceAdmin.arbac'
-    debugfile = inputfile + '_debug'
-    cmd = Command(simplifyCMD)
-    out, err, code = cmd.run(86400)
-    if 'error' in (out + err):
-        print out + err
-        print "Error: please input correct ARBAC policy."
-        shutil.rmtree(prunedfile, ignore_errors=True)
-        shutil.rmtree(debugfile, ignore_errors=True)
-
-    print "=====> Translation ARBAC policy =====>"
-    translateCMD = vacexec['translate'] + ' -f interproc -a abstract ' + prunedfile
-    translatedfile = prunedfile + '_OverApx_INTERPROC.cpp'
-    cmd = Command(translateCMD)
-    out, err, code = cmd.run(86400)
-
-    print "=====> Analysis of translated ARBAC policy =====>"
-    verifyCMD = backendExec['interproc'] + backendOptions['interproc'] + translatedfile
-    cmd = Command(verifyCMD)
-    out, err, code = cmd.run(86400)
-    if backendAnswerFAIL['interproc'] in out:
-        print "The ARBAC policy may not be safe."
-        print "===> Under approximate analysis ===>"
-        translateCMD = vacexec['translate'] + ' -f cbmc -a precise ' + prunedfile
-        translatedfile = prunedfile + '_ExactAlg_CBMC.c'
-        cmd = Command(translateCMD)
-        out, err, code = cmd.run(86400)
-
-        verifyCMD = backendExec['cbmc'] + backendOptions['cbmc'] + " 2 --xml-ui " + translatedfile
-        xmllogfile = inputfile + '_log.xml'
-        cmd = Command(verifyCMD)
-        out, err, code = cmd.run(86400)
-        saveFile(xmllogfile, out + err)
-
-        cexCMD = vacexec['cex'] + ' '.join([xmllogfile, translatedfile, prunedfile, debugfile, inputfile])
-        cmd = Command(cexCMD)
-        out, err, code = cmd.run(86400)
-        if 'no Counter Example' in out:
-            print "===> Complete Analysis ===>"
-            translateCMD = vacexec['translate'] + ' -f smt -a precise ' + prunedfile
-            translatedfile = prunedfile + '_ExactAlg_SMT.smt2'
-            cmd = Command(translateCMD)
-            out, err, code = cmd.run(86400)
-            verifyCMD = backendExec['z3'] + backendOptions['z3'] + translatedfile
-            cmd = Command(verifyCMD)
-            out, err, code = cmd.run(86400)
-            if backendAnswerFAIL['z3'] in out:
-                # TODO
-
-
-    elif backendAnswerOK['interproc'] in out:
-        pass
-    else:
-        pass
-
-
-def customAlgorithm(inputfile, args):
-    pass
-
-class Backend():
-    def __init__(self):
-
-
 mucke_bddlibs = ["abcd.so", "longbman.so", "cudd.a"]
 
-class MessageError(RuntimeError):
-    message = None
-    def __init__(self, message):
-        self.message = message
 
-
-class Config:
+class Config(object):
     base_dir = None
     tool_dir = None
     preserve_tool_answer = None
@@ -526,40 +484,48 @@ class Config:
     mucke_bddlib = None
     mucke_rounds = None
     mucke_formula = None
+    show_counterexample = None
+    counterexample_unwind = None
     print_pruned = None
     print_translated = None
     mohawk = None
     profile = None
     verbose = None
     version = None
+    args = None
+
     def __init__(self): pass
+
     def __prepare_parser(self):
         parser = argparse.ArgumentParser(description=VACDESCRIPTION,
                                          epilog=EPILOG,
-                                         formatter_class=argparse.RawDescriptionHelpFormatter,
-                                         usage=argparse.SUPPRESS)
+                                         formatter_class=argparse.RawTextHelpFormatter,
+                                         usage='./%(prog)s [options] input')
         parser.add_argument('infile', type=str, help='input policy')
         parser.add_argument('-d', '--working-dir',
-                            metavar='X', action='store_true', dest='working_dir', type=str,
+                            metavar='X', dest='working_dir', type=str,
                             help="Works in X and do not remove intermediate artifact of the analysis")
-        parser.add_argument('-p', '--preserve-tool-answer',
-                            metavar='X', action='store_true', dest='preserve_tool_answer', default=False,
+        parser.add_argument('-g', '--preserve-tool-answer',
+                            metavar='X', dest='preserve_tool_answer', default=False,
                             help="Preserve all tool answer saving to log files (requires --working-dir)")
         parser.add_argument('-n', '--no-pruning',
                             action='store_true', default=False, dest='no_pruning',
                             help='no simplification procedure (default No)')
         parser.add_argument('-o', '--overapprox-backend',
                             metavar='X', type=str, dest='overapprox_backend', default='interproc',
-                            help='backend for the over-approximate analysis if required {} (default: interproc)'.format(Backends.over_approx_backends_names))
+                            help='backend for the over-approximate analysis if required {} (default: interproc)'.
+                                 format(Backends.over_approx_backends_names))
         parser.add_argument('-u', '--underapprox-backend',
                             metavar='X', type=str, dest='underapprox_backend', default='cbmc',
-                            help='backend for the under-approximate analysis if required {} (default: cbmc)'.format(Backends.under_approx_backends_names))
-        parser.add_argument('-c', '--precise-backend',
+                            help='backend for the under-approximate analysis if required {} (default: cbmc)'.
+                                 format(Backends.under_approx_backends_names))
+        parser.add_argument('-p', '--precise-backend',
                             metavar='X', type=str, dest='precise_backend', default='z3',
-                            help='Backend for the precise analysis if required {} (default: z3)'.format(Backends.precise_backends_names))
+                            help='Backend for the precise analysis if required {} (default: z3)'.
+                                 format(Backends.precise_backends_names))
         parser.add_argument('-b', '--backend',
-                            metavar='X', type=str, dest='backend', default='',
-                            help='Use only backend {}'.format(Backends.all_backends_names))
+                            metavar='X', type=str, dest='backend', default=None,
+                            help='Use only backend X {}'.format(Backends.all_backends_names))
 
         parser.add_argument('--unwind',
                             metavar='X', type=int, dest='unwind', default=2,
@@ -583,12 +549,19 @@ class Config:
                             metavar='X', type=str, dest='mucke_formula', default='super formula',
                             help='Use X as MUCKE formula (MUCKE only)')
 
-        parser.add_argument('-p', '--print-pruned-policy',
+        parser.add_argument('-c', '--show-counterexample',
+                            dest='show_counterexample', default=False, action='store_true',
+                            help='Show counterexample')
+        parser.add_argument('--counterexample-unwind',
+                            dest='counterexample_unwind', default=15,
+                            help='CBMC counterexample unwind (default 15)')
+        parser.add_argument('-s', '--print-pruned-policy',
                             dest='print_pruned', default=False, action='store_true',
                             help='print simplified policy only')
         parser.add_argument('-t', '--print-translated-policy',
-                            metavar='X', dest='print_translated', type=str, action='store_true',
-                            help='print the translated program in the format X only {}'.format(backends))
+                            metavar='X', dest='print_translated', type=str,
+                            help='print the translated program in the format X only {}'.
+                                 format(Backends.all_backends_names))
         parser.add_argument('--mohawk',
                             dest='mohawk', default=False, action='store_true',
                             help='print equivalent Mohawk benchmark')
@@ -602,136 +575,160 @@ class Config:
                             dest='version', default=False, action='store_true',
                             help='Prints the version and exit')
         # Parse the option
-        return parser.parse_args()
+        self.args = parser.parse_args()
 
-    def __select_backends(self, args):
-        ret = first(lambda b: b.name.lower() == args.underapprox_backend.lower(), self.over_approx_backends)
+    def __select_backends(self):
+        ret = first(lambda b: b.name.lower() == self.args.overapprox_backend.lower(), Backends.over_approx_backends)
         # check is redundant, but anyway
         if ret is None:
-            raise MessageError("Wrong over-approximate backend. {} not in list {}".format(Config.underapprox_backend, Backends.over_approx_backends))
+            raise MessageError("Wrong over-approximate backend. {} not in list {}".
+                               format(self.overapprox_backend, Backends.over_approx_backends_names))
         self.overapprox_backend = ret
 
-        ret = first(lambda b: b.name.lower() == args.overapprox_backend.lower(), self.under_approx_backends)
+        ret = first(lambda b: b.name.lower() == self.args.underapprox_backend.lower(), Backends.under_approx_backends)
         # check is redundant, but anyway
         if ret is None:
-            raise MessageError("Wrong under-approximate backend. {} not in list {}".format(Config.overapprox_backend, Backends.under_approx_backends))
+            raise MessageError("Wrong under-approximate backend. {} not in list {}".
+                               format(self.underapprox_backend, Backends.under_approx_backends_names))
         self.underapprox_backend = ret
 
-        ret = first(lambda b: b.name.lower() == args.precise_backend.lower(), self.precise_backends)
+        ret = first(lambda b: b.name.lower() == self.args.precise_backend.lower(), Backends.precise_backends)
         # check is redundant, but anyway
         if ret is None:
-            raise MessageError("Wrong precise backend. {} not in list {}".format(Config.precise_backend, Backends.precise_backends))
+            raise MessageError("Wrong precise backend. {} not in list {}".
+                               format(self.precise_backend, Backends.precise_backends_names))
         self.precise_backend = ret
 
-        ret = first(lambda b: b.name.lower() == args.backend.lower(), self.all_backends)
-        # check is redundant, but anyway
-        if ret is None:
-            raise MessageError("Wrong backend. {} not in list {}".format(Config.backend, Backends.all_backends))
-        self.backend = ret
+        if self.args.backend is not None:
+            ret = first(lambda b: b.name.lower() == self.args.backend.lower(), Backends.all_backends)
+            # check is redundant, but anyway
+            if ret is None:
+                raise MessageError("Wrong backend. {} not in list {}".
+                                   format(self.backend, Backends.all_backends))
+            self.backend = ret
 
     def set_prepare(self):
+        self.__prepare_parser()
 
-        args = self.__prepare_parser()
+        self.check_args()
 
-        self.check_args(args)
+        self.working_dir = self.args.working_dir
+        self.preserve_tool_answer = self.args.preserve_tool_answer
+        self.no_pruning = self.args.no_pruning
+        self.overapprox_backend = self.args.overapprox_backend
+        self.underapprox_backend = self.args.underapprox_backend
+        self.precise_backend = self.args.precise_backend
+        self.backend = self.args.backend
+        self.unwind = self.args.unwind
+        self.interproc_w_delay = self.args.interproc_w_delay
+        self.interproc_w_steps = self.args.interproc_w_steps
+        self.mucke_bddlib = self.args.mucke_bddlib
+        self.mucke_rounds = self.args.mucke_rounds
+        self.mucke_formula = self.args.mucke_formula
+        self.print_pruned = self.args.print_pruned
+        self.print_translated = self.args.print_translated
+        self.mohawk = self.args.mohawk
+        self.profile = self.args.profile
+        self.verbose = self.args.verbose
+        self.version = self.args.version
+        self.show_counterexample = self.args.show_counterexample
+        self.counterexample_unwind = self.args.counterexample_unwind
 
-        self.working_dir            = args.working_dir
-        self.preserve_tool_answer   = args.preserve_tool_answer
-        self.no_pruning             = args.no_pruning
-        self.overapprox_backend     = args.overapprox_backend
-        self.underapprox_backend    = args.underapprox_backend
-        self.precise_backend       = args.complete_backend
-        self.backend                = args.backend
-        self.unwind                 = args.unwind
-        self.interproc_w_delay      = args.interproc_w_delay
-        self.interproc_w_steps      = args.interproc_w_steps
-        self.mucke_bddlib           = args.mucke_bddlib
-        self.mucke_rounds           = args.mucke_rounds
-        self.mucke_formula          = args.mucke_formula
-        self.print_pruned           = args.print_pruned
-        self.print_translated       = args.print_translated
-        self.mohawk                 = args.mohawk
-        self.profile                = args.profile
-        self.verbose                = args.verbose
-        self.version                = args.version
-
-        logging.basicConfig(level=logging.DEBUG if self.verbose else logging.INFO,
+        logging.basicConfig(level=l.DEBUG if self.verbose else l.PROFILE if self.profile else l.INFO,
                             format='[%(levelname)s] %(message)s')
 
         if not self.version:
-            self.__select_backends(args)
+            self.__select_backends()
 
             self.base_dir = os.path.dirname(sys.argv[0])
             self.tool_dir = path.join(self.base_dir, "bin")
 
             if self.working_dir is None:
+                # In this way is not possible to preserve output if in /tmp 
                 self.preserve_artifacts = False
                 self.working_dir = tempfile.mkdtemp(prefix="vac_")
                 l.debug("Working in {}".format(self.working_dir))
             else:
                 self.preserve_artifacts = True
 
-            fname = path.basename(args.infile)
+            # FIXME: tutto rotto...
+            fname = path.basename(self.args.infile)
             self.infile = path.join(self.working_dir, fname)
-            shutil.copy(args.infile, self.infile)
-            self.simplified_file = "{}_simpl.arbac".format(file_name_wo_extension(self.infile))
-            self.simplified_log = "{}_simpl.log".format(file_name_wo_extension(self.infile))
-            self.simplified_debug = "{}_simpl.debug".format(file_name_wo_extension(self.infile))
+            shutil.copy(self.args.infile, self.infile)
+            if self.no_pruning:
+                self.simplified_file = self.infile
+                self.simplified_log = None
+                self.simplified_debug = None
+            else:
+                self.simplified_file = "{}_simpl.arbac".format(file_name_wo_extension(self.infile))
+                self.simplified_log = "{}_simpl.log".format(file_name_wo_extension(self.infile))
+                self.simplified_debug = "{}_simpl.debug".format(file_name_wo_extension(self.infile))
             self.file_prefix = file_name_wo_extension(self.simplified_file)
 
-    def check_args(self, args):
-        if args.infile is None:
+    def check_args(self):
+        if self.args.infile is None:
             raise MessageError("Input argument is missing. (try ./vac.py -h)")
-        if not os.path.isfile(args.infile):
+        if not os.path.isfile(self.args.infile):
             raise MessageError("Input file does not exists")
         # WARNING: Quite restrictive. We can try to create the folder
-        if args.working_dir is not None and os.path.isdir(args.working_dir):
-            raise MessageError("Working directory does not exists.")
+        if self.args.working_dir is not None and not os.path.isdir(path.join(os.getcwd(), self.args.working_dir)):
+            raise MessageError("Working directory {} does not exists.".
+                               format(path.join(os.getcwd(), self.args.working_dir)))
         # WARNING: maybe not needed if you consider searching in /tmp
-        if args.preserve_tool_answer and args.working_dir is None:
+        if self.args.preserve_tool_answer and self.args.working_dir is None:
             raise MessageError("Cannot save tool answer in /tmp.")
 
-        if args.overapprox_backend not in overapprox_backends:
-            raise MessageError("The selected over-approximate backend must be in {}".format(overapprox_backends))
-        if args.underapprox_backend not in underapprox_backends:
-            raise MessageError("The selected under-approximate backend must be in {}".format(underapprox_backends))
-        if args.complete_backend not in complete_backends:
-            raise MessageError("The precise backend backend must be in {}".format(complete_backends))
-        if args.backend is not None and args.backend not in backends:
-            raise MessageError("The selected backend must be in {}".format(backends))
+        if self.args.overapprox_backend not in Backends.over_approx_backends_names:
+            raise MessageError("The selected over-approximate backend must be in {}".
+                               format(Backends.over_approx_backends_names))
+        if self.args.underapprox_backend not in Backends.under_approx_backends_names:
+            raise MessageError("The selected under-approximate backend must be in {}".
+                               format(Backends.under_approx_backends_names))
+        if self.args.precise_backend not in Backends.precise_backends_names:
+            raise MessageError("The precise backend backend must be in {}".
+                               format(Backends.precise_backends_names))
+        if self.args.backend is not None and self.args.backend not in Backends.all_backends_names:
+            raise MessageError("The selected backend must be in {}".format(Backends.all_backends_names))
 
-        if (args.underapprox_backend is "cbmc" or args.backend is "cbmc") and \
-            (args.unwind is None or args.unwind < 1):
+        if (self.args.underapprox_backend is "cbmc" or self.args.backend is "cbmc") and \
+           (self.args.unwind is None or self.args.unwind < 1):
             raise MessageError("CBMC backend requires the unwind option to be greater than 0")
 
-
-        if (args.overapprox_backend is "interproc" or args.backend is "interproc") and \
-                (args.interproc_w_delay is None or args.interproc_w_delay < 1):
+        if (self.args.overapprox_backend is "interproc" or self.args.backend is "interproc") and \
+                (self.args.interproc_w_delay is None or self.args.interproc_w_delay < 1):
             raise MessageError("INTERPROC backend requires the interproc_w_delay option to be greater than 0")
-        if (args.overapprox_backend is "interproc" or args.backend is "interproc") and \
-                (args.interproc_w_steps is None or args.interproc_w_steps < 1):
+        if (self.args.overapprox_backend is "interproc" or self.args.backend is "interproc") and \
+                (self.args.interproc_w_steps is None or self.args.interproc_w_steps < 1):
             raise MessageError("INTERPROC backend requires the interproc_w_steps option to be greater than 0")
 
-        if (args.underapprox_backend is "mucke" or
-            (args.backend is not None and args.backend is "mucke")):
-            if args.mucke_bddlib is None or args.mucke_bddlib not in mucke_bddlibs:
+        if (self.args.underapprox_backend is "mucke" or
+           (self.args.backend is not None and self.args.backend is "mucke")):
+            if self.args.mucke_bddlib is None or self.args.mucke_bddlib not in mucke_bddlibs:
                 raise MessageError("MUCKE backend requires the mucke_bddlib option to be set and in choiches")
-            if args.mucke_rounds is None or args.mucke_rounds < 1:
+            if self.args.mucke_rounds is None or self.args.mucke_rounds < 1:
                 raise MessageError("MUCKE backend requires the mucke_rounds option to be set and greater than 0")
-            if args.mucke_formula is None or not os.path.isfile(args.mucke_formula):
+            if self.args.mucke_formula is None or not os.path.isfile(self.args.mucke_formula):
                 raise MessageError("MUCKE backend requires the mucke_formula option to be a valid file")
 
-        if args.print_translated is not None and args.print_translated not in backends:
-            raise MessageError("The selected format must be in {}".format(backends))
+        if self.args.print_translated is not None and self.args.print_translated not in Backends.all_backends_names:
+            raise MessageError("The selected format must be in {}".format(Backends.all_backends_names))
 
-        if args.print_translated and args.no_pruning:
-            raise MessageError("Cannot print a not pruned policy. Consider cat {}".format(args.infile))
+        if self.args.print_translated and self.args.no_pruning:
+            raise MessageError("Cannot print a not pruned policy. Consider cat {}".format(self.args.infile))
+
+        if self.args.show_counterexample and \
+                (self.args.counterexample_unwind is None or self.args.counterexample_unwind < 1):
+            raise MessageError(
+                "Counterexample CBMC backend requires the counterexample-unwind option to be greater than 0")
+
+
+config = Config()
 
 
 def str_time(timespan):
     hours, rem = divmod(timespan, 3600)
     minutes, seconds = divmod(rem, 60)
-    return "{:0>2}:{:0>2}:{:06.3f}".format(int(hours),int(minutes),seconds)
+    return "{:0>2}:{:0>2}:{:06.3f}".format(int(hours), int(minutes), seconds)
 
 
 def execute_get_time(f, args=None):
@@ -746,98 +743,72 @@ def execute_print_time(f, args, fmt="Operation executed in {}"):
     print(fmt.format(str_time(elapsed)))
     return res
 
-def defaultAlgorithm(inputfile):
-    print "=====> Simplification ARBAC policy =====>"
-    simplifyCMD = vacexec['simplify'] + ' -g ' + inputfile
-    prunedfile = inputfile + '_reduceAdmin.arbac'
-    debugfile = inputfile + '_debug'
-    cmd = Command(simplifyCMD)
-    out, err, code = cmd.run(86400)
-    if 'error' in (out + err):
-        print out + err
-        print "Error: please input correct ARBAC policy."
-        shutil.rmtree(prunedfile, ignore_errors=True)
-        shutil.rmtree(debugfile, ignore_errors=True)
-
-    print "=====> Translation ARBAC policy =====>"
-    translateCMD = vacexec['translate'] + ' -f interproc -a abstract ' + prunedfile
-    translatedfile = prunedfile + '_OverApx_INTERPROC.cpp'
-    cmd = Command(translateCMD)
-    out, err, code = cmd.run(86400)
-
-    print "=====> Analysis of translated ARBAC policy =====>"
-    verifyCMD = backendExec['interproc'] + backendOptions['interproc'] + translatedfile
-    cmd = Command(verifyCMD)
-    out, err, code = cmd.run(86400)
-    if backendAnswerFAIL['interproc'] in out:
-        print "The ARBAC policy may not be safe."
-        print "===> Under approximate analysis ===>"
-        translateCMD = vacexec['translate'] + ' -f cbmc -a precise ' + prunedfile
-        translatedfile = prunedfile + '_ExactAlg_CBMC.c'
-        cmd = Command(translateCMD)
-        out, err, code = cmd.run(86400)
-
-        verifyCMD = backendExec['cbmc'] + backendOptions['cbmc'] + " 2 --xml-ui " + translatedfile
-        xmllogfile = inputfile + '_log.xml'
-        cmd = Command(verifyCMD)
-        out, err, code = cmd.run(86400)
-        saveFile(xmllogfile, out + err)
-
-        cexCMD = vacexec['cex'] + ' '.join([xmllogfile, translatedfile, prunedfile, debugfile, inputfile])
-        cmd = Command(cexCMD)
-        out, err, code = cmd.run(86400)
-        if 'no Counter Example' in out:
-            print "===> Complete Analysis ===>"
-            translateCMD = vacexec['translate'] + ' -f smt -a precise ' + prunedfile
-            translatedfile = prunedfile + '_ExactAlg_SMT.smt2'
-            cmd = Command(translateCMD)
-            out, err, code = cmd.run(86400)
-            verifyCMD = backendExec['z3'] + backendOptions['z3'] + translatedfile
-            cmd = Command(verifyCMD)
-            out, err, code = cmd.run(86400)
-            if backendAnswerFAIL['z3'] in out:
-        # TODO
-
 
 class Backends:
     def __init__(self): pass
-    over_approx_backends = [] # ["interproc"]
-    under_approx_backends = [] # ["cbmc", "mucke"]
-    precise_backends = [] # ["z3", "hsf", "eldarica", "nusmv", "moped", "seahorn"]
+    over_approx_backends = [
+        Solver(name="interproc",
+               tool_name="interproc",
+               in_suffix="simpl",
+               precision=Precision.OVER_APPROX,
+               arguments="-domain box",
+               res_interp=[Result.MAYBE_UNSAFE, [re.compile("The query is not safe")],
+                           Result.SAFE, [re.compile("The query is safe")]],
+               translation_format="interproc")
+    ]
+    under_approx_backends = [
+        Solver(name="cbmc",
+               tool_name="cbmc",
+               in_suffix="c",
+               precision=Precision.UNDER_APPROX,
+               arguments="--no-unwinding-assertions --xml-ui",
+               res_interp=[Result.MAYBE_SAFE, [re.compile("VERIFICATION SUCCESSFUL")],
+                           Result.UNSAFE, [re.compile("VERIFICATION FAILED")]],
+               translation_format="cbmc"),
+        Solver(name="mucke",
+               tool_name="mucke",
+               in_suffix="mu",
+               precision=Precision.UNDER_APPROX,
+               arguments="-ws",
+               res_interp=[Result.MAYBE_SAFE, [re.compile(":   false"),  # enhance
+                                               re.compile("\*\*\* Can't build witness: term not true")],
+                           Result.UNSAFE, [re.compile(":   true"),  # enhance
+                                           re.compile(":[^=]*= \{")]],
+               translation_format="mucke")
+    ]
+    precise_backends = [
+        Solver(name="z3",
+               tool_name="z3",
+               in_suffix="smt2",
+               precision=Precision.EXACT,
+               arguments="-smt2",
+               res_interp=[Result.SAFE, [re.compile("\bsat")],
+                           Result.UNSAFE, [re.compile("unsat")]],
+               translation_format="smt")
+    ]  # ["z3", "hsf", "eldarica", "nusmv", "moped", "seahorn"]
     all_backends = over_approx_backends + under_approx_backends + precise_backends
 
-    def over_approx_backends_names(self):
-        return map(lambda b: b.name, self.over_approx_backends)
-    def under_approx_backends_names(self):
-        return map(lambda b: b.name, self.under_approx_backends)
-    def precise_backends_names(self):
-        return map(lambda b: b.name, self.precise_backends)
-    def all_backends_names(self):
-        return map(lambda b: b.name, self.all_backends)
+    over_approx_backends_names = list(map(lambda b: b.name, over_approx_backends))
+    under_approx_backends_names = list(map(lambda b: b.name, under_approx_backends))
+    precise_backends_names = list(map(lambda b: b.name, precise_backends))
+    all_backends_names = list(map(lambda b: b.name, all_backends))
 
 
-def full_check_simpl():
-    if not Config.no_pruning:
-        l.info("=====> Simplification ARBAC policy =====>")
-        simplify()
-    else:
-        shutil.copy(Config.infile, Config.simplified_file)
-
-def full_check_analysis():
-    l.info("=====> Over approximate analysis of ARBAC policy using {} =====>".format(Config.overapprox_backend.name))
-    overapprox_res = Config.overapprox_backend.run()
+def full_analysis():
+    l.info("=====> Over approximate analysis of ARBAC policy using {} =====>".format(config.overapprox_backend.name))
+    overapprox_res = config.overapprox_backend.run()
     print_result(overapprox_res)
     if overapprox_res == Result.SAFE:
         return False
 
-    l.info("=====> Under approximate analysis of ARBAC policy using {} =====>".format(Config.underapprox_backend.name))
-    underapprox_res = Config.underapprox_backend.run()
+    l.info("=====> Under approximate analysis of ARBAC policy using {} =====>".format(config.underapprox_backend.name))
+    underapprox_res = config.underapprox_backend.run()
     print_result(underapprox_res)
     if underapprox_res == Result.UNSAFE:
         return True
 
-    l.info("=====> Precise analysis of ARBAC policy using {} =====>".format(Config.precise_backend.name))
-    precise_res = Config.precise_backend.run()
+    l.info("=====> Precise analysis of ARBAC policy using {} =====>".format(config.precise_backend.name))
+    precise_res = config.precise_backend.run()
     print_result(precise_res)
     if precise_res == Result.SAFE:
         return False
@@ -846,54 +817,77 @@ def full_check_analysis():
 
     raise UnexpectedError("Should be exited before...")
 
-def full_check_counterexample():
+
+def produce_counterexample():
     l.info("=====> Generating counter example.. =====>")
-    if :
-        #TODO: Continue counterexample
-
-def single_check():
-    if not Config.no_pruning:
-        l.info("=====> Simplification ARBAC policy =====>")
-        simplify()
+    counter_example = build_counterexample()
+    if counter_example is None:
+        l.info("Cannot find the counter example. ")
     else:
-        shutil.copy(Config.infile, Config.simplified_file)
+        l.info("=====> Produce Counter Example ====>")
+        l.info(counter_example)
 
-    l.info("=====> Running analysis of ARBAC policy using {} =====>".format(Config.backend.name))
-    backend_res = Config.backend.run()
+
+def single_analysis():
+    l.info("=====> Running analysis of ARBAC policy using {} =====>".format(config.backend.name))
+    backend_res = config.backend.run()
     print_result(backend_res)
+    return backend_res
 
 
-def at_sig_halt(signal=None, frame=None):
+def analyze():
+
+    if not config.no_pruning:
+        simplify()
+
+    if config.backend is None:
+        analysis_result = full_analysis()
+    else:
+        analysis_result = single_analysis()
+
+    if config.show_counterexample and (analysis_result == Result.UNSAFE or analysis_result == Result.MAYBE_UNSAFE):
+        produce_counterexample()
+    else:
+        l.warning("The ARBAC policy is safe. There is no counterexample.")
+
+
+def at_sig_halt(_signal=None, _frame=None):
+    def ignore(_): pass
+    ignore((_signal, _frame))
     sys.stderr.write("\nKilled by the user.\n")
     clean()
 
 
 def clean():
-    if not Config.preserve_artifacts:
-        shutil.rmtree(Config.working_dir)
+    if not config.preserve_artifacts:
+        shutil.rmtree(config.working_dir)
+
 
 def main():
-    #global config
-    Config.set()
+    try:
+        # global config
+        config.set_prepare()
 
-    if Config.version:
-        print(VACDESCRIPTION)
-        sys.exit(0)
+        if config.version:
+            print(VACDESCRIPTION)
+            sys.exit(0)
 
-    # register anti-panic handlers
-    signal.signal(signal.SIGINT, at_sig_halt)
-    atexit.register(clean)
+        # register anti-panic handlers
+        signal.signal(signal.SIGINT, at_sig_halt)
+        atexit.register(clean)
 
-    # configure how logging should be done
+        # configure how logging should be done
 
-    starttime = time.time()
+        starttime = time.time()
 
-    if len(sys.argv) == 2:
-        defaultAlgorithm(inputfile)
-    else:
-        customAlgorithm(inputfile, args)
+        analyze()
 
-    print "Elapse time: %0.2f" % (time.time() - starttime)
+        print("Elapse time: %0.2f" % (time.time() - starttime))
+
+        exit(0)
+    except MessageError as me:
+        l.critical("{}:\n{}".format(me.message, str(me)))
+        exit(1)
 
 
 if __name__ == '__main__':
