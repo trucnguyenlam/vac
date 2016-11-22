@@ -86,7 +86,7 @@ else
 	echo "32bit"
 	cp tools/bin_32bit/* vac_static/bin
 fi
-cp tools/vac.sh vac_static
+cp tools/vac.py vac_static
 cp -r tools/formulae vac_static
 
 cp -r tools/licenses vac_static
@@ -94,6 +94,6 @@ cp tools/VAC_LICENSE vac_static
 cp tools/README vac_static
 
 echo "Done."
-echo "You can execute the VAC script from vac.sh in vac_static directory"
+echo "You can execute the VAC script from vac.py in vac_static directory"
 
 exit 0

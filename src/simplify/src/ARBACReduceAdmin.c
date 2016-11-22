@@ -81,7 +81,9 @@ tmp_file_to_file(FILE* in, FILE* out) {
     while (!feof(in))
     {
         char c = fgetc(in);
-        fputc(c, out);
+        if (c > -1) {
+            fputc(c, out);
+        }
     }
 }
 
