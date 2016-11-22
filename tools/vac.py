@@ -324,6 +324,7 @@ def simplify():
     if config.no_pruning:
         raise MessageError("Should not simplify if --no-pruning")
     else:
+        l.info("=====> Simplification of the ARBAC policy =====>")
         args = "--debug {debug} --logfile {log} --out {out}".format(
             debug=config.simplified_debug,
             log=config.simplified_log,
