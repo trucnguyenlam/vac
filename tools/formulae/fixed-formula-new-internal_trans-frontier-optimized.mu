@@ -181,14 +181,14 @@ mu bool Sequ_Reach(
              ThreadID t_ID,
              Globals t_G.
           ( true
-            & Sequ_Reach(s_fr, thread, s_r, t_ID, t_G)  // We have a previous thread
+            & Sequ_Reach(s_fr, threadnoloc, s_r, t_ID, t_G)  // We have a previous thread
             & increaseThreadID(t_ID, s_ID)
             & copy_g_h(s_G, t_G, s_r)
             & ( exists
                      Globals a_G.
                   ( true
                   & Sequ_Reach(s_fr, want, s_r, t_ID, a_G)
-                  & copy_g_g(t_G, a_G, s_r)         // not really sure is needed
+                  & copy_g_g(t_G, a_G, s_r)
                   & copy_h_h(s_G, a_G, s_r)         // maybe too strong since I'm constraining h to s_r, 
                                                     // but since are want blocks can be anything
                   )
