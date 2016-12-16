@@ -70,7 +70,7 @@ class Log(object):
         'cyan': '\x1b[96m'
     }
 
-    colorize = True
+    colorize = False
 
     def log(self, level, msg):
         if not self.colorize:
@@ -158,23 +158,33 @@ def file_name_wo_extension(fname):
 
 class Result:
     def __init__(self): pass
-    SAFE = 1
-    UNSAFE = 2
-    MAYBE_SAFE = 3
-    MAYBE_UNSAFE = 4
-    ERROR = 5
+
+    class Safe:
+        def __init__(self): pass
+
+    class Unsafe:
+        def __init__(self): pass
+
+    class MaybeSafe:
+        def __init__(self): pass
+
+    class MaybeUnsafe:
+        def __init__(self): pass
+
+    class Error:
+        def __init__(self): pass
 
 
 def print_result(result):
-    if result is Result.SAFE:
+    if result is Result.Safe:
         l.exact_result("The ARBAC policy is safe")
-    elif result is Result.UNSAFE:
+    elif result is Result.Unsafe:
         l.exact_result("The ARBAC policy is not safe")
-    elif result is Result.MAYBE_SAFE:
+    elif result is Result.MaybeSafe:
         l.result("The ARBAC policy may be safe")
-    elif result is Result.MAYBE_UNSAFE:
+    elif result is Result.MaybeUnsafe:
         l.result("The ARBAC policy may be unsafe")
-    elif result is Result.ERROR:
+    elif result is Result.Error:
         l.result("Error in translation or in this script :)")
     else:
         l.critical("Analysis returned unexpected value {}".format(result))
@@ -182,9 +192,15 @@ def print_result(result):
 
 class Precision:
     def __init__(self): pass
-    EXACT = 1
-    OVER_APPROX = 2
-    UNDER_APPROX = 3
+
+    class Exact:
+        def __init__(self): pass
+
+    class OverApprox:
+        def __init__(self): pass
+
+    class UnderApprox:
+        def __init__(self): pass
 
 
 class Solver(object):
@@ -241,14 +257,14 @@ class Solver(object):
         else:
             # Paranoid checks
             ret = res[0]
-            if self.precision is Precision.EXACT and ret not in [Result.SAFE, Result.UNSAFE]:
+            if self.precision is Precision.Exact and ret not in [Result.Safe, Result.Unsafe]:
                 raise MessageError("Got result: {}, but tool precision is {}.".format(ret, self.precision))
-            if self.precision is Precision.OVER_APPROX and ret not in [Result.SAFE, Result.MAYBE_UNSAFE]:
+            if self.precision is Precision.OverApprox and ret not in [Result.Safe, Result.MaybeUnsafe]:
                 raise MessageError("Got result: {}, but tool precision is {}.".format(ret, self.precision))
-            if self.precision is Precision.UNDER_APPROX and ret not in [Result.MAYBE_SAFE, Result.UNSAFE]:
+            if self.precision is Precision.UnderApprox and ret not in [Result.MaybeSafe, Result.Unsafe]:
                 raise MessageError("Got result: {}, but tool precision is {}.".format(ret, self.precision))
 
-            if ret == Result.ERROR:
+            if ret is Result.Error:
                 raise MessageError("Got result: {}.".format(ret))
 
             return ret
@@ -279,22 +295,22 @@ def execute_cmd(cmd, name=None, accepted_retcodes={0}):
         name = cmd
     l.debug("Running {}".format(cmd))
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = p.communicate()
+    out, err = out.decode(ENCODING), err.decode(ENCODING)
     retcode = p.wait()
-    out = p.stdout.read().decode(ENCODING)
-    err = p.stderr.read().decode(ENCODING)
     if retcode not in accepted_retcodes:
         l.warning("{} got return code {}".format(name, retcode))
-    if err is not u'':
+    if err != u'':
         l.warning("{} got {}".format(name, err))
     if config.preserve_tool_answer and can_save:  # and input_file is not None:
         out_log = "{}_{}.log".format(config.file_prefix, name)
         out_err = "{}_{}.err".format(config.file_prefix, name)
         with open(out_log, 'w') as log_f:
             log_f.write("{}\n".format(cmd))
-            log_f.write(out if out is not u'' else "--- No output produced ---\n")
+            log_f.write(out if out != u'' else "--- No output produced ---\n")
         with open(out_err, 'w') as err_f:
             err_f.write("{}\n".format(cmd))
-            err_f.write(err if err is not u'' else "--- No error produced ---\n")
+            err_f.write(err if err != u'' else "--- No error produced ---\n")
     return retcode, out, err
 
 
@@ -309,7 +325,7 @@ def translate(in_file, translator_format, out_file, mucke=False):
         in_file=in_file)
     l.debug("Got command: {}".format(cmd))
     retval, stdout, stderr = execute_cmd(cmd)
-    if retval != 0 or stderr is not u'':
+    if retval != 0 or stderr != u'':
         raise MessageError(
             "Translation went wrong. Error in file{f}:\n\tCmd: {c}\n\tReturn value: {r}\n\tStdout: {o}\n\tStderr: {e}".
             format(f=in_file,
@@ -335,7 +351,7 @@ def simplify():
             in_file=config.infile)
         l.debug("Got command: {}".format(cmd))
         retval, stdout, stderr = execute_cmd(cmd)
-        if retval != 0 or stderr is not u'':
+        if retval != 0 or stderr != u'':
             raise MessageError(
                 "Pruning went wrong. Error in file{f}:\n\tReturn value: {r}\n\tStdout: {o}\n\tStderr: {e}\n\tCmd: {c}".
                 format(f=config.infile,
@@ -374,7 +390,7 @@ def build_counterexample():
             orig_input=config.infile)
 
     _, out, _ = execute_cmd(counterexample_cmd, "counter_example_generation")
-    if out is u'':  # check better for counterexample
+    if out == u'':  # check better for counterexample
         l.warning("Could not find a counterexample")
         return None
     # l.info(out)
@@ -558,11 +574,14 @@ class Config(object):
         self.__prepare_parser()
 
         # I'm setting the log before checking args because otherwise errors in checking are badly formatted
-        logging.basicConfig(level=l.DEBUG if self.verbose else l.PROFILE if self.profile else l.INFO,
+        logging.basicConfig(level=l.DEBUG if self.args.verbose or self.args.debug else
+                                                                            l.PROFILE if self.args.profile else l.INFO,
                             format='%(message)s')  # format='[%(levelname)s] %(message)s')
         l.colorize = not self.args.no_color
 
         self.check_args()
+
+        # self.__dict__.update(self.args.__dict__)
 
         self.working_dir = self.args.working_dir
         self.preserve_tool_answer = self.args.preserve_tool_answer
@@ -646,19 +665,19 @@ class Config(object):
         if self.args.backend is not None and self.args.backend not in Backends.all_backends_names:
             raise MessageError("The selected backend must be in {}".format(Backends.all_backends_names))
 
-        if (self.args.underapprox_backend is "cbmc" or self.args.backend is "cbmc") and \
+        if (self.args.underapprox_backend == "cbmc" or self.args.backend == "cbmc") and \
            (self.args.unwind is None or self.args.unwind < 1):
             raise MessageError("CBMC backend requires the unwind option to be greater than 0")
 
-        if (self.args.overapprox_backend is "interproc" or self.args.backend is "interproc") and \
+        if (self.args.overapprox_backend == "interproc" or self.args.backend == "interproc") and \
                 (self.args.interproc_w_delay is None or self.args.interproc_w_delay < 1):
             raise MessageError("INTERPROC backend requires the interproc_w_delay option to be greater than 0")
-        if (self.args.overapprox_backend is "interproc" or self.args.backend is "interproc") and \
+        if (self.args.overapprox_backend == "interproc" or self.args.backend == "interproc") and \
                 (self.args.interproc_w_steps is None or self.args.interproc_w_steps < 1):
             raise MessageError("INTERPROC backend requires the interproc_w_steps option to be greater than 0")
 
-        if (self.args.underapprox_backend is "mucke" or
-           (self.args.backend is not None and self.args.backend is "mucke")):
+        if (self.args.underapprox_backend == "mucke" or
+           (self.args.backend is not None and self.args.backend == "mucke")):
             if self.args.mucke_bddlib is None or self.args.mucke_bddlib not in self.MUCKE_BDD_LIBS:
                 raise MessageError("MUCKE backend requires the mucke_bddlib option to be set and in choiches")
             if self.args.mucke_rounds is None or self.args.mucke_rounds < 1:
@@ -706,10 +725,10 @@ class Backends:
         Solver(name="interproc",
                tool_name="interproc",
                in_suffix="simpl",
-               precision=Precision.OVER_APPROX,
+               precision=Precision.OverApprox,
                arguments="-domain box",
-               res_interp=[(Result.MAYBE_UNSAFE, [re.compile("The query is not safe")]),
-                           (Result.SAFE, [re.compile("The query is safe")])],
+               res_interp=[(Result.MaybeUnsafe, [re.compile("The query is not safe")]),
+                           (Result.Safe, [re.compile("The query is safe")])],
                translation_format="interproc",
                runtime_arguments=lambda: "-widening {} {}".format(config.interproc_w_delay, config.interproc_w_steps))
     ]
@@ -717,21 +736,22 @@ class Backends:
         Solver(name="cbmc",
                tool_name="cbmc",
                in_suffix="c",
-               precision=Precision.UNDER_APPROX,
+               precision=Precision.UnderApprox,
                arguments="--no-unwinding-assertions --xml-ui",
-               res_interp=[(Result.MAYBE_SAFE, [re.compile("VERIFICATION SUCCESSFUL")]),
-                           (Result.UNSAFE, [re.compile("VERIFICATION FAILED")])],
+               res_interp=[(Result.MaybeSafe, [re.compile("VERIFICATION SUCCESSFUL")]),
+                           (Result.Unsafe, [re.compile("VERIFICATION FAILED")])],
                translation_format="cbmc",
                runtime_arguments=lambda: "--unwind {}".format(config.unwind),
                accepted_retcodes={0, 10}),
         Solver(name="mucke",
                tool_name="mucke",
                in_suffix="mu",
-               precision=Precision.UNDER_APPROX,
+               precision=Precision.UnderApprox,
                arguments="-ws",
-               res_interp=[(Result.MAYBE_SAFE, [re.compile(":   false"),  # enhance
+               runtime_arguments=lambda: "-bman {}".format(config.mucke_bddlib),
+               res_interp=[(Result.MaybeSafe, [re.compile(":   false"),  # enhance
                                                 re.compile("\*\*\* Can't build witness: term not true")]),
-                           (Result.UNSAFE, [re.compile(":   true"),  # enhance
+                           (Result.Unsafe, [re.compile(":   true"),  # enhance
                                             re.compile(":[^=]*= \{")])],
                translation_format="mucke")
     ]
@@ -740,43 +760,43 @@ class Backends:
         Solver(name="z3",
                tool_name="z3",
                in_suffix="smt2",
-               precision=Precision.EXACT,
+               precision=Precision.Exact,
                arguments="-smt2",
-               res_interp=[(Result.SAFE, [re.compile("\bsat")]),
-                           (Result.UNSAFE, [re.compile("unsat")])],
+               res_interp=[(Result.Safe, [re.compile("\bsat")]),
+                           (Result.Unsafe, [re.compile("unsat")])],
                translation_format="smt"),
         Solver(name="hsf",
                tool_name="qarmc",
                in_suffix="hsf",
-               precision=Precision.EXACT,
+               precision=Precision.Exact,
                arguments="",
-               res_interp=[(Result.SAFE, [re.compile("program is correct")]),
-                           (Result.UNSAFE, [re.compile("program is not correct")])],
+               res_interp=[(Result.Safe, [re.compile("program is correct")]),
+                           (Result.Unsafe, [re.compile("program is not correct")])],
                translation_format="hsf"),
         Solver(name="eldarica",
                tool_name="eldarica-2063.jar",
                in_suffix="horn",
-               precision=Precision.EXACT,
+               precision=Precision.Exact,
                arguments="-horn -hin -princess -bup -n",
-               res_interp=[(Result.SAFE, [re.compile("\nSOLVABLE")]),
-                           (Result.UNSAFE, [re.compile("NOT SOLVABLE")])],
+               res_interp=[(Result.Safe, [re.compile("\nSOLVABLE")]),
+                           (Result.Unsafe, [re.compile("NOT SOLVABLE")])],
                translation_format="eldarica",
                cmd_format="java -jar {tool_path}/{tool_name} {arguments} {in_file}"),
         Solver(name="nusmv",
                tool_name="NuSMV",
                in_suffix="nusmv",
-               precision=Precision.EXACT,
+               precision=Precision.Exact,
                arguments="",
-               res_interp=[(Result.SAFE, [re.compile("-- specification.*is true")]),
-                           (Result.UNSAFE, [re.compile("-- specification.*is false")])],
+               res_interp=[(Result.Safe, [re.compile("-- specification.*is true")]),
+                           (Result.Unsafe, [re.compile("-- specification.*is false")])],
                translation_format="smv"),
         Solver(name="moped",
                tool_name="moped",
                in_suffix="bp",
-               precision=Precision.EXACT,
+               precision=Precision.Exact,
                arguments="-b",
-               res_interp=[(Result.SAFE, [re.compile("Reachable.")]),
-                           (Result.UNSAFE, [re.compile("Not reachable.")])],
+               res_interp=[(Result.Safe, [re.compile("Reachable.")]),
+                           (Result.Unsafe, [re.compile("Not reachable.")])],
                translation_format="moped")
     ]  # ["z3", "hsf", "eldarica", "nusmv", "moped", "seahorn"]
 
@@ -792,21 +812,21 @@ def full_analysis():
     l.info("=====> Over approximate analysis of ARBAC policy using {} =====>".format(config.overapprox_backend.name))
     overapprox_res = config.overapprox_backend.run()
     print_result(overapprox_res)
-    if overapprox_res == Result.SAFE:
+    if overapprox_res is Result.Safe:
         return False
 
     l.info("=====> Under approximate analysis of ARBAC policy using {} =====>".format(config.underapprox_backend.name))
     underapprox_res = config.underapprox_backend.run()
     print_result(underapprox_res)
-    if underapprox_res == Result.UNSAFE:
+    if underapprox_res is Result.Unsafe:
         return True
 
     l.info("=====> Precise analysis of ARBAC policy using {} =====>".format(config.precise_backend.name))
     precise_res = config.precise_backend.run()
     print_result(precise_res)
-    if precise_res == Result.SAFE:
+    if precise_res is Result.Safe:
         return False
-    elif precise_res == Result.UNSAFE:
+    elif precise_res is Result.Unsafe:
         return True
 
     raise UnexpectedError("Should be exited before...")
@@ -839,7 +859,7 @@ def analyze():
         analysis_result = single_analysis()
 
     if config.show_counterexample:
-        if analysis_result == Result.UNSAFE or analysis_result == Result.MAYBE_UNSAFE:
+        if analysis_result is Result.Unsafe or analysis_result is Result.MaybeUnsafe:
             produce_counterexample()
         else:
             l.warning("The ARBAC policy is safe. There is no counterexample.")
@@ -850,15 +870,21 @@ def at_sig_halt(_signal=None, _frame=None):
     ignore((_signal, _frame))
     sys.stderr.write("\nKilled by the user.\n")
     clean()
+    exit(3)
 
 
 def clean():
     if not config.preserve_artifacts:
-        shutil.rmtree(config.working_dir)
+        try:
+            shutil.rmtree(config.working_dir)
+        except:
+            l.warning("Not able to delete temporary folder: {}".format(config.working_dir))
+            pass
 
 
 def main():
     try:
+        logging.basicConfig(level=l.RESULT, format='%(message)s')  # Will be reset during argparsing
         # global config
         config.set_prepare()
 
