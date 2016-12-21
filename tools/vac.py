@@ -884,7 +884,7 @@ def clean():
 
 def main():
     try:
-        logging.basicConfig(level=l.RESULT, format='%(message)s')  # Will be reset during argparsing
+        # logging.basicConfig(level=l.RESULT, format='%(message)s')  # Will be reset during argparsing
         # global config
         config.set_prepare()
 
