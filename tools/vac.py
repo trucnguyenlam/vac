@@ -789,7 +789,7 @@ class Backends:
                arguments="",
                res_interp=[(Result.Safe, [re.compile("-- specification.*is true")]),
                            (Result.Unsafe, [re.compile("-- specification.*is false")])],
-               translation_format="smv"),
+               translation_format="nusmv"),
         Solver(name="moped",
                tool_name="moped",
                in_suffix="bp",
@@ -911,3 +911,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+# TODO: ssupport --print-pruned-policy

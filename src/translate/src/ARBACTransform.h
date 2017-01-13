@@ -43,7 +43,11 @@ transform_2_GETAFIX_ExactAlg(char *, FILE *outputFile);
 void
 transform_2_GETAFIX_parallel_ExactAlg(char *, FILE *outputFile);
 void
-transform_2_MUCKE_ExactAlg(char *, FILE *outputFile, char *, int);
+transform_2_MUCKE_CAV2010(char *, FILE *outputFile, char *, int);
+void
+transform_2_MUCKE_ExactAlg(char *, FILE *outputFile/*, char **/);
+void
+transform_2_lazycseq(char *, FILE *outputFile, int rounds, int steps);
 void
 transform_2_CBMC_ExactAlg(char *, FILE *outputFile);
 void

@@ -106,6 +106,8 @@ am_translate_OBJECTS = translate-ARBACLexer.$(OBJEXT) \
 	translate-ARBAC_to_GETAFIX_ExactAlg.$(OBJEXT) \
 	translate-ARBAC_to_GETAFIX_parallel_ExactAlg.$(OBJEXT) \
 	translate-ARBAC_to_MUCKE_ExactAlg.$(OBJEXT) \
+	translate-ARBAC_to_MUCKE_CAV.$(OBJEXT) \
+	translate-ARBAC_to_ConcurC.$(OBJEXT) \
 	translate-ARBAC_to_CBMC_ExactAlg.$(OBJEXT) \
 	translate-ARBAC_to_INTERPROC_OverApr.$(OBJEXT) \
 	translate-ARBAC_to_HSF_ExactAlg.$(OBJEXT) \
@@ -278,6 +280,8 @@ translate_SOURCES = ARBACLexer.c \
 					ARBAC_to_GETAFIX_ExactAlg.c \
 					ARBAC_to_GETAFIX_parallel_ExactAlg.c \
 					ARBAC_to_MUCKE_ExactAlg.c \
+					ARBAC_to_MUCKE_CAV.c \
+					ARBAC_to_ConcurC.c \
 					ARBAC_to_CBMC_ExactAlg.c \
 					ARBAC_to_INTERPROC_OverApr.c \
 					ARBAC_to_HSF_ExactAlg.c \
@@ -380,11 +384,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBACTransform.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBACUtil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_CBMC_ExactAlg.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_ConcurC.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_ELDARICA_ExactAlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_GETAFIX_ExactAlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_GETAFIX_parallel_ExactAlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_HSF_ExactAlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_INTERPROC_OverApr.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_MUCKE_CAV.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_MUCKE_ExactAlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_NuSMV_ExactAlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_SMT2_ExactAlg.Po@am__quote@
@@ -543,6 +549,34 @@ translate-ARBAC_to_MUCKE_ExactAlg.obj: ARBAC_to_MUCKE_ExactAlg.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ARBAC_to_MUCKE_ExactAlg.c' object='translate-ARBAC_to_MUCKE_ExactAlg.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-ARBAC_to_MUCKE_ExactAlg.obj `if test -f 'ARBAC_to_MUCKE_ExactAlg.c'; then $(CYGPATH_W) 'ARBAC_to_MUCKE_ExactAlg.c'; else $(CYGPATH_W) '$(srcdir)/ARBAC_to_MUCKE_ExactAlg.c'; fi`
+
+translate-ARBAC_to_MUCKE_CAV.o: ARBAC_to_MUCKE_CAV.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -MT translate-ARBAC_to_MUCKE_CAV.o -MD -MP -MF $(DEPDIR)/translate-ARBAC_to_MUCKE_CAV.Tpo -c -o translate-ARBAC_to_MUCKE_CAV.o `test -f 'ARBAC_to_MUCKE_CAV.c' || echo '$(srcdir)/'`ARBAC_to_MUCKE_CAV.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/translate-ARBAC_to_MUCKE_CAV.Tpo $(DEPDIR)/translate-ARBAC_to_MUCKE_CAV.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ARBAC_to_MUCKE_CAV.c' object='translate-ARBAC_to_MUCKE_CAV.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-ARBAC_to_MUCKE_CAV.o `test -f 'ARBAC_to_MUCKE_CAV.c' || echo '$(srcdir)/'`ARBAC_to_MUCKE_CAV.c
+
+translate-ARBAC_to_MUCKE_CAV.obj: ARBAC_to_MUCKE_CAV.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -MT translate-ARBAC_to_MUCKE_CAV.obj -MD -MP -MF $(DEPDIR)/translate-ARBAC_to_MUCKE_CAV.Tpo -c -o translate-ARBAC_to_MUCKE_CAV.obj `if test -f 'ARBAC_to_MUCKE_CAV.c'; then $(CYGPATH_W) 'ARBAC_to_MUCKE_CAV.c'; else $(CYGPATH_W) '$(srcdir)/ARBAC_to_MUCKE_CAV.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/translate-ARBAC_to_MUCKE_CAV.Tpo $(DEPDIR)/translate-ARBAC_to_MUCKE_CAV.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ARBAC_to_MUCKE_CAV.c' object='translate-ARBAC_to_MUCKE_CAV.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-ARBAC_to_MUCKE_CAV.obj `if test -f 'ARBAC_to_MUCKE_CAV.c'; then $(CYGPATH_W) 'ARBAC_to_MUCKE_CAV.c'; else $(CYGPATH_W) '$(srcdir)/ARBAC_to_MUCKE_CAV.c'; fi`
+
+translate-ARBAC_to_ConcurC.o: ARBAC_to_ConcurC.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -MT translate-ARBAC_to_ConcurC.o -MD -MP -MF $(DEPDIR)/translate-ARBAC_to_ConcurC.Tpo -c -o translate-ARBAC_to_ConcurC.o `test -f 'ARBAC_to_ConcurC.c' || echo '$(srcdir)/'`ARBAC_to_ConcurC.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/translate-ARBAC_to_ConcurC.Tpo $(DEPDIR)/translate-ARBAC_to_ConcurC.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ARBAC_to_ConcurC.c' object='translate-ARBAC_to_ConcurC.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-ARBAC_to_ConcurC.o `test -f 'ARBAC_to_ConcurC.c' || echo '$(srcdir)/'`ARBAC_to_ConcurC.c
+
+translate-ARBAC_to_ConcurC.obj: ARBAC_to_ConcurC.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -MT translate-ARBAC_to_ConcurC.obj -MD -MP -MF $(DEPDIR)/translate-ARBAC_to_ConcurC.Tpo -c -o translate-ARBAC_to_ConcurC.obj `if test -f 'ARBAC_to_ConcurC.c'; then $(CYGPATH_W) 'ARBAC_to_ConcurC.c'; else $(CYGPATH_W) '$(srcdir)/ARBAC_to_ConcurC.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/translate-ARBAC_to_ConcurC.Tpo $(DEPDIR)/translate-ARBAC_to_ConcurC.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ARBAC_to_ConcurC.c' object='translate-ARBAC_to_ConcurC.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-ARBAC_to_ConcurC.obj `if test -f 'ARBAC_to_ConcurC.c'; then $(CYGPATH_W) 'ARBAC_to_ConcurC.c'; else $(CYGPATH_W) '$(srcdir)/ARBAC_to_ConcurC.c'; fi`
 
 translate-ARBAC_to_CBMC_ExactAlg.o: ARBAC_to_CBMC_ExactAlg.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -MT translate-ARBAC_to_CBMC_ExactAlg.o -MD -MP -MF $(DEPDIR)/translate-ARBAC_to_CBMC_ExactAlg.Tpo -c -o translate-ARBAC_to_CBMC_ExactAlg.o `test -f 'ARBAC_to_CBMC_ExactAlg.c' || echo '$(srcdir)/'`ARBAC_to_CBMC_ExactAlg.c

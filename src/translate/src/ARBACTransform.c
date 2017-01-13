@@ -19,7 +19,8 @@ main(int argc, char **argv)
     char *formula_filename = 0;
     char *filename = 0;
     char *out_name = NULL;
-    int mucke_rounds = -1;
+    int rounds = -1;
+    int steps = -1;
 
     static struct option long_options[] = {
         { "out", required_argument, 0, 'o' },
@@ -27,6 +28,7 @@ main(int argc, char **argv)
         { "format", required_argument, 0, 'f' },
         { "formula", required_argument, 0, 'l' },
         { "rounds", required_argument, 0, 'r' },
+        { "steps", required_argument, 0, 'r' },
         { "help", no_argument, 0, 'h'},
         { 0, 0, 0, 0 }
     };
@@ -34,7 +36,7 @@ main(int argc, char **argv)
     while (1)
     {
         int option_index = 0;
-        c = getopt_long(argc, argv, "hf:a:l:r:o:", long_options, &option_index);
+        c = getopt_long(argc, argv, "hf:a:l:r:s:o:", long_options, &option_index);
 
         if (c == -1)
             break;
@@ -57,11 +59,14 @@ main(int argc, char **argv)
                     \n                                      nusmv\
                     \n                                      getafix\
                     \n                                      mucke\
+                    \n                                      mucke-cav\
+                    \n                                      lazycseq\
                     \n-l,--formula <X>                   :Formula for mucke\
-                    \n-r,--rounds <X>                    :Number of mucke rounds\
+                    \n-r,--rounds <X>                    :Number of rounds (mucke-cav and lazycseq only)\
+                    \n-s,--steps <X>                     :Number of steps (lazycseq only)\
                     \n-h,--help                          :This message\
                     \nFILE is the input ARBAC file format\
-                    \nThe formats {cbmc, moped, hsf, eldarica, smt, nusmv, getafix, mucke} use a 'precise' algorithm\
+                    \nThe formats {cbmc, moped, hsf, eldarica, smt, nusmv, getafix, mucke, mucke-cav lazycseq} use a 'precise' algorithm\
                     \nThe format {interproc} uses an 'abstract' algorithm\n");
             help_opt = 1;
             exit(EXIT_SUCCESS);
@@ -83,7 +88,10 @@ main(int argc, char **argv)
             strcpy(formula_filename, optarg);
             break;
         case 'r':
-            mucke_rounds = atoi(optarg);
+            rounds = atoi(optarg);
+            break;
+        case 's':
+            steps = atoi(optarg);
             break;
         default:
             error_exit();
@@ -158,7 +166,11 @@ main(int argc, char **argv)
             }
             else if (strcmp(format_arg, "mucke") == 0)
             {
-                if (mucke_rounds == -1) {
+                transform_2_MUCKE_ExactAlg(filename, out_file);
+            }
+            else if (strcmp(format_arg, "mucke-cav") == 0)
+            {
+                if (rounds == -1) {
                     fprintf(stderr, "MUCKE requires to specify the rounds number (-r)\n");
                     error_exit();
                 }
@@ -166,7 +178,19 @@ main(int argc, char **argv)
                     fprintf(stderr, "MUCKE requires to specify the formula (-f)\n");
                     error_exit();
                 }
-                transform_2_MUCKE_ExactAlg(filename, out_file, formula_filename, mucke_rounds);
+                transform_2_MUCKE_CAV2010(filename, out_file, formula_filename, rounds);
+            }
+            else if (strcmp(format_arg, "lazycseq") == 0)
+            {
+                if (rounds == -1) {
+                    fprintf(stderr, "lazycseq requires to specify the rounds number (-r)\n");
+                    error_exit();
+                }
+                if (steps == -1) {
+                    fprintf(stderr, "lazycseq requires to specify the steos number (-s)\n");
+                    error_exit();
+                }
+                transform_2_lazycseq(filename, out_file, rounds, steps);
             }
             else
             {

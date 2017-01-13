@@ -900,7 +900,7 @@ mucke_simulate(FILE* outputFile)
 
 
 void
-transform_2_MUCKE_ExactAlg(char *inputFile, FILE *outputFile, char* formula_filename, int _rounds)
+transform_2_MUCKE_CAV2010(char *inputFile, FILE *outputFile, char* formula_filename, int _rounds)
 {
     /*FILE *outputFile;
     char *newfile = 0;*/
