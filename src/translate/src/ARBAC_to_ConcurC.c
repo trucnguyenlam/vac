@@ -6,6 +6,11 @@
 static char *and_op = "&&";
 static char *or_op = "||";
 
+static char *assume = "__CPROVER_assume";
+
+static int threads_count;
+static int use_tracks;
+
 static int NumBits(int pc) {
     int i = 1, bit = 0;
 
@@ -33,6 +38,13 @@ generate_header(FILE *outputFile, char *inputFile, int rounds, int steps) {
 	fprintf(outputFile, "*\n");
 	fprintf(outputFile, "*  params:\n");
 	fprintf(outputFile, "*    %s, --rounds %d --steps %d\n", inputFile, rounds, steps);
+    fprintf(outputFile, "*\n");
+    fprintf(outputFile, "*  users: %d\n", user_array_size);
+    fprintf(outputFile, "*  roles: %d\n", role_array_size);
+    fprintf(outputFile, "*  adminroles: %d\n", admin_role_array_index_size);
+    fprintf(outputFile, "*  CA: %d\n", ca_array_size);
+    fprintf(outputFile, "*  CR: %d\n", cr_array_size);
+    fprintf(outputFile, "*  ThreadCount: %d\n", threads_count);
 	fprintf(outputFile, "*\n");
 	fprintf(outputFile, "*/\n");
 
@@ -66,14 +78,14 @@ generate_header(FILE *outputFile, char *inputFile, int rounds, int steps) {
 
 	int nbits = NumBits(ca_array_size + cr_array_size + 2);
 
-	fprintf(outputFile, "__CPROVER_bitvector[%d] nondet_bitvector();\n", nbits);
+    fprintf(outputFile, "__CPROVER_bitvector[%d] nondet_bitvector();\n", nbits);
+	fprintf(outputFile, "_Bool nondet_bool();\n");
 
 	fprintf(outputFile, "\n");
 
     for (int i = 0; i < steps; ++i) {
         fprintf(outputFile, "unsigned __CPROVER_bitvector[%d] __cs_pc%d;\n", nbits, i);
     }
-
 
 	fprintf(outputFile, "\n");
 
@@ -103,18 +115,34 @@ generate_globals(FILE *outputFile) {
 }
 
 static void
-generate_locals(FILE *outputFile, char *thread_name, int thread_id) {
-    fprintf(outputFile, "/*---------- THREAD %s (%d) LOCAL VARIABLES ---------*/\n\n", thread_name, thread_id);
+generate_thread_locals(FILE *outputFile, int thread_id) {
+    fprintf(outputFile, "\n/*---------- THREAD %d LOCAL VARIABLES ---------*/\n", thread_id);
     for (int i = 0; i < role_array_size; i++)
     {	
-    	fprintf(outputFile, "    static %s local_Thread_%s_loc_%s = %d;\n", TYPE, thread_name, role_array[i], 
-            belong_to(user_config_array[thread_id].array, user_config_array[thread_id].array_size, i));
+        if (use_tracks) {
+            fprintf(outputFile, "static %s local_Thread_%d_loc_%s = %d;\n", TYPE, thread_id, role_array[i], 0);
+        }
+        else {
+            fprintf(outputFile, "static %s local_Thread_%d_loc_%s = %d;\n", TYPE, thread_id, role_array[i], 
+                belong_to(user_config_array[thread_id].array, user_config_array[thread_id].array_size, i));
+        }
     }
 }
 
 static void
-generate_CA_cond(FILE *outputFile, char *thread_name, int ca_index) {
+generate_locals(FILE *outputFile) {
+    fprintf(outputFile, "/*---------- THREADS LOCAL VARIABLES ---------*/\n\n");
+    for (int i = 0; i < threads_count; ++i)
+    {
+        generate_thread_locals(outputFile, i);
+    }
+}
+
+static void
+generate_CA_cond(FILE *outputFile, int thread_id, int ca_index) {
     int i, j;
+    // fprintf(outputFile, "        /*Thread %d is assinged to some user*/\n", thread_id);
+    // fprintf(outputFile, "        thread_%d_assigned\n", thread_id);
     // Condition to apply a can_assign rule
     fprintf(outputFile, "        /* Precondition */\n");
     // Admin role must be available
@@ -124,50 +152,51 @@ generate_CA_cond(FILE *outputFile, char *thread_name, int ca_index) {
     {   
         if (ca_array[ca_index].positive_role_array_size > 0) {
             fprintf(outputFile, "        /* Positive preconditions */\n");
-            fprintf(outputFile, "        (      local_Thread_%s_loc_%s\n", thread_name, role_array[ca_array[ca_index].positive_role_array[0]]);
+            fprintf(outputFile, "        (      local_Thread_%d_loc_%s\n", thread_id, role_array[ca_array[ca_index].positive_role_array[0]]);
             for (j = 1; j < ca_array[ca_index].positive_role_array_size; j++)
             {
-                fprintf(outputFile, "            %s local_Thread_%s_loc_%s\n", and_op, thread_name, role_array[ca_array[ca_index].positive_role_array[j]]);
+                fprintf(outputFile, "            %s local_Thread_%d_loc_%s\n", and_op, thread_id, role_array[ca_array[ca_index].positive_role_array[j]]);
             }
             fprintf(outputFile, "        ) %s\n", and_op);
         }
         if (ca_array[ca_index].negative_role_array_size > 0) {
             fprintf(outputFile, "        /* Negative preconditions */\n");
-            fprintf(outputFile, "        (      (!local_Thread_%s_loc_%s)\n", thread_name, role_array[ca_array[ca_index].negative_role_array[0]]);
+            fprintf(outputFile, "        (      (!local_Thread_%d_loc_%s)\n", thread_id, role_array[ca_array[ca_index].negative_role_array[0]]);
             for (j = 1; j < ca_array[ca_index].negative_role_array_size; j++)
             {
-                fprintf(outputFile, "            %s (!local_Thread_%s_loc_%s)\n", and_op, thread_name, role_array[ca_array[ca_index].negative_role_array[j]]);
+                fprintf(outputFile, "            %s (!local_Thread_%d_loc_%s)\n", and_op, thread_id, role_array[ca_array[ca_index].negative_role_array[j]]);
             }
             fprintf(outputFile, "        ) %s\n", and_op);
         }
     }
     // Optional this user is not in this target role yet
     fprintf(outputFile, "        /* Role not assigned yet */\n");
-    fprintf(outputFile, "        (!local_Thread_%s_loc_%s)\n", thread_name, role_array[ca_array[ca_index].target_role_index]);
+    fprintf(outputFile, "        (!local_Thread_%d_loc_%s)\n", thread_id, role_array[ca_array[ca_index].target_role_index]);
     fprintf(outputFile, "        )");    
 }
 
 static void
-generate_CR_cond(FILE *outputFile, char *thread_name, int cr_index) {
+generate_CR_cond(FILE *outputFile, int thread_id, int cr_index) {
     int i, j;
-
+    // fprintf(outputFile, "        /*Thread %d is assinged to some user*/\n", thread_id);
+    // fprintf(outputFile, "        thread_%d_assigned\n", thread_id);
     // Condition to apply a can_assign rule
     fprintf(outputFile, "        /* Precondition */\n");
     // Admin role must be available
     fprintf(outputFile, "        (glob_%s %s\n", role_array[cr_array[cr_index].admin_role_index], and_op);    
     // Optional this user is in this target role yet
     fprintf(outputFile, "        /*Role assigned*/\n");
-    fprintf(outputFile, "        local_Thread_%s_loc_%s)", thread_name, role_array[cr_array[cr_index].target_role_index]);
+    fprintf(outputFile, "        local_Thread_%d_loc_%s)", thread_id, role_array[cr_array[cr_index].target_role_index]);
 }
 
 static void
-generate_updates(FILE *outputFile, char *thread_name) {
+generate_updates(FILE *outputFile, int thread_id) {
     fprintf(outputFile, "    /*--- GLOBAL ROLE CONSISTENCY UPDATE----*/\n");
     for (int i = 0; i < admin_role_array_index_size; i++) {
         for (int j = 0; j < cr_array_size; j++) {
                 if (admin_role_array_index[i] == cr_array[j].target_role_index) {
                     char *role = role_array[admin_role_array_index[i]];
-                    fprintf(outputFile, "    glob_%s = glob_%s %s local_Thread_%s_loc_%s;\n", role, role, or_op, thread_name, role);
+                    fprintf(outputFile, "    glob_%s = glob_%s %s local_Thread_%d_loc_%s;\n", role, role, or_op, thread_id, role);
                     break;
                 }
             }
@@ -176,78 +205,80 @@ generate_updates(FILE *outputFile, char *thread_name) {
 }
 
 static void
-simulate_can_assign(FILE *outputFile, char *thread_name, int ca_index, int label_index) {
-    fprintf(outputFile, "tThread_%s_%d:\n", thread_name, label_index);
+simulate_can_assign(FILE *outputFile, int thread_id, int ca_index, int label_index) {
+    fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
     print_ca_comment(outputFile, ca_index);
     fprintf(outputFile, "    IF( %d,\n", label_index);
-    fprintf(outputFile, "        tThread_%s_%d,\n", thread_name, label_index + 1);
-    generate_CA_cond(outputFile, thread_name, ca_index);
+    fprintf(outputFile, "        tThread_%d_%d,\n", thread_id, label_index + 1);
+    generate_CA_cond(outputFile, thread_id, ca_index);
     fprintf(outputFile, ",\n");
     if (belong_to(admin_role_array_index, admin_role_array_index_size, ca_array[ca_index].target_role_index)) {
-        fprintf(outputFile, "        glob_%s = local_Thread_%s_loc_%s = 1\n", role_array[ca_array[ca_index].target_role_index], thread_name, role_array[ca_array[ca_index].target_role_index]);
+        fprintf(outputFile, "        glob_%s = local_Thread_%d_loc_%s = 1\n", role_array[ca_array[ca_index].target_role_index], thread_id, role_array[ca_array[ca_index].target_role_index]);
     }
     else {
-        fprintf(outputFile, "        local_Thread_%s_loc_%s = 1\n", thread_name, role_array[ca_array[ca_index].target_role_index]);
+        fprintf(outputFile, "        local_Thread_%d_loc_%s = 1\n", thread_id, role_array[ca_array[ca_index].target_role_index]);
     }
     fprintf(outputFile, "    )\n\n");
 }
 
 static void
-simulate_can_revoke(FILE *outputFile, char *thread_name, int cr_index, int label_index) {
-    fprintf(outputFile, "tThread_%s_%d:\n", thread_name, label_index);
+simulate_can_revoke(FILE *outputFile, int thread_id, int cr_index, int label_index) {
+    fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
     print_cr_comment(outputFile, cr_index);
     fprintf(outputFile, "    IF( %d,\n", label_index);
-    fprintf(outputFile, "        tThread_%s_%d,\n", thread_name, label_index + 1);
-    generate_CR_cond(outputFile, thread_name, cr_index);
+    fprintf(outputFile, "        tThread_%d_%d,\n", thread_id, label_index + 1);
+    generate_CR_cond(outputFile, thread_id, cr_index);
     fprintf(outputFile, ",\n");
     if (belong_to(admin_role_array_index, admin_role_array_index_size, cr_array[cr_index].target_role_index)) {
-        fprintf(outputFile, "        glob_%s = local_Thread_%s_loc_%s = 0\n", role_array[cr_array[cr_index].target_role_index], thread_name, role_array[cr_array[cr_index].target_role_index]);
+        fprintf(outputFile, "        glob_%s = local_Thread_%d_loc_%s = 0\n", role_array[cr_array[cr_index].target_role_index], thread_id, role_array[cr_array[cr_index].target_role_index]);
     }
     else {
-        fprintf(outputFile, "        local_Thread_%s_loc_%s = 0\n", thread_name, role_array[cr_array[cr_index].target_role_index]);
+        fprintf(outputFile, "        local_Thread_%d_loc_%s = 0\n", thread_id, role_array[cr_array[cr_index].target_role_index]);
     }
     fprintf(outputFile, "    )\n\n");
 }
 
 static void
-generate_check(FILE *outputFile, char *thread_name, int label_index) {
-    fprintf(outputFile, "tThread_%s_%d:\n", thread_name, label_index);
+generate_check(FILE *outputFile, int thread_id, int label_index) {
+    fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
     fprintf(outputFile, "    /*---------------ERROR CHECK------------*/\n");
     fprintf(outputFile, "    if (");
-    fprintf(outputFile, "local_Thread_%s_loc_%s", thread_name, role_array[goal_role_index]);
+    fprintf(outputFile, "local_Thread_%d_loc_%s", thread_id, role_array[goal_role_index]);
     fprintf(outputFile, ") {\n");
     fprintf(outputFile, "        assert(0);\n");
     fprintf(outputFile, "    }\n");
 }
 
 static void
-generate_thread(FILE *outputFile, char *thread_name, int thread_id) {
-    fprintf(outputFile, "void Thread_%s() {\n\n", thread_name);
+generate_thread(FILE *outputFile, int thread_id) {
+    fprintf(outputFile, "void Thread_%d() {\n\n", thread_id);
 
-    generate_locals(outputFile, thread_name, thread_id);
-
-    fprintf(outputFile, "\n");
-    generate_updates(outputFile, thread_name);
+    // Not used anymore since is declared at top level
+    // generate_locals(outputFile, thread_id, thread_id);
+    // fprintf(outputFile, "\n");
+    
+    generate_updates(outputFile, thread_id);
 
     int label_idx = 0;
-    fprintf(outputFile, "    /*---------- IDLE ROUND ---------*/\n");
-    fprintf(outputFile, "    IF(%d, tThread_%s_%d, 1, 0)\n\n", label_idx, thread_name, label_idx + 1);
-    label_idx++;
+    fprintf(outputFile, "    /*---------- IDLE ROUND REMOVED SINCE PC MAY BE GREATER THAN PC_MAX ---------*/\n");
+    // fprintf(outputFile, "    /*---------- IDLE ROUND ---------*/\n");
+    // fprintf(outputFile, "    IF(%d, tThread_%d_%d, 1, 0)\n\n", label_idx, thread_id, label_idx + 1);
+    // label_idx++;
 
     int i;
     fprintf(outputFile, "    /*---------- CAN ASSIGN SIMULATION ---------*/\n");
     for (i = 0; i < ca_array_size; i++) {
-        simulate_can_assign(outputFile, thread_name, i, label_idx++);
+        simulate_can_assign(outputFile, thread_id, i, label_idx++);
     }
 
     fprintf(outputFile, "\n\n");
 
     fprintf(outputFile, "    /*---------- CAN REVOKE SIMULATION ---------*/\n");
     for (i = 0; i < cr_array_size; i++) {
-        simulate_can_revoke(outputFile, thread_name, i, label_idx++);
+        simulate_can_revoke(outputFile, thread_id, i, label_idx++);
     }
 
-    generate_check(outputFile, thread_name, label_idx);
+    generate_check(outputFile, thread_id, label_idx);
     fprintf(outputFile, "\n\n");
     fprintf(outputFile, "    return;\n");
     fprintf(outputFile, "}\n");
@@ -255,35 +286,96 @@ generate_thread(FILE *outputFile, char *thread_name, int thread_id) {
 
 static void
 generate_threads(FILE *outputFile) {
-    for (int i = 0; i < user_array_size; ++i) {
-        generate_thread(outputFile, user_array[i], i);
+    for (int i = 0; i < threads_count; ++i) {
+        generate_thread(outputFile, i);
         fprintf(outputFile, "\n");
     }
 }
 
 static void
-generate_thread_step(FILE *outputFile, char *thread_name, int steps) {
-    fprintf(outputFile, "    /* Thread_%s */\n", thread_name);
+initialize_threads_locals(FILE *outputFile) {
+    fprintf(outputFile, "/*--------------- THREAD ASSIGNMENT LOCAL VARIABLES ------------*/\n");
+    for (int i = 0; i < threads_count; ++i) {
+        fprintf(outputFile, "%s thread_%d_assigned = 0;\n", TYPE, i);
+    }
+}
+
+static void
+initialize_threads_assignments(FILE *outputFile, int user_id)
+{
+    int i, j;
+
+    fprintf(outputFile, "    /*--------------- CONFIGURATION OF %s ------------*/\n", user_array[user_id]);
+
+    fprintf(outputFile, "    if (nondet_bool()) {\n");
+
+    for (i = 0; i < threads_count; i++) {
+        if (i == 0) {
+            fprintf(outputFile, "        if (!thread_%d_assigned) {\n", i);
+        }
+        else {
+            fprintf(outputFile, "        else if (!thread_%d_assigned) {\n", i);
+        }
+
+        fprintf(outputFile, "            thread_%d_assigned = 1;\n", i);
+
+        for (j = 0; j < user_config_array[user_id].array_size; j++)
+        {
+            fprintf(outputFile, "            local_Thread_%d_loc_%s = 1;\n", i, role_array[user_config_array[user_id].array[j]]);
+        }
+        fprintf(outputFile, "        }\n");
+    }
+    fprintf(outputFile, "    }\n\n");
+}
+
+static void
+initialize_threads(FILE *outputFile) {
+    int i;
+    fprintf(outputFile, "void initialize_threads() {\n");
+
+    for (i = 0; i < user_array_size; ++i) {
+        initialize_threads_assignments(outputFile, i);
+    }
+
+    fprintf(outputFile, "    %s(\n", assume);
+    
+    for (i = 0; i < threads_count - 1; ++i) { 
+        fprintf(outputFile, "        thread_%d_assigned %s\n", i, and_op);
+    }
+    fprintf(outputFile, "        thread_%d_assigned);\n", i);
+
+    fprintf(outputFile, "}\n\n");
+}
+
+static void
+generate_thread_step(FILE *outputFile, int thread_id, int steps) {
+    fprintf(outputFile, "    /* Thread_%d */\n", thread_id);
     for (int i = 0; i < steps; ++i)
     {
         fprintf(outputFile, "    __cs_pc%d = nondet_bitvector();\n", i);
         //fprintf(outputFile, "    // __CPROVER_assume(__cs_pc%d <= %d);\n");
     }
-    fprintf(outputFile, "    Thread_%s();\n", thread_name);
+    fprintf(outputFile, "    Thread_%d();\n", thread_id);
 }
 
 static void
 generate_round(FILE *outputFile, int round, int steps) {
     fprintf(outputFile, "    /* round %d */\n", round);
-    for (int i = 0; i < user_array_size; ++i) {
-        generate_thread_step(outputFile, user_array[i], steps);
+    for (int i = 0; i < threads_count; ++i) {
+        generate_thread_step(outputFile, i, steps);
     }
     fprintf(outputFile, "\n");
 }
 
 static void
 generate_main(FILE* outputFile, int rounds, int steps) {
-    fprintf(outputFile, "int main(void) {\n");
+    fprintf(outputFile, "int main(void) {\n\n");
+
+    if (use_tracks) {
+        fprintf(outputFile, "    /*------------THREAD INITIALIZATION-----------*/\n");
+        fprintf(outputFile, "    initialize_threads();\n\n");
+    }
+
     for (int i = 0; i < rounds; ++i)
     {
         generate_round(outputFile, i, steps);
@@ -309,12 +401,30 @@ transform_2_lazycseq(char *inputFile, FILE *outputFile, int rounds, int steps) {
     // Preprocess the ARBAC Policies
     preprocess(0);
     build_config_array();
+    //Set the number of user to track
+    if (user_array_size <= admin_role_array_index_size + 1) {
+        threads_count = user_array_size;
+        use_tracks = 0;
+    }
+    else {
+        threads_count = admin_role_array_index_size + 1;
+        use_tracks = 1;
+    }
 
     //Generate header with common funtions and comments
     generate_header(outputFile, inputFile, rounds, steps);
     
-    //Declare variables
+    //Declare global variables
     generate_globals(outputFile);
+
+    //Declare threads local variables
+    generate_locals(outputFile);
+
+    if (use_tracks) {
+        //Declare thread initialization variables
+        initialize_threads_locals(outputFile);
+        initialize_threads(outputFile);
+    }
 
     //Generate thread functions
     generate_threads(outputFile);
