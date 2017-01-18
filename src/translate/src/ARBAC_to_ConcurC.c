@@ -6,27 +6,13 @@
 static char *and_op = "&&";
 static char *or_op = "||";
 
-static char *assume = "__CPROVER_assume";
+static char *assume = "__VERIFIER_assume";
 
 static int threads_count;
 static int use_tracks;
 
-static int NumBits(int pc) {
-    int i = 1, bit = 0;
-
-    if (pc <= 2 ) return 1;
-
-    while (pc >= i) {
-        i = i * 2;
-        bit++;
-    }
-
-    return (bit);
-}
-
-
 static void
-generate_header(FILE *outputFile, char *inputFile, int rounds, int steps) {
+generate_header(FILE *outputFile, char *inputFile) {
 	time_t mytime;
     mytime = time(NULL);
 	fprintf(outputFile, "/*\n");
@@ -37,7 +23,6 @@ generate_header(FILE *outputFile, char *inputFile, int rounds, int steps) {
 	fprintf(outputFile, "*  %s\n", ctime(&mytime));
 	fprintf(outputFile, "*\n");
 	fprintf(outputFile, "*  params:\n");
-	fprintf(outputFile, "*    %s, --rounds %d --steps %d\n", inputFile, rounds, steps);
     fprintf(outputFile, "*\n");
     fprintf(outputFile, "*  users: %d\n", user_array_size);
     fprintf(outputFile, "*  roles: %d\n", role_array_size);
@@ -50,42 +35,14 @@ generate_header(FILE *outputFile, char *inputFile, int rounds, int steps) {
 
 	fprintf(outputFile, "\n\n");
 
-	fprintf(outputFile, "#include <assert.h>\n");
-	fprintf(outputFile, "#define THREADS %d\n", user_array_size);
-    fprintf(outputFile, "#define ROUNDS %d\n", rounds);
-	fprintf(outputFile, "#define STEPS %d\n", steps);
-	// fprintf(outputFile, "#define STOP_VOID(A) return;\n");
-	// fprintf(outputFile, "#define STOP_NONVOID(A) return;\n");
-	fprintf(outputFile, "// #define IF(T,A,B) if (__cs_pc != A) goto B;\n");
-	
-    // fprintf(outputFile, "#define IF(T,A,B,E) if (((__cs_pc1 != A) && (__cs_pc2 != A)) || (!(E)) ) goto B;\n");
+    fprintf(outputFile, "#include <pthread.h>\n\n");
 
-    fprintf(outputFile, "#define IF(PC,NPC,COND,APPL) if (");
-    fprintf(outputFile, "((__cs_pc%d != PC)", 0);
-    for (int i = 1; i < steps; ++i)
-    {
-        fprintf(outputFile, " %s (__cs_pc%d != PC)", and_op, i);
-    }
-    fprintf(outputFile, ") || (!(COND)) ) { goto NPC; } APPL;\n");
+    // fprintf(outputFile, "#include <assert.h>\n");
+    fprintf(outputFile, "#define THREADS %d\n", threads_count);
+	fprintf(outputFile, "#define THREADS_CONFIGURATIONS %d\n", user_array_size);
 
-	// fprintf(outputFile, "#ifndef NULL\n");
-	// fprintf(outputFile, "#define NULL 0\n");
-	// fprintf(outputFile, "#endif	\n");
-
-	// fprintf(outputFile, "void __VERIFIER_error();\n");
-
-	fprintf(outputFile, "\n");
-
-	int nbits = NumBits(ca_array_size + cr_array_size + 2);
-
-    fprintf(outputFile, "__CPROVER_bitvector[%d] nondet_bitvector();\n", nbits);
+	fprintf(outputFile, "\nextern void __VERIFIER_error() __attribute__ ((__noreturn__));\n");
 	fprintf(outputFile, "_Bool nondet_bool();\n");
-
-	fprintf(outputFile, "\n");
-
-    for (int i = 0; i < steps; ++i) {
-        fprintf(outputFile, "unsigned __CPROVER_bitvector[%d] __cs_pc%d;\n", nbits, i);
-    }
 
 	fprintf(outputFile, "\n");
 
@@ -96,7 +53,7 @@ static void
 generate_globals(FILE *outputFile) {
 	int i = 0, j = 0, flag = 0;
 
-    fprintf(outputFile, "/*---------- INIT GLOBAL VARIABLES ---------*/\n\n");
+    fprintf(outputFile, "/*---------- DEFINE AND INIT GLOBAL VARIABLES ---------*/\n\n");
     for (i = 0; i < admin_role_array_index_size; i++)
     {
         flag = 0;
@@ -205,42 +162,37 @@ generate_updates(FILE *outputFile, int thread_id) {
 }
 
 static void
-simulate_can_assign(FILE *outputFile, int thread_id, int ca_index, int label_index) {
-    fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
+simulate_can_assign(FILE *outputFile, int thread_id, int ca_index) {
     print_ca_comment(outputFile, ca_index);
-    fprintf(outputFile, "    IF( %d,\n", label_index);
-    fprintf(outputFile, "        tThread_%d_%d,\n", thread_id, label_index + 1);
+    fprintf(outputFile, "    if( nondet_bool() &&\n");
     generate_CA_cond(outputFile, thread_id, ca_index);
-    fprintf(outputFile, ",\n");
+    fprintf(outputFile, ") {\n");
     if (belong_to(admin_role_array_index, admin_role_array_index_size, ca_array[ca_index].target_role_index)) {
-        fprintf(outputFile, "        glob_%s = local_Thread_%d_loc_%s = 1\n", role_array[ca_array[ca_index].target_role_index], thread_id, role_array[ca_array[ca_index].target_role_index]);
+        fprintf(outputFile, "        glob_%s = local_Thread_%d_loc_%s = 1;\n", role_array[ca_array[ca_index].target_role_index], thread_id, role_array[ca_array[ca_index].target_role_index]);
     }
     else {
-        fprintf(outputFile, "        local_Thread_%d_loc_%s = 1\n", thread_id, role_array[ca_array[ca_index].target_role_index]);
+        fprintf(outputFile, "        local_Thread_%d_loc_%s = 1;\n", thread_id, role_array[ca_array[ca_index].target_role_index]);
     }
-    fprintf(outputFile, "    )\n\n");
+    fprintf(outputFile, "    }\n\n");
 }
 
 static void
-simulate_can_revoke(FILE *outputFile, int thread_id, int cr_index, int label_index) {
-    fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
+simulate_can_revoke(FILE *outputFile, int thread_id, int cr_index) {
     print_cr_comment(outputFile, cr_index);
-    fprintf(outputFile, "    IF( %d,\n", label_index);
-    fprintf(outputFile, "        tThread_%d_%d,\n", thread_id, label_index + 1);
+    fprintf(outputFile, "    if( nondet_bool() &&\n");
     generate_CR_cond(outputFile, thread_id, cr_index);
-    fprintf(outputFile, ",\n");
+    fprintf(outputFile, ") {\n");
     if (belong_to(admin_role_array_index, admin_role_array_index_size, cr_array[cr_index].target_role_index)) {
-        fprintf(outputFile, "        glob_%s = local_Thread_%d_loc_%s = 0\n", role_array[cr_array[cr_index].target_role_index], thread_id, role_array[cr_array[cr_index].target_role_index]);
+        fprintf(outputFile, "        glob_%s = local_Thread_%d_loc_%s = 0;\n", role_array[cr_array[cr_index].target_role_index], thread_id, role_array[cr_array[cr_index].target_role_index]);
     }
     else {
-        fprintf(outputFile, "        local_Thread_%d_loc_%s = 0\n", thread_id, role_array[cr_array[cr_index].target_role_index]);
+        fprintf(outputFile, "        local_Thread_%d_loc_%s = 0;\n", thread_id, role_array[cr_array[cr_index].target_role_index]);
     }
-    fprintf(outputFile, "    )\n\n");
+    fprintf(outputFile, "    }\n\n");
 }
 
 static void
-generate_check(FILE *outputFile, int thread_id, int label_index) {
-    fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
+generate_check(FILE *outputFile, int thread_id) {
     fprintf(outputFile, "    /*---------------ERROR CHECK------------*/\n");
     fprintf(outputFile, "    if (");
     fprintf(outputFile, "local_Thread_%d_loc_%s", thread_id, role_array[goal_role_index]);
@@ -251,7 +203,7 @@ generate_check(FILE *outputFile, int thread_id, int label_index) {
 
 static void
 generate_thread(FILE *outputFile, int thread_id) {
-    fprintf(outputFile, "void Thread_%d() {\n\n", thread_id);
+    fprintf(outputFile, "void *Thread_%d(void *args) {\n\n", thread_id);
 
     // Not used anymore since is declared at top level
     // generate_locals(outputFile, thread_id, thread_id);
@@ -259,28 +211,26 @@ generate_thread(FILE *outputFile, int thread_id) {
     
     generate_updates(outputFile, thread_id);
 
-    int label_idx = 0;
-    fprintf(outputFile, "    /*---------- IDLE ROUND REMOVED SINCE PC MAY BE GREATER THAN PC_MAX ---------*/\n");
-    // fprintf(outputFile, "    /*---------- IDLE ROUND ---------*/\n");
-    // fprintf(outputFile, "    IF(%d, tThread_%d_%d, 1, 0)\n\n", label_idx, thread_id, label_idx + 1);
-    // label_idx++;
-
-    int i;
+    fprintf(outputFile, "  while (1) {\n");
     fprintf(outputFile, "    /*---------- CAN ASSIGN SIMULATION ---------*/\n");
-    for (i = 0; i < ca_array_size; i++) {
-        simulate_can_assign(outputFile, thread_id, i, label_idx++);
+    for (int i = 0; i < ca_array_size; i++) {
+        fprintf(outputFile, "__VERIFIER_atomic_begin();\n");
+        simulate_can_assign(outputFile, thread_id, i);
+        fprintf(outputFile, "__VERIFIER_atomic_end();\n");
     }
 
     fprintf(outputFile, "\n\n");
 
     fprintf(outputFile, "    /*---------- CAN REVOKE SIMULATION ---------*/\n");
-    for (i = 0; i < cr_array_size; i++) {
-        simulate_can_revoke(outputFile, thread_id, i, label_idx++);
+    for (int i = 0; i < cr_array_size; i++) {
+        fprintf(outputFile, "__VERIFIER_atomic_begin();\n");
+        simulate_can_revoke(outputFile, thread_id, i);
+        fprintf(outputFile, "__VERIFIER_atomic_end();\n");
     }
 
-    generate_check(outputFile, thread_id, label_idx);
-    fprintf(outputFile, "\n\n");
-    fprintf(outputFile, "    return;\n");
+    generate_check(outputFile, thread_id);
+    fprintf(outputFile, "  }\n\n");
+    fprintf(outputFile, "  return;\n");
     fprintf(outputFile, "}\n");
 }
 
@@ -348,53 +298,37 @@ initialize_threads(FILE *outputFile) {
 }
 
 static void
-generate_thread_step(FILE *outputFile, int thread_id, int steps) {
-    fprintf(outputFile, "    /* Thread_%d */\n", thread_id);
-    for (int i = 0; i < steps; ++i)
-    {
-        fprintf(outputFile, "    __cs_pc%d = nondet_bitvector();\n", i);
-        //fprintf(outputFile, "    // __CPROVER_assume(__cs_pc%d <= %d);\n");
-    }
-    fprintf(outputFile, "    Thread_%d();\n", thread_id);
-}
-
-static void
-generate_round(FILE *outputFile, int round, int steps) {
-    fprintf(outputFile, "    /* round %d */\n", round);
-    for (int i = 0; i < threads_count; ++i) {
-        generate_thread_step(outputFile, i, steps);
-    }
-    fprintf(outputFile, "\n");
-}
-
-static void
-generate_main(FILE* outputFile, int rounds, int steps) {
+generate_main(FILE* outputFile) {
     fprintf(outputFile, "int main(void) {\n\n");
 
+    fprintf(outputFile, "    /*------------ THREAD DEFINITION -----------*/\n");
+    fprintf(outputFile, "    pthread_t th_%d", 0);
+    for (int i = 1; i < threads_count; ++i) {
+        fprintf(outputFile, ", th_%d", i);
+    }
+    fprintf(outputFile, ";\n\n");
+
     if (use_tracks) {
-        fprintf(outputFile, "    /*------------THREAD INITIALIZATION-----------*/\n");
+        fprintf(outputFile, "    /*------------ THREAD LOCALS INITIALIZATION -----------*/\n");
         fprintf(outputFile, "    initialize_threads();\n\n");
     }
 
-    for (int i = 0; i < rounds; ++i)
-    {
-        generate_round(outputFile, i, steps);
+    fprintf(outputFile, "    /*------------ THREAD SPAWN -----------*/\n");
+    for (int i = 0; i < threads_count; ++i) {
+        fprintf(outputFile, "    pthread_create(&th_%d, 0, Thread_%d, 0);\n", i, i);
     }
+
+    // fprintf(outputFile, "    /*------------ THREAD JOIN (REALLY NEEDED?) -----------*/\n");
+    // for (int i = 0; i < threads_count; ++i) {
+    //     fprintf(outputFile, "    pthread_join(th_%d, 0);\n", i);
+    // }
+
     fprintf(outputFile, "    return 0;\n");
     fprintf(outputFile, "}\n");
 }
 
 void
-transform_2_lazycseq(char *inputFile, FILE *outputFile, int rounds, int steps) {
-
-    if (rounds < 1) {
-        fprintf(stderr, "Cannot simulate a number of rounds < 1\n");
-        exit(EXIT_FAILURE);
-    }
-    if (steps < 1) {
-        fprintf(stderr, "Cannot simulate a number of steps < 1\n");
-        exit(EXIT_FAILURE);
-    }
+transform_2_concurC(char *inputFile, FILE *outputFile, int wanted_threads_count) {
 
     
     read_ARBAC(inputFile);
@@ -402,17 +336,29 @@ transform_2_lazycseq(char *inputFile, FILE *outputFile, int rounds, int steps) {
     preprocess(0);
     build_config_array();
     //Set the number of user to track
-    if (user_array_size <= admin_role_array_index_size + 1) {
-        threads_count = user_array_size;
-        use_tracks = 0;
+    if (wanted_threads_count < 1) {
+        if (user_array_size <= admin_role_array_index_size + 1) {
+            threads_count = user_array_size;
+            use_tracks = 0;
+        }
+        else {
+            threads_count = admin_role_array_index_size + 1;
+            use_tracks = 1;
+        }
     }
     else {
-        threads_count = admin_role_array_index_size + 1;
-        use_tracks = 1;
+        if (user_array_size <= wanted_threads_count) {
+            fprintf(stderr, "Cannot spawn %d threads because are more than user count (%d)\n", wanted_threads_count, user_array_size);
+            exit(EXIT_FAILURE);
+        }
+        else {
+            threads_count = admin_role_array_index_size + 1;
+            use_tracks = 1;
+        }   
     }
 
     //Generate header with common funtions and comments
-    generate_header(outputFile, inputFile, rounds, steps);
+    generate_header(outputFile, inputFile);
     
     //Declare global variables
     generate_globals(outputFile);
@@ -430,7 +376,7 @@ transform_2_lazycseq(char *inputFile, FILE *outputFile, int rounds, int steps) {
     generate_threads(outputFile);
 
     //Generate Main funtion
-    generate_main(outputFile, rounds, steps);
+    generate_main(outputFile);
 
     //fclose(outputFile);
     //free(newfile);

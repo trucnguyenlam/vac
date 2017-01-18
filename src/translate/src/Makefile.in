@@ -107,6 +107,7 @@ am_translate_OBJECTS = translate-ARBACLexer.$(OBJEXT) \
 	translate-ARBAC_to_GETAFIX_parallel_ExactAlg.$(OBJEXT) \
 	translate-ARBAC_to_MUCKE_ExactAlg.$(OBJEXT) \
 	translate-ARBAC_to_MUCKE_CAV.$(OBJEXT) \
+	translate-ARBAC_to_LazyCSeq.$(OBJEXT) \
 	translate-ARBAC_to_ConcurC.$(OBJEXT) \
 	translate-ARBAC_to_CBMC_ExactAlg.$(OBJEXT) \
 	translate-ARBAC_to_INTERPROC_OverApr.$(OBJEXT) \
@@ -281,6 +282,7 @@ translate_SOURCES = ARBACLexer.c \
 					ARBAC_to_GETAFIX_parallel_ExactAlg.c \
 					ARBAC_to_MUCKE_ExactAlg.c \
 					ARBAC_to_MUCKE_CAV.c \
+					ARBAC_to_LazyCSeq.c \
 					ARBAC_to_ConcurC.c \
 					ARBAC_to_CBMC_ExactAlg.c \
 					ARBAC_to_INTERPROC_OverApr.c \
@@ -390,6 +392,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_GETAFIX_parallel_ExactAlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_HSF_ExactAlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_INTERPROC_OverApr.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_LazyCSeq.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_MUCKE_CAV.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_MUCKE_ExactAlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_NuSMV_ExactAlg.Po@am__quote@
@@ -563,6 +566,20 @@ translate-ARBAC_to_MUCKE_CAV.obj: ARBAC_to_MUCKE_CAV.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ARBAC_to_MUCKE_CAV.c' object='translate-ARBAC_to_MUCKE_CAV.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-ARBAC_to_MUCKE_CAV.obj `if test -f 'ARBAC_to_MUCKE_CAV.c'; then $(CYGPATH_W) 'ARBAC_to_MUCKE_CAV.c'; else $(CYGPATH_W) '$(srcdir)/ARBAC_to_MUCKE_CAV.c'; fi`
+
+translate-ARBAC_to_LazyCSeq.o: ARBAC_to_LazyCSeq.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -MT translate-ARBAC_to_LazyCSeq.o -MD -MP -MF $(DEPDIR)/translate-ARBAC_to_LazyCSeq.Tpo -c -o translate-ARBAC_to_LazyCSeq.o `test -f 'ARBAC_to_LazyCSeq.c' || echo '$(srcdir)/'`ARBAC_to_LazyCSeq.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/translate-ARBAC_to_LazyCSeq.Tpo $(DEPDIR)/translate-ARBAC_to_LazyCSeq.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ARBAC_to_LazyCSeq.c' object='translate-ARBAC_to_LazyCSeq.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-ARBAC_to_LazyCSeq.o `test -f 'ARBAC_to_LazyCSeq.c' || echo '$(srcdir)/'`ARBAC_to_LazyCSeq.c
+
+translate-ARBAC_to_LazyCSeq.obj: ARBAC_to_LazyCSeq.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -MT translate-ARBAC_to_LazyCSeq.obj -MD -MP -MF $(DEPDIR)/translate-ARBAC_to_LazyCSeq.Tpo -c -o translate-ARBAC_to_LazyCSeq.obj `if test -f 'ARBAC_to_LazyCSeq.c'; then $(CYGPATH_W) 'ARBAC_to_LazyCSeq.c'; else $(CYGPATH_W) '$(srcdir)/ARBAC_to_LazyCSeq.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/translate-ARBAC_to_LazyCSeq.Tpo $(DEPDIR)/translate-ARBAC_to_LazyCSeq.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ARBAC_to_LazyCSeq.c' object='translate-ARBAC_to_LazyCSeq.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-ARBAC_to_LazyCSeq.obj `if test -f 'ARBAC_to_LazyCSeq.c'; then $(CYGPATH_W) 'ARBAC_to_LazyCSeq.c'; else $(CYGPATH_W) '$(srcdir)/ARBAC_to_LazyCSeq.c'; fi`
 
 translate-ARBAC_to_ConcurC.o: ARBAC_to_ConcurC.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -MT translate-ARBAC_to_ConcurC.o -MD -MP -MF $(DEPDIR)/translate-ARBAC_to_ConcurC.Tpo -c -o translate-ARBAC_to_ConcurC.o `test -f 'ARBAC_to_ConcurC.c' || echo '$(srcdir)/'`ARBAC_to_ConcurC.c

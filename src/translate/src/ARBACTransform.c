@@ -21,6 +21,7 @@ main(int argc, char **argv)
     char *out_name = NULL;
     int rounds = -1;
     int steps = -1;
+    int wanted_threads = -1;
 
     static struct option long_options[] = {
         { "out", required_argument, 0, 'o' },
@@ -28,7 +29,8 @@ main(int argc, char **argv)
         { "format", required_argument, 0, 'f' },
         { "formula", required_argument, 0, 'l' },
         { "rounds", required_argument, 0, 'r' },
-        { "steps", required_argument, 0, 'r' },
+        { "steps", required_argument, 0, 's' },
+        { "threads", required_argument, 0, 't' },
         { "help", no_argument, 0, 'h'},
         { 0, 0, 0, 0 }
     };
@@ -36,7 +38,7 @@ main(int argc, char **argv)
     while (1)
     {
         int option_index = 0;
-        c = getopt_long(argc, argv, "hf:a:l:r:s:o:", long_options, &option_index);
+        c = getopt_long(argc, argv, "hf:a:l:r:s:t:o:", long_options, &option_index);
 
         if (c == -1)
             break;
@@ -61,9 +63,11 @@ main(int argc, char **argv)
                     \n                                      mucke\
                     \n                                      mucke-cav\
                     \n                                      lazycseq\
+                    \n                                      concurc\
                     \n-l,--formula <X>                   :Formula for mucke\
                     \n-r,--rounds <X>                    :Number of rounds (mucke-cav and lazycseq only)\
                     \n-s,--steps <X>                     :Number of steps (lazycseq only)\
+                    \n-t,--threads <X>                   :Number of tracked user (concurc and lazycseq only) (Default: auto)\
                     \n-h,--help                          :This message\
                     \nFILE is the input ARBAC file format\
                     \nThe formats {cbmc, moped, hsf, eldarica, smt, nusmv, getafix, mucke, mucke-cav lazycseq} use a 'precise' algorithm\
@@ -92,6 +96,9 @@ main(int argc, char **argv)
             break;
         case 's':
             steps = atoi(optarg);
+            break;
+        case 't':
+            wanted_threads = atoi(optarg);
             break;
         default:
             error_exit();
@@ -190,7 +197,11 @@ main(int argc, char **argv)
                     fprintf(stderr, "lazycseq requires to specify the steos number (-s)\n");
                     error_exit();
                 }
-                transform_2_lazycseq(filename, out_file, rounds, steps);
+                transform_2_lazycseq(filename, out_file, rounds, steps, wanted_threads);
+            }
+            else if (strcmp(format_arg, "concurc") == 0)
+            {
+                transform_2_concurC(filename, out_file, wanted_threads);
             }
             else
             {

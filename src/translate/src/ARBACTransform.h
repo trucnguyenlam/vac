@@ -47,7 +47,9 @@ transform_2_MUCKE_CAV2010(char *, FILE *outputFile, char *, int);
 void
 transform_2_MUCKE_ExactAlg(char *, FILE *outputFile/*, char **/);
 void
-transform_2_lazycseq(char *, FILE *outputFile, int rounds, int steps);
+transform_2_concurC(char *, FILE *outputFile, int wanted_threads_count);
+void
+transform_2_lazycseq(char *, FILE *outputFile, int rounds, int steps, int wanted_threads_count);
 void
 transform_2_CBMC_ExactAlg(char *, FILE *outputFile);
 void
