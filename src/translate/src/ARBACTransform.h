@@ -36,6 +36,10 @@ print_cr_comment_hsf(FILE *, int);
 void
 print_cr_comment_smt2(FILE *, int);
 
+// Policy statistics function
+void
+show_policy_statistics(char *, FILE *, int);
+
 
 // Precise translate functions
 void

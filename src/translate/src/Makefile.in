@@ -103,6 +103,7 @@ am_translate_OBJECTS = translate-ARBACLexer.$(OBJEXT) \
 	translate-ARBACTransform.$(OBJEXT) \
 	translate-ARBACUtil.$(OBJEXT) translate-ARBACExact.$(OBJEXT) \
 	translate-ARBACAbstract.$(OBJEXT) \
+	translate-ARBACInfo.$(OBJEXT) \
 	translate-ARBAC_to_GETAFIX_ExactAlg.$(OBJEXT) \
 	translate-ARBAC_to_GETAFIX_parallel_ExactAlg.$(OBJEXT) \
 	translate-ARBAC_to_MUCKE_ExactAlg.$(OBJEXT) \
@@ -278,6 +279,7 @@ translate_SOURCES = ARBACLexer.c \
 					ARBACUtil.c \
 					ARBACExact.c \
 					ARBACAbstract.c \
+					ARBACInfo.c \
 					ARBAC_to_GETAFIX_ExactAlg.c \
 					ARBAC_to_GETAFIX_parallel_ExactAlg.c \
 					ARBAC_to_MUCKE_ExactAlg.c \
@@ -380,6 +382,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBACAbstract.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBACExact.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBACInfo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBACLexer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBACParser.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBACTool.Po@am__quote@
@@ -510,6 +513,20 @@ translate-ARBACAbstract.obj: ARBACAbstract.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ARBACAbstract.c' object='translate-ARBACAbstract.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-ARBACAbstract.obj `if test -f 'ARBACAbstract.c'; then $(CYGPATH_W) 'ARBACAbstract.c'; else $(CYGPATH_W) '$(srcdir)/ARBACAbstract.c'; fi`
+
+translate-ARBACInfo.o: ARBACInfo.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -MT translate-ARBACInfo.o -MD -MP -MF $(DEPDIR)/translate-ARBACInfo.Tpo -c -o translate-ARBACInfo.o `test -f 'ARBACInfo.c' || echo '$(srcdir)/'`ARBACInfo.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/translate-ARBACInfo.Tpo $(DEPDIR)/translate-ARBACInfo.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ARBACInfo.c' object='translate-ARBACInfo.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-ARBACInfo.o `test -f 'ARBACInfo.c' || echo '$(srcdir)/'`ARBACInfo.c
+
+translate-ARBACInfo.obj: ARBACInfo.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -MT translate-ARBACInfo.obj -MD -MP -MF $(DEPDIR)/translate-ARBACInfo.Tpo -c -o translate-ARBACInfo.obj `if test -f 'ARBACInfo.c'; then $(CYGPATH_W) 'ARBACInfo.c'; else $(CYGPATH_W) '$(srcdir)/ARBACInfo.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/translate-ARBACInfo.Tpo $(DEPDIR)/translate-ARBACInfo.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ARBACInfo.c' object='translate-ARBACInfo.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-ARBACInfo.obj `if test -f 'ARBACInfo.c'; then $(CYGPATH_W) 'ARBACInfo.c'; else $(CYGPATH_W) '$(srcdir)/ARBACInfo.c'; fi`
 
 translate-ARBAC_to_GETAFIX_ExactAlg.o: ARBAC_to_GETAFIX_ExactAlg.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -MT translate-ARBAC_to_GETAFIX_ExactAlg.o -MD -MP -MF $(DEPDIR)/translate-ARBAC_to_GETAFIX_ExactAlg.Tpo -c -o translate-ARBAC_to_GETAFIX_ExactAlg.o `test -f 'ARBAC_to_GETAFIX_ExactAlg.c' || echo '$(srcdir)/'`ARBAC_to_GETAFIX_ExactAlg.c

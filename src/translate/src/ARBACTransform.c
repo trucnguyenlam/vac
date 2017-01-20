@@ -22,6 +22,7 @@ main(int argc, char **argv)
     int rounds = -1;
     int steps = -1;
     int wanted_threads = -1;
+    int show_statistics = 0;
 
     static struct option long_options[] = {
         { "out", required_argument, 0, 'o' },
@@ -31,6 +32,7 @@ main(int argc, char **argv)
         { "rounds", required_argument, 0, 'r' },
         { "steps", required_argument, 0, 's' },
         { "threads", required_argument, 0, 't' },
+        { "show-statistics", no_argument, 0, 'i'},
         { "help", no_argument, 0, 'h'},
         { 0, 0, 0, 0 }
     };
@@ -38,7 +40,7 @@ main(int argc, char **argv)
     while (1)
     {
         int option_index = 0;
-        c = getopt_long(argc, argv, "hf:a:l:r:s:t:o:", long_options, &option_index);
+        c = getopt_long(argc, argv, "ihf:a:l:r:s:t:o:", long_options, &option_index);
 
         if (c == -1)
             break;
@@ -68,12 +70,16 @@ main(int argc, char **argv)
                     \n-r,--rounds <X>                    :Number of rounds (mucke-cav and lazycseq only)\
                     \n-s,--steps <X>                     :Number of steps (lazycseq only)\
                     \n-t,--threads <X>                   :Number of tracked user (concurc and lazycseq only) (Default: auto)\
+                    \n-i,--show-statistics               :Print policy stetistics\
                     \n-h,--help                          :This message\
                     \nFILE is the input ARBAC file format\
                     \nThe formats {cbmc, moped, hsf, eldarica, smt, nusmv, getafix, mucke, mucke-cav lazycseq} use a 'precise' algorithm\
                     \nThe format {interproc} uses an 'abstract' algorithm\n");
             help_opt = 1;
             exit(EXIT_SUCCESS);
+            break;
+        case 'i':
+            show_statistics = 1;
             break;
         case 'o':
             out_name = malloc(strlen(optarg) + 1);
@@ -105,7 +111,7 @@ main(int argc, char **argv)
         }
     }
 
-    if (algo_arg == NULL){
+    if (algo_arg == NULL && !show_statistics){
         if (format_arg == NULL) {
             error_exit();
         }
@@ -134,6 +140,11 @@ main(int argc, char **argv)
                 printf("Cannot save in %s.\n", out_name);
                 error_exit();
             }
+        }
+
+        if (show_statistics) {
+            show_policy_statistics(filename, out_file, wanted_threads);
+            exit(EXIT_SUCCESS);
         }
 
 

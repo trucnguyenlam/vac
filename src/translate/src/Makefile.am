@@ -10,6 +10,7 @@ translate_SOURCES =	ARBACLexer.c \
 					ARBACUtil.c \
 					ARBACExact.c \
 					ARBACAbstract.c \
+					ARBACInfo.c \
 					ARBAC_to_GETAFIX_ExactAlg.c \
 					ARBAC_to_GETAFIX_parallel_ExactAlg.c \
 					ARBAC_to_MUCKE_ExactAlg.c \
