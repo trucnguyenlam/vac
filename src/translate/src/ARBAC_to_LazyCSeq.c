@@ -1,17 +1,17 @@
 #include "ARBACExact.h"
 #include <time.h>
 
-#ifndef GLOBALS_INT
-#define GLOBALS_INT 1
-#endif
+// #ifndef GLOBALS_INT
+// #define GLOBALS_INT 1
+// #endif
 
 #ifndef GLOBALS_ALL_USERS
 #define GLOBALS_ALL_USERS 1
 #endif
 
-#ifndef MERGE_RULES
-#define MERGE_RULES 1
-#endif
+// #ifndef MERGE_RULES
+// #define MERGE_RULES 1
+// #endif
 
 #define TYPE "_Bool"
 
@@ -392,6 +392,7 @@ simulate_can_revoke(FILE *outputFile, int thread_id, int cr_index, int label_ind
     fprintf(outputFile, "    )\n\n");
 }
 
+#ifdef MERGE_RULES
 static void
 simulate_can_assigns_by_role(FILE *outputFile, int thread_id, int target_role_index, int label_index) {
     // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
@@ -459,6 +460,7 @@ simulate_can_revokes_by_role(FILE *outputFile, int thread_id, int target_role_in
     }
     fprintf(outputFile, "    )\n\n");
 }
+#endif
 
 static void
 generate_check(FILE *outputFile, int thread_id, int label_index) {
