@@ -55,6 +55,8 @@ transform_2_concurC(char *, FILE *outputFile, int wanted_threads_count);
 void
 transform_2_lazycseq(char *, FILE *outputFile, int rounds, int steps, int wanted_threads_count);
 void
+transform_2_lazycseq_completeness_query(char *, FILE *outputFile, int rounds, int steps, int wanted_threads_count);
+void
 transform_2_CBMC_ExactAlg(char *, FILE *outputFile);
 void
 transform_2_HSF_ExactAlg(char *, FILE *outputFile);

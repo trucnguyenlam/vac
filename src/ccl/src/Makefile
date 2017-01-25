@@ -48,7 +48,10 @@ Dictionary.tex List.tex TreeMap.tex ccl.tex  table.tex
 #### Please remove ccl.pdf from the targets if you do not have the TeX system installed
 ####
 #-----------------------------------IMPORTANT --------------------
-all: 	libccl.a dotest ccl.pdf
+#old 'all' modified by Enrico to use autotools
+very_all: 	libccl.a dotest ccl.pdf
+#added by Enrico to use autotools
+all: 	libccl.a
 dotest:	libccl.a test.o 
 	gcc -o dotest -g $(CFLAGS) test.c libccl.a -lm
 libccl.a:	$(OBJS) containers.h ccl_internal.h ccl_internal.h

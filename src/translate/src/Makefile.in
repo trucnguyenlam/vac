@@ -87,7 +87,7 @@ NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
 bin_PROGRAMS = translate$(EXEEXT)
-subdir = src
+subdir = translate/src
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -116,9 +116,10 @@ am_translate_OBJECTS = translate-ARBACLexer.$(OBJEXT) \
 	translate-ARBAC_to_ELDARICA_ExactAlg.$(OBJEXT) \
 	translate-ARBAC_to_SMT2_ExactAlg.$(OBJEXT) \
 	translate-ARBAC_to_NuSMV_ExactAlg.$(OBJEXT) \
+	translate-ARBAC_to_CompletenessLazyCSeq.$(OBJEXT) \
 	translate-varOrd.$(OBJEXT)
 translate_OBJECTS = $(am_translate_OBJECTS)
-translate_DEPENDENCIES = ../../ccl/lib/libccl.a
+translate_DEPENDENCIES = ../../ccl/src/libccl.a
 translate_LINK = $(CCLD) $(translate_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
@@ -271,7 +272,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = foreign
 translate_CFLAGS = -I../../ccl/include/ -static
-translate_LDADD = ../../ccl/lib/libccl.a -lm
+translate_LDADD = ../../ccl/src/libccl.a -lm
 translate_SOURCES = ARBACLexer.c \
 					ARBACParser.c \
 					ARBACTool.c \
@@ -292,6 +293,7 @@ translate_SOURCES = ARBACLexer.c \
 					ARBAC_to_ELDARICA_ExactAlg.c \
 					ARBAC_to_SMT2_ExactAlg.c \
 					ARBAC_to_NuSMV_ExactAlg.c \
+					ARBAC_to_CompletenessLazyCSeq.c \
 					varOrd.c
 
 all: all-am
@@ -307,9 +309,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign translate/src/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign src/Makefile
+	  $(AUTOMAKE) --foreign translate/src/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
@@ -389,6 +391,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBACTransform.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBACUtil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_CBMC_ExactAlg.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_CompletenessLazyCSeq.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_ConcurC.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_ELDARICA_ExactAlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate-ARBAC_to_GETAFIX_ExactAlg.Po@am__quote@
@@ -695,6 +698,20 @@ translate-ARBAC_to_NuSMV_ExactAlg.obj: ARBAC_to_NuSMV_ExactAlg.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ARBAC_to_NuSMV_ExactAlg.c' object='translate-ARBAC_to_NuSMV_ExactAlg.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-ARBAC_to_NuSMV_ExactAlg.obj `if test -f 'ARBAC_to_NuSMV_ExactAlg.c'; then $(CYGPATH_W) 'ARBAC_to_NuSMV_ExactAlg.c'; else $(CYGPATH_W) '$(srcdir)/ARBAC_to_NuSMV_ExactAlg.c'; fi`
+
+translate-ARBAC_to_CompletenessLazyCSeq.o: ARBAC_to_CompletenessLazyCSeq.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -MT translate-ARBAC_to_CompletenessLazyCSeq.o -MD -MP -MF $(DEPDIR)/translate-ARBAC_to_CompletenessLazyCSeq.Tpo -c -o translate-ARBAC_to_CompletenessLazyCSeq.o `test -f 'ARBAC_to_CompletenessLazyCSeq.c' || echo '$(srcdir)/'`ARBAC_to_CompletenessLazyCSeq.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/translate-ARBAC_to_CompletenessLazyCSeq.Tpo $(DEPDIR)/translate-ARBAC_to_CompletenessLazyCSeq.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ARBAC_to_CompletenessLazyCSeq.c' object='translate-ARBAC_to_CompletenessLazyCSeq.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-ARBAC_to_CompletenessLazyCSeq.o `test -f 'ARBAC_to_CompletenessLazyCSeq.c' || echo '$(srcdir)/'`ARBAC_to_CompletenessLazyCSeq.c
+
+translate-ARBAC_to_CompletenessLazyCSeq.obj: ARBAC_to_CompletenessLazyCSeq.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -MT translate-ARBAC_to_CompletenessLazyCSeq.obj -MD -MP -MF $(DEPDIR)/translate-ARBAC_to_CompletenessLazyCSeq.Tpo -c -o translate-ARBAC_to_CompletenessLazyCSeq.obj `if test -f 'ARBAC_to_CompletenessLazyCSeq.c'; then $(CYGPATH_W) 'ARBAC_to_CompletenessLazyCSeq.c'; else $(CYGPATH_W) '$(srcdir)/ARBAC_to_CompletenessLazyCSeq.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/translate-ARBAC_to_CompletenessLazyCSeq.Tpo $(DEPDIR)/translate-ARBAC_to_CompletenessLazyCSeq.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ARBAC_to_CompletenessLazyCSeq.c' object='translate-ARBAC_to_CompletenessLazyCSeq.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -c -o translate-ARBAC_to_CompletenessLazyCSeq.obj `if test -f 'ARBAC_to_CompletenessLazyCSeq.c'; then $(CYGPATH_W) 'ARBAC_to_CompletenessLazyCSeq.c'; else $(CYGPATH_W) '$(srcdir)/ARBAC_to_CompletenessLazyCSeq.c'; fi`
 
 translate-varOrd.o: varOrd.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(translate_CFLAGS) $(CFLAGS) -MT translate-varOrd.o -MD -MP -MF $(DEPDIR)/translate-varOrd.Tpo -c -o translate-varOrd.o `test -f 'varOrd.c' || echo '$(srcdir)/'`varOrd.c

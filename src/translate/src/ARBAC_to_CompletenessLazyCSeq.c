@@ -13,10 +13,6 @@
 // #define MERGE_RULES 1
 // #endif
 
-#ifndef INLINE_THREADS
-#define INLINE_THREADS 1
-#endif
-
 #define TYPE "_Bool"
 
 static char *and_op = "&&";
@@ -469,12 +465,13 @@ simulate_can_revokes_by_role(FILE *outputFile, int thread_id, int target_role_in
 static void
 generate_check(FILE *outputFile, int thread_id, int label_index) {
     fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
-    fprintf(outputFile, "    /*---------------ERROR CHECK------------*/\n");
-    fprintf(outputFile, "    if (");
-    fprintf(outputFile, "local_Thread_%d_loc_%s", thread_id, role_array[goal_role_index]);
-    fprintf(outputFile, ") {\n");
-    fprintf(outputFile, "        assert(0);\n");
-    fprintf(outputFile, "    }\n");
+    fprintf(outputFile, "    0;");
+    // fprintf(outputFile, "    /*---------------ERROR CHECK------------*/\n");
+    // fprintf(outputFile, "    if (");
+    // fprintf(outputFile, "local_Thread_%d_loc_%s", thread_id, role_array[goal_role_index]);
+    // fprintf(outputFile, ") {\n");
+    // fprintf(outputFile, "        assert(0);\n");
+    // fprintf(outputFile, "    }\n");
 }
 
 static void
@@ -626,24 +623,95 @@ generate_round(FILE *outputFile, int round, int steps) {
 }
 
 static void
+generate_backup_variables(FILE* outputFile, int rounds){
+    for (int round = 0; round < rounds + 1; ++round) {
+        fprintf(outputFile, "\n    /*---------- BEFORE ROUND %d BACKUP VARIABLES ---------*/\n", round);
+        for (int th_id = 0; th_id < threads_count; ++th_id) {
+            fprintf(outputFile, "\n    /*---------- THREAD %d BACKUP VARIABLES ---------*/\n", th_id);
+            for (int role = 0; role < role_array_size; role++) {   
+                fprintf(outputFile, "    %s round_%d_local_Thread_%d_loc_%s;\n", TYPE, round, th_id, role_array[role]);
+            }
+        }
+    }
+}
+
+static void
+save_state(FILE* outputFile, int round_id) {
+    fprintf(outputFile, "\n    /*---------- SAVE STATE TO ROUND %d BACKUP VARIABLES ---------*/\n", round_id);
+    for (int th_id = 0; th_id < threads_count; ++th_id) {
+        fprintf(outputFile, "\n    /*---------- SAVE THREAD %d STATUS ---------*/\n", th_id);
+        for (int role = 0; role < role_array_size; role++) {
+            fprintf(outputFile, "    round_%d_local_Thread_%d_loc_%s = local_Thread_%d_loc_%s;\n", round_id, 
+                th_id, role_array[role], th_id, role_array[role]);
+        }
+    }
+}
+
+static void
+check_distincts(FILE* outputFile, int round_1, int round_2) {
+    fprintf(outputFile, "        /*---------- CHECKING ROUNDS %d and %d ---------*/\n", round_1, round_2);
+    for (int th_id = 0; th_id < threads_count; ++th_id) {
+        fprintf(outputFile, "        ((round_%d_local_Thread_%d_loc_%s != round_%d_local_Thread_%d_loc_%s)", 
+            round_1, th_id, role_array[0],
+            round_2, th_id, role_array[0]);
+        for (int role = 1; role < role_array_size; role++) {
+            fprintf(outputFile, " %s (round_%d_local_Thread_%d_loc_%s != round_%d_local_Thread_%d_loc_%s)", or_op, 
+                round_1, th_id, role_array[role],
+                round_2, th_id, role_array[role]);
+        }
+        if (th_id != threads_count - 1) {
+            fprintf(outputFile, ") %s\n", or_op);
+        }
+        else {
+            fprintf(outputFile, ")\n");
+        }
+    }
+}
+
+static void
+check_completeness(FILE* outputFile, int rounds) {
+    fprintf(outputFile, "    /*---------- FINAL DISTINCT ASSERTION ---------*/\n");
+    fprintf(outputFile, "    %s complete = \n", TYPE);
+    fprintf(outputFile, "        (\n");
+    check_distincts(outputFile, 0, 1);
+    for (int round_1 = 1; round_1 < rounds; ++round_1) {
+        for (int round_2 = round_1 + 1; round_2 < rounds + 1; ++round_2) {
+            fprintf(outputFile, "        ) %s (\n", and_op);
+            check_distincts(outputFile, round_1, round_2);
+        }
+    }
+    fprintf(outputFile, "        );\n");
+    fprintf(outputFile, "\n");
+    fprintf(outputFile, "    assert(!complete);\n");
+}
+
+static void
 generate_main(FILE* outputFile, int rounds, int steps) {
+    int i = 0;
     fprintf(outputFile, "int main(void) {\n\n");
+
+    generate_backup_variables(outputFile, rounds);
 
     if (use_tracks) {
         fprintf(outputFile, "    /*------------THREAD INITIALIZATION-----------*/\n");
         fprintf(outputFile, "    initialize_threads();\n\n");
     }
 
-    for (int i = 0; i < rounds; ++i)
-    {
+    for (i = 0; i < rounds; ++i) {
+        save_state(outputFile, i);
         generate_round(outputFile, i, steps);
     }
+
+    save_state(outputFile, i);
+
+    check_completeness(outputFile, rounds);
+
     fprintf(outputFile, "    return 0;\n");
     fprintf(outputFile, "}\n");
 }
 
 void
-transform_2_lazycseq(char *inputFile, FILE *outputFile, int rounds, int steps, int wanted_threads_count) {
+transform_2_lazycseq_completeness_query(char *inputFile, FILE *outputFile, int rounds, int steps, int wanted_threads_count) {
 
     if (rounds < 1) {
         fprintf(stderr, "Cannot simulate a number of rounds < 1\n");
@@ -653,6 +721,7 @@ transform_2_lazycseq(char *inputFile, FILE *outputFile, int rounds, int steps, i
         fprintf(stderr, "Cannot simulate a number of steps < 1\n");
         exit(EXIT_FAILURE);
     }
+
     
     read_ARBAC(inputFile);
     // Preprocess the ARBAC Policies

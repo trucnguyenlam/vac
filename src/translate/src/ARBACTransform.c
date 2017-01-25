@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <unistd.h>
 #include "ARBACTransform.h"
 
 void
@@ -65,15 +66,16 @@ main(int argc, char **argv)
                     \n                                      mucke\
                     \n                                      mucke-cav\
                     \n                                      lazycseq\
+                    \n                                      completeness_query\
                     \n                                      concurc\
                     \n-l,--formula <X>                   :Formula for mucke\
-                    \n-r,--rounds <X>                    :Number of rounds (mucke-cav and lazycseq only)\
-                    \n-s,--steps <X>                     :Number of steps (lazycseq only)\
-                    \n-t,--threads <X>                   :Number of tracked user (concurc and lazycseq only) (Default: auto)\
+                    \n-r,--rounds <X>                    :Number of rounds (mucke-cav, lazycseq and completeness_query only)\
+                    \n-s,--steps <X>                     :Number of steps (lazycseq and completeness_query only)\
+                    \n-t,--threads <X>                   :Number of tracked user (concurc, lazycseq and completeness_query only) (Default: auto)\
                     \n-i,--show-statistics               :Print policy stetistics\
                     \n-h,--help                          :This message\
                     \nFILE is the input ARBAC file format\
-                    \nThe formats {cbmc, moped, hsf, eldarica, smt, nusmv, getafix, mucke, mucke-cav lazycseq} use a 'precise' algorithm\
+                    \nThe formats {cbmc, moped, hsf, eldarica, smt, nusmv, getafix, mucke, mucke-cav lazycseq completeness_query} use a 'precise' algorithm\
                     \nThe format {interproc} uses an 'abstract' algorithm\n");
             help_opt = 1;
             exit(EXIT_SUCCESS);
@@ -131,13 +133,18 @@ main(int argc, char **argv)
         filename = malloc(strlen(argv[optind]) + 1);
         strcpy(filename, argv[optind]);
 
+        if (access(filename, R_OK ) == -1) {
+            fprintf(stderr, "%s: No such file.\n", filename);
+            error_exit();
+        }
+
         if (out_name == NULL) {
             out_file = stdout;
         }
         else {
             out_file = fopen(out_name, "w");
             if (out_file == NULL){
-                printf("Cannot save in %s.\n", out_name);
+                fprintf(stderr, "Cannot save in %s.\n", out_name);
                 error_exit();
             }
         }
@@ -209,6 +216,18 @@ main(int argc, char **argv)
                     error_exit();
                 }
                 transform_2_lazycseq(filename, out_file, rounds, steps, wanted_threads);
+            }
+            else if (strcmp(format_arg, "completeness_query") == 0)
+            {
+                if (rounds == -1) {
+                    fprintf(stderr, "completeness_query requires to specify the rounds number (-r)\n");
+                    error_exit();
+                }
+                if (steps == -1) {
+                    fprintf(stderr, "completeness_query requires to specify the steos number (-s)\n");
+                    error_exit();
+                }
+                transform_2_lazycseq_completeness_query(filename, out_file, rounds, steps, wanted_threads);
             }
             else if (strcmp(format_arg, "concurc") == 0)
             {
