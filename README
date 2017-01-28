@@ -28,15 +28,11 @@ Details of installation for each module are in each directory (please refer INST
 ================================================================================================
 Building VAC Tool
 ================================================================================================
-After installing the required libraries, you can use the build.sh script to build static version of VAC
-
-- Use `./build.sh` to build the tool.The static built version of VAC now is in 'vac_static' directory.
-
-- Use `./build.sh clean` to clean up built.
+After installing the required libraries, you can use the classical `configure` `make` `make install` to build static version of VAC
 
 ================================================================================================
 Using VAC tool
 ================================================================================================
-Change to directory vac_static and use the vac.sh script to invoke the tool.
+Change to the installed directory and use the vac.py script to invoke the tool.
 
-Please refer to this command `./vac.sh -h` to know how to use the script.
+Please refer to this command `./vac.py -h` to know how to use the script.

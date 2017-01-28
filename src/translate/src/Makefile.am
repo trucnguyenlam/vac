@@ -1,7 +1,7 @@
 AUTOMAKE_OPTIONS = foreign
 
 bin_PROGRAMS = translate
-translate_CFLAGS = -I../../ccl/include/ -static
+translate_CFLAGS = -I../../ccl/include/ @DEFAULT_CFLAGS@
 translate_LDADD = ../../ccl/src/libccl.a -lm
 translate_SOURCES =	ARBACLexer.c \
 					ARBACParser.c \

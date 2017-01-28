@@ -48,6 +48,8 @@ Dictionary.tex List.tex TreeMap.tex ccl.tex  table.tex
 #### Please remove ccl.pdf from the targets if you do not have the TeX system installed
 ####
 #-----------------------------------IMPORTANT --------------------
+#install added by Enrico to use autotools
+install: all
 #old 'all' modified by Enrico to use autotools
 very_all: 	libccl.a dotest ccl.pdf
 #added by Enrico to use autotools
