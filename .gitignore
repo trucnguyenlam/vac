@@ -39,4 +39,33 @@ experiments/
 vac_64bit.tar.bz2
 VAC.tar.bz2
 
+#AUTOTOOLS GENERATED FILES
+INSTALL
+Makefile
+Makefile.in
+aclocal.m4
+autom4te.cache/
+build-aux/
+config.log
+config.status
+configure
+src/counterexample/Makefile
+src/counterexample/Makefile.in
+src/counterexample/src/.deps/
+src/counterexample/src/Makefile
+src/counterexample/src/Makefile.in
+src/counterexample/src/counterexample
+src/simplify/Makefile
+src/simplify/Makefile.in
+src/simplify/src/.deps/
+src/simplify/src/Makefile
+src/simplify/src/Makefile.in
+src/simplify/src/simplify
+src/translate/Makefile
+src/translate/Makefile.in
+src/translate/src/.deps/
+src/translate/src/Makefile
+src/translate/src/Makefile.in
+src/translate/src/translate
+
 
