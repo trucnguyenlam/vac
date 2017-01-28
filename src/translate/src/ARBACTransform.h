@@ -54,6 +54,9 @@ void
 transform_2_concurC(char *, FILE *outputFile, int wanted_threads_count);
 void
 transform_2_lazycseq(char *, FILE *outputFile, int rounds, int steps, int wanted_threads_count);
+/*TODO: Remove and merge with previous*/
+void
+transform_2_lazycseq_inlined(char *, FILE *outputFile, int rounds, int steps, int wanted_threads_count);
 void
 transform_2_lazycseq_completeness_query(char *, FILE *outputFile, int rounds, int steps, int wanted_threads_count);
 void

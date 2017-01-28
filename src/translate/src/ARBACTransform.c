@@ -24,6 +24,7 @@ main(int argc, char **argv)
     int steps = -1;
     int wanted_threads = -1;
     int show_statistics = 0;
+    int _inline = 0;
 
     static struct option long_options[] = {
         { "out", required_argument, 0, 'o' },
@@ -33,7 +34,8 @@ main(int argc, char **argv)
         { "rounds", required_argument, 0, 'r' },
         { "steps", required_argument, 0, 's' },
         { "threads", required_argument, 0, 't' },
-        { "show-statistics", no_argument, 0, 'i'},
+        { "show-statistics", no_argument, 0, 'S'},
+        { "inline", no_argument, 0, 'i'},
         { "help", no_argument, 0, 'h'},
         { 0, 0, 0, 0 }
     };
@@ -41,7 +43,7 @@ main(int argc, char **argv)
     while (1)
     {
         int option_index = 0;
-        c = getopt_long(argc, argv, "ihf:a:l:r:s:t:o:", long_options, &option_index);
+        c = getopt_long(argc, argv, "Sihf:a:l:r:s:t:o:", long_options, &option_index);
 
         if (c == -1)
             break;
@@ -68,11 +70,12 @@ main(int argc, char **argv)
                     \n                                      lazycseq\
                     \n                                      completeness_query\
                     \n                                      concurc\
+                    \n-i,--inline                        :Inline the program (lazycseq only)\
                     \n-l,--formula <X>                   :Formula for mucke\
                     \n-r,--rounds <X>                    :Number of rounds (mucke-cav, lazycseq and completeness_query only)\
                     \n-s,--steps <X>                     :Number of steps (lazycseq and completeness_query only)\
                     \n-t,--threads <X>                   :Number of tracked user (concurc, lazycseq and completeness_query only) (Default: auto)\
-                    \n-i,--show-statistics               :Print policy stetistics\
+                    \n-S,--show-statistics               :Print policy stetistics\
                     \n-h,--help                          :This message\
                     \nFILE is the input ARBAC file format\
                     \nThe formats {cbmc, moped, hsf, eldarica, smt, nusmv, getafix, mucke, mucke-cav lazycseq completeness_query} use a 'precise' algorithm\
@@ -80,8 +83,11 @@ main(int argc, char **argv)
             help_opt = 1;
             exit(EXIT_SUCCESS);
             break;
-        case 'i':
+        case 'S':
             show_statistics = 1;
+            break;
+        case 'i':
+            _inline = 1;
             break;
         case 'o':
             out_name = malloc(strlen(optarg) + 1);
@@ -215,7 +221,12 @@ main(int argc, char **argv)
                     fprintf(stderr, "lazycseq requires to specify the steos number (-s)\n");
                     error_exit();
                 }
-                transform_2_lazycseq(filename, out_file, rounds, steps, wanted_threads);
+                if (_inline) {
+                    transform_2_lazycseq_inlined(filename, out_file, rounds, steps, wanted_threads);
+                }
+                else {
+                    transform_2_lazycseq(filename, out_file, rounds, steps, wanted_threads);
+                }
             }
             else if (strcmp(format_arg, "completeness_query") == 0)
             {

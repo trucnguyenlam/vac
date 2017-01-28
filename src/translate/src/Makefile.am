@@ -15,7 +15,6 @@ translate_SOURCES =	ARBACLexer.c \
 					ARBAC_to_GETAFIX_parallel_ExactAlg.c \
 					ARBAC_to_MUCKE_ExactAlg.c \
 					ARBAC_to_MUCKE_CAV.c \
-					ARBAC_to_LazyCSeq.c \
 					ARBAC_to_ConcurC.c \
 					ARBAC_to_CBMC_ExactAlg.c \
 					ARBAC_to_INTERPROC_OverApr.c \
@@ -23,6 +22,8 @@ translate_SOURCES =	ARBACLexer.c \
 					ARBAC_to_ELDARICA_ExactAlg.c \
 					ARBAC_to_SMT2_ExactAlg.c \
 					ARBAC_to_NuSMV_ExactAlg.c \
+					ARBAC_to_LazyCSeq.c \
+					ARBAC_to_LazyCSeqInlined.c \
 					ARBAC_to_CompletenessLazyCSeq.c \
 					varOrd.c
 
