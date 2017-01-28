@@ -625,6 +625,7 @@ ac_includes_default="\
 ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
+DEFAULT_CFLAGS
 LIBOBJS
 EGREP
 GREP
@@ -4336,6 +4337,9 @@ $as_echo "#define realloc rpl_realloc" >>confdefs.h
 
 fi
 
+
+
+DEFAULT_CFLAGS=" -static -O3 -pthread "
 
 
 ac_config_files="$ac_config_files Makefile src/Makefile"

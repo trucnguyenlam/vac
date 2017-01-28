@@ -29,6 +29,8 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([memset strdup])
 
+AC_SUBST([DEFAULT_CFLAGS], " -static -O3 -pthread ")
+
 AC_CONFIG_FILES([Makefile
                  src/Makefile])
 AC_OUTPUT
