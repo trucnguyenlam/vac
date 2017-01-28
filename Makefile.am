@@ -19,4 +19,4 @@ licensesdir = $(prefix)/licenses
 licenses_DATA = tools/licenses/*
 
 backendsdir = $(prefix)/bin
-backend_DATA = tools/bin_64bit/*
+backends_DATA = tools/bin_64bit/*

@@ -40,7 +40,7 @@ AC_FUNC_REALLOC
 AC_CHECK_FUNCS([memset strdup])
 
 
-AC_SUBST([DEFAULT_CFLAGS], " -static -O3 ")
+AC_SUBST([DEFAULT_CFLAGS], " -static -O3 -pthread ")
 
 
 AC_CONFIG_FILES([Makefile

@@ -50,6 +50,10 @@ Dictionary.tex List.tex TreeMap.tex ccl.tex  table.tex
 #-----------------------------------IMPORTANT --------------------
 #install added by Enrico to use autotools
 install: all
+#dist added by Enrico to use autotools
+dist: all
+#distclean added by Enrico to use autotools
+distclean: 	clean
 #old 'all' modified by Enrico to use autotools
 very_all: 	libccl.a dotest ccl.pdf
 #added by Enrico to use autotools
