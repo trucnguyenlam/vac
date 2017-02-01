@@ -68,17 +68,18 @@ main(int argc, char **argv)
                     \n                                      mucke\
                     \n                                      mucke-cav\
                     \n                                      lazycseq\
+                    \n                                      ssa\
                     \n                                      completeness_query\
                     \n                                      concurc\
                     \n-i,--inline                        :Inline the program (lazycseq only)\
                     \n-l,--formula <X>                   :Formula for mucke\
-                    \n-r,--rounds <X>                    :Number of rounds (mucke-cav, lazycseq and completeness_query only)\
-                    \n-s,--steps <X>                     :Number of steps (lazycseq and completeness_query only)\
-                    \n-t,--threads <X>                   :Number of tracked user (concurc, lazycseq and completeness_query only) (Default: auto)\
+                    \n-r,--rounds <X>                    :Number of rounds (mucke-cav, lazycseq, ssa and completeness_query only)\
+                    \n-s,--steps <X>                     :Number of steps (lazycseq, ssa and completeness_query only)\
+                    \n-t,--threads <X>                   :Number of tracked user (concurc, lazycseq, ssa and completeness_query only) (Default: auto)\
                     \n-S,--show-statistics               :Print policy stetistics\
                     \n-h,--help                          :This message\
                     \nFILE is the input ARBAC file format\
-                    \nThe formats {cbmc, moped, hsf, eldarica, smt, nusmv, getafix, mucke, mucke-cav lazycseq completeness_query} use a 'precise' algorithm\
+                    \nThe formats {cbmc, moped, hsf, eldarica, smt, nusmv, getafix, mucke, mucke-cav, lazycseq, ssa, completeness_query} use a 'precise' algorithm\
                     \nThe format {interproc} uses an 'abstract' algorithm\n");
             help_opt = 1;
             exit(EXIT_SUCCESS);
@@ -227,6 +228,18 @@ main(int argc, char **argv)
                 else {
                     transform_2_lazycseq(filename, out_file, rounds, steps, wanted_threads);
                 }
+            }
+            else if (strcmp(format_arg, "ssa") == 0)
+            {
+                if (rounds == -1) {
+                    fprintf(stderr, "ssa requires to specify the rounds number (-r)\n");
+                    error_exit();
+                }
+                if (steps == -1) {
+                    fprintf(stderr, "ssa requires to specify the steos number (-s)\n");
+                    error_exit();
+                }
+                transform_2_ssa(filename, out_file, rounds, steps, wanted_threads);
             }
             else if (strcmp(format_arg, "completeness_query") == 0)
             {

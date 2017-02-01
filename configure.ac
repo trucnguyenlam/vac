@@ -17,6 +17,7 @@ AC_CONFIG_SRCDIR([src/counterexample/src/ARBACParser.h])
 
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_CXX
 
 #AC_CONFIG_HEADERS([config.h])
 
@@ -41,6 +42,7 @@ AC_CHECK_FUNCS([memset strdup])
 
 
 AC_SUBST([DEFAULT_CFLAGS], " -static -O3 -pthread ")
+AC_SUBST([DEFAULT_CXXFLAGS], " -static -O3 -pthread ")
 
 
 AC_CONFIG_FILES([Makefile

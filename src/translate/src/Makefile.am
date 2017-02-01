@@ -3,6 +3,7 @@ AUTOMAKE_OPTIONS = foreign
 bin_PROGRAMS = translate
 translate_CFLAGS = -I../../ccl/include/ @DEFAULT_CFLAGS@
 translate_LDADD = ../../ccl/src/libccl.a -lm
+
 translate_SOURCES =	ARBACLexer.c \
 					ARBACParser.c \
 					ARBACTool.c \
@@ -24,6 +25,7 @@ translate_SOURCES =	ARBACLexer.c \
 					ARBAC_to_NuSMV_ExactAlg.c \
 					ARBAC_to_LazyCSeq.c \
 					ARBAC_to_LazyCSeqInlined.c \
+					ARBAC_to_SSA.c \
 					ARBAC_to_CompletenessLazyCSeq.c \
 					varOrd.c
 

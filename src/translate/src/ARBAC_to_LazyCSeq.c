@@ -9,17 +9,13 @@
 #define GLOBALS_ALL_USERS 1
 #endif
 
-// #ifndef MERGE_RULES
-// #define MERGE_RULES 1
+#ifndef MERGE_RULES
+#define MERGE_RULES 1
+#endif
+
+// #ifndef NO_GLOBALS
+// #define NO_GLOBALS 1
 // #endif
-
-#ifndef NO_GLOBALS
-#define NO_GLOBALS 1
-#endif
-
-#ifndef INLINE_THREADS
-#define INLINE_THREADS 1
-#endif
 
 #define TYPE "_Bool"
 
@@ -32,12 +28,17 @@ static int threads_count;
 static int use_tracks;
 
 #ifdef MERGE_RULES
-int *roles_ca_counts = NULL;
-int *roles_cr_counts = NULL;
-int **per_role_ca_indexes = NULL;
-int **per_role_cr_indexes = NULL;
+static int *roles_ca_counts = NULL;
+static int *roles_cr_counts = NULL;
+static int **per_role_ca_indexes = NULL;
+static int **per_role_cr_indexes = NULL;
+static float ca_merge_ratio = 0;
+static float cr_merge_ratio = 0;
 
 static void precompute_merge() {
+
+    float assignable_roles_count = 0;
+    float removable_roles_count = 0;
 
     roles_ca_counts = (int *) malloc(sizeof(int) * role_array_size);
     roles_cr_counts = (int *) malloc(sizeof(int) * role_array_size);
@@ -58,6 +59,7 @@ static void precompute_merge() {
         //INSTANTIATING per_role_ca_indexes CONTENT
         if (roles_ca_counts[i] > 0) {
             int k = 0;
+            assignable_roles_count++;
             per_role_ca_indexes[i] = (int *) malloc(sizeof(int) * roles_ca_counts[i]);
 
             for (int j = 0; j < ca_array_size; ++j) {
@@ -168,6 +170,7 @@ generate_header(FILE *outputFile, char *inputFile, int rounds, int steps) {
     #endif
     #ifdef MERGE_RULES
     fprintf(outputFile, "* MERGE_RULES\n");
+    fprintf(outputFile, "* MERGE_RATIO\n");
     #else
     fprintf(outputFile, "* UNMERGE_RULES\n");
     #endif
@@ -594,17 +597,17 @@ initialize_threads_assignments(FILE *outputFile, int user_id)
 
     fprintf(outputFile, "    /*--------------- CONFIGURATION OF %s ------------*/\n", user_array[user_id]);
 
-    fprintf(outputFile, "    if (nondet_bool()) {\n");
+    // fprintf(outputFile, "    if (nondet_bool()) {\n");
 
     for (i = 0; i < threads_count; i++) {
         if (i == 0) {
-            fprintf(outputFile, "        if (!thread_%d_assigned) {\n", i);
+            fprintf(outputFile, "    if (nondet_bool() %s !thread_%d_assigned) {\n", and_op, i);
         }
         else {
-            fprintf(outputFile, "        else if (!thread_%d_assigned) {\n", i);
+            fprintf(outputFile, "    else if (nondet_bool() %s !thread_%d_assigned) {\n", and_op, i);
         }
 
-        fprintf(outputFile, "            thread_%d_assigned = 1;\n", i);
+        fprintf(outputFile, "        thread_%d_assigned = 1;\n", i);
 
         for (j = 0; j < user_config_array[user_id].array_size; j++)
         {
@@ -612,17 +615,17 @@ initialize_threads_assignments(FILE *outputFile, int user_id)
             // if GLOBALS_ALL_USERS is NOT set than we have to set the globals for this role
             if (belong_to(admin_role_array_index, admin_role_array_index_size, user_config_array[user_id].array[j])) {
                 #ifdef GLOBALS_INT
-                fprintf(outputFile, "            glob_%s++;\n", role_array[user_config_array[user_id].array[j]]);
+                fprintf(outputFile, "        glob_%s++;\n", role_array[user_config_array[user_id].array[j]]);
                 #else
-                fprintf(outputFile, "            glob_%s = 1;\n", role_array[user_config_array[user_id].array[j]]);
+                fprintf(outputFile, "        glob_%s = 1;\n", role_array[user_config_array[user_id].array[j]]);
                 #endif
             }
             #endif
-            fprintf(outputFile, "            local_Thread_%d_loc_%s = 1;\n", i, role_array[user_config_array[user_id].array[j]]);
+            fprintf(outputFile, "        local_Thread_%d_loc_%s = 1;\n", i, role_array[user_config_array[user_id].array[j]]);
         }
-        fprintf(outputFile, "        }\n");
+        fprintf(outputFile, "    }\n\n");
     }
-    fprintf(outputFile, "    }\n\n");
+    // fprintf(outputFile, "    }\n\n");
 }
 
 static void
