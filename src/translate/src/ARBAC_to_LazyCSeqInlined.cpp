@@ -23,10 +23,10 @@
 
 #define TYPE "_Bool"
 
-static char *and_op = "&&";
-static char *or_op = "||";
+static char const *and_op = "&&";
+static char const *or_op = "||";
 
-static char *assume = "__VERIFIER_assume";
+static char const *assume = "__VERIFIER_assume";
 
 static int threads_count;
 static int use_tracks;

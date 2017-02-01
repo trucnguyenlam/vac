@@ -1,5 +1,10 @@
 #include "ARBACExact.h"
 
+set * user_config_array;
+int user_config_array_size;
+
+int NUM_USER_TO_TRACK;
+
 // Build the configuration for each user of the system
 void
 build_config_array()
@@ -7,7 +12,7 @@ build_config_array()
     int i;
 
     user_config_array_size = user_array_size;
-    user_config_array = calloc(user_config_array_size, sizeof(set));
+    user_config_array = (set *) calloc(user_config_array_size, sizeof(set));
 
     // Initialize this array
     for (i = 0; i < user_config_array_size; i++)

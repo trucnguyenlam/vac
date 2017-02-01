@@ -117,7 +117,7 @@ set
 add_last_element(set s, int element)
 {
 	s.array_size++;
-	s.array = realloc(s.array, s.array_size * sizeof(int));
+	s.array = (int *) realloc(s.array, s.array_size * sizeof(int));
 	s.array[s.array_size - 1] = element;
 	return s;
 }
@@ -152,7 +152,7 @@ remove_element(set s, int element)
 	set result, remove;
 
 	remove.array_size = 1;
-	remove.array = malloc(sizeof(int));
+	remove.array = (int *) malloc(sizeof(int));
 	remove.array[0] = element;
 
 	result = different_set(s, remove);
@@ -182,7 +182,7 @@ union_set(set set1, set set2)
 	}
 
 	result.array_size = set1.array_size;
-	result.array = malloc(result.array_size * sizeof(int));
+	result.array = (int *) malloc(result.array_size * sizeof(int));
 
 	for (i = 0; i < set1.array_size; i++)
 	{
@@ -194,7 +194,7 @@ union_set(set set1, set set2)
 		if (!belong_to(set1.array, set1.array_size, set2.array[i]))
 		{
 			result.array_size++;
-			result.array = realloc(result.array, result.array_size * sizeof(int));
+			result.array = (int *) realloc(result.array, result.array_size * sizeof(int));
 			result.array[result.array_size - 1] = set2.array[i];
 		}
 	}
@@ -233,7 +233,7 @@ intersect_set(set set1, set set2)
 		if (belong_to(set1.array, set1.array_size, set2.array[i]))
 		{
 			result.array_size++;
-			result.array = realloc(result.array, result.array_size * sizeof(int));
+			result.array = (int *) realloc(result.array, result.array_size * sizeof(int));
 			result.array[result.array_size - 1] = set2.array[i];
 		}
 	}
@@ -277,7 +277,7 @@ different_set(set set1, set set2)
 		if (!belong_to(set2.array, set2.array_size, set1.array[i]))
 		{
 			result.array_size++;
-			result.array = realloc(result.array, result.array_size * sizeof(int));
+			result.array = (int *) realloc(result.array, result.array_size * sizeof(int));
 			result.array[result.array_size - 1] = set1.array[i];
 		}
 	}
@@ -310,7 +310,7 @@ duplicate_set(set someset)
 	}
 
 	result.array_size = someset.array_size;
-	result.array = malloc(result.array_size * sizeof(int));
+	result.array = (int *) malloc(result.array_size * sizeof(int));
 
 	for (i = 0; i < someset.array_size; i++)
 	{
@@ -340,7 +340,7 @@ build_set(int * array, int array_size)
 		return result;
 	}
 
-	result.array = malloc(result.array_size * sizeof(int));
+	result.array = (int *) malloc(result.array_size * sizeof(int));
 
 	for (i = 0; i < array_size; i++)
 	{

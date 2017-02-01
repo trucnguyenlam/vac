@@ -3,6 +3,9 @@
 #include <getopt.h>
 #include <unistd.h>
 #include "ARBACTransform.h"
+#include "ARBACAbstract.h"
+
+// using namespace Abstract;
 
 void
 error_exit(){
@@ -91,19 +94,19 @@ main(int argc, char **argv)
             _inline = 1;
             break;
         case 'o':
-            out_name = malloc(strlen(optarg) + 1);
+            out_name = (char *) malloc(strlen(optarg) + 1);
             strcpy(out_name, optarg);
             break;
         case 'a':
-            algo_arg = malloc(strlen(optarg) + 1);
+            algo_arg = (char *) malloc(strlen(optarg) + 1);
             strcpy(algo_arg, optarg);
             break;
         case 'f':
-            format_arg = malloc(strlen(optarg) + 1);
+            format_arg = (char *) malloc(strlen(optarg) + 1);
             strcpy(format_arg, optarg);
             break;
         case 'l':
-            formula_filename = malloc(strlen(optarg) + 1);
+            formula_filename = (char *) malloc(strlen(optarg) + 1);
             strcpy(formula_filename, optarg);
             break;
         case 'r':
@@ -125,11 +128,11 @@ main(int argc, char **argv)
             error_exit();
         }
         if (strcmp(format_arg, "interproc") == 0) {
-            algo_arg = malloc(strlen("abstract") + 1);
+            algo_arg = (char *) malloc(strlen("abstract") + 1);
             strcpy(algo_arg, "abstract"); 
         }
         else {
-            algo_arg = malloc(strlen("precise") + 1);
+            algo_arg = (char *) malloc(strlen("precise") + 1);
             strcpy(algo_arg, "precise"); 
         }
     }
@@ -137,7 +140,7 @@ main(int argc, char **argv)
     if (optind < argc)
     {
         FILE * out_file = NULL;
-        filename = malloc(strlen(argv[optind]) + 1);
+        filename = (char *) malloc(strlen(argv[optind]) + 1);
         strcpy(filename, argv[optind]);
 
         if (access(filename, R_OK ) == -1) {
@@ -266,7 +269,7 @@ main(int argc, char **argv)
         {
             if (strcmp(format_arg, "interproc") == 0)
             {
-                transform_2_INTERPROC_OverApr(filename, out_file);
+                Abstract::transform_2_INTERPROC_OverApr(filename, out_file);
             }
             else
             {

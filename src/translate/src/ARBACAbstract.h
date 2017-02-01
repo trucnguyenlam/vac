@@ -7,42 +7,49 @@
 #include "ARBACUtil.h"
 #include "ARBACTransform.h"
 
-/*****************************************************************
- *  Define the data structure for tranformation                  *
- *****************************************************************/
-// Data type for a Venn region
-typedef struct _venn_region
-{
-	set P; // P set
-	set N; // N set
-} venn_region;
+namespace Abstract {
 
-// Define the Track set
-venn_region* Track;
-int Track_size;
+	/*****************************************************************
+	 *  Define the data structure for tranformation                  *
+	 *****************************************************************/
+	// Data type for a Venn region
+	typedef struct _venn_region
+	{
+		set P; // P set
+		set N; // N set
+	} venn_region;
 
-char * query;
+	// Define the Track set
+	extern venn_region* Track;
+	extern int Track_size;
 
-// The Venn region string array generated from Track
-char** venn_region_array;
-int venn_region_array_size;
+	extern char * query;
 
-// User configuration set
-set * user_config_array;
-int user_config_array_size;
+	// The Venn region string array generated from Track
+	extern char** venn_region_array;
+	extern int venn_region_array_size;
 
-void
-build_user_configurations();
+	// User configuration set
+	extern set * user_config_array;
+	extern int user_config_array_size;
 
-int
-get_number_of_venn_region(venn_region);
+	void
+	build_user_configurations();
 
-void
-build_Track();
+	int
+	get_number_of_venn_region(venn_region);
 
-void
-build_Venn_region_string_array();
+	void
+	build_Track();
 
-void
-free_abstract_temp_data();
+	void
+	build_Venn_region_string_array();
+
+	void
+	free_abstract_temp_data();
+
+	// Abstract translate functions
+	void
+	transform_2_INTERPROC_OverApr(char *, FILE *outputFile);
+}
 #endif

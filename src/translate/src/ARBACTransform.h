@@ -72,8 +72,4 @@ transform_2_SMT2_ExactAlg(char *, FILE *outputFile);
 void
 transform_2_NuSMV_ExactAlg(char *, FILE *outputFile);
 
-// Abstract translate functions
-void
-transform_2_INTERPROC_OverApr(char *, FILE *outputFile);
-
 #endif

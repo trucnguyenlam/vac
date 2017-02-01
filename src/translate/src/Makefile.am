@@ -2,30 +2,32 @@ AUTOMAKE_OPTIONS = foreign
 
 bin_PROGRAMS = translate
 translate_CFLAGS = -I../../ccl/include/ @DEFAULT_CFLAGS@
+translate_CXXFLAGS = -I../../ccl/include/ @DEFAULT_CFLAGS@ -fpermissive
 translate_LDADD = ../../ccl/src/libccl.a -lm
 
-translate_SOURCES =	ARBACLexer.c \
-					ARBACParser.c \
-					ARBACTool.c \
-					ARBACTransform.c \
-					ARBACUtil.c \
-					ARBACExact.c \
-					ARBACAbstract.c \
-					ARBACInfo.c \
-					ARBAC_to_GETAFIX_ExactAlg.c \
-					ARBAC_to_GETAFIX_parallel_ExactAlg.c \
-					ARBAC_to_MUCKE_ExactAlg.c \
-					ARBAC_to_MUCKE_CAV.c \
-					ARBAC_to_ConcurC.c \
-					ARBAC_to_CBMC_ExactAlg.c \
-					ARBAC_to_INTERPROC_OverApr.c \
-					ARBAC_to_HSF_ExactAlg.c \
-					ARBAC_to_ELDARICA_ExactAlg.c \
-					ARBAC_to_SMT2_ExactAlg.c \
-					ARBAC_to_NuSMV_ExactAlg.c \
-					ARBAC_to_LazyCSeq.c \
-					ARBAC_to_LazyCSeqInlined.c \
-					ARBAC_to_SSA.c \
-					ARBAC_to_CompletenessLazyCSeq.c \
-					varOrd.c
+translate_SOURCES =	ARBACData.cpp \
+					ARBACLexer.cpp \
+					ARBACParser.cpp \
+					ARBACTool.cpp \
+					ARBACTransform.cpp \
+					ARBACUtil.cpp \
+					ARBACExact.cpp \
+					ARBACAbstract.cpp \
+					ARBACInfo.cpp \
+					ARBAC_to_GETAFIX_ExactAlg.cpp \
+					ARBAC_to_GETAFIX_parallel_ExactAlg.cpp \
+					ARBAC_to_MUCKE_ExactAlg.cpp \
+					ARBAC_to_MUCKE_CAV.cpp \
+					ARBAC_to_ConcurC.cpp \
+					ARBAC_to_CBMC_ExactAlg.cpp \
+					ARBAC_to_INTERPROC_OverApr.cpp \
+					ARBAC_to_HSF_ExactAlg.cpp \
+					ARBAC_to_ELDARICA_ExactAlg.cpp \
+					ARBAC_to_SMT2_ExactAlg.cpp \
+					ARBAC_to_NuSMV_ExactAlg.cpp \
+					ARBAC_to_LazyCSeq.cpp \
+					ARBAC_to_LazyCSeqInlined.cpp \
+					ARBAC_to_SSA.cpp \
+					ARBAC_to_CompletenessLazyCSeq.cpp \
+					varOrd.cpp
 

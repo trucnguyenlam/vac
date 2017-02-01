@@ -4,15 +4,15 @@
 #define TYPE "_Bool"
 
 #define emit fprintf
-#define true "TRUE"
-#define false "FALSE"
+// #define true "TRUE"
+// #define false "FALSE"
 
-static char *and_op = "&&";
-static char *or_op = "||";
-static char *ass_op = "=";
-static char *nondet_op = "nondet_symbol()";
+static char const *and_op = "&&";
+static char const *or_op = "||";
+static char const *ass_op = "=";
+static char const *nondet_op = "nondet_symbol()";
 
-static char *assume = "__VERIFIER_assume";
+static char const *assume = "__VERIFIER_assume";
 
 static int threads_count;
 static int use_tracks;
@@ -27,10 +27,10 @@ static int guard;
 static int nondet_bool;
 static int steps;
 
-static char *
-has_role(int * array, int array_size, int index) {
-    return belong_to(array, array_size, index) ? true : false;
-}
+// static char *
+// has_role(int * array, int array_size, int index) {
+//     return belong_to(array, array_size, index) ? true : false;
+// }
 
 static void
 initialize_var_counters() {

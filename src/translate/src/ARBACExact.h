@@ -7,10 +7,10 @@
 #include "ARBACUtil.h"
 #include "ARBACTransform.h"
 
-set * user_config_array;
-int user_config_array_size;
+extern set * user_config_array;
+extern int user_config_array_size;
 
-int NUM_USER_TO_TRACK;
+extern int NUM_USER_TO_TRACK;
 
 char*
 tracked_user_and_role(int, int);

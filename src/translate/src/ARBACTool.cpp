@@ -66,7 +66,7 @@ create_role_dict()
 	int i;
 	int *r_array = 0;
 
-	r_array = malloc(role_array_size * sizeof(int));
+	r_array = (int *) malloc(role_array_size * sizeof(int));
 
 	for (i = 0; i < role_array_size; i++)
 	{
@@ -87,7 +87,7 @@ create_user_dict()
 {
 	int i;
 	int *u_array = 0;
-	u_array = malloc(user_array_size * sizeof(int));
+	u_array = (int *) malloc(user_array_size * sizeof(int));
 
 	for (i = 0; i < user_array_size; i++)
 	{
@@ -108,7 +108,7 @@ create_newuser_dict()
 {
 	int i;
 	int *nu_array = 0;
-	nu_array = malloc(newuser_array_size * sizeof(int));
+	nu_array = (int *) malloc(newuser_array_size * sizeof(int));
 
 	for (i = 0; i < newuser_array_size; i++)
 	{
@@ -234,7 +234,7 @@ reduction_finiteARBAC(void)
 		int NUM_USER = admin_role_array_index_size + 1;
 		int old_user_array_size = user_array_size;
 		user_array_size += NUM_USER * newuser_array_size;
-		user_array = realloc(user_array, user_array_size * sizeof(char*));
+		user_array = (char **) realloc(user_array, user_array_size * sizeof(char*));
 		int old_ua_array_size;
 
 		for (i = 0; i < newuser_array_size; i++)
@@ -242,14 +242,14 @@ reduction_finiteARBAC(void)
 			char temp[2000];    // No way a username longer than 2000 characters
 			old_ua_array_size = ua_array_size;
 			ua_array_size += NUM_USER * newuser_array[i].role_array_size;
-			ua_array = realloc(ua_array, ua_array_size * sizeof(_UA));
+			ua_array = (_UA *) realloc(ua_array, ua_array_size * sizeof(_UA));
 
 			// For each new user add k+1 new user to the system
 			int j;
 			for (j = 0; j < NUM_USER; j++)
 			{
 				int size = sprintf(temp, "NEWUSER%d_%s", j, newuser_array[i].name);
-				user_array[old_user_array_size + i * NUM_USER + j] = malloc(size + 1);
+				user_array[old_user_array_size + i * NUM_USER + j] = (char *) malloc(size + 1);
 				strcpy(user_array[old_user_array_size + i * NUM_USER + j], temp);
 				// Add to ua_array
 				int k;
@@ -341,7 +341,7 @@ make_configs()
 	int max = 0;
 
 	// The array of each configuration for each user
-	configs = calloc(user_array_size, sizeof(set));
+	configs = (set *) calloc(user_array_size, sizeof(set));
 
 	// Size equal to the user size
 	configs_size = user_array_size;
@@ -386,7 +386,7 @@ partition_configs()
 	int i;
 
 	partition_users_size = max_user_config_size + 1;
-	partition_users = calloc(partition_users_size, sizeof(set));
+	partition_users = (set *) calloc(partition_users_size, sizeof(set));
 
 	for (i = 0; i < partition_users_size; i++)
 	{
@@ -422,7 +422,7 @@ process_configs_recur(set group, int size_config)
 		if (size_config == 0)
 		{
 			equal_config_array_size++;
-			equal_config_array = realloc(equal_config_array, equal_config_array_size * sizeof(set));
+			equal_config_array = (set *) realloc(equal_config_array, equal_config_array_size * sizeof(set));
 			equal_config_array[equal_config_array_size - 1] = build_set(group.array, group.array_size);
 			return;
 		}
@@ -439,7 +439,7 @@ process_configs_recur(set group, int size_config)
 		}
 
 		equal_config_array_size++;
-		equal_config_array = realloc(equal_config_array, equal_config_array_size * sizeof(set));
+		equal_config_array = (set *) realloc(equal_config_array, equal_config_array_size * sizeof(set));
 		equal_config_array[equal_config_array_size - 1] = build_set(equal.array, equal.array_size);
 
 		free(tmp.array);
@@ -505,7 +505,7 @@ remove_user(int user_index)
 	// Remove from user array
 	free(user_array[user_index]);
 	user_array[user_index] = 0;
-	user_array[user_index] = calloc(strlen("removed_user") + 1, sizeof(char));
+	user_array[user_index] = (char *) calloc(strlen("removed_user") + 1, sizeof(char));
 	strcpy(user_array[user_index], "removed_user");
 
 	// Remove from admin user array
@@ -564,7 +564,7 @@ reduction_user(void)
 	int map_user_index_size;
 
 	map_user_index_size = user_array_size;
-	map_user_index = calloc(map_user_index_size, sizeof(int));
+	map_user_index = (int *) calloc(map_user_index_size, sizeof(int));
 
 	// User array
 	for (i = 0; i < user_array_size; i++)
@@ -576,8 +576,8 @@ reduction_user(void)
 		else
 		{
 			tmp_user_array_size++;
-			tmp_user_array = realloc(tmp_user_array, tmp_user_array_size * sizeof(char *));
-			tmp_user_array[tmp_user_array_size - 1] = calloc(strlen(user_array[i]) + 1, sizeof(char));
+			tmp_user_array = (char **) realloc(tmp_user_array, tmp_user_array_size * sizeof(char *));
+			tmp_user_array[tmp_user_array_size - 1] = (char *) calloc(strlen(user_array[i]) + 1, sizeof(char));
 			strcpy(tmp_user_array[tmp_user_array_size - 1], user_array[i]);
 			map_user_index[i] = tmp_user_array_size - 1;
 		}
@@ -593,7 +593,7 @@ reduction_user(void)
 			// Change index
 			ua_array[i].user_index = map_user_index[ua_array[i].user_index];
 			tmp_ua_array_size++;
-			tmp_ua_array = realloc(tmp_ua_array, tmp_ua_array_size * sizeof(_UA));
+			tmp_ua_array = (_UA *) realloc(tmp_ua_array, tmp_ua_array_size * sizeof(_UA));
 			tmp_ua_array[tmp_ua_array_size - 1].user_index = ua_array[i].user_index;
 			tmp_ua_array[tmp_ua_array_size - 1].role_index = ua_array[i].role_index;
 		}
@@ -607,7 +607,7 @@ reduction_user(void)
 		{
 			admin_array_index[i] = map_user_index[admin_array_index[i]];
 			tmp_admin_array_index_size++;
-			tmp_admin_array_index = realloc(tmp_admin_array_index, tmp_admin_array_index_size * sizeof(int));
+			tmp_admin_array_index = (int *) realloc(tmp_admin_array_index, tmp_admin_array_index_size * sizeof(int));
 			tmp_admin_array_index[tmp_admin_array_index_size - 1] = admin_array_index[i];
 		}
 	}
@@ -637,34 +637,34 @@ preprocess(int require_reduction_user)
 	{
 		// Add a specific role name ToCheckRole to that specific user
 		role_array_size++;
-		role_array = realloc(role_array, role_array_size * sizeof(char*));
-		role_array[role_array_size - 1] = malloc(13);
+		role_array = (char **) realloc(role_array, role_array_size * sizeof(char*));
+		role_array[role_array_size - 1] = (char *) malloc(13);
 		strcpy(role_array[role_array_size - 1], "ToCheckRole");
 		ua_array_size++;
-		ua_array = realloc(ua_array, ua_array_size * sizeof(_UA));
+		ua_array = (_UA *) realloc(ua_array, ua_array_size * sizeof(_UA));
 		ua_array[ua_array_size - 1].user_index = goal_user_index;
 		ua_array[ua_array_size - 1].role_index = role_array_size - 1;
 		// Add that role to admin role array
 		admin_role_array_index_size++;
-		admin_role_array_index = realloc(admin_role_array_index, admin_role_array_index_size * sizeof(int));
+		admin_role_array_index = (int *) realloc(admin_role_array_index, admin_role_array_index_size * sizeof(int));
 		admin_role_array_index[admin_role_array_index_size - 1] = role_array_size - 1;
 
 		// Add a new target role
 		role_array_size++;
-		role_array = realloc(role_array, role_array_size * sizeof(char*));
-		role_array[role_array_size - 1] = malloc(13);
+		role_array = (char **) realloc(role_array, role_array_size * sizeof(char*));
+		role_array[role_array_size - 1] = (char *) malloc(13);
 		strcpy(role_array[role_array_size - 1], "TargetPrime");
 
 		// Add a fresh CA rule
 		ca_array_size++;
-		ca_array = realloc(ca_array, ca_array_size * sizeof(_CA));
+		ca_array = (_CA *) realloc(ca_array, ca_array_size * sizeof(_CA));
 		ca_array[ca_array_size - 1].type = 0;
 		ca_array[ca_array_size - 1].admin_role_index = role_array_size - 2; // ToCheckRole
 		ca_array[ca_array_size - 1].target_role_index = role_array_size - 1; // TargetPrime
 		ca_array[ca_array_size - 1].negative_role_array = 0;
 		ca_array[ca_array_size - 1].negative_role_array_size = 0;
 		ca_array[ca_array_size - 1].positive_role_array_size = 2;
-		ca_array[ca_array_size - 1].positive_role_array = malloc(2 * sizeof(int));
+		ca_array[ca_array_size - 1].positive_role_array = (int *) malloc(2 * sizeof(int));
 		ca_array[ca_array_size - 1].positive_role_array[0] = role_array_size - 2; // ToCheckRole
 		ca_array[ca_array_size - 1].positive_role_array[1] = goal_role_index;
 		goal_role_index = role_array_size - 1;

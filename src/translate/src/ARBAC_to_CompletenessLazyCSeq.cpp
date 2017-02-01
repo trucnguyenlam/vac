@@ -9,36 +9,27 @@
 #define GLOBALS_ALL_USERS 1
 #endif
 
-#ifndef MERGE_RULES
-#define MERGE_RULES 1
-#endif
-
-// #ifndef NO_GLOBALS
-// #define NO_GLOBALS 1
+// #ifndef MERGE_RULES
+// #define MERGE_RULES 1
 // #endif
 
 #define TYPE "_Bool"
 
-static char *and_op = "&&";
-static char *or_op = "||";
+static char const *and_op = "&&";
+static char const *or_op = "||";
 
-static char *assume = "__VERIFIER_assume";
+static char const *assume = "__VERIFIER_assume";
 
 static int threads_count;
 static int use_tracks;
 
 #ifdef MERGE_RULES
-static int *roles_ca_counts = NULL;
-static int *roles_cr_counts = NULL;
-static int **per_role_ca_indexes = NULL;
-static int **per_role_cr_indexes = NULL;
-static float ca_merge_ratio = 0;
-static float cr_merge_ratio = 0;
+int *roles_ca_counts = NULL;
+int *roles_cr_counts = NULL;
+int **per_role_ca_indexes = NULL;
+int **per_role_cr_indexes = NULL;
 
 static void precompute_merge() {
-
-    float assignable_roles_count = 0;
-    float removable_roles_count = 0;
 
     roles_ca_counts = (int *) malloc(sizeof(int) * role_array_size);
     roles_cr_counts = (int *) malloc(sizeof(int) * role_array_size);
@@ -59,7 +50,6 @@ static void precompute_merge() {
         //INSTANTIATING per_role_ca_indexes CONTENT
         if (roles_ca_counts[i] > 0) {
             int k = 0;
-            assignable_roles_count++;
             per_role_ca_indexes[i] = (int *) malloc(sizeof(int) * roles_ca_counts[i]);
 
             for (int j = 0; j < ca_array_size; ++j) {
@@ -170,14 +160,8 @@ generate_header(FILE *outputFile, char *inputFile, int rounds, int steps) {
     #endif
     #ifdef MERGE_RULES
     fprintf(outputFile, "* MERGE_RULES\n");
-    fprintf(outputFile, "* MERGE_RATIO\n");
     #else
     fprintf(outputFile, "* UNMERGE_RULES\n");
-    #endif
-    #ifdef NO_GLOBALS
-    fprintf(outputFile, "* NO_GLOBALS\n");
-    #else
-    fprintf(outputFile, "* GLOBALS\n");
     #endif
     fprintf(outputFile, "*\n");
     fprintf(outputFile, "*  users: %d\n", user_array_size);
@@ -302,16 +286,7 @@ generate_CA_cond(FILE *outputFile, int thread_id, int ca_index) {
     // Condition to apply a can_assign rule
     fprintf(outputFile, "        /* Precondition */\n");
     // Admin role must be available
-    #ifdef NO_GLOBALS
-    i - 0;
-    fprintf(outputFile, "        ((local_Thread_%d_loc_%s", i, role_array[ca_array[ca_index].admin_role_index]);
-    for (i = 1; i < threads_count; ++i) {
-        fprintf(outputFile, " %s local_Thread_%d_loc_%s", or_op, i, role_array[ca_array[ca_index].admin_role_index]);
-    }
-    fprintf(outputFile, ") %s \n", and_op);
-    #else
     fprintf(outputFile, "        (glob_%s %s\n", role_array[ca_array[ca_index].admin_role_index], and_op);
-    #endif
     // Precondition must be satisfied
     if (ca_array[ca_index].type == 0)      // Has precondition
     {   
@@ -348,16 +323,7 @@ generate_CR_cond(FILE *outputFile, int thread_id, int cr_index) {
     // Condition to apply a can_assign rule
     fprintf(outputFile, "        /* Precondition */\n");
     // Admin role must be available
-    #ifdef NO_GLOBALS
-    i - 0;
-    fprintf(outputFile, "        ((local_Thread_%d_loc_%s", i, role_array[cr_array[cr_index].admin_role_index]);
-    for (i = 1; i < threads_count; ++i) {
-        fprintf(outputFile, " %s local_Thread_%d_loc_%s", or_op, i, role_array[cr_array[cr_index].admin_role_index]);
-    }
-    fprintf(outputFile, ") %s \n", and_op);
-    #else
-    fprintf(outputFile, "        (glob_%s %s\n", role_array[cr_array[cr_index].admin_role_index], and_op);
-    #endif    
+    fprintf(outputFile, "        (glob_%s %s\n", role_array[cr_array[cr_index].admin_role_index], and_op);    
     // Optional this user is in this target role yet
     fprintf(outputFile, "        /*Role assigned*/\n");
     fprintf(outputFile, "        local_Thread_%d_loc_%s)", thread_id, role_array[cr_array[cr_index].target_role_index]);
@@ -367,9 +333,6 @@ static void
 generate_updates(FILE *outputFile, int thread_id) {
     #ifdef GLOBALS_INT
     fprintf(outputFile, "    /*--- GLOBAL ROLE ARE EXACT SINCE INT ---*/\n");
-    #else
-    #ifdef NO_GLOBALS
-    fprintf(outputFile, "    /*--- NO_GLOBALS ---*/\n");
     #else
     fprintf(outputFile, "    /*--- GLOBAL ROLE CONSISTENCY UPDATE ---*/\n");
     for (int i = 0; i < admin_role_array_index_size; i++) {
@@ -382,7 +345,6 @@ generate_updates(FILE *outputFile, int thread_id) {
             }
     }
     // glob_Author_d = glob_Author_d || __cs_local_Thread_user3_loc_Author_d;
-    #endif
     #endif
 }
 
@@ -399,11 +361,7 @@ simulate_can_assign(FILE *outputFile, int thread_id, int ca_index, int label_ind
         fprintf(outputFile, "        local_Thread_%d_loc_%s = 1;\n", thread_id, role_array[ca_array[ca_index].target_role_index]);
         fprintf(outputFile, "        glob_%s++\n", role_array[ca_array[ca_index].target_role_index]);
         #else
-        #ifdef NO_GLOBALS
-        fprintf(outputFile, "        local_Thread_%d_loc_%s = 1\n", thread_id, role_array[ca_array[ca_index].target_role_index]);
-        #else
         fprintf(outputFile, "        glob_%s = local_Thread_%d_loc_%s = 1\n", role_array[ca_array[ca_index].target_role_index], thread_id, role_array[ca_array[ca_index].target_role_index]);
-        #endif
         #endif
     }
     else {
@@ -425,11 +383,7 @@ simulate_can_revoke(FILE *outputFile, int thread_id, int cr_index, int label_ind
         fprintf(outputFile, "        local_Thread_%d_loc_%s = 0;\n", thread_id, role_array[cr_array[cr_index].target_role_index]);
         fprintf(outputFile, "        glob_%s--\n", role_array[cr_array[cr_index].target_role_index]);
         #else
-        #ifdef NO_GLOBALS
-        fprintf(outputFile, "        local_Thread_%d_loc_%s = 0;\n", thread_id, role_array[cr_array[cr_index].target_role_index]);
-        #else
         fprintf(outputFile, "        glob_%s = local_Thread_%d_loc_%s = 0\n", role_array[cr_array[cr_index].target_role_index], thread_id, role_array[cr_array[cr_index].target_role_index]);
-        #endif
         #endif
     }
     else {
@@ -511,12 +465,13 @@ simulate_can_revokes_by_role(FILE *outputFile, int thread_id, int target_role_in
 static void
 generate_check(FILE *outputFile, int thread_id, int label_index) {
     fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
-    fprintf(outputFile, "    /*---------------ERROR CHECK------------*/\n");
-    fprintf(outputFile, "    if (");
-    fprintf(outputFile, "local_Thread_%d_loc_%s", thread_id, role_array[goal_role_index]);
-    fprintf(outputFile, ") {\n");
-    fprintf(outputFile, "        assert(0);\n");
-    fprintf(outputFile, "    }\n");
+    fprintf(outputFile, "    0;");
+    // fprintf(outputFile, "    /*---------------ERROR CHECK------------*/\n");
+    // fprintf(outputFile, "    if (");
+    // fprintf(outputFile, "local_Thread_%d_loc_%s", thread_id, role_array[goal_role_index]);
+    // fprintf(outputFile, ") {\n");
+    // fprintf(outputFile, "        assert(0);\n");
+    // fprintf(outputFile, "    }\n");
 }
 
 static void
@@ -597,17 +552,17 @@ initialize_threads_assignments(FILE *outputFile, int user_id)
 
     fprintf(outputFile, "    /*--------------- CONFIGURATION OF %s ------------*/\n", user_array[user_id]);
 
-    // fprintf(outputFile, "    if (nondet_bool()) {\n");
+    fprintf(outputFile, "    if (nondet_bool()) {\n");
 
     for (i = 0; i < threads_count; i++) {
         if (i == 0) {
-            fprintf(outputFile, "    if (nondet_bool() %s !thread_%d_assigned) {\n", and_op, i);
+            fprintf(outputFile, "        if (!thread_%d_assigned) {\n", i);
         }
         else {
-            fprintf(outputFile, "    else if (nondet_bool() %s !thread_%d_assigned) {\n", and_op, i);
+            fprintf(outputFile, "        else if (!thread_%d_assigned) {\n", i);
         }
 
-        fprintf(outputFile, "        thread_%d_assigned = 1;\n", i);
+        fprintf(outputFile, "            thread_%d_assigned = 1;\n", i);
 
         for (j = 0; j < user_config_array[user_id].array_size; j++)
         {
@@ -615,17 +570,17 @@ initialize_threads_assignments(FILE *outputFile, int user_id)
             // if GLOBALS_ALL_USERS is NOT set than we have to set the globals for this role
             if (belong_to(admin_role_array_index, admin_role_array_index_size, user_config_array[user_id].array[j])) {
                 #ifdef GLOBALS_INT
-                fprintf(outputFile, "        glob_%s++;\n", role_array[user_config_array[user_id].array[j]]);
+                fprintf(outputFile, "            glob_%s++;\n", role_array[user_config_array[user_id].array[j]]);
                 #else
-                fprintf(outputFile, "        glob_%s = 1;\n", role_array[user_config_array[user_id].array[j]]);
+                fprintf(outputFile, "            glob_%s = 1;\n", role_array[user_config_array[user_id].array[j]]);
                 #endif
             }
             #endif
-            fprintf(outputFile, "        local_Thread_%d_loc_%s = 1;\n", i, role_array[user_config_array[user_id].array[j]]);
+            fprintf(outputFile, "            local_Thread_%d_loc_%s = 1;\n", i, role_array[user_config_array[user_id].array[j]]);
         }
-        fprintf(outputFile, "    }\n\n");
+        fprintf(outputFile, "        }\n");
     }
-    // fprintf(outputFile, "    }\n\n");
+    fprintf(outputFile, "    }\n\n");
 }
 
 static void
@@ -668,24 +623,95 @@ generate_round(FILE *outputFile, int round, int steps) {
 }
 
 static void
+generate_backup_variables(FILE* outputFile, int rounds){
+    for (int round = 0; round < rounds + 1; ++round) {
+        fprintf(outputFile, "\n    /*---------- BEFORE ROUND %d BACKUP VARIABLES ---------*/\n", round);
+        for (int th_id = 0; th_id < threads_count; ++th_id) {
+            fprintf(outputFile, "\n    /*---------- THREAD %d BACKUP VARIABLES ---------*/\n", th_id);
+            for (int role = 0; role < role_array_size; role++) {   
+                fprintf(outputFile, "    %s round_%d_local_Thread_%d_loc_%s;\n", TYPE, round, th_id, role_array[role]);
+            }
+        }
+    }
+}
+
+static void
+save_state(FILE* outputFile, int round_id) {
+    fprintf(outputFile, "\n    /*---------- SAVE STATE TO ROUND %d BACKUP VARIABLES ---------*/\n", round_id);
+    for (int th_id = 0; th_id < threads_count; ++th_id) {
+        fprintf(outputFile, "\n    /*---------- SAVE THREAD %d STATUS ---------*/\n", th_id);
+        for (int role = 0; role < role_array_size; role++) {
+            fprintf(outputFile, "    round_%d_local_Thread_%d_loc_%s = local_Thread_%d_loc_%s;\n", round_id, 
+                th_id, role_array[role], th_id, role_array[role]);
+        }
+    }
+}
+
+static void
+check_distincts(FILE* outputFile, int round_1, int round_2) {
+    fprintf(outputFile, "        /*---------- CHECKING ROUNDS %d and %d ---------*/\n", round_1, round_2);
+    for (int th_id = 0; th_id < threads_count; ++th_id) {
+        fprintf(outputFile, "        ((round_%d_local_Thread_%d_loc_%s != round_%d_local_Thread_%d_loc_%s)", 
+            round_1, th_id, role_array[0],
+            round_2, th_id, role_array[0]);
+        for (int role = 1; role < role_array_size; role++) {
+            fprintf(outputFile, " %s (round_%d_local_Thread_%d_loc_%s != round_%d_local_Thread_%d_loc_%s)", or_op, 
+                round_1, th_id, role_array[role],
+                round_2, th_id, role_array[role]);
+        }
+        if (th_id != threads_count - 1) {
+            fprintf(outputFile, ") %s\n", or_op);
+        }
+        else {
+            fprintf(outputFile, ")\n");
+        }
+    }
+}
+
+static void
+check_completeness(FILE* outputFile, int rounds) {
+    fprintf(outputFile, "    /*---------- FINAL DISTINCT ASSERTION ---------*/\n");
+    fprintf(outputFile, "    %s complete = \n", TYPE);
+    fprintf(outputFile, "        (\n");
+    check_distincts(outputFile, 0, 1);
+    for (int round_1 = 1; round_1 < rounds; ++round_1) {
+        for (int round_2 = round_1 + 1; round_2 < rounds + 1; ++round_2) {
+            fprintf(outputFile, "        ) %s (\n", and_op);
+            check_distincts(outputFile, round_1, round_2);
+        }
+    }
+    fprintf(outputFile, "        );\n");
+    fprintf(outputFile, "\n");
+    fprintf(outputFile, "    assert(!complete);\n");
+}
+
+static void
 generate_main(FILE* outputFile, int rounds, int steps) {
+    int i = 0;
     fprintf(outputFile, "int main(void) {\n\n");
+
+    generate_backup_variables(outputFile, rounds);
 
     if (use_tracks) {
         fprintf(outputFile, "    /*------------THREAD INITIALIZATION-----------*/\n");
         fprintf(outputFile, "    initialize_threads();\n\n");
     }
 
-    for (int i = 0; i < rounds; ++i)
-    {
+    for (i = 0; i < rounds; ++i) {
+        save_state(outputFile, i);
         generate_round(outputFile, i, steps);
     }
+
+    save_state(outputFile, i);
+
+    check_completeness(outputFile, rounds);
+
     fprintf(outputFile, "    return 0;\n");
     fprintf(outputFile, "}\n");
 }
 
 void
-transform_2_lazycseq(char *inputFile, FILE *outputFile, int rounds, int steps, int wanted_threads_count) {
+transform_2_lazycseq_completeness_query(char *inputFile, FILE *outputFile, int rounds, int steps, int wanted_threads_count) {
 
     if (rounds < 1) {
         fprintf(stderr, "Cannot simulate a number of rounds < 1\n");
@@ -695,6 +721,7 @@ transform_2_lazycseq(char *inputFile, FILE *outputFile, int rounds, int steps, i
         fprintf(stderr, "Cannot simulate a number of steps < 1\n");
         exit(EXIT_FAILURE);
     }
+
     
     read_ARBAC(inputFile);
     // Preprocess the ARBAC Policies
@@ -730,10 +757,8 @@ transform_2_lazycseq(char *inputFile, FILE *outputFile, int rounds, int steps, i
     //Generate header with common funtions and comments
     generate_header(outputFile, inputFile, rounds, steps);
     
-    #ifndef NO_GLOBALS
     //Declare global variables
     generate_globals(outputFile);
-    #endif
 
     //Declare threads local variables
     generate_locals(outputFile);

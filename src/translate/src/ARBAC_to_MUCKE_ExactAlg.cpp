@@ -61,7 +61,7 @@ static int NumBits(int pc) {
 }
 
 static void
-print_ID(FILE* outputFile, char *str, int pc, int num_bits) {
+print_ID(FILE* outputFile, const char *str, int pc, int num_bits) {
     int i = 1, j, k;
 
     fprintf(outputFile, "(/* id=%d */ ", pc);
