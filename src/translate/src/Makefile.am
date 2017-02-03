@@ -1,9 +1,17 @@
 AUTOMAKE_OPTIONS = foreign
 
+#AM_CPPFLAGS = $(BOOST_CPPFLAGS)
+
+#AM_LDFLAGS = $(BOOST_LDFLAGS)
+
+
 bin_PROGRAMS = translate
 translate_CFLAGS = -I../../ccl/include/ @DEFAULT_CFLAGS@
-translate_CXXFLAGS = -I../../ccl/include/ @DEFAULT_CFLAGS@ -fpermissive
-translate_LDADD = ../../ccl/src/libccl.a -lm
+translate_CXXFLAGS = -I../../ccl/include/ @DEFAULT_CXXFLAGS@ -fpermissive
+translate_LDADD = \
+            ../../ccl/src/libccl.a -lm
+#            $(BOOST_FILESYSTEM_LIB) \
+#			$(BOOST_SYSTEM_LIB)
 
 translate_SOURCES =	ARBACData.cpp \
 					ARBACLexer.cpp \
