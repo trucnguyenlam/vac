@@ -7,7 +7,7 @@ AUTOMAKE_OPTIONS = foreign
 
 bin_PROGRAMS = translate
 translate_CFLAGS = -I../../ccl/include/ @DEFAULT_CFLAGS@
-translate_CXXFLAGS = -I../../ccl/include/ @DEFAULT_CXXFLAGS@ -fpermissive
+translate_CXXFLAGS = -I../../ccl/include/ @DEFAULT_CXXFLAGS@ -std=c++11 -fpermissive -Wwrite-strings
 translate_LDADD = \
             ../../ccl/src/libccl.a -lm
 #            $(BOOST_FILESYSTEM_LIB) \
@@ -37,5 +37,6 @@ translate_SOURCES =	ARBACData.cpp \
 					ARBAC_to_LazyCSeqInlined.cpp \
 					ARBAC_to_SSA.cpp \
 					ARBAC_to_CompletenessLazyCSeq.cpp \
+					SSA_Structs.cpp \
 					varOrd.cpp
 

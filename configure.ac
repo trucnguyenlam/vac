@@ -44,7 +44,6 @@ AC_CHECK_FUNCS([memset strdup])
 AC_SUBST([DEFAULT_CFLAGS], " -static -O3 -pthread ")
 AC_SUBST([DEFAULT_CXXFLAGS], " -static -O3 -pthread ")
 
-
 AC_CONFIG_FILES([Makefile
 				 src/simplify/Makefile
 				 src/simplify/src/Makefile

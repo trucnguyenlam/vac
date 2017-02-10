@@ -26,6 +26,7 @@ static char const *assume = "__VERIFIER_assume";
 
 static int threads_count;
 static int use_tracks;
+static int steps;
 
 #ifdef MERGE_RULES
 static int *roles_ca_counts = NULL;
@@ -146,7 +147,7 @@ get_pc_count(){
 }
 
 static void
-generate_header(FILE *outputFile, char *inputFile, int rounds, int steps) {
+generate_header(FILE *outputFile, char *inputFile, int rounds) {
 	time_t mytime;
     mytime = time(NULL);
 	fprintf(outputFile, "/*\n");
@@ -202,13 +203,13 @@ generate_header(FILE *outputFile, char *inputFile, int rounds, int steps) {
 	
     // fprintf(outputFile, "#define IF(T,A,B,E) if (((__cs_pc1 != A) && (__cs_pc2 != A)) || (!(E)) ) goto B;\n");
 
-    fprintf(outputFile, "#define IF(PC,NPC,COND,APPL) if (");
-    fprintf(outputFile, "((__cs_pc%d != PC)", 0);
+    fprintf(outputFile, "#define IF(PC,COND,APPL) if (");
+    fprintf(outputFile, "((__cs_pc%d == PC)", 0);
     for (int i = 1; i < steps; ++i)
     {
-        fprintf(outputFile, " %s (__cs_pc%d != PC)", and_op, i);
+        fprintf(outputFile, " %s (__cs_pc%d == PC)", or_op, i);
     }
-    fprintf(outputFile, ") || (!(COND)) ) { goto NPC; } APPL;\n");
+    fprintf(outputFile, ") && (COND) ) { APPL; }\n");
 
 	// fprintf(outputFile, "#ifndef NULL\n");
 	// fprintf(outputFile, "#define NULL 0\n");
@@ -292,6 +293,17 @@ generate_locals(FILE *outputFile) {
     {
         generate_thread_locals(outputFile, i);
     }
+}
+
+static void
+generate_if_PC(FILE *outputFile, int pc) {
+    fprintf(outputFile, "    if (");
+    fprintf(outputFile, "((__cs_pc%d == %d)", 0, pc);
+    for (int i = 1; i < steps; ++i)
+    {
+        fprintf(outputFile, " %s (__cs_pc%d == %d)", or_op, i, pc);
+    }
+    fprintf(outputFile, ") &&\n");
 }
 
 static void
@@ -388,54 +400,54 @@ generate_updates(FILE *outputFile, int thread_id) {
 
 static void
 simulate_can_assign(FILE *outputFile, int thread_id, int ca_index, int label_index) {
-    fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
+    //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
     print_ca_comment(outputFile, ca_index);
-    fprintf(outputFile, "    IF( %d,\n", label_index);
-    fprintf(outputFile, "        tThread_%d_%d,\n", thread_id, label_index + 1);
+    generate_if_PC(outputFile, label_index);
+    //fprintf(outputFile, "        tThread_%d_%d,\n", thread_id, label_index + 1);
     generate_CA_cond(outputFile, thread_id, ca_index);
-    fprintf(outputFile, ",\n");
+    fprintf(outputFile, ") {\n");
     if (belong_to(admin_role_array_index, admin_role_array_index_size, ca_array[ca_index].target_role_index)) {
         #ifdef GLOBALS_INT
         fprintf(outputFile, "        local_Thread_%d_loc_%s = 1;\n", thread_id, role_array[ca_array[ca_index].target_role_index]);
-        fprintf(outputFile, "        glob_%s++\n", role_array[ca_array[ca_index].target_role_index]);
+        fprintf(outputFile, "        glob_%s++;\n", role_array[ca_array[ca_index].target_role_index]);
         #else
         #ifdef NO_GLOBALS
-        fprintf(outputFile, "        local_Thread_%d_loc_%s = 1\n", thread_id, role_array[ca_array[ca_index].target_role_index]);
+        fprintf(outputFile, "        local_Thread_%d_loc_%s = 1;\n", thread_id, role_array[ca_array[ca_index].target_role_index]);
         #else
-        fprintf(outputFile, "        glob_%s = local_Thread_%d_loc_%s = 1\n", role_array[ca_array[ca_index].target_role_index], thread_id, role_array[ca_array[ca_index].target_role_index]);
+        fprintf(outputFile, "        glob_%s = local_Thread_%d_loc_%s = 1;\n", role_array[ca_array[ca_index].target_role_index], thread_id, role_array[ca_array[ca_index].target_role_index]);
         #endif
         #endif
     }
     else {
-        fprintf(outputFile, "        local_Thread_%d_loc_%s = 1\n", thread_id, role_array[ca_array[ca_index].target_role_index]);
+        fprintf(outputFile, "        local_Thread_%d_loc_%s = 1;\n", thread_id, role_array[ca_array[ca_index].target_role_index]);
     }
-    fprintf(outputFile, "    )\n\n");
+    fprintf(outputFile, "    }\n\n");
 }
 
 static void
 simulate_can_revoke(FILE *outputFile, int thread_id, int cr_index, int label_index) {
-    fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
+//    fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
     print_cr_comment(outputFile, cr_index);
-    fprintf(outputFile, "    IF( %d,\n", label_index);
-    fprintf(outputFile, "        tThread_%d_%d,\n", thread_id, label_index + 1);
+    generate_if_PC(outputFile, label_index);
+//    fprintf(outputFile, "        tThread_%d_%d,\n", thread_id, label_index + 1);
     generate_CR_cond(outputFile, thread_id, cr_index);
-    fprintf(outputFile, ",\n");
+    fprintf(outputFile, ") {\n");
     if (belong_to(admin_role_array_index, admin_role_array_index_size, cr_array[cr_index].target_role_index)) {
         #ifdef GLOBALS_INT
         fprintf(outputFile, "        local_Thread_%d_loc_%s = 0;\n", thread_id, role_array[cr_array[cr_index].target_role_index]);
-        fprintf(outputFile, "        glob_%s--\n", role_array[cr_array[cr_index].target_role_index]);
+        fprintf(outputFile, "        glob_%s--;\n", role_array[cr_array[cr_index].target_role_index]);
         #else
         #ifdef NO_GLOBALS
         fprintf(outputFile, "        local_Thread_%d_loc_%s = 0;\n", thread_id, role_array[cr_array[cr_index].target_role_index]);
         #else
-        fprintf(outputFile, "        glob_%s = local_Thread_%d_loc_%s = 0\n", role_array[cr_array[cr_index].target_role_index], thread_id, role_array[cr_array[cr_index].target_role_index]);
+        fprintf(outputFile, "        glob_%s = local_Thread_%d_loc_%s = 0;\n", role_array[cr_array[cr_index].target_role_index], thread_id, role_array[cr_array[cr_index].target_role_index]);
         #endif
         #endif
     }
     else {
-        fprintf(outputFile, "        local_Thread_%d_loc_%s = 0\n", thread_id, role_array[cr_array[cr_index].target_role_index]);
+        fprintf(outputFile, "        local_Thread_%d_loc_%s = 0;\n", thread_id, role_array[cr_array[cr_index].target_role_index]);
     }
-    fprintf(outputFile, "    )\n\n");
+    fprintf(outputFile, "    }\n\n");
 }
 
 #ifdef MERGE_RULES
@@ -443,11 +455,11 @@ static void
 simulate_can_assigns_by_role(FILE *outputFile, int thread_id, int target_role_index, int label_index) {
     // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
     int i = 0;
-    fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
+    //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
     fprintf(outputFile, "    /* --- ASSIGNMENT RULES FOR ROLE %s --- */\n", role_array[target_role_index]);
-    fprintf(outputFile, "    IF( %d,\n", label_index);
-    fprintf(outputFile, "        tThread_%d_%d,", thread_id, label_index + 1);
-
+    generate_if_PC(outputFile, label_index);
+    //fprintf(outputFile, "        tThread_%d_%d,", thread_id, label_index + 1);
+    fprintf(outputFile, "        (\n");
     for (i = 0; i < roles_ca_counts[target_role_index] - 1; ++i) {
         int ca_idx = per_role_ca_indexes[target_role_index][i];
         print_ca_comment(outputFile, ca_idx);
@@ -457,30 +469,33 @@ simulate_can_assigns_by_role(FILE *outputFile, int thread_id, int target_role_in
 
     print_ca_comment(outputFile, per_role_ca_indexes[target_role_index][i]);
     generate_CA_cond(outputFile, thread_id, per_role_ca_indexes[target_role_index][i]);
+    fprintf(outputFile, ")");
 
-    fprintf(outputFile, ",\n");
+    fprintf(outputFile, ") {\n");
     if (belong_to(admin_role_array_index, admin_role_array_index_size, target_role_index)) {
         #ifdef GLOBALS_INT
         fprintf(outputFile, "        local_Thread_%d_loc_%s = 1;\n", thread_id, role_array[target_role_index]);
-        fprintf(outputFile, "        glob_%s++\n", role_array[target_role_index]);
+        fprintf(outputFile, "        glob_%s++;\n", role_array[target_role_index]);
         #else
-        fprintf(outputFile, "        glob_%s = local_Thread_%d_loc_%s = 1\n", role_array[target_role_index], thread_id, role_array[target_role_index]);
+        fprintf(outputFile, "        glob_%s = local_Thread_%d_loc_%s = 1;\n", role_array[target_role_index], thread_id, role_array[target_role_index]);
         #endif
     }
     else {
-        fprintf(outputFile, "        local_Thread_%d_loc_%s = 1\n", thread_id, role_array[target_role_index]);
+        fprintf(outputFile, "        local_Thread_%d_loc_%s = 1;\n", thread_id, role_array[target_role_index]);
     }
-    fprintf(outputFile, "    )\n\n");
+    fprintf(outputFile, "    }\n\n");
 }
 
 static void
 simulate_can_revokes_by_role(FILE *outputFile, int thread_id, int target_role_index, int label_index) {
     // Precondition: exists always at least one CR that assign the role i.e.: roles_cr_counts[target_role_index] > 1
     int i = 0;
-    fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
+    //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
     fprintf(outputFile, "    /* --- ASSIGNMENT RULES FOR ROLE %s --- */\n", role_array[target_role_index]);
-    fprintf(outputFile, "    IF( %d,\n", label_index);
-    fprintf(outputFile, "        tThread_%d_%d,", thread_id, label_index + 1);
+    generate_if_PC(outputFile, label_index);
+    //fprintf(outputFile, "        tThread_%d_%d,", thread_id, label_index + 1);
+
+    fprintf(outputFile, "        (\n");
 
     for (i = 0; i < roles_cr_counts[target_role_index] - 1; ++i) {
         int cr_idx = per_role_cr_indexes[target_role_index][i];
@@ -492,19 +507,21 @@ simulate_can_revokes_by_role(FILE *outputFile, int thread_id, int target_role_in
     print_cr_comment(outputFile, per_role_cr_indexes[target_role_index][i]);
     generate_CR_cond(outputFile, thread_id, per_role_cr_indexes[target_role_index][i]);
 
-    fprintf(outputFile, ",\n");
+    fprintf(outputFile, ")");
+
+    fprintf(outputFile, ") {\n");
     if (belong_to(admin_role_array_index, admin_role_array_index_size, target_role_index)) {
         #ifdef GLOBALS_INT
         fprintf(outputFile, "        local_Thread_%d_loc_%s = 0;\n", thread_id, role_array[target_role_index]);
-        fprintf(outputFile, "        glob_%s--\n", role_array[target_role_index]);
+        fprintf(outputFile, "        glob_%s--;\n", role_array[target_role_index]);
         #else
-        fprintf(outputFile, "        glob_%s = local_Thread_%d_loc_%s = 0\n", role_array[target_role_index], thread_id, role_array[target_role_index]);
+        fprintf(outputFile, "        glob_%s = local_Thread_%d_loc_%s = 0;\n", role_array[target_role_index], thread_id, role_array[target_role_index]);
         #endif
     }
     else {
-        fprintf(outputFile, "        local_Thread_%d_loc_%s = 0\n", thread_id, role_array[target_role_index]);
+        fprintf(outputFile, "        local_Thread_%d_loc_%s = 0;\n", thread_id, role_array[target_role_index]);
     }
-    fprintf(outputFile, "    )\n\n");
+    fprintf(outputFile, "    }\n\n");
 }
 #endif
 
@@ -597,14 +614,14 @@ initialize_threads_assignments(FILE *outputFile, int user_id)
 
     fprintf(outputFile, "    /*--------------- CONFIGURATION OF %s ------------*/\n", user_array[user_id]);
 
-    // fprintf(outputFile, "    if (nondet_bool()) {\n");
+    fprintf(outputFile, "    nondet_res = nondet_bool();\n");
 
     for (i = 0; i < threads_count; i++) {
         if (i == 0) {
-            fprintf(outputFile, "    if (nondet_bool() %s !thread_%d_assigned) {\n", and_op, i);
+            fprintf(outputFile, "    if (nondet_res %s !thread_%d_assigned) {\n", and_op, i);
         }
         else {
-            fprintf(outputFile, "    else if (nondet_bool() %s !thread_%d_assigned) {\n", and_op, i);
+            fprintf(outputFile, "    else if (nondet_res %s !thread_%d_assigned) {\n", and_op, i);
         }
 
         fprintf(outputFile, "        thread_%d_assigned = 1;\n", i);
@@ -632,6 +649,7 @@ static void
 initialize_threads(FILE *outputFile) {
     int i;
     fprintf(outputFile, "void initialize_threads() {\n");
+    fprintf(outputFile, "    %s nondet_res = 0;", TYPE);
 
     for (i = 0; i < user_array_size; ++i) {
         initialize_threads_assignments(outputFile, i);
@@ -668,7 +686,7 @@ generate_round(FILE *outputFile, int round, int steps) {
 }
 
 static void
-generate_main(FILE* outputFile, int rounds, int steps) {
+generate_main(FILE* outputFile, int rounds) {
     fprintf(outputFile, "int main(void) {\n\n");
 
     if (use_tracks) {
@@ -676,8 +694,7 @@ generate_main(FILE* outputFile, int rounds, int steps) {
         fprintf(outputFile, "    initialize_threads();\n\n");
     }
 
-    for (int i = 0; i < rounds; ++i)
-    {
+    for (int i = 0; i < rounds; ++i) {
         generate_round(outputFile, i, steps);
     }
     fprintf(outputFile, "    return 0;\n");
@@ -685,7 +702,8 @@ generate_main(FILE* outputFile, int rounds, int steps) {
 }
 
 void
-transform_2_lazycseq(char *inputFile, FILE *outputFile, int rounds, int steps, int wanted_threads_count) {
+transform_2_lazycseq(char *inputFile, FILE *outputFile, int rounds, int _steps, int wanted_threads_count) {
+    steps = _steps;
 
     if (rounds < 1) {
         fprintf(stderr, "Cannot simulate a number of rounds < 1\n");
@@ -728,7 +746,7 @@ transform_2_lazycseq(char *inputFile, FILE *outputFile, int rounds, int steps, i
     }
 
     //Generate header with common funtions and comments
-    generate_header(outputFile, inputFile, rounds, steps);
+    generate_header(outputFile, inputFile, rounds);
     
     #ifndef NO_GLOBALS
     //Declare global variables
@@ -748,7 +766,7 @@ transform_2_lazycseq(char *inputFile, FILE *outputFile, int rounds, int steps, i
     generate_threads(outputFile);
 
     //Generate Main funtion
-    generate_main(outputFile, rounds, steps);
+    generate_main(outputFile, rounds);
 
     //fclose(outputFile);
     //free(newfile);

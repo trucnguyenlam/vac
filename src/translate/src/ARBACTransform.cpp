@@ -4,13 +4,31 @@
 #include <unistd.h>
 #include "ARBACTransform.h"
 #include "ARBACAbstract.h"
+#include <iostream>
 
 // using namespace Abstract;
 
 void
+wait_keypressed() {
+    std::cout << "Press enter to continue ..."; 
+    std::cin.get();
+}
+
+void
 error_exit(){
     fprintf(stderr, "Please set correct arguments for the translation.\nTry translate -h for help.\n");
+    #ifdef WAIT_ON_EXIT
+    wait_keypressed();
+    #endif
     exit(EXIT_FAILURE);
+}
+
+void
+success_exit() {
+    #ifdef WAIT_ON_EXIT
+    wait_keypressed();
+    #endif
+    exit(EXIT_SUCCESS);
 }
 
 int
@@ -85,7 +103,7 @@ main(int argc, char **argv)
                     \nThe formats {cbmc, moped, hsf, eldarica, smt, nusmv, getafix, mucke, mucke-cav, lazycseq, ssa, completeness_query} use a 'precise' algorithm\
                     \nThe format {interproc} uses an 'abstract' algorithm\n");
             help_opt = 1;
-            exit(EXIT_SUCCESS);
+            success_exit();
             break;
         case 'S':
             show_statistics = 1;
@@ -120,6 +138,7 @@ main(int argc, char **argv)
             break;
         default:
             error_exit();
+            break;
         }
     }
 
@@ -161,7 +180,7 @@ main(int argc, char **argv)
 
         if (show_statistics) {
             show_policy_statistics(filename, out_file, wanted_threads);
-            exit(EXIT_SUCCESS);
+            success_exit();
         }
 
 
@@ -271,8 +290,7 @@ main(int argc, char **argv)
             {
                 Abstract::transform_2_INTERPROC_OverApr(filename, out_file);
             }
-            else
-            {
+            else {
                 error_exit();
             }
         }
@@ -291,5 +309,8 @@ main(int argc, char **argv)
     {
         error_exit();
     }
+    #ifdef WAIT_ON_EXIT
+    wait_keypressed();
+    #endif
     return EXIT_SUCCESS;
 }

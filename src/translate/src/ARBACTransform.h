@@ -72,4 +72,7 @@ transform_2_SMT2_ExactAlg(char *, FILE *outputFile);
 void
 transform_2_NuSMV_ExactAlg(char *, FILE *outputFile);
 
+void
+wait_keypressed();
+
 #endif

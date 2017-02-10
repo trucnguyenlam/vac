@@ -1,37 +1,130 @@
 #include "ARBACExact.h"
-//#include "dummy_esbmc.h"
+#include "SSA_Structs.h"
 #include <time.h>
+#include <vector>
+#include <iostream>
+#include <memory>
+//#include "dummy_esbmc.h"
+    
+using std::vector;
 
-#define TYPE "_Bool"
-
-#define emit fprintf
-// #define true "TRUE"
-// #define false "FALSE"
-
-static char const *and_op = "&&";
-static char const *or_op = "||";
-static char const *ass_op = "=";
-static char const *nondet_op = "nondet_symbol()";
-
-static char const *assume = "__VERIFIER_assume";
+using std::shared_ptr;
 
 static int threads_count;
 static int use_tracks;
 
+/*SHOULD BE REMOVED*/
+static char* strbuf = (char*) calloc(1000, sizeof(char));
+
 /*--- SSA VARIABLE INDEXES ---*/
 /*--- VALUES ARE  ---*/
-static int *globals;
-static int *thread_assigneds;
-static int *program_counters;
-static int **locals;
-static int guard;
-static int nondet_bool;
-static int steps;
+static Variable* *globals;
+static Variable* *thread_assigneds;
+static Variable* *program_counters;
+static Variable* **locals;
+static Variable* guard = NULL;
+static Variable* nondet_bool = NULL;
+static int steps = 0;
+static vector<Stmt> out_stmts;
 
-// static char *
-// has_role(int * array, int array_size, int index) {
-//     return belong_to(array, array_size, index) ? true : false;
-// }
+// #ifdef MERGE_RULES
+static int *roles_ca_counts = NULL;
+static int *roles_cr_counts = NULL;
+static int **per_role_ca_indexes = NULL;
+static int **per_role_cr_indexes = NULL;
+static float ca_merge_ratio = 0;
+static float cr_merge_ratio = 0;
+
+static void precompute_merge() {
+
+    float assignable_roles_count = 0;
+    float removable_roles_count = 0;
+
+    roles_ca_counts = (int *) malloc(sizeof(int) * role_array_size);
+    roles_cr_counts = (int *) malloc(sizeof(int) * role_array_size);
+    per_role_ca_indexes = (int **) malloc(sizeof(int *) * role_array_size);
+    per_role_cr_indexes = (int **) malloc(sizeof(int *) * role_array_size);
+
+    for (int i = 0; i < role_array_size; ++i) {
+        //INSTANTIATING roles_ca_counts and per_role_ca_indexes
+        roles_ca_counts[i] = 0;
+        per_role_ca_indexes[i] = NULL;
+
+        // COUNTING CAs
+        for (int j = 0; j < ca_array_size; ++j) {
+            if (ca_array[j].target_role_index == i) {
+                roles_ca_counts[i]++;
+            }
+        }
+        //INSTANTIATING per_role_ca_indexes CONTENT
+        if (roles_ca_counts[i] > 0) {
+            int k = 0;
+            assignable_roles_count++;
+            per_role_ca_indexes[i] = (int *) malloc(sizeof(int) * roles_ca_counts[i]);
+
+            for (int j = 0; j < ca_array_size; ++j) {
+                if (ca_array[j].target_role_index == i) {
+                    if (k >= roles_ca_counts[i])
+                        fprintf(stderr, "Something went wrong in ca count. Segfaulting\n");
+                    per_role_ca_indexes[i][k++] = j;
+                }
+            }
+        }
+
+
+        //INSTANTIATING roles_cr_counts and per_role_cr_indexes
+        roles_cr_counts[i] = 0;
+        per_role_cr_indexes[i] = NULL;
+
+        // COUNTING CRs
+        for (int j = 0; j < cr_array_size; ++j) {
+            if (cr_array[j].target_role_index == i) {
+                roles_cr_counts[i]++;
+            }
+        }
+        //INSTANTIATING per_role_cr_indexes CONTENT
+        if (roles_cr_counts[i] > 0) {
+            int k = 0;
+            per_role_cr_indexes[i] = (int *) malloc(sizeof(int) * roles_cr_counts[i]);
+
+            for (int j = 0; j < cr_array_size; ++j) {
+                if (cr_array[j].target_role_index == i) {
+                    if (k >= roles_cr_counts[i])
+                        fprintf(stderr, "Something went wrong in cr count. Segfaulting\n");
+                    per_role_cr_indexes[i][k++] = j;
+                }
+            }
+        }
+    }
+
+    return;
+}
+
+static void
+deallocate_precomputated_values() {
+    for (int i = 0; i < role_array_size; ++i) {
+        if (per_role_ca_indexes[i] != NULL)
+            free(per_role_ca_indexes[i]);
+        if (per_role_cr_indexes[i] != NULL)
+            free(per_role_cr_indexes[i]);
+    }
+    free(roles_ca_counts);
+    free(roles_cr_counts);
+    free(per_role_ca_indexes);
+    free(per_role_cr_indexes);
+}
+
+// #endif
+
+static void
+free_stmts() {
+    std::vector<Stmt>::iterator ite = out_stmts.begin();
+    for (ite = out_stmts.begin(); ite != out_stmts.end(); ++ite) {        
+        Stmt elem = *ite;
+        freeStmt(elem);
+    }
+    out_stmts.clear();
+}
 
 static void
 initialize_var_counters() {
@@ -39,26 +132,26 @@ initialize_var_counters() {
     guard = 0;
     nondet_bool = 0;
 
-    globals = (int*) calloc(sizeof(int), admin_role_array_index_size);
+    globals = (Variable**) calloc(sizeof(Variable*), admin_role_array_index_size);
     for (int i = 0; i < admin_role_array_index_size; ++i) {
-        globals[i] = 0;    
+        globals[i] = NULL;    
     }
 
-    thread_assigneds = (int*) calloc(sizeof(int), threads_count);
+    thread_assigneds = (Variable**) calloc(sizeof(Variable*), threads_count);
     for (int i = 0; i < threads_count; ++i) {
-        thread_assigneds[i] = 0;    
+        thread_assigneds[i] = NULL;
     }
 
-    program_counters = (int*) calloc(sizeof(int), steps);
+    program_counters = (Variable**) calloc(sizeof(Variable*), steps);
     for (int i = 0; i < steps; ++i) {
-        program_counters[i] = 0;    
+        program_counters[i] = NULL;    
     }
 
-    locals = (int**) calloc(sizeof(int), threads_count);
+    locals = (Variable***) calloc(sizeof(Variable**), threads_count);
     for (int i = 0; i < threads_count; ++i) {
-        locals[i] = (int*) calloc(sizeof(int), role_array_size);
+        locals[i] = (Variable**) calloc(sizeof(Variable*), role_array_size);
         for (int j = 0; j < role_array_size; ++j) {
-            locals[i][j] = 0;
+            locals[i][j] = NULL;
         }
     }
 }
@@ -75,140 +168,393 @@ free_var_counters() {
 }
 
 static void
-generate_header(FILE *outputFile, char *inputFile, int rounds, int steps) {
+emit(Stmt stmt) {
+    out_stmts.push_back(stmt);
+}
+
+static void
+emitComment(const char* comment) {
+    emit(createComment(comment));
+}
+
+static Variable*
+createFrom(Variable* var, Expr value) {
+    createVariable(var->name, var->idx + 1, value, var->no_simplify);
+}
+
+static void
+generate_header(char *inputFile, int rounds, int steps) {
     time_t mytime;
     mytime = time(NULL);
-    fprintf(outputFile, "/*\n");
-    fprintf(outputFile, "*  generated by VAC [ 0000 / 0000 ]\n");
-    fprintf(outputFile, "*\n");
-    fprintf(outputFile, "*  instance version    {}\n");
-    fprintf(outputFile, "*\n");
-    fprintf(outputFile, "*  %s\n", ctime(&mytime));
-    fprintf(outputFile, "*\n");
-    fprintf(outputFile, "*  params:\n");
-    fprintf(outputFile, "*    %s, --format ssa --rounds %d --steps %d\n", inputFile, rounds, steps);
-    fprintf(outputFile, "*\n");
-    fprintf(outputFile, "*  users: %d\n", user_array_size);
-    fprintf(outputFile, "*  roles: %d\n", role_array_size);
-    fprintf(outputFile, "*  adminroles: %d\n", admin_role_array_index_size);
-    fprintf(outputFile, "*  CA: %d\n", ca_array_size);
-    fprintf(outputFile, "*  CR: %d\n", cr_array_size);
-    fprintf(outputFile, "*  ThreadCount: %d\n", threads_count);
-    fprintf(outputFile, "*\n");
-    fprintf(outputFile, "*/\n");
+    emitComment("*  generated by VAC [ 0000 / 0000 ]");
+    emitComment("*");
+    emitComment("*  instance version    {}");
+    emitComment("*");
+    sprintf(strbuf, "*  %s", ctime(&mytime));
+    emitComment(strbuf);
+    emitComment("*");
+    emitComment("*  params:");
+    emitComment("*    --format ssa");
+    sprintf(strbuf, "*    --rounds %d", rounds);
+    emitComment(strbuf);
+    sprintf(strbuf, "*    --steps %d", steps);
+    emitComment(strbuf);
+    sprintf(strbuf, "*    %s", inputFile);
+    emitComment(strbuf);
+    emitComment("*");
+    sprintf(strbuf, "*  users: %d", user_array_size);
+    emitComment(strbuf);
+    sprintf(strbuf, "*  roles: %d", role_array_size);
+    emitComment(strbuf);
+    sprintf(strbuf, "*  adminroles: %d", admin_role_array_index_size);
+    emitComment(strbuf);
+    sprintf(strbuf, "*  CA: %d", ca_array_size);
+    emitComment(strbuf);
+    sprintf(strbuf, "*  CR: %d", cr_array_size);
+    emitComment(strbuf);
+    sprintf(strbuf, "*  ThreadCount: %d", threads_count);
+    emitComment(strbuf);
+    emitComment("*");
+    emitComment("*/");
+    emitComment("");
 
-    fprintf(outputFile, "\n\n");
+    Expr zero = createConstantExpr(0);
+    Variable* __ESBMC_rounding_mode = createVariable("__ESBMC_rounding_mode", 0, zero, 1);
 
-    fprintf(outputFile, "__ESBMC_rounding_mode&0#1 == 0\n");
+    emit(generateAssignment(__ESBMC_rounding_mode));
 
     return;
 }
 
-// static void 
-// first_init(FILE *outputFile) {
-//     int i = 0, j = 0;
-//     char *count = 0;
+static void
+generate_PCs() {
+    for (int i = 0; i < steps; i++) {
+        sprintf(strbuf, "__cs_pc_%d", i);
+        Variable* var = createVariable(strbuf, 0, createConstantExpr(0), true);
+        emit(generateAssignment(var));
+        program_counters[i] = var;
+    }
+}
 
-//     fprintf(outputFile, "/*---------- INIT GLOBAL VARIABLES ---------*/\n\n");
-//     for (i = 0; i < admin_role_array_index_size; i++)
-//     {
-//         count = false;
-//         // Check if an admin role is already in some user
-//         for (j = 0; j < user_config_array_size; j++)
-//         {
-//             if (belong_to(user_config_array[j].array, user_config_array[j].array_size, admin_role_array_index[i])) {
-//                 count = true;
-//                 break;
-//             }
-//         }
-//         fprintf(outputFile, "glob_%s_%d %s %s;\n", role_array[admin_role_array_index[i]], ++globals[i], ass_op, count);
-//     }
-//     fprintf(outputFile, "\n");
-// }
+static void 
+generate_globals() {
+     int i = 0, j = 0;
+     int count = 0;
+     emitComment("---------- INIT GLOBAL VARIABLES ---------");
+     for (i = 0; i < admin_role_array_index_size; i++) {
+         count = 0;
+         // Check if an admin role is already in some user
+         for (j = 0; j < user_config_array_size; j++)
+         {
+             if (belong_to(user_config_array[j].array, user_config_array[j].array_size, admin_role_array_index[i])) {
+                 count = 1;
+                 break;
+             }
+         }
+         sprintf(strbuf, "glob_%s", role_array[admin_role_array_index[i]]);
+         Variable* var = createVariable(strbuf, 0, createConstantExpr(count), 0);
+         globals[i] = var;
+         emit(generateAssignment(var));
+     }
+     emitComment("\n");
+ }
 
-// static void
-// generate_thread_locals(FILE *outputFile, int thread_id) {
-//     fprintf(outputFile, "\n/*---------- THREAD %d LOCAL VARIABLES ---------*/\n", thread_id);
-//     for (int i = 0; i < role_array_size; i++)
-//     {   
-//         if (use_tracks) {
-//             //fprintf(outputFile, "local_Thread_%d_loc_%s_%d %s %s;\n", thread_id, role_array[i], locals[thread_id][i], ass_op, false);
-//         }
-//         else {
-//             fprintf(outputFile, "local_Thread_%d_loc_%s_%d %s %s;\n", thread_id, role_array[i], ++locals[thread_id][i], ass_op, 
-//                 has_role(user_config_array[thread_id].array, user_config_array[thread_id].array_size, i));
-//         }
-//     }
-// }
+static void
+generate_thread_locals(int thread_id) {
+    sprintf(strbuf, "---------- THREAD %d LOCAL VARIABLES ---------", thread_id);
+    emitComment(strbuf);
+    for (int i = 0; i < role_array_size; i++) {
+        sprintf(strbuf, "local_Thread_%d_loc_%s", thread_id, role_array[i]);
+        if (use_tracks) {
+            Variable* var = createVariable(strbuf, 0, createConstantExpr(0), 0);
+            locals[thread_id][i] = var;
+            emit(generateAssignment(var));
+        }
+        else {//locals[thread_id][i]++
+            Variable* var = createVariable(strbuf, 0, createConstantExpr(belong_to(user_config_array[thread_id].array, user_config_array[thread_id].array_size, i)), 0);
+            locals[thread_id][i] = var;
+            emit(generateAssignment(var));
+        }
+    }
+}
 
-// static void
-// assign_one_threads(FILE *outputFile, int thread_id, int user_id) {
-//     fprintf(outputFile, "nondet_bool_%d %s %s\n", ++nondet_bool, ass_op, nondet_op);
-    
-//     for (j = 0; j < user_config_array[user_id].array_size; j++) {
-//         fprintf(outputFile, "local_Thread_%d_loc_%s_%d %s %d;\n", i, role_array[user_config_array[user_id].array[j]]);
-//     }
-// }
+static void
+generate_locals() {
+    emitComment("---------- THREADS LOCAL VARIABLES ---------");
+    for (int i = 0; i < threads_count; ++i) {
+        generate_thread_locals(i);
+    }
+}
 
-// static void
-// initialize_threads_assignments(FILE *outputFile, int user_id)
-// {
-//     int i, j;
+static void
+init_PCs_guards_nondet() {
+    generate_PCs();
+    guard = createVariable("guard", 0, createConstantExpr(0), 1);
+    nondet_bool = createVariable("nondet_return", 0, createConstantExpr(0), 1);
+    emit(generateAssignment(guard));
+    emit(generateAssignment(nondet_bool));
+}
 
-//     fprintf(outputFile, "    /*--------------- CONFIGURATION OF %s ------------*/\n", user_array[user_id]);
+static void
+generate_thread_assigned_locals() {
+    emitComment("--------------- THREAD ASSIGNMENT LOCAL VARIABLES ------------");
+    for (int i = 0; i < threads_count; ++i) {
+        sprintf(strbuf, "thread_%d_assigned", i);
+        Variable* var = createVariable(strbuf, 0, createConstantExpr(0), 0);
+        thread_assigneds[i] = var;
+        emit(generateAssignment(var));
+    }
+}
 
-//     // fprintf(outputFile, "    if (nondet_bool()) {\n");
+static void
+thread_assignment_if(int thread_id, int user_id/*, Expr guard*/) {
+    sprintf(strbuf, "-------THREAD %d TO USER %d-------", thread_id, user_id);
+    emitComment(strbuf);
 
-//     for (i = 0; i < threads_count; i++) {
-//         if (i == 0) {
-//             fprintf(outputFile, "    if (nondet_bool() %s !thread_%d_assigned) {\n", and_op, i);
-//         }
-//         else {
-//             fprintf(outputFile, "    else if (nondet_bool() %s !thread_%d_assigned) {\n", and_op, i);
-//         }
+    Expr if_guard = createAndExpr(exprFromVar(nondet_bool), createNotExpr(exprFromVar(thread_assigneds[thread_id])));
+    Variable* n_guard = createFrom(guard, if_guard);
+    emit(generateAssignment(n_guard));
+    guard = n_guard;
 
-//         fprintf(outputFile, "        thread_%d_assigned = 1;\n", i);
+    Expr ass_val = createCondExpr(exprFromVar(guard), createConstantExpr(1), exprFromVar(thread_assigneds[thread_id]));
 
-//         for (j = 0; j < user_config_array[user_id].array_size; j++) {
-//             #ifndef GLOBALS_ALL_USERS
-//             // if GLOBALS_ALL_USERS is NOT set than we have to set the globals for this role
-//             if (belong_to(admin_role_array_index, admin_role_array_index_size, user_config_array[user_id].array[j])) {
-//                 #ifdef GLOBALS_INT
-//                 fprintf(outputFile, "        glob_%s++;\n", role_array[user_config_array[user_id].array[j]]);
-//                 #else
-//                 fprintf(outputFile, "        glob_%s = 1;\n", role_array[user_config_array[user_id].array[j]]);
-//                 #endif
-//             }
-//             #endif
-//             fprintf(outputFile, "        local_Thread_%d_loc_%s = 1;\n", i, role_array[user_config_array[user_id].array[j]]);
-//         }
-//         fprintf(outputFile, "    }\n\n");
-//     }
-//     // fprintf(outputFile, "    }\n\n");
-// }
+    Variable* assigned = createFrom(thread_assigneds[thread_id], ass_val);
+    emit(generateAssignment(assigned));
+    thread_assigneds[thread_id] = assigned;
 
-// static void
-// initialize_threads(FILE *outputFile) {
-//     int i;
-//     fprintf(outputFile, "void initialize_threads() {\n");
+    for (int j = 0; j < user_config_array[user_id].array_size; j++) {
+        if (belong_to(admin_role_array_index, admin_role_array_index_size, user_config_array[user_id].array[j])) {
+            Expr glob_val = createCondExpr(exprFromVar(guard), createConstantExpr(1), exprFromVar(globals[user_config_array[user_id].array[j]]));
+            Variable* glob = createFrom(globals[user_config_array[user_id].array[j]], glob_val);
+            emit(generateAssignment(glob));
+            globals[user_config_array[user_id].array[j]] = glob;
+        }
+        Expr loc_val = createCondExpr(exprFromVar(guard), createConstantExpr(1), exprFromVar(locals[thread_id][user_config_array[user_id].array[j]]));
+        Variable* loc = createFrom(locals[thread_id][user_config_array[user_id].array[j]], loc_val);
+        emit(generateAssignment(loc));
+        locals[thread_id][user_config_array[user_id].array[j]] = loc;
+    }
+}
 
-//     for (i = 0; i < user_array_size; ++i) {
-//         initialize_threads_assignments(outputFile, i);
-//     }
+static void
+assign_thread_to_user(int user_id) {
+    sprintf(strbuf, "--------------- CONFIGURATION OF %d ------------", user_id);
+    emitComment(strbuf);
+    Variable* nondet = createFrom(nondet_bool, createNondetExpr());
+    emit(generateAssignment(nondet));
+    nondet_bool = nondet;
 
-//     fprintf(outputFile, "    %s(\n", assume);
-    
-//     for (i = 0; i < threads_count - 1; ++i) { 
-//         fprintf(outputFile, "        thread_%d_assigned %s\n", i, and_op);
-//     }
-//     fprintf(outputFile, "        thread_%d_assigned);\n", i);
+    for (int i = 0; i < threads_count; i++) {
+        thread_assignment_if(i, user_id);
+    }
+}
 
-//     fprintf(outputFile, "}\n\n");
-// }
+static void
+assign_threads() {
+    for (int i = 0; i < threads_count; i++) {
+        assign_thread_to_user(i);
+    }
+
+    Expr assume_body = exprFromVar(thread_assigneds[0]);
+    for (int i = 1; i < threads_count; i++) {
+        assume_body = createAndExpr(exprFromVar(thread_assigneds[i]), assume_body);
+    }
+    emit(createAssumption(assume_body));
+}
+
+static void
+generate_updates(int thread_id) {
+    emitComment("---- GLOBAL ROLE CONSISTENCY UPDATE ----");
+    for (int i = 0; i < admin_role_array_index_size; i++) {
+        for (int j = 0; j < cr_array_size; j++) {
+            if (admin_role_array_index[i] == cr_array[j].target_role_index) {
+                int r_index = admin_role_array_index[i];
+                char *role = role_array[r_index];
+                Expr value = createOrExpr(exprFromVar(globals[r_index]), exprFromVar(locals[thread_id][r_index]));
+                Variable* n_glob = createFrom(globals[r_index], value);
+                emit(generateAssignment(n_glob));
+                globals[r_index] = n_glob;
+                break;
+            }
+        }
+    }
+    // glob_Author_d = glob_Author_d || __cs_local_Thread_user3_loc_Author_d;
+}
+
+static Expr
+generate_CA_cond(int thread_id, int ca_index) {
+    int j;
+    Expr cond = NULL;
+    // Admin role must be available
+    Expr admin_cond = exprFromVar(globals[ca_array[ca_index].admin_role_index]);
+    cond = admin_cond;
+
+    // Precondition must be satisfied
+    if (ca_array[ca_index].type == 0) {     // Has precondition
+        if (ca_array[ca_index].positive_role_array_size > 0) {
+            int* ca_array_p = ca_array[ca_index].positive_role_array;
+            Expr ca_cond = exprFromVar(locals[thread_id][ca_array_p[0]]);
+            for (j = 1; j < ca_array[ca_index].positive_role_array_size; j++) {
+                ca_cond = createAndExpr(ca_cond, exprFromVar(locals[thread_id][ca_array_p[j]]));
+            }
+            cond = createAndExpr(cond, ca_cond);
+        }
+        if (ca_array[ca_index].negative_role_array_size > 0) {
+            int* ca_array_n = ca_array[ca_index].negative_role_array;
+            Expr cr_cond = createNotExpr(exprFromVar(locals[thread_id][ca_array_n[0]]));
+            for (j = 1; j < ca_array[ca_index].negative_role_array_size; j++) {
+                cr_cond = createAndExpr(cr_cond, createNotExpr(exprFromVar(locals[thread_id][ca_array_n[j]])));
+            }
+            cond = createAndExpr(cond, cr_cond);
+        }
+    }
+    // Optional this user is not in this target role yet
+    Expr not_ass = createNotExpr(exprFromVar(locals[thread_id][ca_array[ca_index].target_role_index]));
+    cond = createAndExpr(cond, not_ass);
+    return cond;
+}
+
+static Expr
+generate_CR_cond(int thread_id, int cr_index) {
+    int i;
+    Expr cond = NULL;
+    // Admin role must be available
+    Expr admin_cond = exprFromVar(globals[cr_array[cr_index].admin_role_index]);
+    // Optional this user is in this target role yet
+    Expr not_ass = exprFromVar(locals[thread_id][cr_array[cr_index].target_role_index]);
+    cond = admin_cond;
+    cond = createAndExpr(admin_cond, not_ass);
+    return cond;
+}
+
+static Expr
+generate_PC_cond(int rule_id){
+    Expr cond = createEqExpr(exprFromVar(program_counters[0]), createConstantExpr(rule_id));
+    for (int i = 1; i < steps; i++) {
+        cond = createOrExpr(cond, createEqExpr(exprFromVar(program_counters[i]), createConstantExpr(rule_id)));
+    }
+    return cond;
+}
+
+// Print the comment of a CA rule
+static void
+emit_ca_comment(int ca_rule) {
+	int i;
+	int has_head = 0;
+    char* out = strbuf;
+
+    sprintf(strbuf, "------------------ CAN_ASSIGN RULE NUMBER %d -----------------", ca_rule);
+	emitComment(strbuf);
+
+	if (ca_array[ca_rule].type == 0) {
+		sprintf(out, "  <%s,", role_array[ca_array[ca_rule].admin_role_index]);
+		for (i = 0; i < ca_array[ca_rule].positive_role_array_size; i++) {
+			if (has_head) {
+				sprintf(out, "%s&%s", out, role_array[ca_array[ca_rule].positive_role_array[i]]);
+			}
+			else {
+				sprintf(out, "%s%s", out, role_array[ca_array[ca_rule].positive_role_array[i]]);
+				has_head = 1;
+			}
+		}
+		for (i = 0; i < ca_array[ca_rule].negative_role_array_size; i++) {
+			if (has_head) {
+				sprintf(out, "%s&-%s", out, role_array[ca_array[ca_rule].negative_role_array[i]]);
+			}
+			else {
+				sprintf(out, "%s-%s", out, role_array[ca_array[ca_rule].negative_role_array[i]]);
+				has_head = 1;
+			}
+		}
+		sprintf(out, "%s,%s>  ", out, role_array[ca_array[ca_rule].target_role_index]);
+		has_head = 0;
+	}
+	else if (ca_array[ca_rule].type == 1) {
+		sprintf(out, "  <%s,TRUE,%s>  ", role_array[ca_array[ca_rule].admin_role_index], role_array[ca_array[ca_rule].target_role_index]);
+	}
+	else if (ca_array[ca_rule].type == 2) {
+		sprintf(out, "  <%s,NEW,%s>  ", role_array[ca_array[ca_rule].admin_role_index], role_array[ca_array[ca_rule].target_role_index]);
+	}
+    emitComment(out);
+	emitComment("------------------------------------------------------------------");
+}
+
+// Print the comment of a CR rule
+static void
+emit_cr_comment(int cr_rule) {
+    char* out = strbuf;
+	sprintf(out, "------------------- CAN_REVOKE RULE NUMBER %d ---------------------", cr_rule);
+    emitComment(out);
+	sprintf(out, "  <%s,%s>  ", role_array[cr_array[cr_rule].admin_role_index], role_array[cr_array[cr_rule].target_role_index]);
+    emitComment(out);
+	emitComment("------------------------------------------------------------------");
+}
+
+static void
+simulate_can_assigns_by_role(int thread_id, int target_role_index, int rule_id) {
+    // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
+    int i = 0;
+    Expr pc_cond = NULL, ca_cond = NULL, all_cond = NULL;
+    //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
+    sprintf(strbuf, "--- ASSIGNMENT RULES FOR ROLE %s ---", role_array[target_role_index]);
+    emitComment(strbuf);
+
+    if (roles_ca_counts[target_role_index] < 1) {
+        sprintf(strbuf, "--- ROLE %s IS NOT ASSIGNABLE... SHOULD CRASH ---", role_array[target_role_index]);
+        emitComment(strbuf);
+        fprintf(stderr, "%s", strbuf);
+        return;
+    }
+
+    pc_cond = generate_PC_cond(rule_id);
+
+    emit_ca_comment(per_role_ca_indexes[target_role_index][0]);
+    ca_cond = generate_CA_cond(thread_id, per_role_ca_indexes[target_role_index][0]);
+
+    for (i = 1; i < roles_ca_counts[target_role_index]; ++i) {
+        int ca_idx = per_role_ca_indexes[target_role_index][i];
+        Expr ith_cond = generate_CA_cond(thread_id, ca_idx);
+        emit_ca_comment(ca_idx);
+        ca_cond = createOrExpr(ca_cond, ith_cond);
+    }
+
+    all_cond = createAndExpr(pc_cond, ca_cond);
+    Variable* ca_guard = createFrom(guard, all_cond);
+    emit(generateAssignment(ca_guard));
+    guard = ca_guard;
+
+    if (belong_to(admin_role_array_index, admin_role_array_index_size, target_role_index)) {
+        Expr ngval = createCondExpr(exprFromVar(ca_guard), createConstantExpr(1), exprFromVar(globals[target_role_index]));
+        Variable* nglob = createFrom(globals[target_role_index], ngval);
+        Expr nlval = createCondExpr(exprFromVar(ca_guard), createConstantExpr(1), exprFromVar(locals[thread_id][target_role_index]));
+        Variable* nloc = createFrom(locals[thread_id][target_role_index], nlval);
+        emit(generateAssignment(nglob));
+        emit(generateAssignment(nloc));
+        globals[target_role_index] = nglob;
+        locals[thread_id][target_role_index] = nloc;
+    }
+    else {
+        Expr nlval = createCondExpr(exprFromVar(ca_guard), createConstantExpr(1), exprFromVar(locals[thread_id][target_role_index]));
+        Variable* nloc = createFrom(locals[thread_id][target_role_index], nlval);
+        emit(generateAssignment(nloc));
+        locals[thread_id][target_role_index] = nloc;
+    }
+}
+
+static void
+write_to_file(FILE* outputFile) {
+    vector<Stmt>::iterator ite = out_stmts.begin();
+    for (ite = out_stmts.begin(); ite != out_stmts.end(); ++ite) {
+        Stmt elem = *ite;
+        char* str = printStmt(elem);
+        fprintf(outputFile, "%s\n", str);
+        free(str);
+    }
+}
 
 void
 transform_2_ssa(char *inputFile, FILE *outputFile, int rounds, int _steps, int wanted_threads_count) {
-
+    steps = _steps;
     if (rounds < 1) {
         fprintf(stderr, "Cannot simulate a number of rounds < 1\n");
         exit(EXIT_FAILURE);
@@ -222,6 +568,8 @@ transform_2_ssa(char *inputFile, FILE *outputFile, int rounds, int _steps, int w
     // Preprocess the ARBAC Policies
     preprocess(0);
     build_config_array();
+
+    precompute_merge();
 
     //Set the number of user to track
     if (wanted_threads_count < 1) {
@@ -244,15 +592,39 @@ transform_2_ssa(char *inputFile, FILE *outputFile, int rounds, int _steps, int w
             use_tracks = 1;
         }   
     }
-
-    steps = _steps;
-
-    //Generate header with common funtions and comments
-    generate_header(outputFile, inputFile, rounds, steps);
     
-    
+    initialize_var_counters();
 
+    // TODO: this should be merged in initialize_var_counters to avoid NULL in counters
+    // TODO: Usare shared pointer per tutto o trackare le stronzate condivise (mai ricorsive ;) 
+    init_PCs_guards_nondet();
+    //Generate header with comments
+    generate_header(inputFile, rounds, steps);
+
+        
+    generate_globals();
+    generate_locals();
+
+    generate_thread_assigned_locals();
+    assign_threads();
+
+    generate_updates(0);
+    simulate_can_assigns_by_role(0, 1, 0);
+
+    write_to_file(outputFile);
+
+    
+    std::cout << "Press enter to continue ..."; 
+    std::cin.get();
+    exit(0);
+    
+    free(strbuf);
+    deallocate_precomputated_values();
+
+    free_stmts();
     free_data();
     free_precise_temp_data();
     free_var_counters();
+
 }
+
