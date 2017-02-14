@@ -31,7 +31,12 @@ extern "C" {
     static const char* open_comment = "// ";
     static const char* assume_str = "__VERIFIER_assume";
     static const char* assert_str = "assert";
-    static const char* nondet_str = "nondet_bool()";
+    static const char* nondet_str = "nondet_%s";
+
+    enum Type {
+        INT,
+        BOOL
+    };
 
     enum StmtType {
         ASSERT,
@@ -105,7 +110,9 @@ extern "C" {
         Expr choice1;
         Expr choice2;
     };
-    struct NondetExpr { };
+    struct NondetExpr {
+        Type nondet_type;
+     };
     struct EqExpr {
         Expr lhs;
         Expr rhs;
@@ -153,7 +160,7 @@ extern "C" {
     Expr createAndExpr(Expr lhs, Expr rhs);
     Expr createNotExpr(Expr expr);
     Expr createCondExpr(Expr cond, Expr choice1, Expr choice2);
-    Expr createNondetExpr();
+    Expr createNondetExpr(Type type);
     Expr createEqExpr(Expr lhs, Expr rhs);
     
     Expr simplifyExpr(Expr expr);

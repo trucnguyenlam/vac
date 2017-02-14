@@ -522,10 +522,11 @@ extern "C" {
     }
 
 /*NONDET OPS*/
-    Expr createNondetExpr() {
+    Expr createNondetExpr(Type type) {
         Expr outer = (Expr) malloc(sizeof(_Expr));
         outer->type = NONDET_EXPR;
         NondetExpr *ne = (NondetExpr*) malloc(sizeof(NondetExpr));
+        ne->nondet_type = type;
         outer->value = ne;
         return outer;
     }
@@ -536,8 +537,11 @@ extern "C" {
         //
     }
     char* printNondetExpr(NondetExpr* nondet_expr) {
-        char* str = (char*) calloc(strlen(nondet_str) + 5, sizeof(char));
-        sprintf(str, "%s()", nondet_str);
+        const char* ty_name = nondet_expr->nondet_type == INT ? "int" : "bool";
+        char* typed_str = (char*) calloc(strlen(nondet_str) + 20, sizeof(char));
+        sprintf(typed_str, nondet_str, ty_name);
+        char* str = (char*) calloc(strlen(typed_str) + 5, sizeof(char));
+        sprintf(str, "%s()", typed_str);
         return str;
     }
     
