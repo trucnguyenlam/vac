@@ -261,7 +261,7 @@ main(int argc, char **argv)
                     fprintf(stderr, "ssa requires to specify the steos number (-s)\n");
                     error_exit();
                 }
-                transform_2_ssa(filename, out_file, rounds, steps, wanted_threads);
+                SSA::transform_2_ssa(filename, out_file, rounds, steps, wanted_threads);
             }
             else if (strcmp(format_arg, "completeness_query") == 0)
             {

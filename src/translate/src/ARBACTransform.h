@@ -60,8 +60,6 @@ transform_2_lazycseq_inlined(char *, FILE *outputFile, int rounds, int steps, in
 void
 transform_2_lazycseq_completeness_query(char *, FILE *outputFile, int rounds, int steps, int wanted_threads_count);
 void
-transform_2_ssa(char *, FILE *outputFile, int rounds, int steps, int wanted_threads_count);
-void
 transform_2_CBMC_ExactAlg(char *, FILE *outputFile);
 void
 transform_2_HSF_ExactAlg(char *, FILE *outputFile);
@@ -71,6 +69,11 @@ void
 transform_2_SMT2_ExactAlg(char *, FILE *outputFile);
 void
 transform_2_NuSMV_ExactAlg(char *, FILE *outputFile);
+
+namespace SSA {
+    void
+    transform_2_ssa(char *, FILE *outputFile, int rounds, int steps, int wanted_threads_count);
+}
 
 void
 wait_keypressed();

@@ -39,11 +39,12 @@ namespace SSA {
             static constexpr char assume_str[] = "__VERIFIER_assume";
             static constexpr char assert_str[] = "assert";
             static constexpr char nondet_str[] = "nondet_%s";
-            static constexpr char int_ty_str[] = "int";
-            static constexpr char bool_ty_str[] = "bool";
+            static constexpr char int_ty_str[] = "Int";
+            static constexpr char bool_ty_str[] = "_Bool";
             static constexpr char true_str[] = "TRUE";
             static constexpr char false_str[] = "FALSE";
-    };
+    };    
+
     enum VarType {
         INT,
         BOOL
@@ -67,8 +68,8 @@ namespace SSA {
 
             Stmtv(StmtType ty);
 
-            virtual string print();
-            virtual void simplify();
+            virtual string print() = 0;
+            virtual void simplify() = 0;
 
             StmtType type;
     };
@@ -88,13 +89,15 @@ namespace SSA {
 
         Exprv(ExprType ty);
 
-        virtual string print();
-        virtual Expr simplify();
+        virtual string print() = 0;
+        virtual Expr simplify() = 0;
 
         ExprType type;
     };
 
     class Variable;
+
+    typedef shared_ptr<Variable> Variablep;
 
     class Assignment : public Stmtv {
         public:
@@ -145,8 +148,8 @@ namespace SSA {
         
             string name;
             int idx;
-            int no_simplify;
             Expr value;
+            int no_simplify;
     };
     class Constant : public Exprv  {
         public:
@@ -155,8 +158,8 @@ namespace SSA {
             string print() override;
             Expr simplify() override;
 
-            VarType var_type;
             int value;
+            VarType var_type;
     };
     class OrExpr : public Exprv  {
         public:
@@ -171,6 +174,16 @@ namespace SSA {
     class AndExpr : public Exprv  {
         public:
             AndExpr(Expr _lhs, Expr _rhs);
+
+            string print() override;
+            Expr simplify() override;
+
+            Expr lhs;
+            Expr rhs;
+    };
+    class EqExpr : public Exprv  {
+        public:
+            EqExpr(Expr _lhs, Expr _rhs);
 
             string print() override;
             Expr simplify() override;
@@ -207,17 +220,22 @@ namespace SSA {
 
             VarType nondet_type;
      };
-    class EqExpr : public Exprv  {
-        public:
-            EqExpr(Expr _lhs, Expr _rhs);
-            ~EqExpr();
 
-            string print() override;
-            Expr simplify() override;
+    Variablep createVariablep(string name, int idx, Expr value, bool no_simplify = 0) ;
 
-            Expr lhs;
-            Expr rhs;
-    };
+    Stmt createAssignment(Variablep var, Expr val);
+    Stmt createAssignment(Variablep var);
+    Stmt createAssertion(Expr cond);
+    Stmt createAssumption(Expr cond);
+    Stmt createComment(const string comment);
+    Expr createVariableExpr(const string name, int idx, Expr value, int no_simplify);
+    Expr createConstantExpr(int value);
+    Expr createOrExpr(Expr lhs, Expr rhs);
+    Expr createAndExpr(Expr lhs, Expr rhs);
+    Expr createNotExpr(Expr expr);
+    Expr createCondExpr(Expr cond, Expr choice1, Expr choice2);
+    Expr createNondetExpr(VarType type);
+    Expr createEqExpr(Expr lhs, Expr rhs);
 
 }
 
