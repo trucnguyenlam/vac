@@ -17,7 +17,7 @@
 // #define NO_GLOBALS 1
 // #endif
 
-#define TYPE "_Bool"
+#define TYPE "unsigned __CPROVER_bitvector[1]"
 
 static char const *and_op = "&&";
 static char const *or_op = "||";
@@ -222,7 +222,7 @@ generate_header(FILE *outputFile, char *inputFile, int rounds) {
 	int nbits = get_pc_count();
 
     fprintf(outputFile, "unsigned __CPROVER_bitvector[%d] nondet_bitvector();\n", nbits);
-	fprintf(outputFile, "_Bool nondet_bool();\n");
+	fprintf(outputFile, "%s nondet_bool();\n", TYPE);
 
 	fprintf(outputFile, "\n");
 

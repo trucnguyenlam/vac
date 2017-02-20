@@ -38,11 +38,13 @@ namespace SSA {
             static constexpr char open_comment[] = "// ";
             static constexpr char assume_str[] = "__VERIFIER_assume";
             static constexpr char assert_str[] = "assert";
-            static constexpr char nondet_str[] = "nondet_%s";
-            static constexpr char int_ty_str[] = "Int";
+            static constexpr char nondet_str[] = "nondet_";
+            static constexpr char int_ty_str[] = "int";
             static constexpr char bool_ty_str[] = "_Bool";
-            static constexpr char true_str[] = "TRUE";
-            static constexpr char false_str[] = "FALSE";
+            static constexpr char true_str[] = "1";
+            static constexpr char false_str[] = "0";
+            // static constexpr char true_str[] = "TRUE";
+            // static constexpr char false_str[] = "FALSE";
     };    
 
     enum VarType {
@@ -69,7 +71,6 @@ namespace SSA {
             Stmtv(StmtType ty);
 
             virtual string print() = 0;
-            virtual void simplify() = 0;
 
             StmtType type;
     };
@@ -90,7 +91,6 @@ namespace SSA {
         Exprv(ExprType ty);
 
         virtual string print() = 0;
-        virtual Expr simplify() = 0;
 
         ExprType type;
     };
@@ -105,7 +105,6 @@ namespace SSA {
             Assignment(shared_ptr<Variable> var);
 
             string print() override;
-            void simplify() override;
         
             shared_ptr<Variable> variable;
             Expr value;
@@ -116,7 +115,6 @@ namespace SSA {
             Assertion(Expr cond);
 
             string print() override;
-            void simplify() override;
         
             Expr assertion;
     };
@@ -125,7 +123,6 @@ namespace SSA {
             Assumption(Expr cond);
 
             string print() override;
-            void simplify() override;
         
             Expr assumption;
     };
@@ -134,7 +131,6 @@ namespace SSA {
             Comment(string _comment);
 
             string print() override;
-            void simplify() override;
         
             string comment;
     };
@@ -144,7 +140,6 @@ namespace SSA {
             Variable(const string _name, int _idx, Expr _value, int _no_simplify);
             
             string print() override;
-            Expr simplify() override;
         
             string name;
             int idx;
@@ -156,7 +151,6 @@ namespace SSA {
             Constant(int val, VarType _var_type = VarType::BOOL);
 
             string print() override;
-            Expr simplify() override;
 
             int value;
             VarType var_type;
@@ -166,7 +160,6 @@ namespace SSA {
             OrExpr(Expr _lhs, Expr _rhs);
 
             string print() override;
-            Expr simplify() override;
 
             Expr lhs;
             Expr rhs;
@@ -176,7 +169,6 @@ namespace SSA {
             AndExpr(Expr _lhs, Expr _rhs);
 
             string print() override;
-            Expr simplify() override;
 
             Expr lhs;
             Expr rhs;
@@ -186,7 +178,6 @@ namespace SSA {
             EqExpr(Expr _lhs, Expr _rhs);
 
             string print() override;
-            Expr simplify() override;
 
             Expr lhs;
             Expr rhs;
@@ -196,7 +187,6 @@ namespace SSA {
             NotExpr(Expr _expr);
 
             string print() override;
-            Expr simplify() override;
 
             Expr expr;
     };
@@ -205,7 +195,6 @@ namespace SSA {
             CondExpr(Expr _cond, Expr _choice1, Expr _choice2);
 
             string print() override;
-            Expr simplify() override;
 
             Expr cond;
             Expr choice1;
@@ -216,7 +205,6 @@ namespace SSA {
             NondetExpr(VarType _nondet_type);
 
             string print() override;
-            Expr simplify() override;
 
             VarType nondet_type;
      };
@@ -229,13 +217,41 @@ namespace SSA {
     Stmt createAssumption(Expr cond);
     Stmt createComment(const string comment);
     Expr createVariableExpr(const string name, int idx, Expr value, int no_simplify);
-    Expr createConstantExpr(int value);
+    Expr createConstantExpr(int value, VarType _var_type = VarType::BOOL);
     Expr createOrExpr(Expr lhs, Expr rhs);
     Expr createAndExpr(Expr lhs, Expr rhs);
     Expr createNotExpr(Expr expr);
     Expr createCondExpr(Expr cond, Expr choice1, Expr choice2);
     Expr createNondetExpr(VarType type);
     Expr createEqExpr(Expr lhs, Expr rhs);
+
+    class Simplifier {
+        public:
+            enum SimplLevel {
+                NOTHING,
+                CONST_VARS,
+                UN_OPS,
+                LBIN_OPS,
+                EQUALITY,
+                ALL
+            };
+            Simplifier(SimplLevel _level);
+            void simplifyStmt(Stmt stmt);
+            Expr simplifyExpr(Expr expr);
+        private:
+            SimplLevel level;
+            void simplifyAssignment(shared_ptr<Assignment> stmt);
+            void simplifyAssertion(shared_ptr<Assertion> stmt);
+            void simplifyAssumption(shared_ptr<Assumption> stmt);
+            Expr simplifyVariable(shared_ptr<Variable> expr);
+            Expr simplifyConstant(shared_ptr<Constant> expr);
+            Expr simplifyOrExpr(shared_ptr<OrExpr> expr);
+            Expr simplifyAndExpr(shared_ptr<AndExpr> expr);
+            Expr simplifyEqExpr(shared_ptr<EqExpr> expr);
+            Expr simplifyNotExpr(shared_ptr<NotExpr> expr);
+            Expr simplifyCondExpr(shared_ptr<CondExpr> expr);
+            // Expr simplifyNondetExpr(NondetExpr expr);
+    };
 
 }
 

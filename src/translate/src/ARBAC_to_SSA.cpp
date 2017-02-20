@@ -128,15 +128,18 @@ deallocate_precomputated_values() {
 
 // #endif
 
-// static void
-// free_stmts() {
-//     std::vector<Stmt>::iterator ite = out_stmts.begin();
-//     for (ite = out_stmts.begin(); ite != out_stmts.end(); ++ite) {        
-//         Stmt elem = *ite;
-//         freeStmt(elem);
-//     }
-//     out_stmts.clear();
-// }
+static int NumBits(int pc) {
+    int i = 1, bit = 0;
+
+    if (pc <= 2 ) return 1;
+
+    while (pc >= i) {
+        i = i * 2;
+        bit++;
+    }
+
+    return (bit);
+}
 
 static void
 initialize_var_counters() {
@@ -240,7 +243,7 @@ generate_PCs() {
     for (int i = 0; i < steps; i++) {
         clean_fmt();
         fmt << "__cs_pc_" << i;
-        Variablep var = createVariablep(fmt.str(), -1, zero, true);
+        Variablep var = createVariablep(fmt.str(), -1, zero, 0);
         // emitAssignment(var);
         program_counters[i] = var;
     }
@@ -249,7 +252,7 @@ generate_PCs() {
 static void
 init_PCs_guards_nondet() {
     generate_PCs();
-    guard = createVariablep("guard", -1, zero, 1);
+    guard = createVariablep("guard", -1, zero, 0);
     nondet_bool = createVariablep("nondet_bool", -1, zero, 1);
     nondet_int = createVariablep("nondet_int", -1, zero, 1);
     // emitAssignment(guard);
@@ -325,11 +328,11 @@ generate_thread_assigned_locals() {
 static void
 thread_assignment_if(int thread_id, int user_id) {
     clean_fmt();
-    fmt << "-------THREAD " << thread_id << " TO USER " << user_id << "-------";
+    fmt << "-------THREAD " << thread_id << " TO USER " << user_id << " (" << user_array[user_id] << ")-------";
     emitComment(fmt.str());
 
     Expr if_guard = createAndExpr(
-        createEqExpr(nondet_int, createConstantExpr(thread_id)), 
+        createEqExpr(nondet_int, createConstantExpr(thread_id, INT)), 
         createNotExpr(thread_assigneds[thread_id]));
     Variablep n_guard = createFrom(guard, if_guard);
     emitAssignment(n_guard);
@@ -358,7 +361,7 @@ thread_assignment_if(int thread_id, int user_id) {
 static void
 assign_thread_to_user(int user_id) {
     clean_fmt();
-    fmt << "--------------- CONFIGURATION OF " << user_id << " ------------";
+    fmt << "--------------- CONFIGURATION OF USER " << user_id << " (" << user_array[user_id] << ") ------------";
     emitComment(fmt.str());
     Variablep nondet = createFrom(nondet_int, createNondetExpr(INT));
     emitAssignment(nondet);
@@ -371,7 +374,7 @@ assign_thread_to_user(int user_id) {
 
 static void
 assign_threads() {
-    for (int i = 0; i < threads_count; i++) {
+    for (int i = 0; i < user_config_array_size; i++) {
         assign_thread_to_user(i);
     }
 
@@ -447,10 +450,10 @@ generate_CR_cond(int thread_id, int cr_index) {
 }
 
 static Expr
-generate_PC_cond(int rule_id){
-    Expr cond = createEqExpr(program_counters[0], createConstantExpr(rule_id));
+generate_PC_cond(int rule_id) {
+    Expr cond = createEqExpr(program_counters[0], createConstantExpr(rule_id, INT));
     for (int i = 1; i < steps; i++) {
-        cond = createOrExpr(cond, createEqExpr(program_counters[i], createConstantExpr(rule_id)));
+        cond = createOrExpr(cond, createEqExpr(program_counters[i], createConstantExpr(rule_id, INT)));
     }
     return cond;
 }
@@ -667,7 +670,10 @@ simulate_thread(int thread_id) {
 }
 
 static void
-assign_PCs() {
+assign_PCs(int thread_id, int round) {
+    clean_fmt();
+    fmt << "---------- ASSIGNING PC FOR THREAD " << thread_id << " ROUND " << round << " ---------";
+    emitComment(fmt.str());
     for (int step = 0; step < steps; step++) {
         Variablep nondet_res = createFrom(nondet_int, createNondetExpr(INT));
         emitAssignment(nondet_res);
@@ -679,9 +685,9 @@ assign_PCs() {
 }
 
 static void
-simulate_threads() {
+simulate_threads(int round) {
     for (int i = 0; i < threads_count; i++) {
-        assign_PCs();
+        assign_PCs(i, round);
         simulate_thread(i);
     }
 }
@@ -692,7 +698,7 @@ generate_main(int rounds) {
         clean_fmt();
         fmt << "--------------- SIMULATION OF ROUND " << r << " ------------"; 
         emitComment(fmt.str());
-        simulate_threads();
+        simulate_threads(r); 
     }
 }
 
@@ -712,13 +718,53 @@ write_to_file(FILE* outputFile) {
 }
 
 static void
+simplify() {
+    fprintf(stderr, "------------ STARTING SIMPLIFICATION ------------\n");
+    int i = 0;
+    int last = 0;
+    unsigned long l = out_stmts.size();
+    fprintf(stderr, "[");
+    Simplifier simpl(Simplifier::CONST_VARS); // CONST_VARS
+    vector<Stmt>::iterator ite = out_stmts.begin();
+    for (ite = out_stmts.begin(); ite != out_stmts.end(); ++ite) {
+        i++;
+        Stmt elem = *ite;
+        simpl.simplifyStmt(elem);
+        int perc = (i * 50) / l;
+        if (perc != last) {
+            last = perc;
+            fprintf(stderr, "#");
+        }
+    }
+    fprintf(stderr, "]\n");
+    fprintf(stderr, "------------ SIMPLIFICATION DONE ------------\n");
+}
+
+static int
+get_pc_count() {
+    int n = 0;
+    for (int i = 0; i < role_array_size; ++i) {
+        if (roles_ca_counts[i] > 0)
+            n++;
+        if (roles_cr_counts[i] > 0)
+            n++;
+    }
+    return NumBits(n + 1);
+}
+
+static void
 print_var_decls(FILE* outputFile) {
     int i, t, c;
+    clean_fmt();
 
-    fprintf(outputFile, "unsigned int nondet_int();\n");
-    fprintf(outputFile, "_Bool nondet_bool();\n");
+    fmt << "unsigned __CPROVER_bitvector[" << get_pc_count() << "]";
 
-    fprintf(outputFile, "_Bool __ESBMC_rounding_mode_0");
+    string int_type = fmt.str();
+    char bool_type[] = "unsigned __CPROVER_bitvector[1]";
+
+    fprintf(outputFile, "%s nondet_int();\n", int_type.c_str());
+    fprintf(outputFile, "%s nondet__Bool();\n", bool_type);
+    fprintf(outputFile, "%s __ESBMC_rounding_mode_0", bool_type);
     
     for (i = 0; i < threads_count; i++) {
         int to = thread_assigneds[i]->idx;
@@ -770,7 +816,7 @@ print_var_decls(FILE* outputFile) {
     }
     fprintf(outputFile, ";\n");
 
-    fprintf(outputFile, "int dummy_int");
+    fprintf(outputFile, "%s dummy_int", int_type.c_str());
 
     for (i = 0; i < steps; i++) {
         int to = program_counters[i]->idx;
@@ -809,12 +855,14 @@ generate_program(char *inputFile, FILE *outputFile, int rounds) {
     generate_thread_assigned_locals();
     assign_threads();
 
+
     generate_main(rounds);
 
     print_var_decls(outputFile);
 
     fprintf(outputFile, "int main() {\n");
 
+    simplify();
     write_to_file(outputFile);
 
     fprintf(outputFile, "return 0;\n}\n");

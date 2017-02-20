@@ -3,6 +3,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <assert.h>
+
 namespace SSA {
 
 /*DEFS*/
@@ -35,15 +37,6 @@ namespace SSA {
         variable(var), value(var->value), useless(0) {
     }
 
-    void Assignment::simplify() {
-        if (this->variable->no_simplify) {
-            return;
-        }
-        Expr nvar = this->variable->simplify();
-        
-        return;
-    }
-
     string Assignment::print() {
         std::stringstream fmt;
 
@@ -62,7 +55,6 @@ namespace SSA {
     Assertion::Assertion(Expr cond) :
         Stmtv(Stmtv::ASSERT), 
         assertion(cond) { }
-    void Assertion::simplify() { /* TODO: simplify */ }
     string Assertion::print() {
         std::stringstream fmt;
         string asserted = this->assertion->print();
@@ -75,8 +67,6 @@ namespace SSA {
         Stmtv(Stmtv::ASSUME), 
         assumption(cond) { }
 
-    void Assumption::simplify() { /* TODO: simplify */ }
-
     string Assumption::print() {
         std::stringstream fmt;
         string assumed = this->assumption->print();
@@ -87,8 +77,6 @@ namespace SSA {
 /*COMMENT OPS*/
     Comment::Comment(const string _comment) :
         Stmtv(Stmtv::COMMENT), comment(_comment) { }
-
-    void Comment::simplify() { }
 
     string Comment::print() {
         std::stringstream fmt;
@@ -109,21 +97,6 @@ namespace SSA {
         Exprv(Exprv::VARIABLE), 
         name(_name), idx(_idx), value(_value), no_simplify(_no_simplify) { }
 
-    Expr Variable::simplify() {
-        //FIXME: simplify
-        //        Variable *inner = (Variable*) var->value;
-        //        if (inner->value != NULL) {
-        //            Expr res = simplifyExpr(inner->value);
-        //            free(inner->name);
-        //            free(inner);
-        //            free(var);
-        //            return res;
-        //        }
-        //        else {
-        //            printf("Could not simplify variable %s.\nRetrning NULL\n", printVariable(var));
-        //            return NULL;
-        //        }
-    }
     string Variable::print() {
         std::stringstream fmt;
         fmt << this->name << "_" << this->idx;
@@ -135,11 +108,6 @@ namespace SSA {
         Exprv(Exprv::CONSTANT),
         value(_value), var_type(_var_type) { }
     
-    Expr Constant::simplify() {
-        //        Expr res = createConstant(((Constant)constant->value)->value);
-        //        freeExpr(constant);
-        //        return res;
-    }
     string Constant::print() {
         if (this->var_type == VarType::BOOL) {
             if (this->value) {
@@ -161,32 +129,6 @@ namespace SSA {
         Exprv(Exprv::OR_EXPR),
         lhs(_lhs), rhs(_rhs) { }
 
-    Expr OrExpr::simplify() {
-        //FIXME: simplify
-        //        OrExpr inner = (OrExpr) or_expr->value;
-        //        Expr nlhs, nrhs;
-        //        nlhs = simplifyExpr(inner->lhs);
-        //        if (nlhs->type == CONSTANT) {
-        //            int v = (Constant) nlhs->value;
-        //            if (v) {
-        //                freeExpr(or_expr);
-        //                return (Constant) nlhs;
-        //            }
-        //            else {
-        //                return rhs->simplify();
-        //            }
-        //        }
-        //        nrhs = rhs->simplify();
-        //        if (nrhs.type == CONSTANT) {
-        //            if (((Constant) nrhs).value) {
-        //                return (Constant) nrhs;
-        //            }
-        //            else {
-        //                return nlhs;
-        //            }
-        //        }
-        //        return new OrExpr(nlhs, nrhs);
-    }
     string OrExpr::print() {
         std::stringstream fmt;
         string lhsv = this->lhs->print();
@@ -200,32 +142,6 @@ namespace SSA {
         Exprv(Exprv::AND_EXPR),
         lhs(_lhs), rhs(_rhs) { }
 
-    Expr AndExpr::simplify() {
-        //FIXME: simplify
-        //        OrExpr inner = (OrExpr) or_expr->value;
-        //        Expr nlhs, nrhs;
-        //        nlhs = simplifyExpr(inner->lhs);
-        //        if (nlhs->type == CONSTANT) {
-        //            int v = (Constant) nlhs->value;
-        //            if (v) {
-        //                freeExpr(or_expr);
-        //                return (Constant) nlhs;
-        //            }
-        //            else {
-        //                return rhs->simplify();
-        //            }
-        //        }
-        //        nrhs = rhs->simplify();
-        //        if (nrhs.type == CONSTANT) {
-        //            if (((Constant) nrhs).value) {
-        //                return (Constant) nrhs;
-        //            }
-        //            else {
-        //                return nlhs;
-        //            }
-        //        }
-        //        return new OrExpr(nlhs, nrhs);
-    }
     string AndExpr::print() {
         std::stringstream fmt;
         string lhsv = this->lhs->print();
@@ -239,32 +155,6 @@ namespace SSA {
         Exprv(Exprv::EQ_EXPR),
         lhs(_lhs), rhs(_rhs) { }
 
-    Expr EqExpr::simplify() {
-        //FIXME: simplify
-        //        OrExpr inner = (OrExpr) or_expr->value;
-        //        Expr nlhs, nrhs;
-        //        nlhs = simplifyExpr(inner->lhs);
-        //        if (nlhs->type == CONSTANT) {
-        //            int v = (Constant) nlhs->value;
-        //            if (v) {
-        //                freeExpr(or_expr);
-        //                return (Constant) nlhs;
-        //            }
-        //            else {
-        //                return rhs->simplify();
-        //            }
-        //        }
-        //        nrhs = rhs->simplify();
-        //        if (nrhs.type == CONSTANT) {
-        //            if (((Constant) nrhs).value) {
-        //                return (Constant) nrhs;
-        //            }
-        //            else {
-        //                return nlhs;
-        //            }
-        //        }
-        //        return new OrExpr(nlhs, nrhs);
-    }
     string EqExpr::print() {
         std::stringstream fmt;
         string lhsv = this->lhs->print();
@@ -277,9 +167,6 @@ namespace SSA {
         Exprv(Exprv::NOT_EXPR),
         expr(_expr) { }
 
-    Expr NotExpr::simplify() {
-        //FIXME: simplify
-    }
     string NotExpr::print() {
         std::stringstream fmt;
         string exprv = this->expr->print();
@@ -292,19 +179,6 @@ namespace SSA {
         Exprv(Exprv::COND_EXPR),
         cond(_cond), choice1(_choice1), choice2(_choice2) { }
 
-    Expr CondExpr::simplify()  {
-        //        Exprc ncond = cond->simplify();
-        //        if (ncond->type == CONSTANT) {
-        //            if (((shared_ptr<Constant>) ncond)->value) {
-        //                return choice1->simplify();
-        //            }
-        //            else {
-        //                return choice2->simplify();
-        //            }
-        //        }
-        //
-        //        return new CondExpr(ncond, choice1->simplify(), choice2->simplify());
-    }
     string CondExpr::print() {
         std::stringstream fmt;
         string cond = this->cond->print();
@@ -319,87 +193,225 @@ namespace SSA {
         Exprv(Exprv::NONDET_EXPR),
         nondet_type(_nondet_type) { }
 
-    Expr NondetExpr::simplify() {
-        // return this;
-    }
     string NondetExpr::print() {
         std::stringstream fmt;
         const char* ty_name = this->nondet_type == INT ? Defs::int_ty_str : Defs::bool_ty_str;
-        fmt << ty_name << "()";
+        fmt << Defs::nondet_str << ty_name << "()";
         return fmt.str();
     }
 
 /*SIMPLIFICATION OPS*/
+    Simplifier::Simplifier(SimplLevel _level) : level(_level) { }
 
-// Expr simplifyExpr(Expr expr);
+    void Simplifier::simplifyStmt(Stmt stmt) {
+        switch (stmt->type) {
+            case Stmtv::ASSERT:
+                this->simplifyAssertion(std::dynamic_pointer_cast<Assertion>(stmt));
+                break;
+            case Stmtv::ASSUME:
+                this->simplifyAssumption(std::dynamic_pointer_cast<Assumption>(stmt));
+                break;
+            case Stmtv::ASSIGNMENT:
+                this->simplifyAssignment(std::dynamic_pointer_cast<Assignment>(stmt));
+                break;
+            case Stmtv::COMMENT: 
+                break;
+            case Stmtv::OUTPUT: 
+                break;        
+        }
+    }
 
-// Expr simplifyAndExpr(AndExpr and_expr) {
+    Expr Simplifier::simplifyExpr(Expr expr) {
+        switch (expr->type) {
+            case Exprv::CONSTANT:
+                // CAN REMOVED SINCE IS ID
+                return simplifyConstant(std::dynamic_pointer_cast<Constant>(expr));
+            case Exprv::VARIABLE:
+                return simplifyVariable(std::dynamic_pointer_cast<Variable>(expr));
+            case Exprv::EQ_EXPR:
+                return simplifyEqExpr(std::dynamic_pointer_cast<EqExpr>(expr));
+            case Exprv::NOT_EXPR:
+                return simplifyNotExpr(std::dynamic_pointer_cast<NotExpr>(expr));
+            case Exprv::OR_EXPR:
+                return simplifyOrExpr(std::dynamic_pointer_cast<OrExpr>(expr));
+            case Exprv::AND_EXPR:
+                return simplifyAndExpr(std::dynamic_pointer_cast<AndExpr>(expr));
+            case Exprv::COND_EXPR:
+                return simplifyCondExpr(std::dynamic_pointer_cast<CondExpr>(expr));
+            case Exprv::NONDET_EXPR:
+                return expr;
+            default:
+                break;
+        }
+        // return expr;
+    }
 
-// }
+    void Simplifier::simplifyAssignment(shared_ptr<Assignment> assignment) {
+        //TODO: put here redundancy after simplification check
+        Expr nval = this->simplifyExpr(assignment->variable->value);
+        assignment->value = nval;
+        assignment->variable->value = nval;
+    }
+    void Simplifier::simplifyAssertion(shared_ptr<Assertion> assertion) {
+        //TODO: put here redundancy after simplification check
+        Expr nval = this->simplifyExpr(assertion->assertion);
+        assertion->assertion = nval;
+    }
+    void Simplifier::simplifyAssumption(shared_ptr<Assumption> assumption) {
+        //TODO: put here redundancy after simplification check
+        Expr nval = this->simplifyExpr(assumption->assumption);
+        assumption->assumption = nval;
+    }
 
-// Expr simplifyEqExpr(EqExpr expr) {
-//     //TODO: COULD BE IMPROVED
-//     Expr nlhs = simplifyExpr(not_expr->lhs);
-//     Expr nrhs = simplifyExpr(not_expr->rhs);
+    Expr Simplifier::simplifyVariable(shared_ptr<Variable> var) {
+        if (var->no_simplify) {
+            return var;
+        }
+        Expr value = var->value;
+        switch (this->level) {
+            //WARNING: Switch without break to fall in previous cases
+            case ALL:
+                return value;
+            case EQUALITY:
+                if (value->type == Exprv::EQ_EXPR) {
+                    return value;
+                }
+            case LBIN_OPS:
+                if (value->type == Exprv::OR_EXPR || value->type == Exprv::AND_EXPR) {
+                    return value;
+                }
+            case UN_OPS:
+                if (value->type == Exprv::NOT_EXPR) {
+                    return value;
+                }
+            case CONST_VARS:
+                if (value->type == Exprv::CONSTANT) {
+                    return value;
+                }
+                if (value->type == Exprv::VARIABLE) {
+                    Variablep var = std::dynamic_pointer_cast<Variable>(value);
+                    // assert(!var->no_simplify);
+                    return simplifyVariable(var);
+                }
+            case NOTHING:
+                return var;
+            default:
+                break;
+        }
+        return var;
+    }
+    Expr Simplifier::simplifyConstant(shared_ptr<Constant> expr) {
+        //FIXME: could be removed
+        return expr;
+    }
+    Expr Simplifier::simplifyOrExpr(shared_ptr<OrExpr> or_expr) {
+        Expr nlhs, nrhs;
+        nlhs = simplifyExpr(or_expr->lhs);
+        if (nlhs->type == Exprv::CONSTANT) {
+            int v = (std::dynamic_pointer_cast<Constant>(nlhs))->value;
+            if (v) {
+                return nlhs;
+            }
+            else {
+                return simplifyExpr(or_expr->rhs);
+            }
+        }
+        nrhs = simplifyExpr(or_expr->rhs);
+        if (nrhs->type == Exprv::CONSTANT) {
+            if ((std::dynamic_pointer_cast<Constant>(nrhs))->value) {
+                return std::dynamic_pointer_cast<Constant>(nrhs);
+            }
+            else {
+                return nlhs;            
+            }
+        }
+        return createOrExpr(nlhs, nrhs);
+    }
+    Expr Simplifier::simplifyAndExpr(shared_ptr<AndExpr> and_expr) {
+        Expr nlhs, nrhs;
+        nlhs = simplifyExpr(and_expr->lhs);
+        if (nlhs->type == Exprv::CONSTANT) {
+            int v = std::dynamic_pointer_cast<Constant>(nlhs)->value;
+            if (!v) {
+                return nlhs;
+            }
+            else {
+                return simplifyExpr(and_expr->rhs);
+            }
+        }
+        nrhs = simplifyExpr(and_expr->rhs);
+        if (nrhs->type == Exprv::CONSTANT) {
+            if (!(std::dynamic_pointer_cast<Constant>(nrhs)->value)) {
+                return nrhs;
+            }
+            else {
+                return nlhs;
+            }
+        }
+        return createAndExpr(nlhs, nrhs);
+    }
+    Expr Simplifier::simplifyEqExpr(shared_ptr<EqExpr> expr) {
+        //TODO: COULD BE IMPROVED
+        Expr nlhs = simplifyExpr(expr->lhs);
+        Expr nrhs = simplifyExpr(expr->rhs);
 
-//     if (nlhs == nrhs) {
-//         return createConstantExpr(1);
-//     }
+        if (nlhs == nrhs) {
+            return createConstantExpr(1);
+        }
 
-//      if (nlhs->type == Exprv::CONSTANT && nch2->nrhs == Exprv::CONSTANT) {
-//         shared_ptr<Constant> nl = (shared_ptr<Constant>) nlhs;
-//         shared_ptr<Constant> nr = (shared_ptr<Constant>) nrhs;
-//         return createConstantExpr(nl->value == nr->value);
-//     }
+        if (nlhs->type == Exprv::CONSTANT && nrhs->type == Exprv::CONSTANT) {
+            shared_ptr<Constant> nl = std::dynamic_pointer_cast<Constant>(nlhs);
+            shared_ptr<Constant> nr = std::dynamic_pointer_cast<Constant>(nrhs);
+            return createConstantExpr(nl->value == nr->value);
+        }
 
-//     return createConstantExpr(nlhs, nrhs);
-        
-// }
+        return createEqExpr(nlhs, nrhs);
+            
+    }
+    Expr Simplifier::simplifyNotExpr(shared_ptr<NotExpr> not_expr) {
+        Expr nexpr = simplifyExpr(not_expr->expr);
+        if (nexpr->type == Exprv::CONSTANT) {
+            return createConstantExpr(!(std::dynamic_pointer_cast<Constant>(nexpr))->value);
+        }
+        return createNotExpr(nexpr);
+    }
+    Expr Simplifier::simplifyCondExpr(shared_ptr<CondExpr> cond_expr) {
+        Expr ncond = simplifyExpr(cond_expr->cond);
+        // If condition is true or false return the selected branch simplified...
+        if (ncond->type == Exprv::CONSTANT) {
+            if ((std::dynamic_pointer_cast<Constant>(ncond))->value) {
+                return simplifyExpr(cond_expr->choice1);
+            }
+            else {
+                return simplifyExpr(cond_expr->choice2);
+            }
+        }
 
-// Expr simplifyNotExpr(shared_ptr<NotExpr> not_expr) {
-//     Expr nexpr = simplifyExpr(not_expr->expr);
-//     if (nexpr->type == Exprv::CONSTANT) {
-//         return createConstantExpr(!((shared_ptr<Constant>) ncond)->value);
-//     }
-//     return createNotExpr(nexpr);
-// }
-// Expr simplifyCondExpr(shared_ptr<CondExpr> cond_expr) {
-//     Expr ncond = simplifyExpr(cond_expr->cond);
-//     // If condition is true or false return the selected branch simplified...
-//     if (ncond->type == Exprv::CONSTANT) {
-//         if (((shared_ptr<Constant>) ncond)->value) {
-//             return simplifyExpr(cond_expr->choice1);
-//         }
-//         else {
-//             return simplifyExpr(cond_expr->choice2);
-//         }
-//     }
+        Expr nch1 = simplifyExpr(cond_expr->choice1);
+        Expr nch2 = simplifyExpr(cond_expr->choice2);
+        // If simplified branches are equals simplify removing conditional expression and return it
+        if (nch1 == nch2) {
+            //TODO: Reference comparison!?!
+            return nch1;
+        }
 
-//     Expr nch1 = simplifyExpr(cond_expr->choice1);
-//     Expr nch2 = simplifyExpr(cond_expr->choice2);
-//     // If simplified branches are equals simplify removing conditional expression and return it
-//     if (nch1 == nch2) {
-//         //TODO: Reference comparison!?!
-//         return nch1;
-//     }
-
-//     // If branches are 1, 0 or 0, 1 replace conditional expression with guard or negation of it respectively
-//     if (nch1->type == Exprv::CONSTANT && nch2->type == Exprv::CONSTANT) {
-//         shared_ptr<Constant> nc1 = (shared_ptr<Constant>) nch1;
-//         shared_ptr<Constant> nc2 = (shared_ptr<Constant>) nch2;
-//         if (nc1->value == 0 && nc2->value == 1) {
-//             return createNotExpr(ncond);
-//         }
-//         if (nc1->value == 1 && nc2->value == 0) {
-//             return ncond;
-//         }
-//     }
-//     // Otherwise return the simplified conditional expression.
-//     return createCondExpr(ncond, nch1, nch2);
-// }
-// Expr simplifyNondetExpr(shared_ptr<NondetExpr> nondet_expr) {
-//     return nondet_expr;
-// }
+        // If branches are 1, 0 or 0, 1 replace conditional expression with guard or negation of it respectively
+        if (nch1->type == Exprv::CONSTANT && nch2->type == Exprv::CONSTANT) {
+            shared_ptr<Constant> nc2 = std::dynamic_pointer_cast<Constant>(nch2);
+            shared_ptr<Constant> nc1 = std::dynamic_pointer_cast<Constant>(nch1);
+            if (nc1->value == 0 && nc2->value == 1) {
+                return createNotExpr(ncond);
+            }
+            if (nc1->value == 1 && nc2->value == 0) {
+                return ncond;
+            }
+        }
+        // Otherwise return the simplified conditional expression.
+        return createCondExpr(ncond, nch1, nch2);
+    }
+    // Expr Simplifier::simplifyNondetExpr(shared_ptr<NondetExpr> nondet_expr) {
+    //     return nondet_expr;
+    // }
     
 /*OTHER OPS*/
     Variablep createVariablep(string name, int idx, Expr value, bool no_simplify) {
@@ -424,8 +436,8 @@ namespace SSA {
     Expr createVariableExpr(const string name, int idx, Expr value, int no_simplify) {
         return std::shared_ptr<Exprv>(new Variable(name, idx, value, no_simplify));
     }
-    Expr createConstantExpr(int value) {
-        return std::shared_ptr<Exprv>(new Constant(value));
+    Expr createConstantExpr(int value, VarType _var_type) {
+        return std::shared_ptr<Exprv>(new Constant(value, _var_type));
     }
     Expr createOrExpr(Expr lhs, Expr rhs) {
         return std::shared_ptr<Exprv>(new OrExpr(lhs, rhs));
