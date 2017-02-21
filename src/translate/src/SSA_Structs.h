@@ -19,6 +19,8 @@
 #include <string.h>
 #include <memory>
 #include <string>
+#include <vector>
+#include <iostream>
 
 using std::shared_ptr;
 using std::string;
@@ -45,7 +47,7 @@ namespace SSA {
             static constexpr char false_str[] = "0";
             // static constexpr char true_str[] = "TRUE";
             // static constexpr char false_str[] = "FALSE";
-    };    
+    };
 
     enum VarType {
         INT,
@@ -71,6 +73,8 @@ namespace SSA {
             Stmtv(StmtType ty);
 
             virtual string print() = 0;
+            // virtual void toStream(std::iostream fmt) = 0;
+            virtual int redundant() = 0;
 
             StmtType type;
     };
@@ -91,6 +95,7 @@ namespace SSA {
         Exprv(ExprType ty);
 
         virtual string print() = 0;
+        // virtual void toStream(std::iostream fmt) = 0;
 
         ExprType type;
     };
@@ -105,6 +110,8 @@ namespace SSA {
             Assignment(shared_ptr<Variable> var);
 
             string print() override;
+            // void toStream(std::iostream fmt) override;
+            int redundant() override;
         
             shared_ptr<Variable> variable;
             Expr value;
@@ -115,6 +122,8 @@ namespace SSA {
             Assertion(Expr cond);
 
             string print() override;
+            // void toStream(std::iostream fmt) override;
+            int redundant() override;
         
             Expr assertion;
     };
@@ -123,6 +132,8 @@ namespace SSA {
             Assumption(Expr cond);
 
             string print() override;
+            // void toStream(std::iostream fmt) override;
+            int redundant() override;
         
             Expr assumption;
     };
@@ -131,26 +142,31 @@ namespace SSA {
             Comment(string _comment);
 
             string print() override;
+            // void toStream(std::iostream fmt) override;
+            int redundant() override;
         
             string comment;
     };
 
     class Variable : public Exprv {
         public:
-            Variable(const string _name, int _idx, Expr _value, int _no_simplify);
+            Variable(const string _name, int _idx, Expr _value, int do_not_inline);
             
             string print() override;
+            // void toStream(std::iostream fmt) override;
         
             string name;
             int idx;
             Expr value;
-            int no_simplify;
+            int no_inline;
+            int _inline;
     };
     class Constant : public Exprv  {
         public:
             Constant(int val, VarType _var_type = VarType::BOOL);
 
             string print() override;
+            // void toStream(std::iostream fmt) override;
 
             int value;
             VarType var_type;
@@ -160,6 +176,7 @@ namespace SSA {
             OrExpr(Expr _lhs, Expr _rhs);
 
             string print() override;
+            // void toStream(std::iostream fmt) override;
 
             Expr lhs;
             Expr rhs;
@@ -169,6 +186,7 @@ namespace SSA {
             AndExpr(Expr _lhs, Expr _rhs);
 
             string print() override;
+            // void toStream(std::iostream fmt) override;
 
             Expr lhs;
             Expr rhs;
@@ -178,6 +196,7 @@ namespace SSA {
             EqExpr(Expr _lhs, Expr _rhs);
 
             string print() override;
+            // void toStream(std::iostream fmt) override;
 
             Expr lhs;
             Expr rhs;
@@ -187,6 +206,7 @@ namespace SSA {
             NotExpr(Expr _expr);
 
             string print() override;
+            // void toStream(std::iostream fmt) override;
 
             Expr expr;
     };
@@ -195,6 +215,7 @@ namespace SSA {
             CondExpr(Expr _cond, Expr _choice1, Expr _choice2);
 
             string print() override;
+            // void toStream(std::iostream fmt) override;
 
             Expr cond;
             Expr choice1;
@@ -205,6 +226,7 @@ namespace SSA {
             NondetExpr(VarType _nondet_type);
 
             string print() override;
+            // void toStream(std::iostream fmt) override;
 
             VarType nondet_type;
      };
@@ -250,81 +272,25 @@ namespace SSA {
             Expr simplifyEqExpr(shared_ptr<EqExpr> expr);
             Expr simplifyNotExpr(shared_ptr<NotExpr> expr);
             Expr simplifyCondExpr(shared_ptr<CondExpr> expr);
+            int canInline(Expr expr);
             // Expr simplifyNondetExpr(NondetExpr expr);
+    };
+
+    class SSAProgram {
+        public:
+            SSAProgram();
+            void simplify(Simplifier::SimplLevel level, int visualize_progress = 0);
+            void write(FILE* outputFile, int skip_redundant);
+            void printStats(int skip_redundant);
+            void addStmt(Stmt stmt);
+            void clear();
+        private:
+            // int assignments, assertions, assumptions;
+            std::vector<Stmt> statements;
     };
 
 }
 
-// extern "C" {
-        
 
-
-    
-    
-
-
-    
-//     void freeStmt(Stmt stmt);
-//     void freeAssignment(Assignment *assign);
-//     void freeAssertion(Assertion *assert);
-//     void freeAssumption(Assumption *assumption);
-//     void freeComment(Comment *comment);
-//     void freeExpr(Expr expr);
-//     void freeVariable(Variable *var);
-//     void freeConstant(Constant *constant);
-//     void freeOrExpr(OrExpr* or_expr);
-//     void freeAndExpr(AndExpr* and_expr);
-//     void freeNotExpr(NotExpr* not_expr);
-//     void freeCondExpr(CondExpr* cond_expr);
-//     void freeNondetExpr(NondetExpr* nondet_expr);
-//     void freeEqExpr(EqExpr* eq_expr);
-
-//     string printStmt(Stmt stmt);
-//     string printAssignment(Assignment *assign);
-//     string printAssertion(Assertion *assert);
-//     string printAssumption(Assumption *assumption);
-//     string printComment(Comment *comment);
-//     string printExpr(Expr expr);
-//     string printVariable(Variable *var);
-//     string printConstant(Constant *constant);
-//     string printOrExpr(OrExpr* or_expr);
-//     string printAndExpr(AndExpr* and_expr);
-//     string printNotExpr(NotExpr* not_expr);
-//     string printCondExpr(CondExpr* cond_expr);
-//     string printNondetExpr(NondetExpr* nondet_expr);
-//     string printEqExpr(EqExpr* eq_expr);
-
-//     Stmt createAssignment(Variable *var, Expr val);
-//     Stmt createAssertion(Expr cond);
-//     Stmt createAssumption(Expr cond);
-//     Stmt createComment(const string comment);
-//     Variable* createVariable(const string name, int idx, Expr value, int no_simplify);
-//     Expr createVariableExpr(const string name, int idx, Expr value, int no_simplify);
-//     Constant* createConstant(int value);
-//     Expr createConstantExpr(int value);
-//     Expr createOrExpr(Expr lhs, Expr rhs);
-//     Expr createAndExpr(Expr lhs, Expr rhs);
-//     Expr createNotExpr(Expr expr);
-//     Expr createCondExpr(Expr cond, Expr choice1, Expr choice2);
-//     Expr createNondetExpr(Type type);
-//     Expr createEqExpr(Expr lhs, Expr rhs);
-    
-//     Expr simplifyExpr(Expr expr);
-//     Expr simplifyVariable(Expr var);
-//     Expr simplifyConstant(Expr constant);
-//     Expr simplifyOrExpr(Expr* or_expr);
-//     Expr simplifyAndExpr(Expr* and_expr);
-//     Expr simplifyNotExpr(Expr* not_expr);
-//     Expr simplifyCondExpr(CondExpr* cond_expr);
-//     Expr simplifyNondetExpr(Expr nondet_expr);
-//     Expr simplifyEqExpr(Expr nondet_expr);
-
-//     Stmt generateAssignment(Variable* var);
-//     Expr exprFromVar(Variable* var);
-
-//     // Stmt createAssign(const string var_name, int occ, Expr value);
-//     // Variable createConstVar(const string var_name, int occ, int value);
-
-// }
 #endif /* SSA_STRUCTS_H */
 

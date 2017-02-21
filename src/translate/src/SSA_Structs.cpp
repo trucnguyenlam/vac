@@ -2,7 +2,7 @@
 
 #include <iostream>
 #include <sstream>
-
+#include <chrono>
 #include <assert.h>
 
 namespace SSA {
@@ -37,26 +37,62 @@ namespace SSA {
         variable(var), value(var->value), useless(0) {
     }
 
+    int Assignment::redundant() {
+        return this->variable->_inline;
+    }
+
     string Assignment::print() {
         std::stringstream fmt;
 
         string var = this->variable->print();
         string expr = this->value->print();
-        if (this->useless) {
+        if (this->redundant()) {
             fmt << "/* " << var << Defs::assign_op << expr << Defs::line_end << " */";
+            return fmt.str();
         }
         else {
             fmt << var << Defs::assign_op << expr << Defs::line_end;
+            return fmt.str();
         }
-        return fmt.str();
     }
+
+    // void Assignment::toStream(std::iostream fmt) {
+    //     if (this->redundant()) {
+    //         fmt << "/* " ;
+    //     }
+
+    //     this->variable->toStream(fmt);
+    //     fmt << Defs::assign_op;
+    //     this->value->toStream(fmt);
+
+    //     if (this->redundant()) {
+    //          fmt << " */";
+    //     }
+    //     fmt << << Defs::line_end;
+    // }
 
 /*ASSERTION OPS*/
     Assertion::Assertion(Expr cond) :
         Stmtv(Stmtv::ASSERT), 
         assertion(cond) { }
+
+    int Assertion::redundant() {
+        if (this->assertion->type == Exprv::CONSTANT) {
+            shared_ptr<Constant> c = std::dynamic_pointer_cast<Constant>(this->assertion);
+            if (c->value) {
+                return true;
+            }
+            //FIXME: add here check for early termination
+        }
+        return false;
+    }
     string Assertion::print() {
         std::stringstream fmt;
+        if (this->redundant()) {
+            string asserted = this->assertion->print();
+            fmt << "/*" << Defs::assert_str << "(" << asserted << ")" << "*/" << Defs::line_end;
+            return fmt.str();
+        }
         string asserted = this->assertion->print();
         fmt << Defs::assert_str << "(" << asserted << ")" << Defs::line_end;
         return fmt.str();
@@ -67,8 +103,23 @@ namespace SSA {
         Stmtv(Stmtv::ASSUME), 
         assumption(cond) { }
 
+    int Assumption::redundant() {
+        if (this->assumption->type == Exprv::CONSTANT) {
+            shared_ptr<Constant> c = std::dynamic_pointer_cast<Constant>(this->assumption);
+            if (c->value) {
+                return true;
+            }
+            //FIXME: add here check for early termination
+        }
+        return false;
+    }    
     string Assumption::print() {
         std::stringstream fmt;
+        if (this->redundant()) {
+            string assumed = this->assumption->print();
+            fmt << "/*" << Defs::assume_str << "(" << assumed << ")" << "*/" << Defs::line_end;
+            return fmt.str();
+        }
         string assumed = this->assumption->print();
         fmt << Defs::assume_str << "(" << assumed << ")" << Defs::line_end;
         return fmt.str();
@@ -78,6 +129,9 @@ namespace SSA {
     Comment::Comment(const string _comment) :
         Stmtv(Stmtv::COMMENT), comment(_comment) { }
 
+    int Comment::redundant() {
+        return true;
+    }
     string Comment::print() {
         std::stringstream fmt;
         if (this->comment.length() > 0) {
@@ -93,9 +147,9 @@ namespace SSA {
     Exprv::Exprv(ExprType ty) : type(ty) { } 
     
 /*VARIABLE OPS*/
-    Variable::Variable(const string _name, int _idx, Expr _value, int _no_simplify):
+    Variable::Variable(const string _name, int _idx, Expr _value, int do_not_inline):
         Exprv(Exprv::VARIABLE), 
-        name(_name), idx(_idx), value(_value), no_simplify(_no_simplify) { }
+        name(_name), idx(_idx), value(_value), _inline(!do_not_inline), no_inline(do_not_inline) { }
 
     string Variable::print() {
         std::stringstream fmt;
@@ -246,11 +300,40 @@ namespace SSA {
         // return expr;
     }
 
+    int Simplifier::canInline(Expr expr) {
+        switch (this->level) {
+            //WARNING: Switch without break to fall in previous cases
+            case ALL:
+                return true;
+            case EQUALITY:
+                if (expr->type == Exprv::EQ_EXPR) {
+                    return true;
+                }
+            case LBIN_OPS:
+                if (expr->type == Exprv::OR_EXPR || expr->type == Exprv::AND_EXPR) {
+                    return true;
+                }
+            case UN_OPS:
+                if (expr->type == Exprv::NOT_EXPR) {
+                    return true;
+                }
+            case CONST_VARS:
+                if (expr->type == Exprv::CONSTANT || expr->type == Exprv::VARIABLE) {
+                    return true;
+                }
+            case NOTHING:
+                return false;
+        }
+        return false;
+    }
     void Simplifier::simplifyAssignment(shared_ptr<Assignment> assignment) {
         //TODO: put here redundancy after simplification check
         Expr nval = this->simplifyExpr(assignment->variable->value);
+
         assignment->value = nval;
         assignment->variable->value = nval;
+        assignment->variable->_inline = assignment->variable->_inline && canInline(nval);
+
     }
     void Simplifier::simplifyAssertion(shared_ptr<Assertion> assertion) {
         //TODO: put here redundancy after simplification check
@@ -264,44 +347,17 @@ namespace SSA {
     }
 
     Expr Simplifier::simplifyVariable(shared_ptr<Variable> var) {
-        if (var->no_simplify) {
+        if (!var->_inline) {
             return var;
         }
-        Expr value = var->value;
-        switch (this->level) {
-            //WARNING: Switch without break to fall in previous cases
-            case ALL:
-                return value;
-            case EQUALITY:
-                if (value->type == Exprv::EQ_EXPR) {
-                    return value;
-                }
-            case LBIN_OPS:
-                if (value->type == Exprv::OR_EXPR || value->type == Exprv::AND_EXPR) {
-                    return value;
-                }
-            case UN_OPS:
-                if (value->type == Exprv::NOT_EXPR) {
-                    return value;
-                }
-            case CONST_VARS:
-                if (value->type == Exprv::CONSTANT) {
-                    return value;
-                }
-                if (value->type == Exprv::VARIABLE) {
-                    Variablep var = std::dynamic_pointer_cast<Variable>(value);
-                    // assert(!var->no_simplify);
-                    return simplifyVariable(var);
-                }
-            case NOTHING:
-                return var;
-            default:
-                break;
+        Expr res = var->value;
+        while (res->type == Exprv::VARIABLE && std::dynamic_pointer_cast<Variable>(res)->_inline) {
+            res = std::dynamic_pointer_cast<Variable>(res)->value;
         }
-        return var;
+        return res;
     }
     Expr Simplifier::simplifyConstant(shared_ptr<Constant> expr) {
-        //FIXME: could be removed
+        //TODO: could be removed
         return expr;
     }
     Expr Simplifier::simplifyOrExpr(shared_ptr<OrExpr> or_expr) {
@@ -412,7 +468,87 @@ namespace SSA {
     // Expr Simplifier::simplifyNondetExpr(shared_ptr<NondetExpr> nondet_expr) {
     //     return nondet_expr;
     // }
-    
+
+/*SSAProgram*/
+SSAProgram::SSAProgram() { }
+
+void SSAProgram::addStmt(Stmt stmt) {
+    this->statements.push_back(stmt);
+}
+void SSAProgram::printStats(int skip_redundant) {
+    int assignments = 0, assertions = 0, assumptions = 0;
+    auto ite = this->statements.begin();
+    for ( ; ite != this->statements.end(); ++ite) {
+        Stmt s = *ite;
+        if (!skip_redundant || !s->redundant()) {
+            switch (s->type) {
+                case Stmtv::ASSIGNMENT: 
+                    assignments++;
+                    break;
+                case Stmtv::ASSERT: 
+                    assertions++;
+                    break;
+                case Stmtv::ASSUME: 
+                    assumptions++;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+    std::cout << "SSA Program:\n";
+    std::cout << "    assignments:  " << assignments << "\n";
+    std::cout << "    assertions:   " << assertions << "\n";
+    std::cout << "    assumptions:  " << assumptions << "\n";
+    std::cout << "    total stmts:  " << assignments + assertions + assumptions << "\n";
+}
+
+void SSAProgram::simplify(Simplifier::SimplLevel level, int visualize_progress) {
+    //FIXME: if !visualize_progress cout = fmt
+    std::cout << "------------ STARTING SIMPLIFICATION ------------\n";
+    int i = 0;
+    int last = 0;
+    unsigned long l = this->statements.size();
+    std::cout <<  "[";
+    auto start = std::chrono::high_resolution_clock::now();
+    Simplifier simpl(level); // CONST_VARS
+    auto ite = this->statements.begin();
+    for ( ; ite != this->statements.end(); ++ite) {
+        i++;
+        Stmt elem = *ite;
+        simpl.simplifyStmt(elem);
+        int perc = (i * 50) / l;
+        if (perc != last) {
+            last = perc;
+            std::cout << "#";
+        }
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    std::cout << "]\n";
+    auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << "------------ SIMPLIFICATION DONE IN " << milliseconds.count() << " ms ------------\n";
+}
+
+void SSAProgram::write(FILE* outputFile, int skip_redundant) {
+    unsigned long i = 0;
+    std::vector<Stmt>::iterator ite = this->statements.begin();
+    for ( ; ite != this->statements.end(); ++ite) {
+        Stmt elem = *ite;
+        if (!skip_redundant || !elem->redundant() || elem->type == Stmtv::COMMENT) {
+            string str = elem->print();
+            fprintf(outputFile, "%s\n", str.c_str());
+            i++;
+        }
+    }
+    fprintf(stderr, "------------ GENERATED %lu STATEMENTS ------------\n", i);
+}
+
+void SSAProgram::clear() {
+    this->statements.clear();
+}
+
+
+
 /*OTHER OPS*/
     Variablep createVariablep(string name, int idx, Expr value, bool no_simplify) {
         return shared_ptr<Variable>(new Variable(name, idx, value, no_simplify));        

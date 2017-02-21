@@ -35,7 +35,8 @@ static SSA::Variablep guard;
 static SSA::Variablep nondet_bool;
 static SSA::Variablep nondet_int;
 static int steps = 0;
-static vector<SSA::Stmt> out_stmts;
+// static vector<SSA::Stmt> out_stmts;
+static SSAProgram ssa_prog;
 static Expr zero(new Constant(0));
 static Expr one(new Constant(1));
 
@@ -184,7 +185,7 @@ free_var_counters() {
 
 static void
 emit(Stmt stmt) {
-    out_stmts.push_back(stmt);
+    ssa_prog.addStmt(stmt);
 }
 
 static void
@@ -199,7 +200,7 @@ emitComment(const string comment) {
 
 static Variablep
 createFrom(Variablep var, Expr value) {
-    return createVariablep(var->name, var->idx + 1, value, var->no_simplify);
+    return createVariablep(var->name, var->idx + 1, value, var->no_inline);
 }
 
 static void
@@ -702,44 +703,6 @@ generate_main(int rounds) {
     }
 }
 
-static void
-write_to_file(FILE* outputFile) {
-    unsigned long i = 0;
-    vector<Stmt>::iterator ite = out_stmts.begin();
-    for (ite = out_stmts.begin(); ite != out_stmts.end(); ++ite) {
-        Stmt elem = *ite;
-        string str = elem->print();
-        fprintf(outputFile, "%s\n", str.c_str());
-        if (elem->type != Stmtv::COMMENT) {
-            i++;
-        }
-    }
-    fprintf(stderr, "------------ GENERATED %lu STATEMENTS ------------\n", i);
-}
-
-static void
-simplify() {
-    fprintf(stderr, "------------ STARTING SIMPLIFICATION ------------\n");
-    int i = 0;
-    int last = 0;
-    unsigned long l = out_stmts.size();
-    fprintf(stderr, "[");
-    Simplifier simpl(Simplifier::CONST_VARS); // CONST_VARS
-    vector<Stmt>::iterator ite = out_stmts.begin();
-    for (ite = out_stmts.begin(); ite != out_stmts.end(); ++ite) {
-        i++;
-        Stmt elem = *ite;
-        simpl.simplifyStmt(elem);
-        int perc = (i * 50) / l;
-        if (perc != last) {
-            last = perc;
-            fprintf(stderr, "#");
-        }
-    }
-    fprintf(stderr, "]\n");
-    fprintf(stderr, "------------ SIMPLIFICATION DONE ------------\n");
-}
-
 static int
 get_pc_count() {
     int n = 0;
@@ -862,15 +825,17 @@ generate_program(char *inputFile, FILE *outputFile, int rounds) {
 
     fprintf(outputFile, "int main() {\n");
 
-    simplify();
-    write_to_file(outputFile);
+    ssa_prog.printStats(0);
+    ssa_prog.simplify(Simplifier::ALL);
+    ssa_prog.printStats(1);
+    ssa_prog.write(outputFile, 1);
 
     fprintf(outputFile, "return 0;\n}\n");
 }
 
 static void
 free_stmts() {
-    out_stmts.clear();
+    ssa_prog.clear();
 }
 
 void
