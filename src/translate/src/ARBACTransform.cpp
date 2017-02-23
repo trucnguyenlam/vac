@@ -117,7 +117,7 @@ main(int argc, char **argv)
             break;
         case 'a':
             algo_arg = (char *) malloc(strlen(optarg) + 1);
-            strcpy(algo_arg, optarg);
+            strcpy(algo_arg, optarg); 
             break;
         case 'f':
             format_arg = (char *) malloc(strlen(optarg) + 1);

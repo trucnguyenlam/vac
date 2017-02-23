@@ -7,6 +7,8 @@
 
 namespace SSA {
 
+    using std::ostream;
+
 /*DEFS*/
     constexpr char Defs::line_end[];
     constexpr char Defs::and_op[];
@@ -56,20 +58,20 @@ namespace SSA {
         }
     }
 
-    // void Assignment::toStream(std::iostream fmt) {
-    //     if (this->redundant()) {
-    //         fmt << "/* " ;
-    //     }
+    void Assignment::toFile(FILE* outputFile) {
+        if (this->redundant()) {
+            fprintf(outputFile, "%s", "/* ");
+        }
 
-    //     this->variable->toStream(fmt);
-    //     fmt << Defs::assign_op;
-    //     this->value->toStream(fmt);
-
-    //     if (this->redundant()) {
-    //          fmt << " */";
-    //     }
-    //     fmt << << Defs::line_end;
-    // }
+        this->variable->toFile(outputFile);
+        fprintf(outputFile, "%s", Defs::assign_op);
+        this->value->toFile(outputFile);
+        
+        if (this->redundant()) {
+             fprintf(outputFile, "%s", " */");
+        }
+        fprintf(outputFile, "%s", Defs::line_end);
+    }
 
 /*ASSERTION OPS*/
     Assertion::Assertion(Expr cond) :
@@ -96,6 +98,20 @@ namespace SSA {
         string asserted = this->assertion->print();
         fmt << Defs::assert_str << "(" << asserted << ")" << Defs::line_end;
         return fmt.str();
+    }
+    void Assertion::toFile(FILE* outputFile) {
+        if (this->redundant()) {
+            fprintf(outputFile, "/* " );
+        }
+        
+        fprintf(outputFile, "%s(", Defs::assert_str );
+        this->assertion->toFile(outputFile);
+        fprintf(outputFile, ")");
+        
+        if (this->redundant()) {
+             fprintf(outputFile, " */");
+        }
+        fprintf(outputFile, Defs::line_end);
     }
     
 /*ASSUMPTION OPS*/
@@ -124,6 +140,20 @@ namespace SSA {
         fmt << Defs::assume_str << "(" << assumed << ")" << Defs::line_end;
         return fmt.str();
     }
+    void Assumption::toFile(FILE* outputFile) {
+        if (this->redundant()) {
+            fprintf(outputFile, "/* " );
+        }
+        
+        fprintf(outputFile, "%s(", Defs::assume_str );
+        this->assumption->toFile(outputFile);
+        fprintf(outputFile, ")");
+        
+        if (this->redundant()) {
+             fprintf(outputFile, " */");
+        }
+        fprintf(outputFile, Defs::line_end);
+    }
 
 /*COMMENT OPS*/
     Comment::Comment(const string _comment) :
@@ -142,6 +172,11 @@ namespace SSA {
             return "";
         }
     }
+    void Comment::toFile(FILE* outputFile) {
+        if (this->comment.length() > 0) {
+            fprintf(outputFile, "/* %s */", this->comment.c_str());
+        }
+    }
     
 /*EXPR OPS*/
     Exprv::Exprv(ExprType ty) : type(ty) { } 
@@ -155,6 +190,9 @@ namespace SSA {
         std::stringstream fmt;
         fmt << this->name << "_" << this->idx;
         return fmt.str();
+    }
+    void Variable::toFile(FILE* outputFile) {
+        fprintf(outputFile, "%s_%d", this->name.c_str(), this->idx);
     }
          
 /*CONSTANT OPS*/
@@ -177,6 +215,20 @@ namespace SSA {
             return fmt.str();
         }
     }
+    
+    void Constant::toFile(FILE* outputFile) {
+        if (this->var_type == VarType::BOOL) {
+            if (this->value) {
+                fprintf(outputFile, Defs::true_str);
+            }
+            else {
+                fprintf(outputFile, Defs::false_str);
+            }
+        }
+        else {
+            fprintf(outputFile, "%d", this->value);
+        }
+    }
 
 /*OR OPS*/
     OrExpr::OrExpr(Expr _lhs, Expr _rhs) :
@@ -189,6 +241,14 @@ namespace SSA {
         string rhsv = this->rhs->print();
         fmt << "(" << lhsv << Defs::or_op << rhsv << ")";
         return fmt.str();
+    }
+
+    void OrExpr::toFile(FILE* outputFile) {
+        fprintf(outputFile, "(");
+        this->lhs->toFile(outputFile);
+        fprintf(outputFile, Defs::or_op);
+        this->rhs->toFile(outputFile);
+        fprintf(outputFile, ")");
     }
 
 /*AND OPS*/
@@ -204,6 +264,14 @@ namespace SSA {
         return fmt.str();
     }
 
+    void AndExpr::toFile(FILE* outputFile) {
+        fprintf(outputFile, "(");
+        this->lhs->toFile(outputFile);
+        fprintf(outputFile, Defs::and_op);
+        this->rhs->toFile(outputFile);
+        fprintf(outputFile, ")");
+    }
+
 /*EQ OPS*/
     EqExpr::EqExpr(Expr _lhs, Expr _rhs) :
         Exprv(Exprv::EQ_EXPR),
@@ -216,6 +284,14 @@ namespace SSA {
         fmt << "(" << lhsv << Defs::eq_op << rhsv << ")";
         return fmt.str();
     }
+
+    void EqExpr::toFile(FILE* outputFile) {
+        fprintf(outputFile, "(");
+        this->lhs->toFile(outputFile);
+        fprintf(outputFile, Defs::eq_op);
+        this->rhs->toFile(outputFile);
+        fprintf(outputFile, ")");
+    }
 /*NOT OPS*/
     NotExpr::NotExpr(Expr _expr) :
         Exprv(Exprv::NOT_EXPR),
@@ -226,6 +302,11 @@ namespace SSA {
         string exprv = this->expr->print();
         fmt << Defs::not_op << "(" << exprv << ")";
         return fmt.str();
+    }
+    void NotExpr::toFile(FILE* outputFile) {
+        fprintf(outputFile, "%s(", Defs::not_op);
+        this->expr->toFile(outputFile);
+        fprintf(outputFile, ")");
     }
 
 /*COND OPS*/
@@ -242,6 +323,16 @@ namespace SSA {
         return fmt.str();
     }
 
+    void CondExpr::toFile(FILE* outputFile) {
+        fprintf(outputFile, "((");
+        this->cond->toFile(outputFile);
+        fprintf(outputFile, ") ? (");
+        this->choice1->toFile(outputFile);
+        fprintf(outputFile, ") : (");
+        this->choice2->toFile(outputFile);
+        fprintf(outputFile, "))");
+    }
+
 /*NONDET OPS*/
     NondetExpr::NondetExpr(VarType _nondet_type) : 
         Exprv(Exprv::NONDET_EXPR),
@@ -254,6 +345,11 @@ namespace SSA {
         return fmt.str();
     }
 
+    void NondetExpr::toFile(FILE* outputFile) {
+        const char* ty_name = this->nondet_type == INT ? Defs::int_ty_str : Defs::bool_ty_str;
+        fprintf(outputFile, "%s%s()", Defs::nondet_str, ty_name);
+    }
+
 /*SIMPLIFICATION OPS*/
     Simplifier::Simplifier(SimplLevel _level) : level(_level) { }
 
@@ -261,7 +357,7 @@ namespace SSA {
         switch (stmt->type) {
             case Stmtv::ASSERT:
                 this->simplifyAssertion(std::dynamic_pointer_cast<Assertion>(stmt));
-                break;
+                break; 
             case Stmtv::ASSUME:
                 this->simplifyAssumption(std::dynamic_pointer_cast<Assumption>(stmt));
                 break;
@@ -469,83 +565,83 @@ namespace SSA {
     //     return nondet_expr;
     // }
 
-/*SSAProgram*/
-SSAProgram::SSAProgram() { }
+/*SSAPROGRAM*/
+    SSAProgram::SSAProgram() { }
 
-void SSAProgram::addStmt(Stmt stmt) {
-    this->statements.push_back(stmt);
-}
-void SSAProgram::printStats(int skip_redundant) {
-    int assignments = 0, assertions = 0, assumptions = 0;
-    auto ite = this->statements.begin();
-    for ( ; ite != this->statements.end(); ++ite) {
-        Stmt s = *ite;
-        if (!skip_redundant || !s->redundant()) {
-            switch (s->type) {
-                case Stmtv::ASSIGNMENT: 
-                    assignments++;
-                    break;
-                case Stmtv::ASSERT: 
-                    assertions++;
-                    break;
-                case Stmtv::ASSUME: 
-                    assumptions++;
-                    break;
-                default:
-                    break;
+    void SSAProgram::addStmt(Stmt stmt) {
+        this->statements.push_back(stmt);
+    }
+    void SSAProgram::printStats(int skip_redundant) {
+        int assignments = 0, assertions = 0, assumptions = 0;
+        auto ite = this->statements.begin();
+        for ( ; ite != this->statements.end(); ++ite) {
+            Stmt s = *ite;
+            if (!skip_redundant || !s->redundant()) {
+                switch (s->type) {
+                    case Stmtv::ASSIGNMENT: 
+                        assignments++;
+                        break;
+                    case Stmtv::ASSERT: 
+                        assertions++;
+                        break;
+                    case Stmtv::ASSUME: 
+                        assumptions++;
+                        break;
+                    default:
+                        break;
+                }
             }
         }
+        std::cout << "SSA Program:\n";
+        std::cout << "    assignments:  " << assignments << "\n";
+        std::cout << "    assertions:   " << assertions << "\n";
+        std::cout << "    assumptions:  " << assumptions << "\n";
+        std::cout << "    total stmts:  " << assignments + assertions + assumptions << "\n";
     }
-    std::cout << "SSA Program:\n";
-    std::cout << "    assignments:  " << assignments << "\n";
-    std::cout << "    assertions:   " << assertions << "\n";
-    std::cout << "    assumptions:  " << assumptions << "\n";
-    std::cout << "    total stmts:  " << assignments + assertions + assumptions << "\n";
-}
 
-void SSAProgram::simplify(Simplifier::SimplLevel level, int visualize_progress) {
-    //FIXME: if !visualize_progress cout = fmt
-    std::cout << "------------ STARTING SIMPLIFICATION ------------\n";
-    int i = 0;
-    int last = 0;
-    unsigned long l = this->statements.size();
-    std::cout <<  "[";
-    auto start = std::chrono::high_resolution_clock::now();
-    Simplifier simpl(level); // CONST_VARS
-    auto ite = this->statements.begin();
-    for ( ; ite != this->statements.end(); ++ite) {
-        i++;
-        Stmt elem = *ite;
-        simpl.simplifyStmt(elem);
-        int perc = (i * 50) / l;
-        if (perc != last) {
-            last = perc;
-            std::cout << "#";
-        }
-    }
-    auto end = std::chrono::high_resolution_clock::now();
-    std::cout << "]\n";
-    auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    std::cout << "------------ SIMPLIFICATION DONE IN " << milliseconds.count() << " ms ------------\n";
-}
-
-void SSAProgram::write(FILE* outputFile, int skip_redundant) {
-    unsigned long i = 0;
-    std::vector<Stmt>::iterator ite = this->statements.begin();
-    for ( ; ite != this->statements.end(); ++ite) {
-        Stmt elem = *ite;
-        if (!skip_redundant || !elem->redundant() || elem->type == Stmtv::COMMENT) {
-            string str = elem->print();
-            fprintf(outputFile, "%s\n", str.c_str());
+    void SSAProgram::simplify(Simplifier::SimplLevel level, int visualize_progress) {
+        //FIXME: if !visualize_progress cout = fmt
+        std::cout << "------------ STARTING SIMPLIFICATION ------------\n";
+        int i = 0;
+        int last = 0;
+        unsigned long l = this->statements.size();
+        std::cout <<  "[";
+        auto start = std::chrono::high_resolution_clock::now();
+        Simplifier simpl(level); // CONST_VARS
+        auto ite = this->statements.begin();
+        for ( ; ite != this->statements.end(); ++ite) {
             i++;
+            Stmt elem = *ite;
+            simpl.simplifyStmt(elem);
+            int perc = (i * 50) / l;
+            if (perc != last) {
+                last = perc;
+                std::cout << "#";
+            }
         }
+        auto end = std::chrono::high_resolution_clock::now();
+        std::cout << "]\n";
+        auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        std::cout << "------------ SIMPLIFICATION DONE IN " << milliseconds.count() << " ms ------------\n";
     }
-    fprintf(stderr, "------------ GENERATED %lu STATEMENTS ------------\n", i);
-}
 
-void SSAProgram::clear() {
-    this->statements.clear();
-}
+    void SSAProgram::write(FILE* outputFile, int skip_redundant) {
+        unsigned long i = 0;
+        std::vector<Stmt>::iterator ite = this->statements.begin();
+        for ( ; ite != this->statements.end(); ++ite) {
+            Stmt elem = *ite;
+            if (!skip_redundant || !elem->redundant() || elem->type == Stmtv::COMMENT) {
+                elem->toFile(outputFile);
+                fprintf(outputFile, "\n");
+                i++;
+            }
+        }
+        fprintf(stderr, "------------ GENERATED %lu STATEMENTS ------------\n", i);
+    }
+
+    void SSAProgram::clear() {
+        this->statements.clear();
+    }
 
 
 

@@ -20,7 +20,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <iostream>
+#include <ostream>
 
 using std::shared_ptr;
 using std::string;
@@ -73,7 +73,7 @@ namespace SSA {
             Stmtv(StmtType ty);
 
             virtual string print() = 0;
-            // virtual void toStream(std::iostream fmt) = 0;
+            virtual void toFile(FILE* outputFile) = 0;
             virtual int redundant() = 0;
 
             StmtType type;
@@ -95,7 +95,7 @@ namespace SSA {
         Exprv(ExprType ty);
 
         virtual string print() = 0;
-        // virtual void toStream(std::iostream fmt) = 0;
+        virtual void toFile(FILE* outputFile) = 0;
 
         ExprType type;
     };
@@ -110,7 +110,7 @@ namespace SSA {
             Assignment(shared_ptr<Variable> var);
 
             string print() override;
-            // void toStream(std::iostream fmt) override;
+            void toFile(FILE* outputFile) override;
             int redundant() override;
         
             shared_ptr<Variable> variable;
@@ -122,7 +122,7 @@ namespace SSA {
             Assertion(Expr cond);
 
             string print() override;
-            // void toStream(std::iostream fmt) override;
+            void toFile(FILE* outputFile) override;
             int redundant() override;
         
             Expr assertion;
@@ -132,7 +132,7 @@ namespace SSA {
             Assumption(Expr cond);
 
             string print() override;
-            // void toStream(std::iostream fmt) override;
+            void toFile(FILE* outputFile) override;
             int redundant() override;
         
             Expr assumption;
@@ -142,7 +142,7 @@ namespace SSA {
             Comment(string _comment);
 
             string print() override;
-            // void toStream(std::iostream fmt) override;
+            void toFile(FILE* outputFile) override;
             int redundant() override;
         
             string comment;
@@ -153,7 +153,7 @@ namespace SSA {
             Variable(const string _name, int _idx, Expr _value, int do_not_inline);
             
             string print() override;
-            // void toStream(std::iostream fmt) override;
+            void toFile(FILE* outputFile) override;
         
             string name;
             int idx;
@@ -166,7 +166,7 @@ namespace SSA {
             Constant(int val, VarType _var_type = VarType::BOOL);
 
             string print() override;
-            // void toStream(std::iostream fmt) override;
+            void toFile(FILE* outputFile) override;
 
             int value;
             VarType var_type;
@@ -176,7 +176,7 @@ namespace SSA {
             OrExpr(Expr _lhs, Expr _rhs);
 
             string print() override;
-            // void toStream(std::iostream fmt) override;
+            void toFile(FILE* outputFile) override;
 
             Expr lhs;
             Expr rhs;
@@ -186,7 +186,7 @@ namespace SSA {
             AndExpr(Expr _lhs, Expr _rhs);
 
             string print() override;
-            // void toStream(std::iostream fmt) override;
+            void toFile(FILE* outputFile) override;
 
             Expr lhs;
             Expr rhs;
@@ -196,7 +196,7 @@ namespace SSA {
             EqExpr(Expr _lhs, Expr _rhs);
 
             string print() override;
-            // void toStream(std::iostream fmt) override;
+            void toFile(FILE* outputFile) override;
 
             Expr lhs;
             Expr rhs;
@@ -206,7 +206,7 @@ namespace SSA {
             NotExpr(Expr _expr);
 
             string print() override;
-            // void toStream(std::iostream fmt) override;
+            void toFile(FILE* outputFile) override;
 
             Expr expr;
     };
@@ -215,7 +215,7 @@ namespace SSA {
             CondExpr(Expr _cond, Expr _choice1, Expr _choice2);
 
             string print() override;
-            // void toStream(std::iostream fmt) override;
+            void toFile(FILE* outputFile) override;
 
             Expr cond;
             Expr choice1;
@@ -226,7 +226,7 @@ namespace SSA {
             NondetExpr(VarType _nondet_type);
 
             string print() override;
-            // void toStream(std::iostream fmt) override;
+            void toFile(FILE* outputFile) override;
 
             VarType nondet_type;
      };

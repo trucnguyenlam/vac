@@ -826,7 +826,7 @@ generate_program(char *inputFile, FILE *outputFile, int rounds) {
     fprintf(outputFile, "int main() {\n");
 
     ssa_prog.printStats(0);
-    ssa_prog.simplify(Simplifier::ALL);
+    ssa_prog.simplify(Simplifier::ALL); // CONST_VARS
     ssa_prog.printStats(1);
     ssa_prog.write(outputFile, 1);
 
