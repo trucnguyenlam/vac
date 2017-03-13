@@ -1,11 +1,14 @@
 #include "ARBACExact.h"
 #include "SSA_Structs.h"
+#include "Solvers.h"
 #include <time.h>
 #include <vector>
 #include <iostream>
 #include <string>
 #include <sstream> 
 #include <memory>
+
+#include <chrono>
 //#include "dummy_esbmc.h"
 
 namespace SSA {
@@ -37,16 +40,46 @@ static SSA::Variablep nondet_int;
 static int steps = 0;
 // static vector<SSA::Stmt> out_stmts;
 static SSAProgram ssa_prog;
-static Expr zero(new Constant(0));
-static Expr one(new Constant(1));
+static Expr zero(new Constant(0, 1));
+static Expr one(new Constant(1, 1));
 
 // #ifdef MERGE_RULES
 static int *roles_ca_counts = nullptr;
 static int *roles_cr_counts = nullptr;
 static int **per_role_ca_indexes = nullptr;
 static int **per_role_cr_indexes = nullptr;
+static int pc_size = -1;
 static float ca_merge_ratio = 0;
 static float cr_merge_ratio = 0;
+
+
+
+// #endif
+
+static int NumBits(int pc) {
+    int i = 1, bit = 0;
+
+    if (pc <= 2 ) return 1;
+
+    while (pc >= i) {
+        i = i * 2;
+        bit++;
+    }
+
+    return (bit);
+}
+
+static int
+get_pc_count() {
+    int n = 0;
+    for (int i = 0; i < role_array_size; ++i) {
+        if (roles_ca_counts[i] > 0)
+            n++;
+        if (roles_cr_counts[i] > 0)
+            n++;
+    }
+    return NumBits(n + 1);
+}
 
 static void precompute_merge() {
 
@@ -110,6 +143,8 @@ static void precompute_merge() {
         }
     }
 
+    pc_size = get_pc_count() + 1;
+
     return;
 }
 
@@ -125,21 +160,6 @@ deallocate_precomputated_values() {
     free(roles_cr_counts);
     free(per_role_ca_indexes);
     free(per_role_cr_indexes);
-}
-
-// #endif
-
-static int NumBits(int pc) {
-    int i = 1, bit = 0;
-
-    if (pc <= 2 ) return 1;
-
-    while (pc >= i) {
-        i = i * 2;
-        bit++;
-    }
-
-    return (bit);
 }
 
 static void
@@ -184,23 +204,28 @@ free_var_counters() {
 }
 
 static void
-emit(Stmt stmt) {
-    ssa_prog.addStmt(stmt);
-}
-
-static void
 emitAssignment(Variablep var) {
-    emit(createAssignment(var));
+    ssa_prog.addAssignment(createAssignment(var));
 }
 
 static void
 emitComment(const string comment) {
-    emit(createComment(comment));
+    ssa_prog.addComment(createComment(comment));
+}
+
+static void
+emitAssertion(shared_ptr<Assertion> assertion) {
+    ssa_prog.addAssertion(assertion);
+}
+
+static void
+emitAssumption(shared_ptr<Assumption> assumption) {
+    ssa_prog.addAssumption(assumption);
 }
 
 static Variablep
 createFrom(Variablep var, Expr value) {
-    return createVariablep(var->name, var->idx + 1, value, var->no_inline);
+    return createVariablep(var->name, var->idx + 1, value, var->bv_size, var->no_inline);
 }
 
 static void
@@ -232,9 +257,9 @@ generate_header(char *inputFile, int rounds) {
     emitComment("");
     emitComment("");
 
-    Variablep __ESBMC_rounding_mode = createVariablep("__ESBMC_rounding_mode", 0, zero, 1);
+    // Variablep __ESBMC_rounding_mode = createVariablep("__ESBMC_rounding_mode", 0, zero, 1);
 
-    emitAssignment(__ESBMC_rounding_mode);
+    // emitAssignment(__ESBMC_rounding_mode);
 
     return;
 }
@@ -244,7 +269,7 @@ generate_PCs() {
     for (int i = 0; i < steps; i++) {
         clean_fmt();
         fmt << "__cs_pc_" << i;
-        Variablep var = createVariablep(fmt.str(), -1, zero, 0);
+        Variablep var = createVariablep(fmt.str(), -1, zero, pc_size, 0);
         // emitAssignment(var);
         program_counters[i] = var;
     }
@@ -253,9 +278,9 @@ generate_PCs() {
 static void
 init_PCs_guards_nondet() {
     generate_PCs();
-    guard = createVariablep("guard", -1, zero, 0);
-    nondet_bool = createVariablep("nondet_bool", -1, zero, 1);
-    nondet_int = createVariablep("nondet_int", -1, zero, 1);
+    guard = createVariablep("guard", -1, zero, 1, 0);
+    nondet_bool = createVariablep("nondet_bool", -1, zero, 1, 1);
+    nondet_int = createVariablep("nondet_int", -1, zero, pc_size, 1);
     // emitAssignment(guard);
     // emitAssignment(nondet_bool);
     // emitAssignment(nondet_int);
@@ -277,7 +302,7 @@ generate_globals() {
          }
          clean_fmt();
          fmt << "glob_" << role_array[admin_role_array_index[i]];
-         Variablep var = createVariablep(fmt.str(), 0, count ? one : zero, 0);
+         Variablep var = createVariablep(fmt.str(), 0, count ? one : zero, 1, 0);
          globals[admin_role_array_index[i]] = var;
          emitAssignment(var);
      }
@@ -293,13 +318,13 @@ generate_thread_locals(int thread_id) {
         clean_fmt();
         fmt << "local_Thread_" << thread_id << "_loc_" << role_array[i];
         if (use_tracks) {
-            Variablep var = createVariablep(fmt.str(), 0, zero, 0);
+            Variablep var = createVariablep(fmt.str(), 0, zero, 1, 0);
             locals[thread_id][i] = var;
             emitAssignment(var);
         }
         else {//locals[thread_id][i]++
             int contains = belong_to(user_config_array[thread_id].array, user_config_array[thread_id].array_size, i);
-            Variablep var = createVariablep(fmt.str(), 0, contains ? one : zero, 0);
+            Variablep var = createVariablep(fmt.str(), 0, contains ? one : zero, 1, 0);
             locals[thread_id][i] = var;
             emitAssignment(var);
         }
@@ -320,7 +345,7 @@ generate_thread_assigned_locals() {
     for (int i = 0; i < threads_count; ++i) {
         clean_fmt();
         fmt << "thread_" << i << "_assigned";
-        Variablep var = createVariablep(fmt.str(), 0, zero, 0);
+        Variablep var = createVariablep(fmt.str(), 0, zero, 1, 0);
         thread_assigneds[i] = var;
         emitAssignment(var);
     }
@@ -333,7 +358,7 @@ thread_assignment_if(int thread_id, int user_id) {
     emitComment(fmt.str());
 
     Expr if_guard = createAndExpr(
-        createEqExpr(nondet_int, createConstantExpr(thread_id, INT)), 
+        createEqExpr(nondet_int, createConstantExpr(thread_id, pc_size)), 
         createNotExpr(thread_assigneds[thread_id]));
     Variablep n_guard = createFrom(guard, if_guard);
     emitAssignment(n_guard);
@@ -383,7 +408,7 @@ assign_threads() {
     for (int i = 1; i < threads_count; i++) {
         assume_body = createAndExpr(thread_assigneds[i], assume_body);
     }
-    emit(createAssumption(assume_body));
+    emitAssumption(createAssumption(assume_body));
 }
 
 static void
@@ -452,9 +477,9 @@ generate_CR_cond(int thread_id, int cr_index) {
 
 static Expr
 generate_PC_cond(int rule_id) {
-    Expr cond = createEqExpr(program_counters[0], createConstantExpr(rule_id, INT));
+    Expr cond = createEqExpr(program_counters[0], createConstantExpr(rule_id, pc_size));
     for (int i = 1; i < steps; i++) {
-        cond = createOrExpr(cond, createEqExpr(program_counters[i], createConstantExpr(rule_id, INT)));
+        cond = createOrExpr(cond, createEqExpr(program_counters[i], createConstantExpr(rule_id, pc_size)));
     }
     return cond;
 }
@@ -634,7 +659,7 @@ generate_check(int thread_id) {
     emitAssignment(term_guard);
     guard = term_guard;
     Expr assertion_cond = createCondExpr(term_guard, zero, one);
-    emit(createAssertion(assertion_cond));
+    emitAssertion(createAssertion(assertion_cond));
 }
 
 static void
@@ -703,27 +728,15 @@ generate_main(int rounds) {
     }
 }
 
-static int
-get_pc_count() {
-    int n = 0;
-    for (int i = 0; i < role_array_size; ++i) {
-        if (roles_ca_counts[i] > 0)
-            n++;
-        if (roles_cr_counts[i] > 0)
-            n++;
-    }
-    return NumBits(n + 1);
-}
-
 static void
 print_var_decls(FILE* outputFile) {
     int i, t, c;
     clean_fmt();
 
-    fmt << "unsigned __CPROVER_bitvector[" << get_pc_count() << "]";
+    fmt << "int"; //"unsigned __CPROVER_bitvector[" << get_pc_count() << "]";
 
     string int_type = fmt.str();
-    char bool_type[] = "unsigned __CPROVER_bitvector[1]";
+    char bool_type[] = "_Bool"; // "unsigned __CPROVER_bitvector[1]";
 
     fprintf(outputFile, "%s nondet_int();\n", int_type.c_str());
     fprintf(outputFile, "%s nondet__Bool();\n", bool_type);
@@ -821,16 +834,48 @@ generate_program(char *inputFile, FILE *outputFile, int rounds) {
 
     generate_main(rounds);
 
-    print_var_decls(outputFile);
+    // fprintf(outputFile, "int main() {\n");
 
-    fprintf(outputFile, "int main() {\n");
+    // print_var_decls(outputFile);
 
     ssa_prog.printStats(0);
-    ssa_prog.simplify(Simplifier::ALL); // CONST_VARS
+    ssa_prog.simplify(Simplifier::CONST_VARS); // CONST_VARS
     ssa_prog.printStats(1);
-    ssa_prog.write(outputFile, 1);
+    // ssa_prog.writeSMTDeclarations(outputFile, 1);
+    // ssa_prog.writeSMT(outputFile, 1, Simplifier::CONST_VARS);
 
-    fprintf(outputFile, "return 0;\n}\n");
+    std::shared_ptr<SSA::SMTSolver> yices(new Solvers::YicesSolver(pc_size));
+            
+    auto start = std::chrono::high_resolution_clock::now();
+
+    ssa_prog.loadSMTSolver(yices, Simplifier::CONST_VARS);
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << "------------ SMT LOADED IN " << milliseconds.count() << " ms ------------\n";
+
+
+    start = std::chrono::high_resolution_clock::now();
+
+    SSA::SMTSolver::Result res = yices->getResult();
+
+    end = std::chrono::high_resolution_clock::now();
+    milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << "------------ SMT SOLVED IN " << milliseconds.count() << " ms ------------\n";
+
+    switch (res) {
+        case SSA::SMTSolver::SAT:
+            printf("SAT\n\n");
+            break;
+        case SSA::SMTSolver::UNSAT:
+            printf("UNSAT\n\n");
+            break;
+        case SSA::SMTSolver::UNKNOWN:
+            printf("UNKNOWN\n\n");
+            break;
+    }
+
+    // fprintf(outputFile, "return 0;\n}\n");
 }
 
 static void

@@ -27,6 +27,7 @@ using std::string;
 
 //#include "ARBACExact.h"
 
+
 namespace SSA {
     
     class Defs {
@@ -47,6 +48,26 @@ namespace SSA {
             static constexpr char false_str[] = "0";
             // static constexpr char true_str[] = "TRUE";
             // static constexpr char false_str[] = "FALSE";
+    };
+
+    class SMT {
+        public:
+            static constexpr char comment[] = ";";
+            static constexpr char and_op[] = "and";
+            static constexpr char or_op[] = "or";
+            static constexpr char not_op[] = "not";
+            static constexpr char eq_op[] = "=";
+            static constexpr char declare[] = "declare-fun";
+            static constexpr char cond_expr[] = "ite";
+            static constexpr char assume[] = "assume";
+            static constexpr char assert[] = "assert";
+            static constexpr char check[] = "check-sat";
+            static constexpr char nondet_str[] = "nondet_";
+            static constexpr char int_ty_str[] = "Int";
+            static constexpr char bool_ty_str[] = "Bool";
+            static constexpr char true_str[] = "true";
+            static constexpr char false_str[] = "false";
+            static string bv_ty_str(int bv_size);
     };
 
     enum VarType {
@@ -74,6 +95,7 @@ namespace SSA {
 
             virtual string print() = 0;
             virtual void toFile(FILE* outputFile) = 0;
+            virtual void toSMT(FILE* outputFile) = 0;
             virtual int redundant() = 0;
 
             StmtType type;
@@ -96,6 +118,7 @@ namespace SSA {
 
         virtual string print() = 0;
         virtual void toFile(FILE* outputFile) = 0;
+        virtual void toSMT(FILE* outputFile) = 0;
 
         ExprType type;
     };
@@ -111,7 +134,10 @@ namespace SSA {
 
             string print() override;
             void toFile(FILE* outputFile) override;
+            void toSMT(FILE* outputFile) override;
             int redundant() override;
+
+            Expr getAssignmentEq();
         
             shared_ptr<Variable> variable;
             Expr value;
@@ -123,6 +149,7 @@ namespace SSA {
 
             string print() override;
             void toFile(FILE* outputFile) override;
+            void toSMT(FILE* outputFile) override;
             int redundant() override;
         
             Expr assertion;
@@ -133,6 +160,7 @@ namespace SSA {
 
             string print() override;
             void toFile(FILE* outputFile) override;
+            void toSMT(FILE* outputFile) override;
             int redundant() override;
         
             Expr assumption;
@@ -143,6 +171,7 @@ namespace SSA {
 
             string print() override;
             void toFile(FILE* outputFile) override;
+            void toSMT(FILE* outputFile) override;
             int redundant() override;
         
             string comment;
@@ -150,25 +179,31 @@ namespace SSA {
 
     class Variable : public Exprv {
         public:
-            Variable(const string _name, int _idx, Expr _value, int do_not_inline);
+            Variable(const string _name, int _idx, Expr _value, int bv_size, int do_not_inline);
             
             string print() override;
             void toFile(FILE* outputFile) override;
+            void toSMT(FILE* outputFile) override;
+            void writeSMTDeclaration(FILE* outputFile);
         
             string name;
             int idx;
+            VarType type;
+            int bv_size;
             Expr value;
             int no_inline;
             int _inline;
     };
     class Constant : public Exprv  {
         public:
-            Constant(int val, VarType _var_type = VarType::BOOL);
+            Constant(int val, int bv_size);
 
             string print() override;
             void toFile(FILE* outputFile) override;
+            void toSMT(FILE* outputFile) override;
 
             int value;
+            int bv_size;
             VarType var_type;
     };
     class OrExpr : public Exprv  {
@@ -177,6 +212,7 @@ namespace SSA {
 
             string print() override;
             void toFile(FILE* outputFile) override;
+            void toSMT(FILE* outputFile) override;
 
             Expr lhs;
             Expr rhs;
@@ -187,6 +223,7 @@ namespace SSA {
 
             string print() override;
             void toFile(FILE* outputFile) override;
+            void toSMT(FILE* outputFile) override;
 
             Expr lhs;
             Expr rhs;
@@ -197,6 +234,7 @@ namespace SSA {
 
             string print() override;
             void toFile(FILE* outputFile) override;
+            void toSMT(FILE* outputFile) override;
 
             Expr lhs;
             Expr rhs;
@@ -207,6 +245,7 @@ namespace SSA {
 
             string print() override;
             void toFile(FILE* outputFile) override;
+            void toSMT(FILE* outputFile) override;
 
             Expr expr;
     };
@@ -216,6 +255,7 @@ namespace SSA {
 
             string print() override;
             void toFile(FILE* outputFile) override;
+            void toSMT(FILE* outputFile) override;
 
             Expr cond;
             Expr choice1;
@@ -227,19 +267,20 @@ namespace SSA {
 
             string print() override;
             void toFile(FILE* outputFile) override;
+            void toSMT(FILE* outputFile) override;
 
             VarType nondet_type;
      };
 
-    Variablep createVariablep(string name, int idx, Expr value, bool no_simplify = 0) ;
+    Variablep createVariablep(string name, int idx, Expr value, int bv_size, bool no_simplify);
 
-    Stmt createAssignment(Variablep var, Expr val);
-    Stmt createAssignment(Variablep var);
-    Stmt createAssertion(Expr cond);
-    Stmt createAssumption(Expr cond);
-    Stmt createComment(const string comment);
+    shared_ptr<Assignment> createAssignment(Variablep var, Expr val);
+    shared_ptr<Assignment> createAssignment(Variablep var);
+    shared_ptr<Assertion> createAssertion(Expr cond);
+    shared_ptr<Assumption> createAssumption(Expr cond);
+    shared_ptr<Comment> createComment(const string comment);
     Expr createVariableExpr(const string name, int idx, Expr value, int no_simplify);
-    Expr createConstantExpr(int value, VarType _var_type = VarType::BOOL);
+    Expr createConstantExpr(int value, int bv_size);
     Expr createOrExpr(Expr lhs, Expr rhs);
     Expr createAndExpr(Expr lhs, Expr rhs);
     Expr createNotExpr(Expr expr);
@@ -276,17 +317,41 @@ namespace SSA {
             // Expr simplifyNondetExpr(NondetExpr expr);
     };
 
+    class SMTSolver {
+        public: 
+            enum Result {
+                SAT,
+                UNSAT,
+                UNKNOWN
+            };
+            SMTSolver(int _bv_size) : bv_size(_bv_size) { }
+
+            virtual void addAssertion(SSA::Expr expr) = 0;
+            virtual void declareVariable(SSA::Variablep variable, int add_init_assert) = 0;
+            virtual Result getResult() = 0;
+            
+        protected:
+            int bv_size;
+    };
+
     class SSAProgram {
         public:
             SSAProgram();
             void simplify(Simplifier::SimplLevel level, int visualize_progress = 0);
             void write(FILE* outputFile, int skip_redundant);
+            void writeSMT(FILE* outputFile, int skip_redundant, Simplifier::SimplLevel level);
+            void writeSMTDeclarations(FILE* outputFile, int skip_redundant);
             void printStats(int skip_redundant);
-            void addStmt(Stmt stmt);
+            void addAssignment(shared_ptr<Assignment> assignment);
+            void addAssumption(shared_ptr<Assumption> assumption);
+            void addComment(shared_ptr<Comment> comment);
+            void addAssertion(shared_ptr<Assertion> assertion);
+            void loadSMTSolver(std::shared_ptr<SMTSolver> solver, Simplifier::SimplLevel level);
             void clear();
         private:
-            // int assignments, assertions, assumptions;
             std::vector<Stmt> statements;
+            std::vector<Variablep> variables;
+            std::vector<Expr> assertions_body;
     };
 
 }
