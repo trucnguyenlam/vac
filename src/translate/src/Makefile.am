@@ -12,6 +12,8 @@ translate_LDADD = \
             ../../ccl/src/libccl.a \
             ../deps/yices_2.5.2_static/lib/libyices.a \
             -lgmp -lm 
+# -I../deps/z3_static/include/
+#            ../deps/z3_static/lib/libz3.a \
 #            $(BOOST_FILESYSTEM_LIB) \
 #			$(BOOST_SYSTEM_LIB)
 
@@ -38,6 +40,7 @@ translate_SOURCES =	ARBACData.cpp \
 					ARBAC_to_LazyCSeq.cpp \
 					ARBAC_to_LazyCSeqInlined.cpp \
 					ARBAC_to_SSA.cpp \
+					ARBAC_to_yices.cpp \
 					ARBAC_to_CompletenessLazyCSeq.cpp \
 					SSA_Structs.cpp \
 					Yices.cpp \

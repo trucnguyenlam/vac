@@ -71,8 +71,8 @@ void
 transform_2_NuSMV_ExactAlg(char *, FILE *outputFile);
 
 namespace SSA {
-    void
-    transform_2_ssa(char *, FILE *outputFile, int rounds, int steps, int wanted_threads_count);
+    void transform_2_ssa(char *, FILE *outputFile, int rounds, int steps, int wanted_threads_count);
+    void transform_2_yices(char *, FILE *outputFile, int rounds, int steps, int wanted_threads_count);
 }
 
 void

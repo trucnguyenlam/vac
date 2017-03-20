@@ -876,7 +876,7 @@ namespace SSA {
         fprintf(stderr, "------------ GENERATED %lu STATEMENTS ------------\n", i);
     }
 
-    void SSAProgram::loadSMTSolver(std::shared_ptr<SMTSolver> solver, Simplifier::SimplLevel level) {
+    void SSAProgram::loadSMTSolver(std::shared_ptr<SMTSolver> solver, Simplifier::SimplLevel level, int join_assignments) {
         unsigned long i = 0;
         std::vector<Variablep>::iterator ite = this->variables.begin();
         for ( ; ite != this->variables.end(); ++ite) {
@@ -887,7 +887,7 @@ namespace SSA {
             }
         }
         fprintf(stderr, "------------ GENERATED %lu VARIABLES ------------\n", i);
-
+        std::vector<Expr> assignments;
         std::vector<Stmt>::iterator site = this->statements.begin();
         for ( ; site != this->statements.end(); ++site) {
             Stmt elem = *site;
@@ -903,9 +903,22 @@ namespace SSA {
                     if (std::dynamic_pointer_cast<EqExpr>(body)->rhs->type == Exprv::NONDET_EXPR) 
                         continue;
                 }
-                solver->addAssertion(body);
+                if (!join_assignments) {
+                    solver->addAssertion(body);
+                }
+                else {
+                    assignments.push_back(body);
+                }
                 i++;
             }
+        }
+
+        if (join_assignments) {
+            Expr joined_ass = createConstantExpr(true, 1);
+            for (auto aite = assignments.begin(); aite != assignments.end(); ++aite) {
+                joined_ass = createAndExpr(joined_ass, *aite);
+            }
+            solver->addAssertion(joined_ass);
         }
 
         Simplifier simpl(level); // CONST_VARS

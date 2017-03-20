@@ -11,7 +11,7 @@
 void
 wait_keypressed() {
     std::cout << "Press enter to continue ..."; 
-    std::cin.get();
+    getchar();
 }
 
 void
@@ -92,6 +92,7 @@ main(int argc, char **argv)
                     \n                                      ssa\
                     \n                                      completeness_query\
                     \n                                      concurc\
+                    \n                                      yices\
                     \n-i,--inline                        :Inline the program (lazycseq only)\
                     \n-l,--formula <X>                   :Formula for mucke\
                     \n-r,--rounds <X>                    :Number of rounds (mucke-cav, lazycseq, ssa and completeness_query only)\
@@ -263,6 +264,18 @@ main(int argc, char **argv)
                 }
                 SSA::transform_2_ssa(filename, out_file, rounds, steps, wanted_threads);
             }
+            else if (strcmp(format_arg, "yices") == 0)
+            {
+                if (rounds == -1) {
+                    fprintf(stderr, "yices requires to specify the rounds number (-r)\n");
+                    error_exit();
+                }
+                if (steps == -1) {
+                    fprintf(stderr, "yices requires to specify the steos number (-s)\n");
+                    error_exit();
+                }
+                SSA::transform_2_yices(filename, out_file, rounds, steps, wanted_threads);
+            }            
             else if (strcmp(format_arg, "completeness_query") == 0)
             {
                 if (rounds == -1) {

@@ -346,7 +346,7 @@ namespace SSA {
             void addAssumption(shared_ptr<Assumption> assumption);
             void addComment(shared_ptr<Comment> comment);
             void addAssertion(shared_ptr<Assertion> assertion);
-            void loadSMTSolver(std::shared_ptr<SMTSolver> solver, Simplifier::SimplLevel level);
+            void loadSMTSolver(std::shared_ptr<SMTSolver> solver, Simplifier::SimplLevel level, int join_assignments);
             void clear();
         private:
             std::vector<Stmt> statements;

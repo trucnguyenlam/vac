@@ -1,12 +1,12 @@
 #include "ARBACExact.h"
-#include "SSA_Structs.h"
-#include "Solvers.h"
 #include <time.h>
 #include <vector>
 #include <iostream>
 #include <string>
 #include <sstream> 
 #include <memory>
+
+#include <yices.h>
 
 #include <chrono>
 //#include "dummy_esbmc.h"
@@ -16,6 +16,7 @@ namespace SSA {
 using std::vector;
 using std::shared_ptr;
 using std::stringstream;
+using std::string;
 
 static int threads_count;
 static int use_tracks;
@@ -28,20 +29,34 @@ static void clean_fmt() {
     fmt.str(std::string());
 }
 
-/*--- SSA VARIABLE INDEXES ---*/
+context_t* yices_ctx;
+
+typedef 
+    struct _variable {
+        term_t yices_var;
+        term_t yices_val;
+        int bv_size;
+        string name;
+        int idx;
+    } variable;
+
+static variable dummy_var;
+
+/*--- SMT VARIABLE INDEXES ---*/
 /*--- VALUES ARE  ---*/
-static SSA::Variablep* globals;
-static SSA::Variablep* thread_assigneds;
-static SSA::Variablep* program_counters;
-static SSA::Variablep** locals;
-static SSA::Variablep guard;
-static SSA::Variablep nondet_bool;
-static SSA::Variablep nondet_int;
+static variable* globals;
+static variable* thread_assigneds;
+static variable* program_counters;
+static variable** locals;
+static variable guard;
+static variable nondet_bool;
+static variable nondet_int;
 static int steps = 0;
+static vector<term_t> assertions;
 // static vector<SSA::Stmt> out_stmts;
-static SSAProgram ssa_prog;
-static Expr zero(new Constant(0, 1));
-static Expr one(new Constant(1, 1));
+// static SSAProgram ssa_prog;
+static term_t zero = -1;
+static term_t one = -1;
 
 // #ifdef MERGE_RULES
 static int *roles_ca_counts = nullptr;
@@ -165,30 +180,30 @@ deallocate_precomputated_values() {
 static void
 initialize_var_counters() {
 
-    // guard = 0;
-    // nondet_bool = 0;
+    guard = dummy_var;
+    nondet_bool = dummy_var;
 
-    globals = new Variablep[role_array_size];
-    // for (int i = 0; i < role_array_size; ++i) {
-    //     globals[i] = NULL;    
-    // }
+    globals = new variable[role_array_size];
+    for (int i = 0; i < role_array_size; ++i) {
+        globals[i] = dummy_var;
+    }
 
-    thread_assigneds = new Variablep[threads_count];
-    // for (int i = 0; i < threads_count; ++i) {
-    //     thread_assigneds[i] = NULL;
-    // }
-
-    program_counters = new Variablep[steps];
-    // for (int i = 0; i < steps; ++i) {
-    //     program_counters[i] = NULL;    
-    // }
-
-    locals = new Variablep*[threads_count];
+    thread_assigneds = new variable[threads_count];
     for (int i = 0; i < threads_count; ++i) {
-        locals[i] = new Variablep[role_array_size];
-        // for (int j = 0; j < role_array_size; ++j) {
-        //     locals[i][j] = NULL;
-        // }
+        thread_assigneds[i] = dummy_var;
+    }
+
+    program_counters = new variable[steps];
+    for (int i = 0; i < steps; ++i) {
+        program_counters[i] = dummy_var;    
+    }
+
+    locals = new variable*[threads_count];
+    for (int i = 0; i < threads_count; ++i) {
+        locals[i] = new variable[role_array_size];
+        for (int j = 0; j < role_array_size; ++j) {
+            locals[i][j] = dummy_var;
+        }
     }
 }
 
@@ -203,29 +218,79 @@ free_var_counters() {
     delete[] program_counters;
 }
 
+static vector<term_t> assignments;
+
 static void
-emitAssignment(Variablep var) {
-    ssa_prog.addAssignment(createAssignment(var));
+emitAssignment(variable var) {
+    if (var.yices_val == -2) {
+        // fprintf(stderr, "Warning, variable %s%d is assumed nondeterministic\n", var.name.c_str(), var.idx);
+        return;
+    }
+    if (var.yices_val == -1) {
+        fprintf(stderr, "Warning, variable %s%d is broken\n", var.name.c_str(), var.idx);
+        return;
+    }
+    term_t tmp = yices_eq(var.yices_var, var.yices_val);
+    assignments.push_back(tmp);
+    // yices_assert_formula(yices_ctx, tmp);
 }
 
 static void
 emitComment(const string comment) {
-    ssa_prog.addComment(createComment(comment));
+    // ssa_prog.addComment(createComment(comment));
 }
 
 static void
-emitAssertion(shared_ptr<Assertion> assertion) {
-    ssa_prog.addAssertion(assertion);
+emitAssertion(term_t assertion) {
+    assertions.push_back(assertion);
+    // yices_assert_formula(yices_ctx, assertion);
 }
 
 static void
-emitAssumption(shared_ptr<Assumption> assumption) {
-    ssa_prog.addAssumption(assumption);
+emitAssumption(term_t assumption) {
+    yices_assert_formula(yices_ctx, assumption);
 }
 
-static Variablep
-createFrom(Variablep var, Expr value) {
-    return createVariablep(var->name, var->idx + 1, value, var->bv_size, var->no_inline);
+static variable
+create_variable(const string name, int idx, term_t value, int bv_size) {
+    variable ret;
+    ret.name = name;
+    ret.idx = idx;
+    ret.bv_size = bv_size;
+
+    term_t type = yices_bool_type();
+    if (bv_size > 1) {
+        type = yices_bv_type(bv_size);
+    }
+    ret.yices_var = yices_new_uninterpreted_term(type);
+    ret.yices_val = value;
+    string yices_name = (ret.name + std::to_string(ret.idx));
+    // yices_set_term_name(ret.yices_var, yices_name.c_str());
+
+    return ret;
+}
+
+static variable
+createFrom(variable var, term_t nvalue) {
+    variable nvar = create_variable(var.name, var.idx + 1, nvalue, var.bv_size);
+    return nvar;
+}
+
+static term_t
+create_constant(int value, int bv_size) {
+    term_t ret;
+
+    if (bv_size > 1) {
+        ret = yices_bvconst_uint32(bv_size, value);
+    }
+    else if (value) {
+        ret = one;
+    }
+    else {
+        ret = zero;
+    }
+
+    return ret;
 }
 
 static void
@@ -264,12 +329,27 @@ generate_header(char *inputFile, int rounds) {
     return;
 }
 
+static variable
+generate_empty_variable(const string name, int idx, int bv_size) {
+    variable ret;
+    ret.name = name;
+    ret.idx = idx;
+    ret.bv_size = bv_size;
+    return ret;
+}
+
+static void
+generate_zero_one(){
+    zero = yices_false();
+    one = yices_true();
+}
+
 static void
 generate_PCs() {
     for (int i = 0; i < steps; i++) {
         clean_fmt();
         fmt << "__cs_pc_" << i;
-        Variablep var = createVariablep(fmt.str(), -1, zero, pc_size, 0);
+        variable var = generate_empty_variable(fmt.str(), -1, pc_size);
         // emitAssignment(var);
         program_counters[i] = var;
     }
@@ -278,9 +358,9 @@ generate_PCs() {
 static void
 init_PCs_guards_nondet() {
     generate_PCs();
-    guard = createVariablep("guard", -1, zero, 1, 0);
-    nondet_bool = createVariablep("nondet_bool", -1, zero, 1, 1);
-    nondet_int = createVariablep("nondet_int", -1, zero, pc_size, 1);
+    guard = generate_empty_variable("guard", -1, 1);
+    nondet_bool = generate_empty_variable("nondet_bool", -2, 1);
+    nondet_int = generate_empty_variable("nondet_int", -2, pc_size);
     // emitAssignment(guard);
     // emitAssignment(nondet_bool);
     // emitAssignment(nondet_int);
@@ -302,7 +382,7 @@ generate_globals() {
          }
          clean_fmt();
          fmt << "glob_" << role_array[admin_role_array_index[i]];
-         Variablep var = createVariablep(fmt.str(), 0, count ? one : zero, 1, 0);
+         variable var = create_variable(fmt.str(), 0, count ? one : zero, 1);
          globals[admin_role_array_index[i]] = var;
          emitAssignment(var);
      }
@@ -318,13 +398,13 @@ generate_thread_locals(int thread_id) {
         clean_fmt();
         fmt << "local_Thread_" << thread_id << "_loc_" << role_array[i];
         if (use_tracks) {
-            Variablep var = createVariablep(fmt.str(), 0, zero, 1, 0);
+            variable var = create_variable(fmt.str(), 0, zero, 1);
             locals[thread_id][i] = var;
             emitAssignment(var);
         }
         else {//locals[thread_id][i]++
             int contains = belong_to(user_config_array[thread_id].array, user_config_array[thread_id].array_size, i);
-            Variablep var = createVariablep(fmt.str(), 0, contains ? one : zero, 1, 0);
+            variable var = create_variable(fmt.str(), 0, contains ? one : zero, 1);
             locals[thread_id][i] = var;
             emitAssignment(var);
         }
@@ -345,7 +425,7 @@ generate_thread_assigned_locals() {
     for (int i = 0; i < threads_count; ++i) {
         clean_fmt();
         fmt << "thread_" << i << "_assigned";
-        Variablep var = createVariablep(fmt.str(), 0, zero, 1, 0);
+        variable var = create_variable(fmt.str(), 0, zero, 1);
         thread_assigneds[i] = var;
         emitAssignment(var);
     }
@@ -357,16 +437,19 @@ thread_assignment_if(int thread_id, int user_id) {
     fmt << "-------THREAD " << thread_id << " TO USER " << user_id << " (" << user_array[user_id] << ")-------";
     emitComment(fmt.str());
 
-    Expr if_guard = createAndExpr(
-        createEqExpr(nondet_int, createConstantExpr(thread_id, pc_size)), 
-        createNotExpr(thread_assigneds[thread_id]));
-    Variablep n_guard = createFrom(guard, if_guard);
+    term_t con_e = create_constant(thread_id, pc_size);
+    term_t eq_e = yices_eq(nondet_int.yices_var, con_e);
+    term_t not_e = yices_not(thread_assigneds[thread_id].yices_var);
+    term_t if_guard = yices_and2(
+        eq_e , 
+        not_e );
+    variable n_guard = createFrom(guard, if_guard);
     emitAssignment(n_guard);
     guard = n_guard;
 
-    Expr ass_val = createCondExpr(guard, one, thread_assigneds[thread_id]);
+    term_t ass_val = yices_ite(guard.yices_var, one, thread_assigneds[thread_id].yices_var);
 
-    Variablep assigned = createFrom(thread_assigneds[thread_id], ass_val);
+    variable assigned = createFrom(thread_assigneds[thread_id], ass_val);
     emitAssignment(assigned);
     thread_assigneds[thread_id] = assigned;
 
@@ -377,8 +460,8 @@ thread_assignment_if(int thread_id, int user_id) {
         //     emit(generateAssignment(glob));
         //     globals[user_config_array[user_id].array[j]] = glob;
         // }
-        Expr loc_val = createCondExpr(guard, one, locals[thread_id][user_config_array[user_id].array[j]]);
-        Variablep loc = createFrom(locals[thread_id][user_config_array[user_id].array[j]], loc_val);
+        term_t loc_val = yices_ite(guard.yices_var, one, locals[thread_id][user_config_array[user_id].array[j]].yices_var);
+        variable loc = createFrom(locals[thread_id][user_config_array[user_id].array[j]], loc_val);
         emitAssignment(loc);
         locals[thread_id][user_config_array[user_id].array[j]] = loc;
     }
@@ -389,7 +472,7 @@ assign_thread_to_user(int user_id) {
     clean_fmt();
     fmt << "--------------- CONFIGURATION OF USER " << user_id << " (" << user_array[user_id] << ") ------------";
     emitComment(fmt.str());
-    Variablep nondet = createFrom(nondet_int, createNondetExpr(INT));
+    variable nondet = createFrom(nondet_int, -2);
     emitAssignment(nondet);
     nondet_int = nondet;
 
@@ -404,11 +487,11 @@ assign_threads() {
         assign_thread_to_user(i);
     }
 
-    Expr assume_body = thread_assigneds[0];
+    term_t assume_body = thread_assigneds[0].yices_var;
     for (int i = 1; i < threads_count; i++) {
-        assume_body = createAndExpr(thread_assigneds[i], assume_body);
+        assume_body = yices_and2(thread_assigneds[i].yices_var, assume_body);
     }
-    emitAssumption(createAssumption(assume_body));
+    emitAssumption(assume_body);
 }
 
 static void
@@ -418,8 +501,8 @@ generate_updates(int thread_id) {
         for (int j = 0; j < cr_array_size; j++) {
             if (admin_role_array_index[i] == cr_array[j].target_role_index) {
                 int r_index = admin_role_array_index[i];
-                Expr value = createOrExpr(globals[r_index], locals[thread_id][r_index]);
-                Variablep n_glob = createFrom(globals[r_index], value);
+                term_t value = yices_or2(globals[r_index].yices_var, locals[thread_id][r_index].yices_var);
+                variable n_glob = createFrom(globals[r_index], value);
                 emitAssignment(n_glob);
                 globals[r_index] = n_glob;
                 break;
@@ -429,57 +512,57 @@ generate_updates(int thread_id) {
     // glob_Author_d = glob_Author_d || __cs_local_Thread_user3_loc_Author_d;
 }
 
-static Expr
+static term_t
 generate_CA_cond(int thread_id, int ca_index) {
     int j;
-    Expr cond = NULL;
+    term_t cond = -1;
     // Admin role must be available
-    Expr admin_cond = globals[ca_array[ca_index].admin_role_index];
+    term_t admin_cond = globals[ca_array[ca_index].admin_role_index].yices_var;
     cond = admin_cond;
 
     // Precondition must be satisfied
     if (ca_array[ca_index].type == 0) {     // Has precondition
         if (ca_array[ca_index].positive_role_array_size > 0) {
             int* ca_array_p = ca_array[ca_index].positive_role_array;
-            Expr ca_cond = locals[thread_id][ca_array_p[0]];
+            term_t ca_cond = locals[thread_id][ca_array_p[0]].yices_var;
             for (j = 1; j < ca_array[ca_index].positive_role_array_size; j++) {
-                ca_cond = createAndExpr(ca_cond, locals[thread_id][ca_array_p[j]]);
+                ca_cond = yices_and2(ca_cond, locals[thread_id][ca_array_p[j]].yices_var);
             }
-            cond = createAndExpr(cond, ca_cond);
+            cond = yices_and2(cond, ca_cond);
         }
         if (ca_array[ca_index].negative_role_array_size > 0) {
             int* ca_array_n = ca_array[ca_index].negative_role_array;
-            Expr cr_cond = createNotExpr(locals[thread_id][ca_array_n[0]]);
+            term_t cr_cond = yices_not(locals[thread_id][ca_array_n[0]].yices_var);
             for (j = 1; j < ca_array[ca_index].negative_role_array_size; j++) {
-                cr_cond = createAndExpr(cr_cond, createNotExpr(locals[thread_id][ca_array_n[j]]));
+                cr_cond = yices_and2(cr_cond, yices_not(locals[thread_id][ca_array_n[j]].yices_var));
             }
-            cond = createAndExpr(cond, cr_cond);
+            cond = yices_and2(cond, cr_cond);
         }
     }
     // Optional this user is not in this target role yet
-    Expr not_ass = createNotExpr(locals[thread_id][ca_array[ca_index].target_role_index]);
-    cond = createAndExpr(cond, not_ass);
+    term_t not_ass = yices_not(locals[thread_id][ca_array[ca_index].target_role_index].yices_var);
+    cond = yices_and2(cond, not_ass);
     return cond;
 }
 
-static Expr
+static term_t
 generate_CR_cond(int thread_id, int cr_index) {
     int i;
-    Expr cond = NULL;
+    term_t cond = -1;
     // Admin role must be available
-    Expr admin_cond = globals[cr_array[cr_index].admin_role_index];
+    term_t admin_cond = globals[cr_array[cr_index].admin_role_index].yices_var;
     // Optional this user is in this target role yet
-    Expr not_ass = locals[thread_id][cr_array[cr_index].target_role_index];
+    term_t not_ass = locals[thread_id][cr_array[cr_index].target_role_index].yices_var;
     cond = admin_cond;
-    cond = createAndExpr(admin_cond, not_ass);
+    cond = yices_and2(admin_cond, not_ass);
     return cond;
 }
 
-static Expr
+static term_t
 generate_PC_cond(int rule_id) {
-    Expr cond = createEqExpr(program_counters[0], createConstantExpr(rule_id, pc_size));
+    term_t cond = yices_eq(program_counters[0].yices_var, create_constant(rule_id, pc_size));
     for (int i = 1; i < steps; i++) {
-        cond = createOrExpr(cond, createEqExpr(program_counters[i], createConstantExpr(rule_id, pc_size)));
+        cond = yices_or2(cond, yices_eq(program_counters[i].yices_var, create_constant(rule_id, pc_size)));
     }
     return cond;
 }
@@ -544,7 +627,7 @@ static void
 simulate_can_assigns_by_role(int thread_id, int target_role_index, int rule_id) {
     // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
     int i = 0;
-    Expr pc_cond = NULL, ca_cond = NULL, all_cond = NULL;
+    term_t pc_cond = -1, ca_cond = -1, all_cond = -1;
     //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
     clean_fmt();
     fmt << "--- ASSIGNMENT RULES FOR ROLE " << role_array[target_role_index] << " ---";
@@ -566,29 +649,29 @@ simulate_can_assigns_by_role(int thread_id, int target_role_index, int rule_id) 
 
     for (i = 1; i < roles_ca_counts[target_role_index]; ++i) {
         int ca_idx = per_role_ca_indexes[target_role_index][i];
-        Expr ith_cond = generate_CA_cond(thread_id, ca_idx);
+        term_t ith_cond = generate_CA_cond(thread_id, ca_idx);
         emit_ca_comment(ca_idx);
-        ca_cond = createOrExpr(ca_cond, ith_cond);
+        ca_cond = yices_or2(ca_cond, ith_cond);
     }
 
-    all_cond = createAndExpr(pc_cond, ca_cond);
-    Variablep ca_guard = createFrom(guard, all_cond);
+    all_cond = yices_and2(pc_cond, ca_cond);
+    variable ca_guard = createFrom(guard, all_cond);
     emitAssignment(ca_guard);
     guard = ca_guard;
 
     if (belong_to(admin_role_array_index, admin_role_array_index_size, target_role_index)) {
-        Expr ngval = createCondExpr(ca_guard, one, globals[target_role_index]);
-        Variablep nglob = createFrom(globals[target_role_index], ngval);
-        Expr nlval = createCondExpr(ca_guard, one, locals[thread_id][target_role_index]);
-        Variablep nloc = createFrom(locals[thread_id][target_role_index], nlval);
+        term_t ngval = yices_ite(ca_guard.yices_var, one, globals[target_role_index].yices_var);
+        variable nglob = createFrom(globals[target_role_index], ngval);
+        term_t nlval = yices_ite(ca_guard.yices_var, one, locals[thread_id][target_role_index].yices_var);
+        variable nloc = createFrom(locals[thread_id][target_role_index], nlval);
         emitAssignment(nglob);
         emitAssignment(nloc);
         globals[target_role_index] = nglob;
         locals[thread_id][target_role_index] = nloc;
     }
     else {
-        Expr nlval = createCondExpr(ca_guard, one, locals[thread_id][target_role_index]);
-        Variablep nloc = createFrom(locals[thread_id][target_role_index], nlval);
+        term_t nlval = yices_ite(ca_guard.yices_var, one, locals[thread_id][target_role_index].yices_var);
+        variable nloc = createFrom(locals[thread_id][target_role_index], nlval);
         emitAssignment(nloc);
         locals[thread_id][target_role_index] = nloc;
     }
@@ -598,7 +681,7 @@ static void
 simulate_can_revokes_by_role(int thread_id, int target_role_index, int rule_id) {
     // Precondition: exists always at least one CR that assign the role i.e.: roles_cr_counts[target_role_index] > 1
     int i = 0;
-    Expr pc_cond = NULL, cr_cond = NULL, all_cond = NULL;
+    term_t pc_cond = -1, cr_cond = -1, all_cond = -1;
     //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
     clean_fmt();
     fmt << "--- REVOKE RULES FOR ROLE " << role_array[target_role_index] << " ---";
@@ -620,29 +703,29 @@ simulate_can_revokes_by_role(int thread_id, int target_role_index, int rule_id) 
 
     for (i = 1; i < roles_cr_counts[target_role_index]; ++i) {
         int cr_idx = per_role_cr_indexes[target_role_index][i];
-        Expr ith_cond = generate_CR_cond(thread_id, cr_idx);
+        term_t ith_cond = generate_CR_cond(thread_id, cr_idx);
         emit_cr_comment(cr_idx);
-        cr_cond = createOrExpr(cr_cond, ith_cond);
+        cr_cond = yices_or2(cr_cond, ith_cond);
     }
 
-    all_cond = createAndExpr(pc_cond, cr_cond);
-    Variablep cr_guard = createFrom(guard, all_cond);
+    all_cond = yices_and2(pc_cond, cr_cond);
+    variable cr_guard = createFrom(guard, all_cond);
     emitAssignment(cr_guard);
     guard = cr_guard;
 
     if (belong_to(admin_role_array_index, admin_role_array_index_size, target_role_index)) {
-        Expr ngval = createCondExpr(cr_guard, zero, globals[target_role_index]);
-        Variablep nglob = createFrom(globals[target_role_index], ngval);
-        Expr nlval = createCondExpr(cr_guard, zero, locals[thread_id][target_role_index]);
-        Variablep nloc = createFrom(locals[thread_id][target_role_index], nlval);
+        term_t ngval = yices_ite(cr_guard.yices_var, zero, globals[target_role_index].yices_var);
+        variable nglob = createFrom(globals[target_role_index], ngval);
+        term_t nlval = yices_ite(cr_guard.yices_var, zero, locals[thread_id][target_role_index].yices_var);
+        variable nloc = createFrom(locals[thread_id][target_role_index], nlval);
         emitAssignment(nglob);
         emitAssignment(nloc);
         globals[target_role_index] = nglob;
         locals[thread_id][target_role_index] = nloc;
     }
     else {
-        Expr nlval = createCondExpr(cr_guard, zero, locals[thread_id][target_role_index]);
-        Variablep nloc = createFrom(locals[thread_id][target_role_index], nlval);
+        term_t nlval = yices_ite(cr_guard.yices_var, zero, locals[thread_id][target_role_index].yices_var);
+        variable nloc = createFrom(locals[thread_id][target_role_index], nlval);
         emitAssignment(nloc);
         locals[thread_id][target_role_index] = nloc;
     }
@@ -654,12 +737,12 @@ generate_check(int thread_id) {
     clean_fmt();
     fmt << "---------------ERROR CHECK THREAD " << thread_id << " ROLE " << role_array[goal_role_index] << "------------"; 
     emitComment(fmt.str());
-    Expr term_cond = locals[thread_id][goal_role_index];
-    Variablep term_guard = createFrom(guard, term_cond);
+    term_t term_cond = locals[thread_id][goal_role_index].yices_var;
+    variable term_guard = createFrom(guard, term_cond);
     emitAssignment(term_guard);
     guard = term_guard;
-    Expr assertion_cond = createCondExpr(term_guard, zero, one);
-    emitAssertion(createAssertion(assertion_cond));
+    term_t assertion_cond = yices_ite(term_guard.yices_var, zero, one);
+    emitAssertion(assertion_cond);
 }
 
 static void
@@ -701,10 +784,10 @@ assign_PCs(int thread_id, int round) {
     fmt << "---------- ASSIGNING PC FOR THREAD " << thread_id << " ROUND " << round << " ---------";
     emitComment(fmt.str());
     for (int step = 0; step < steps; step++) {
-        Variablep nondet_res = createFrom(nondet_int, createNondetExpr(INT));
+        variable nondet_res = createFrom(nondet_int, -2);
         emitAssignment(nondet_res);
         nondet_int = nondet_res;
-        Variablep npc_n = createFrom(program_counters[step], nondet_res);
+        variable npc_n = createFrom(program_counters[step], nondet_res.yices_var);
         emitAssignment(npc_n);
         program_counters[step] = npc_n;
     }
@@ -728,94 +811,139 @@ generate_main(int rounds) {
     }
 }
 
-static void
-print_var_decls(FILE* outputFile) {
-    int i, t, c;
-    clean_fmt();
+// static void
+// print_var_decls(FILE* outputFile) {
+//     int i, t, c;
+//     clean_fmt();
 
-    fmt << "int"; //"unsigned __CPROVER_bitvector[" << get_pc_count() << "]";
+//     fmt << "int"; //"unsigned __CPROVER_bitvector[" << get_pc_count() << "]";
 
-    string int_type = fmt.str();
-    char bool_type[] = "_Bool"; // "unsigned __CPROVER_bitvector[1]";
+//     string int_type = fmt.str();
+//     char bool_type[] = "_Bool"; // "unsigned __CPROVER_bitvector[1]";
 
-    fprintf(outputFile, "%s nondet_int();\n", int_type.c_str());
-    fprintf(outputFile, "%s nondet__Bool();\n", bool_type);
-    fprintf(outputFile, "%s __ESBMC_rounding_mode_0", bool_type);
+//     fprintf(outputFile, "%s nondet_int();\n", int_type.c_str());
+//     fprintf(outputFile, "%s nondet__Bool();\n", bool_type);
+//     fprintf(outputFile, "%s __ESBMC_rounding_mode_0", bool_type);
     
-    for (i = 0; i < threads_count; i++) {
-        int to = thread_assigneds[i]->idx;
-        for (c = 0; c <= to; c++) {
-            thread_assigneds[i]->idx = c;
-            string str = thread_assigneds[i]->print();
-            fprintf(outputFile, ", %s", str.c_str());
-        }
+//     for (i = 0; i < threads_count; i++) {
+//         int to = thread_assigneds[i]->idx;
+//         for (c = 0; c <= to; c++) {
+//             thread_assigneds[i]->idx = c;
+//             string str = thread_assigneds[i]->print();
+//             fprintf(outputFile, ", %s", str.c_str());
+//         }
+//     }
+
+//     for (int  i = 0; i < role_array_size; i++) {
+//         if (globals[i] != NULL) {
+//             int to = globals[i]->idx;
+//             for (c = 0; c <= to; c++) {
+//                 globals[i]->idx = c;
+//                 string str = globals[i]->print();
+//                 fprintf(outputFile, ", %s", str.c_str());
+//             }
+//         }
+//     }
+
+//     for (t = 0; t < threads_count; t++) {
+//         for (int  i = 0; i < role_array_size; i++) {
+//             int to = locals[t][i]->idx;
+//             for (c = 0; c <= to; c++) {
+//                 locals[t][i]->idx = c;
+//                 string str = locals[t][i]->print();
+//                 fprintf(outputFile, ", %s", str.c_str());
+//             }
+//         }
+//     }
+
+//     {
+//         int to = guard->idx;
+//         for (c = 0; c <= to; c++) {
+//             guard->idx = c;
+//             string str = guard->print();
+//             fprintf(outputFile, ", %s", str.c_str());
+//         }
+//     }
+
+//     {
+//         int to = nondet_bool->idx;
+//         for (c = 0; c <= to; c++) {
+//             nondet_bool->idx = c;
+//             string str = nondet_bool->print();
+//             fprintf(outputFile, ", %s", str.c_str());
+//         }
+//     }
+//     fprintf(outputFile, ";\n");
+
+//     fprintf(outputFile, "%s dummy_int", int_type.c_str());
+
+//     for (i = 0; i < steps; i++) {
+//         int to = program_counters[i]->idx;
+//         for (c = 0; c <= to; c++) {
+//             program_counters[i]->idx = c;
+//             string str = program_counters[i]->print();
+//             fprintf(outputFile, ", %s", str.c_str());
+//         }
+//     }
+
+//     {
+//         int to = nondet_int->idx;
+//         for (c = 0; c <= to; c++) {
+//             nondet_int->idx = c;
+//             string str = nondet_int->print();
+//             fprintf(outputFile, ", %s", str.c_str());
+//         }
+//     }
+//     fprintf(outputFile, ";\n");
+// }
+
+static void
+add_all_assignments() {
+    // int last = 0, i = 0;
+    // unsigned long l = assignments.size();
+
+    // std::cout << "[";
+
+    auto aite = assignments.begin();
+    term_t body = *aite;
+
+    for ( ; aite != assignments.end(); ++aite) {
+        body = yices_and2(body, *aite);
+        // i++;
+        // int perc = (i * 50) / l;
+        // if (perc != last) {
+        //     last = perc;
+        //     std::cout << "#";
+        //     std::cout.flush();
+        // }
     }
 
-    for (int  i = 0; i < role_array_size; i++) {
-        if (globals[i] != NULL) {
-            int to = globals[i]->idx;
-            for (c = 0; c <= to; c++) {
-                globals[i]->idx = c;
-                string str = globals[i]->print();
-                fprintf(outputFile, ", %s", str.c_str());
-            }
-        }
-    }
+    // std::cout << "]\n";
 
-    for (t = 0; t < threads_count; t++) {
-        for (int  i = 0; i < role_array_size; i++) {
-            int to = locals[t][i]->idx;
-            for (c = 0; c <= to; c++) {
-                locals[t][i]->idx = c;
-                string str = locals[t][i]->print();
-                fprintf(outputFile, ", %s", str.c_str());
-            }
-        }
-    }
+    yices_assert_formula(yices_ctx, body);
 
-    {
-        int to = guard->idx;
-        for (c = 0; c <= to; c++) {
-            guard->idx = c;
-            string str = guard->print();
-            fprintf(outputFile, ", %s", str.c_str());
-        }
-    }
+    // std::cout << "Asserted!\n\n";
+}
 
-    {
-        int to = nondet_bool->idx;
-        for (c = 0; c <= to; c++) {
-            nondet_bool->idx = c;
-            string str = nondet_bool->print();
-            fprintf(outputFile, ", %s", str.c_str());
-        }
+static void
+create_final_assert() {
+    auto aite = assertions.begin();
+    term_t assert_body = yices_not((*aite));
+    for ( ; aite != assertions.end(); ++aite) {
+        assert_body = yices_or2(assert_body, yices_not((*aite)));
     }
-    fprintf(outputFile, ";\n");
-
-    fprintf(outputFile, "%s dummy_int", int_type.c_str());
-
-    for (i = 0; i < steps; i++) {
-        int to = program_counters[i]->idx;
-        for (c = 0; c <= to; c++) {
-            program_counters[i]->idx = c;
-            string str = program_counters[i]->print();
-            fprintf(outputFile, ", %s", str.c_str());
-        }
-    }
-
-    {
-        int to = nondet_int->idx;
-        for (c = 0; c <= to; c++) {
-            nondet_int->idx = c;
-            string str = nondet_int->print();
-            fprintf(outputFile, ", %s", str.c_str());
-        }
-    }
-    fprintf(outputFile, ";\n");
+    yices_assert_formula(yices_ctx, assert_body);
 }
 
 static void
 generate_program(char *inputFile, FILE *outputFile, int rounds) {
+    yices_init();
+    generate_zero_one();
+
+    yices_ctx = yices_new_context(NULL);
+    
+    auto start = std::chrono::high_resolution_clock::now();
+
     initialize_var_counters();
 
     // TODO: this should be merged in initialize_var_counters to avoid NULL in counters
@@ -834,57 +962,78 @@ generate_program(char *inputFile, FILE *outputFile, int rounds) {
 
     generate_main(rounds);
 
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << "------------ SMT GENERATED IN " << milliseconds.count() << " ms ------------\n";
+    start = std::chrono::high_resolution_clock::now();
+
+    add_all_assignments();
+
+    create_final_assert();
+
+
     // fprintf(outputFile, "int main() {\n");
 
     // print_var_decls(outputFile);
 
-    ssa_prog.printStats(0);
-    ssa_prog.simplify(Simplifier::CONST_VARS); // CONST_VARS
-    ssa_prog.printStats(1);
+    // ssa_prog.printStats(0);
+    // ssa_prog.simplify(Simplifier::CONST_VARS); // CONST_VARS
+    // ssa_prog.printStats(1);
     // ssa_prog.writeSMTDeclarations(outputFile, 1);
     // ssa_prog.writeSMT(outputFile, 1, Simplifier::CONST_VARS);
 
-    std::shared_ptr<SSA::SMTSolver> yices(new Solvers::YicesSolver(pc_size));
-            
-    auto start = std::chrono::high_resolution_clock::now();
+    
 
-    ssa_prog.loadSMTSolver(yices, Simplifier::CONST_VARS, true);
+    // ssa_prog.loadSMTSolver(yices, Simplifier::CONST_VARS);
 
-    auto end = std::chrono::high_resolution_clock::now();
-    auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    end = std::chrono::high_resolution_clock::now();
+    milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     std::cout << "------------ SMT LOADED IN " << milliseconds.count() << " ms ------------\n";
 
 
     start = std::chrono::high_resolution_clock::now();
 
-    SSA::SMTSolver::Result res = yices->getResult();
+    smt_status_t res = yices_check_context(yices_ctx, NULL);
 
     end = std::chrono::high_resolution_clock::now();
     milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     std::cout << "------------ SMT SOLVED IN " << milliseconds.count() << " ms ------------\n";
 
     switch (res) {
-        case SSA::SMTSolver::SAT:
+        case STATUS_SAT:
             printf("SAT\n\n");
             break;
-        case SSA::SMTSolver::UNSAT:
+        case STATUS_UNSAT:
             printf("UNSAT\n\n");
             break;
-        case SSA::SMTSolver::UNKNOWN:
-            printf("UNKNOWN\n\n");
+        case STATUS_UNKNOWN:
+            printf("The status is unknown\n");
+            break;
+
+        case STATUS_IDLE:
+            fprintf(stderr, "Idle...\n");
+            break;
+        case STATUS_SEARCHING:
+        case STATUS_INTERRUPTED:
+        case STATUS_ERROR:
+            fprintf(stderr, "Error in check_context\n");
+            yices_print_error(stderr);
             break;
     }
+
+    yices_exit();
 
     // fprintf(outputFile, "return 0;\n}\n");
 }
 
-static void
-free_stmts() {
-    ssa_prog.clear();
-}
+// static void
+// free_stmts() {
+//     ssa_prog.clear();
+// }
 
 void
-transform_2_ssa(char *inputFile, FILE *outputFile, int rounds, int _steps, int wanted_threads_count) {
+transform_2_yices(char *inputFile, FILE *outputFile, int rounds, int _steps, int wanted_threads_count) {
     steps = _steps;
     if (rounds < 1) {
         fprintf(stderr, "Cannot simulate a number of rounds < 1\n");
@@ -926,11 +1075,10 @@ transform_2_ssa(char *inputFile, FILE *outputFile, int rounds, int _steps, int w
     
     generate_program(inputFile, outputFile, rounds);
 
-    
-    
+
     deallocate_precomputated_values();
 
-    free_stmts();
+    // free_stmts();
     free_data();
     free_precise_temp_data();
     free_var_counters();
