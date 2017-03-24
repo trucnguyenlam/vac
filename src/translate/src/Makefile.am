@@ -17,6 +17,7 @@ translate_LDADD = \
 #            $(BOOST_FILESYSTEM_LIB) \
 #			$(BOOST_SYSTEM_LIB)
 
+
 translate_SOURCES =	ARBACData.cpp \
 					ARBACLexer.cpp \
 					ARBACParser.cpp \
@@ -42,7 +43,9 @@ translate_SOURCES =	ARBACData.cpp \
 					ARBAC_to_SSA.cpp \
 					ARBAC_to_yices.cpp \
 					ARBAC_to_CompletenessLazyCSeq.cpp \
+					ARBAC_to_smt.cpp \
 					SSA_Structs.cpp \
+					SMTSolvers/yices.cpp \
 					Yices.cpp \
 					varOrd.cpp
 
