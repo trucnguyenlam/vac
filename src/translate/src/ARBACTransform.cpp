@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include "ARBACTransform.h"
 #include "ARBACAbstract.h"
+#include "SMT_Pruning.h"
 #include <iostream>
 
 // using namespace Abstract;
@@ -274,7 +275,10 @@ main(int argc, char **argv)
                     fprintf(stderr, "yices requires to specify the steos number (-s)\n");
                     error_exit();
                 }
-                SSA::transform_2_yices(filename, out_file, rounds, steps, wanted_threads);
+
+                SMT::prune(filename, out_file);
+
+                //SSA::transform_2_yices(filename, out_file, rounds, steps, wanted_threads);
             }            
             else if (strcmp(format_arg, "completeness_query") == 0)
             {

@@ -35,10 +35,14 @@ namespace SMT {
         virtual TExpr createEqExpr(TExpr lhs, TExpr rhs) = 0;
 
         virtual void assert(TExpr expr) = 0;
+        virtual void assertNow(TExpr expr) = 0;
         virtual SMTResult solve() = 0;
 
         virtual void loadToSolver() = 0;
         virtual void clean() = 0;
+
+        virtual void push() = 0;
+        virtual void pop() = 0;
     };
 
     // template <typename TType, typename TVar, typename TExpr>

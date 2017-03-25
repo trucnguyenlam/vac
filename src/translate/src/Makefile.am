@@ -46,6 +46,7 @@ translate_SOURCES =	ARBACData.cpp \
 					ARBAC_to_smt.cpp \
 					SSA_Structs.cpp \
 					SMTSolvers/yices.cpp \
+					SMT_Pruning.cpp \
 					Yices.cpp \
 					varOrd.cpp
 

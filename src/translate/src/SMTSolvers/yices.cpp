@@ -1,4 +1,5 @@
 #include "yices.h"
+#include <stdexcept>
 
 namespace SMT {
 
@@ -30,32 +31,60 @@ namespace SMT {
             return value ? yices_true() : yices_false();
         }
         term_t YicesSolver::createOrExpr(term_t lhs, term_t rhs) {
-            return yices_or2(lhs, rhs);
+            term_t res = yices_or2(lhs, rhs);
+            if (res < 0) {
+                fprintf(stderr, "Error! Term is less than 0!\n");
+            }
+            return res;
         }
         term_t YicesSolver::createAndExpr(term_t lhs, term_t rhs) {
-            return yices_and2(lhs, rhs);
+            term_t res = yices_and2(lhs, rhs);
+            if (res < 0) {
+                fprintf(stderr, "Error! Term is less than 0!\n");
+            }
+            return res;
         }
         term_t YicesSolver::createNotExpr(term_t expr) {
-            return yices_not(expr);
+            term_t res = yices_not(expr);
+            if (res < 0) {
+                fprintf(stderr, "Error! Term is less than 0!\n");
+            }
+            return res;
         }
         term_t YicesSolver::createCondExpr(term_t cond, term_t choice1, term_t choice2) {
-            return yices_ite(cond, choice1, choice2);
+            term_t res = yices_ite(cond, choice1, choice2);
+            if (res < 0) {
+                fprintf(stderr, "Error! Term is less than 0!\n");
+            }
+            return res;
         }
         term_t YicesSolver::createEqExpr(term_t lhs, term_t rhs) {
-            return yices_eq(lhs, rhs);
+            term_t res = yices_eq(lhs, rhs);
+            if (res < 0) {
+                fprintf(stderr, "Error! Term is less than 0!\n");
+            }
+            return res;
         }
 
         void YicesSolver::assert(term_t expr) {
             assertions.push_back(expr);
         }
 
+        void YicesSolver::assertNow(term_t expr) {
+            yices_assert_formula(context, expr);
+        }        
+
         SMTResult YicesSolver::solve() {
             smt_status_t res = yices_check_context(context, NULL);
 
             switch (res) {
-                case STATUS_SAT:
+                case STATUS_SAT: {
+                    // model_t* model = yices_get_model(context, 1);
+                    // yices_pp_model(stdout, model, 120, 40, 0);
+                    // yices_free_model(model);
                     return SAT;
                     break;
+                }
                 case STATUS_UNSAT:
                     return UNSAT;
                     break;
@@ -96,7 +125,25 @@ namespace SMT {
                     body = yices_and2(body, *ite);
                 }
                 yices_assert_formula(context, body);
+                // yices_pp_term(stderr, body, 120, 40, 0);
             }
         }
         void YicesSolver::clean() { }
+
+        void YicesSolver::push() { 
+            loadToSolver();
+            int res = yices_push(context);
+            if (res != 0) {
+                fprintf(stderr, "Failed to push yices context!\n");
+                throw new std::runtime_error("Failed to push yices context!\n");
+            }
+            assertions.clear();
+        }
+        void YicesSolver::pop() { 
+            int res = yices_pop(context);
+            if (res != 0) {
+                fprintf(stderr, "Failed to pop yices context!\n");
+                throw new std::runtime_error("Failed to pop yices context!\n");
+            }
+        }
 }

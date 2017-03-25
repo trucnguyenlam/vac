@@ -936,7 +936,7 @@ class Transformer {
 template <typename TType, typename TVar, typename TExpr>
 static void polymorphic_transform(std::shared_ptr<SMTFactory<TType, TVar, TExpr>> solver,
                                  int rounds, int steps, int wanted_threads_count) {
-            Transformer<TType, TVar, TExpr> core;
+            Transformer<TType, TVar, TExpr> core(solver);
             core.transform_2_bounded_smt(solver, rounds, steps, wanted_threads_count);
 }
 
@@ -958,8 +958,8 @@ static void transform_2_bounded_smt(AvailableSolvers::Solver solver, char *input
     switch (solver) {
         case AvailableSolvers::YICES: {
             std::shared_ptr<SMTFactory<term_t, term_t, term_t>> solver(new YicesSolver());
-            auto core(solver);
-            (rounds, steps, wanted_threads_count);
+            // auto core(solver);
+            polymorphic_transform(solver, rounds, steps, wanted_threads_count);
         }
         break;
     }

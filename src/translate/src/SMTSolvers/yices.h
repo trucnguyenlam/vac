@@ -25,10 +25,14 @@ namespace SMT {
         term_t createEqExpr(term_t lhs, term_t rhs) override;
 
         void assert(term_t expr) override;
+        void assertNow(term_t expr) override;
 
         SMTResult solve() override;
         void loadToSolver() override;
         void clean() override;
+        
+        void push() override;
+        void pop() override;
 
         private:
         std::vector<term_t> assertions;
