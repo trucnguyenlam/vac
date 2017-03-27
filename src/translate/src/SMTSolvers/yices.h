@@ -28,6 +28,7 @@ namespace SMT {
         void assertNow(term_t expr) override;
 
         SMTResult solve() override;
+        void printModel() override;
         void loadToSolver() override;
         void clean() override;
         

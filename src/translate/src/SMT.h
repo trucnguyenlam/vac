@@ -37,6 +37,7 @@ namespace SMT {
         virtual void assert(TExpr expr) = 0;
         virtual void assertNow(TExpr expr) = 0;
         virtual SMTResult solve() = 0;
+        virtual void printModel() = 0;
 
         virtual void loadToSolver() = 0;
         virtual void clean() = 0;

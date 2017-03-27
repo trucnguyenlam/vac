@@ -28,18 +28,24 @@ namespace SMT {
             }
         }
 
-        formula getCRFormula(int ruleId) {
+        formula getCRAdmFormula(int ruleId) {
             formula ret;
             ret.formula = role_vars[cr_array[ruleId].admin_role_index];
             ret.variables.insert(std::string(role_array[cr_array[ruleId].admin_role_index]));
             return ret;
         }
 
-        formula getCAFormula(int ca_index) {
+        formula getCAAdmFormula(int ca_index) {
+            formula ret;
+            ret.formula = role_vars[ca_array[ca_index].admin_role_index];
+            ret.variables.insert(std::string(role_array[ca_array[ca_index].admin_role_index]));
+            return ret;
+        }
+
+        formula getCAPNFormula(int ca_index) {
             TExpr cond;
             formula ret;
-            cond = role_vars[ca_array[ca_index].admin_role_index];
-            ret.variables.insert(std::string(role_array[ca_array[ca_index].admin_role_index]));
+            cond = solver->createBoolConst(true);
 
             if (ca_array[ca_index].type == 0) {     // Has precondition
                 // P
@@ -60,11 +66,11 @@ namespace SMT {
                     int* ca_array_n = ca_array[ca_index].negative_role_array;
                     std::string rn_name = std::string(role_array[ca_array_n[0]]);
                     ret.variables.insert(rn_name);
-                    TExpr cr_cond = solver->createNotExpr(role_vars[0]);
+                    TExpr cr_cond = solver->createNotExpr(role_vars[ca_array_n[0]]);
                     for (int j = 1; j < ca_array[ca_index].negative_role_array_size; j++) {
                         rn_name = std::string(role_array[ca_array_n[j]]);
                         ret.variables.insert(rn_name);
-                        cr_cond = solver->createAndExpr(cr_cond, solver->createNotExpr(role_vars[j]));
+                        cr_cond = solver->createAndExpr(cr_cond, solver->createNotExpr(role_vars[ca_array_n[j]]));
                     }
                     cond = solver->createAndExpr(cond, cr_cond);
                 }
@@ -77,10 +83,11 @@ namespace SMT {
         void generate_ca_cr_formulae() {
             int i;
             for (i = 0; i < ca_array_size; i++) {
-                ca_formulae.push_back(getCAFormula(i));
+                ca_adm_formulae.push_back(getCAAdmFormula(i));
+                ca_pn_formulae.push_back(getCAPNFormula(i));
             }
             for (i = 0; i < cr_array_size; i++) {
-                cr_formulae.push_back(getCRFormula(i));
+                cr_adm_formulae.push_back(getCRAdmFormula(i));
             }
         }
 
@@ -88,15 +95,22 @@ namespace SMT {
             std::string role_name(role_array[roleId]);
             std::vector<formula> to_check;
             formula f;
-            auto ite = ca_formulae.begin();
-            for ( ; ite != ca_formulae.end(); ++ite) {
+            auto ite = ca_adm_formulae.begin();
+            for ( ; ite != ca_adm_formulae.end(); ++ite) {
                 f = *ite;
                 if (f.variables.count(role_name) > 0) {
                     to_check.push_back(*ite);
                 }
             }
-            ite = cr_formulae.begin();
-            for ( ; ite != cr_formulae.end(); ++ite) {
+            ite = ca_pn_formulae.begin();
+            for ( ; ite != ca_pn_formulae.end(); ++ite) {
+                f = *ite;
+                if (f.variables.count(role_name) > 0) {
+                    to_check.push_back(*ite);
+                }
+            }
+            ite = cr_adm_formulae.begin();
+            for ( ; ite != cr_adm_formulae.end(); ++ite) {
                 f = *ite;
                 if (f.variables.count(role_name) > 0) {
                     to_check.push_back(*ite);
@@ -113,9 +127,7 @@ namespace SMT {
                     cond = solver->createOrExpr(cond, ite->formula);
                 }
                 solver->assertNow(role_vars[roleId]);
-                // yices_pp_term(stdout, role_vars[roleId], 120, 40, 1);
                 solver->assertNow(cond);
-                // yices_pp_term(stdout, cond, 120, 40, 1);
             }
             solver->loadToSolver();
             switch (solver->solve()) {
@@ -132,15 +144,22 @@ namespace SMT {
             std::string role_name(role_array[roleId]);
             std::vector<formula> to_check;
             formula f;
-            auto ite = ca_formulae.begin();
-            for ( ; ite != ca_formulae.end(); ++ite) {
+            auto ite = ca_adm_formulae.begin();
+            for ( ; ite != ca_adm_formulae.end(); ++ite) {
                 f = *ite;
                 if (f.variables.count(role_name) > 0) {
                     to_check.push_back(*ite);
                 }
             }
-            ite = cr_formulae.begin();
-            for ( ; ite != cr_formulae.end(); ++ite) {
+            ite = ca_pn_formulae.begin();
+            for ( ; ite != ca_pn_formulae.end(); ++ite) {
+                f = *ite;
+                if (f.variables.count(role_name) > 0) {
+                    to_check.push_back(*ite);
+                }
+            }
+            ite = cr_adm_formulae.begin();
+            for ( ; ite != cr_adm_formulae.end(); ++ite) {
                 f = *ite;
                 if (f.variables.count(role_name) > 0) {
                     to_check.push_back(*ite);
@@ -157,13 +176,13 @@ namespace SMT {
                     cond = solver->createOrExpr(cond, ite->formula);
                 }
                 solver->assertNow(solver->createNotExpr(role_vars[roleId]));
-                // yices_pp_term(stdout, role_vars[roleId], 120, 40, 1);
                 solver->assertNow(cond);
-                // yices_pp_term(stdout, cond, 120, 40, 1);
             }
             solver->loadToSolver();
             switch (solver->solve()) {
                 case SAT: 
+                    // fprintf(stdout, "System is SAT. Printing model...\n");
+                    // solver->printModel();
                     return false;
                 case UNSAT:
                     return true;
@@ -172,16 +191,59 @@ namespace SMT {
             }
         }
 
+        int irrelevantPositive(int roleId) {
+
+            // IMPROVE!!! ASSERT ALL TOGETHER!!!
+            if (nonNegative(roleId)) {
+                std::string role_name = role_array[roleId];                
+                for (int i = 0; i < ca_array_size; ++i) {
+                    int wit = 0;
+                    formula _using = ca_pn_formulae[i];
+                    if (_using.variables.count(role_name) == 0) {
+                        continue;
+                    }
+                    else {
+                        for (int j = 0; j < ca_array_size; j++) {
+                            if (i == j || ca_array[j].target_role_index != roleId) {
+                                continue;
+                            }
+                            else {
+                                solver->push();
+                                solver->assertNow(ca_adm_formulae[i].formula);
+                                solver->assertNow(solver->createNotExpr(ca_adm_formulae[j].formula));
+                                Result res = solver->solve();
+                                solver->pop();
+                                if (res == UNSAT) {
+                                    solver->push();
+                                    solver->assertNow(ca_pn_formulae[i].formula);
+                                    solver->assertNow(solver->createNotExpr(ca_pn_formulae[j].formula));
+                                    Result res = solver->solve();
+                                    solver->pop();
+                                }
+                            }
+                        }
+
+                        
+
+                    }
+                } 
+            }
+            else {
+                return false;
+            }
+        }
+
 
         std::shared_ptr<SMTFactory<TType, TVar, TExpr>> solver;
 
-        std::vector<int> positiveRoles;
-        std::vector<int> negativeRoles;
+        std::vector<int> nonPositiveRoles;
+        std::vector<int> nonNegativeRoles;
 
         std::vector<TVar> role_vars;
 
-        std::vector<formula> ca_formulae;
-        std::vector<formula> cr_formulae;
+        std::vector<formula> ca_adm_formulae;
+        std::vector<formula> ca_pn_formulae;
+        std::vector<formula> cr_adm_formulae;
 
         public:
 
@@ -191,9 +253,10 @@ namespace SMT {
                 int res = nonPositive(i);
                 if (res) {
                     fprintf(stdout, "Role %s is nonPositive\n", role_array[i]);
+                    nonPositiveRoles.push_back(i);
                 }
                 else {
-                    // fprintf(stdout, "Role %s is not nonPositive\n", role_array[i]);
+                    // fprintf(stdout, "Role %s is Positive\n", role_array[i]);
                 }
                 solver->pop();
             }
@@ -206,13 +269,13 @@ namespace SMT {
                 int res = nonNegative(i);
                 if (res) {
                     fprintf(stdout, "Role %s is nonNegative\n", role_array[i]);
+                    nonNegativeRoles.push_back(i);
                 }
                 else {
-                    // fprintf(stdout, "Role %s is not nonPositive\n", role_array[i]);
+                    // fprintf(stdout, "Role %s is Negative\n", role_array[i]);
                 }
                 solver->pop();
-            }
-            
+            }            
         }
 
         Pruning(std::shared_ptr<SMTFactory<TType, TVar, TExpr>> _solver) : solver(_solver) {

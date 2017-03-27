@@ -104,6 +104,17 @@ namespace SMT {
             }
             return ERROR;
         }
+
+        void YicesSolver::printModel() {
+            model_t* model = yices_get_model(context, false);
+            if (model == NULL) {
+                fprintf(stdout, "Model is NULL...\n");
+            }
+            else {
+                yices_pp_model(stdout, model, 120, 40, 0);
+                yices_free_model(model);
+            }
+        }
         
         void YicesSolver::loadToSolver() {
             //TODO: consider using 
