@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include <set>
+#include <memory>
 
 namespace SMT {
     enum SMTResult {
@@ -33,6 +35,7 @@ namespace SMT {
         virtual TExpr createNotExpr(TExpr expr) = 0;
         virtual TExpr createCondExpr(TExpr cond, TExpr choice1, TExpr choice2) = 0;
         virtual TExpr createEqExpr(TExpr lhs, TExpr rhs) = 0;
+        virtual TExpr createImplExpr(TExpr lhs, TExpr rhs) = 0;
 
         virtual void assert(TExpr expr) = 0;
         virtual void assertNow(TExpr expr) = 0;
@@ -45,10 +48,5 @@ namespace SMT {
         virtual void push() = 0;
         virtual void pop() = 0;
     };
-
-    // template <typename TType, typename TVar, typename TExpr>
-    // void translate(SMTFactory<TType, TVar, TExpr> fact);
-
-    
 
 }

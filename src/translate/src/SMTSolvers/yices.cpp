@@ -66,11 +66,21 @@ namespace SMT {
             return res;
         }
 
+        term_t YicesSolver::createImplExpr(term_t lhs, term_t rhs) {
+            term_t res = yices_implies(lhs, rhs);
+            if (res < 0) {
+                fprintf(stderr, "Error! Term is less than 0!\n");
+            }
+            return res;
+        }
+
         void YicesSolver::assert(term_t expr) {
             assertions.push_back(expr);
         }
 
         void YicesSolver::assertNow(term_t expr) {
+            // printf("%p: ", context);
+            // yices_pp_term(stdout, expr, 140, 40, 0);
             yices_assert_formula(context, expr);
         }        
 
@@ -142,19 +152,24 @@ namespace SMT {
         void YicesSolver::clean() { }
 
         void YicesSolver::push() { 
-            loadToSolver();
-            int res = yices_push(context);
-            if (res != 0) {
-                fprintf(stderr, "Failed to push yices context!\n");
-                throw new std::runtime_error("Failed to push yices context!\n");
-            }
-            assertions.clear();
+            // loadToSolver();
+            // int res = yices_push(context);
+            // if (res != 0) {
+            //     fprintf(stderr, "Failed to push yices context!\n");
+            //     throw new std::runtime_error("Failed to push yices context!\n");
+            // }
+            // assertions.clear();
         }
         void YicesSolver::pop() { 
-            int res = yices_pop(context);
-            if (res != 0) {
-                fprintf(stderr, "Failed to pop yices context!\n");
-                throw new std::runtime_error("Failed to pop yices context!\n");
-            }
+            // int res = yices_pop(context);
+            // if (res != 0) {
+            //     fprintf(stderr, "Failed to pop yices context!\n");
+            //     throw new std::runtime_error("Failed to pop yices context!\n");
+            // }
+            // printf("Popping: %p\t", context);
+            auto tmp = this->context;
+            this->context = yices_new_context(NULL);
+            yices_free_context(tmp);
+            // printf("new one: %p\n", context);
         }
 }
