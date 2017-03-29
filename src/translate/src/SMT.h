@@ -19,14 +19,16 @@ namespace SMT {
         };
     };
 
-    template <typename TType, typename TVar, typename TExpr>
+    template <typename TVar, typename TExpr>
     class SMTFactory {
         public:
 
-        virtual TType createBoolType() = 0;
-        virtual TType createBVType(int size) = 0;
+        // virtual TType createBoolType() = 0;
+        // virtual TType createBVType(int size) = 0;
         
-        virtual TVar createVar(const std::string name, TType type) = 0;
+        virtual TVar createVar2(const std::string name, int size) = 0;
+        virtual TVar createBoolVar(const std::string name) = 0;
+        virtual TVar createBVVar(const std::string name, int bv_size) = 0;
 
         virtual TExpr createBVConst(int value, int size) = 0;
         virtual TExpr createBoolConst(int value) = 0;

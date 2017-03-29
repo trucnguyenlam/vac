@@ -11,14 +11,29 @@ namespace SMT {
             yices_exit();
         }
 
-        term_t YicesSolver::createBoolType() {
-            return yices_bool_type();
-        }
-        term_t YicesSolver::createBVType(int size) {
-            return yices_bv_type(size);
+        // term_t YicesSolver::createBoolType() {
+        //     return yices_bool_type();
+        // }
+        // term_t YicesSolver::createBVType(int size) {
+        //     return yices_bv_type(size);
+        // }
+
+        term_t YicesSolver::createVar2(const std::string name, int size) {
+            if (size == 1) {
+                return createBoolVar(name);
+            }
+            return createBVVar(name, size);
         }
 
-        term_t YicesSolver::createVar(const std::string name, term_t type) {
+        term_t YicesSolver::createBoolVar(const std::string name) {
+            term_t type = yices_bool_type();
+            term_t var = yices_new_uninterpreted_term(type);
+            yices_set_term_name(var, name.c_str());
+            return var;
+        }
+
+        term_t YicesSolver::createBVVar(const std::string name, int size) {
+            term_t type = yices_bv_type(size);
             term_t var = yices_new_uninterpreted_term(type);
             yices_set_term_name(var, name.c_str());
             return var;

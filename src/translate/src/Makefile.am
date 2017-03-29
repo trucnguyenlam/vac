@@ -6,13 +6,13 @@ AUTOMAKE_OPTIONS = foreign
 
 
 bin_PROGRAMS = translate
-translate_CFLAGS = -I../../ccl/include/ -I../deps/yices_2.5.2_static/include/ @DEFAULT_CFLAGS@
-translate_CXXFLAGS = -I../../ccl/include/ -I../deps/yices_2.5.2_static/include/ @DEFAULT_CXXFLAGS@ -std=c++11 -fpermissive -Wwrite-strings
+translate_CFLAGS = -I../../ccl/include/ -I../deps/yices_2.5.2_static/include/ -I../deps/z3_static/include/ @DEFAULT_CFLAGS@
+translate_CXXFLAGS = -I../../ccl/include/ -I../deps/yices_2.5.2_static/include/ -I../deps/z3_static/include/ @DEFAULT_CXXFLAGS@ -std=c++11 -fpermissive -Wwrite-strings
 translate_LDADD = \
             ../../ccl/src/libccl.a \
             ../deps/yices_2.5.2_static/lib/libyices.a \
             -lgmp -lm 
-# -I../deps/z3_static/include/
+# 
 #            ../deps/z3_static/lib/libz3.a \
 #            $(BOOST_FILESYSTEM_LIB) \
 #			$(BOOST_SYSTEM_LIB)
@@ -46,6 +46,7 @@ translate_SOURCES =	ARBACData.cpp \
 					ARBAC_to_smt.cpp \
 					SSA_Structs.cpp \
 					SMTSolvers/yices.cpp \
+					SMTSolvers/Z3.cpp \
 					SMT_Pruning.cpp \
 					Logics.cpp \
 					Yices.cpp \

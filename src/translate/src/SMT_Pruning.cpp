@@ -14,7 +14,7 @@
 
 namespace SMT {
 
-    template <typename TType, typename TVar, typename TExpr>
+    template <typename TVar, typename TExpr>
     class Pruning {
         // struct formula {
         //     TExpr formula;
@@ -245,7 +245,7 @@ namespace SMT {
         }
 
 
-        std::shared_ptr<SMTFactory<TType, TVar, TExpr>> solver;
+        std::shared_ptr<SMTFactory<TVar, TExpr>> solver;
 
         std::vector<int> nonPositiveRoles;
         std::vector<int> nonNegativeRoles;
@@ -301,7 +301,7 @@ namespace SMT {
             }
         }
 
-        Pruning(std::shared_ptr<SMTFactory<TType, TVar, TExpr>> _solver) : solver(_solver) {
+        Pruning(std::shared_ptr<SMTFactory<TVar, TExpr>> _solver) : solver(_solver) {
             generateRoleVars();
             generate_ca_cr_formulae();
          }
@@ -338,8 +338,8 @@ namespace SMT {
         preprocess(0);
         build_config_array();
 
-        std::shared_ptr<SMTFactory<term_t, term_t, term_t>> solver(new YicesSolver());
-        Pruning<term_t, term_t, term_t> core(solver);
+        std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());
+        Pruning<term_t, term_t> core(solver);
 
         auto start = std::chrono::high_resolution_clock::now();
 

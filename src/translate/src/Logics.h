@@ -253,8 +253,8 @@ namespace SMT {
     // Expr createNondetExpr(Exprv::ExprType type);
     Expr createEqExpr(Expr lhs, Expr rhs);
 
-    template <typename TType, typename TVar, typename TExpr>
-    TExpr generateSMTFunction(std::shared_ptr<SMTFactory<TType, TVar, TExpr>> solver, Expr expr, std::map<std::string, TVar>& var_map) {
+    template <typename TVar, typename TExpr>
+    TExpr generateSMTFunction(std::shared_ptr<SMTFactory<TVar, TExpr>> solver, Expr expr, std::map<std::string, TVar>& var_map) {
         switch (expr->type) {
                 case Exprv::CONSTANT: {
                     std::shared_ptr<Constant> c = std::dynamic_pointer_cast<Constant>(expr);
@@ -273,8 +273,7 @@ namespace SMT {
                             return var_map[name];
                         }
                         else {
-                            TType type = lit->bv_size == 1 ? solver->createBoolType() : solver->createBVType(lit->bv_size);
-                            TVar var = solver->createVar(name, type);
+                            TVar var = solver->createVar2(name, lit->bv_size);
                             var_map[name] = var;
                             // printf("%s not found. Creating it: %d\n", name.c_str(), var);
                             return var;

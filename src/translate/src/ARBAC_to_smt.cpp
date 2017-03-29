@@ -21,7 +21,7 @@ using std::shared_ptr;
 using std::stringstream;
 using std::string;
 
-template <typename TType, typename TVar, typename TExpr>
+template <typename TVar, typename TExpr>
 class Transformer {
 
     private:
@@ -29,7 +29,7 @@ class Transformer {
     int threads_count;
     int use_tracks;
 
-    std::shared_ptr<SMTFactory<TType, TVar, TExpr>> solver;
+    std::shared_ptr<SMTFactory<TVar, TExpr>> solver;
 
     stringstream fmt;
 
@@ -260,11 +260,7 @@ class Transformer {
         ret.idx = idx;
         ret.bv_size = bv_size;
 
-        TExpr type = solver->createBoolType();
-        if (bv_size > 1) {
-            type = solver->createBVType(bv_size);
-        }
-        ret.solver_var = solver->createVar(ret.name + std::to_string(ret.idx), type);
+        ret.solver_var = solver->createVar2(ret.name + std::to_string(ret.idx), bv_size);
         ret.solver_val = value;
 
         return ret;
@@ -887,10 +883,10 @@ class Transformer {
     // }
 
     public:
-    Transformer(std::shared_ptr<SMTFactory<TType, TVar, TExpr>> _solver) :
+    Transformer(std::shared_ptr<SMTFactory<TVar, TExpr>> _solver) :
         solver(_solver) { }
 
-    void transform_2_bounded_smt(std::shared_ptr<SMTFactory<TType, TVar, TExpr>> _solver,
+    void transform_2_bounded_smt(std::shared_ptr<SMTFactory<TVar, TExpr>> _solver,
                                  int rounds, int _steps, int wanted_threads_count) {
         // solver = _solver;
         steps = _steps;
@@ -933,10 +929,10 @@ class Transformer {
     }
 };
 
-template <typename TType, typename TVar, typename TExpr>
-static void polymorphic_transform(std::shared_ptr<SMTFactory<TType, TVar, TExpr>> solver,
+template <typename TVar, typename TExpr>
+static void polymorphic_transform(std::shared_ptr<SMTFactory<TVar, TExpr>> solver,
                                  int rounds, int steps, int wanted_threads_count) {
-            Transformer<TType, TVar, TExpr> core(solver);
+            Transformer<TVar, TExpr> core(solver);
             core.transform_2_bounded_smt(solver, rounds, steps, wanted_threads_count);
 }
 
@@ -957,7 +953,7 @@ static void transform_2_bounded_smt(AvailableSolvers::Solver solver, char *input
 
     switch (solver) {
         case AvailableSolvers::YICES: {
-            std::shared_ptr<SMTFactory<term_t, term_t, term_t>> solver(new YicesSolver());
+            std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());
             // auto core(solver);
             polymorphic_transform(solver, rounds, steps, wanted_threads_count);
         }

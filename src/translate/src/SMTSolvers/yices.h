@@ -6,15 +6,17 @@
 #include <vector>
 
 namespace SMT {
-    class YicesSolver : public SMTFactory<term_t, term_t, term_t> {
+    class YicesSolver : public SMTFactory<term_t, term_t> {
         public:
         YicesSolver();
         ~YicesSolver();
 
-        term_t createBoolType() override;
-        term_t createBVType(int size) override;
+        // term_t createBoolType() override;
+        // term_t createBVType(int size) override;
 
-        term_t createVar(const std::string name, term_t type) override;
+        term_t createVar2(const std::string name, int size) override;
+        term_t createBoolVar(const std::string name) override;
+        term_t createBVVar(const std::string name, int size) override;
 
         term_t createBVConst(int value, int size) override;
         term_t createBoolConst(int value) override;
