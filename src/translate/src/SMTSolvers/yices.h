@@ -20,6 +20,8 @@ namespace SMT {
 
         term_t createBVConst(int value, int size) override;
         term_t createBoolConst(int value) override;
+        term_t createTrue() override;
+        term_t createFalse() override;
         term_t createOrExpr(term_t lhs, term_t rhs) override;
         term_t createAndExpr(term_t lhs, term_t rhs) override;
         term_t createNotExpr(term_t expr) override;
@@ -35,8 +37,8 @@ namespace SMT {
         void loadToSolver() override;
         void clean() override;
         
-        void push() override;
-        void pop() override;
+        // void push() override;
+        // void pop() override;
 
         private:
         std::vector<term_t> assertions;

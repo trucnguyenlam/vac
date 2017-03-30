@@ -61,6 +61,14 @@ namespace SMT {
 
 /*EXPR OPS*/
     Exprv::Exprv(ExprType ty, std::set<Literalp> literals) : type(ty), _literals(literals) { } 
+    
+    int Exprv::containsLiteral(std::string full_name) {
+        for (auto ite = _literals.begin(); ite != _literals.end(); ++ite) {
+            if ((*ite)->fullName() == full_name) 
+                return true;
+        }
+        return false;
+    }
     void Exprv::setSuffix(std::string suffix) {
         auto lits = this->literals();
         for (std::set<Literalp>::iterator ite = lits.begin(); ite != lits.end(); ++ite) {
@@ -132,6 +140,17 @@ namespace SMT {
     std::string Literal::fullName() {
         if (this->suffix == "") {
             return this->name;
+        }
+        else {
+            std::stringstream fmt;
+            fmt << this->name + "_" + this->suffix;
+            return fmt.str();
+        }
+    }
+
+    std::string Literal::nameWithSuffix(std::string suffix) {
+        if (this->suffix == "") {
+            return this->fullName() + "_" + suffix;
         }
         else {
             std::stringstream fmt;

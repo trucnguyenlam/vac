@@ -44,6 +44,12 @@ namespace SMT {
         }
         term_t YicesSolver::createBoolConst(int value) {
             return value ? yices_true() : yices_false();
+        }        
+        term_t YicesSolver::createTrue() {
+            return yices_true();
+        }
+        term_t YicesSolver::createFalse() {
+            return yices_false();
         }
         term_t YicesSolver::createOrExpr(term_t lhs, term_t rhs) {
             term_t res = yices_or2(lhs, rhs);
@@ -100,6 +106,7 @@ namespace SMT {
         }        
 
         SMTResult YicesSolver::solve() {
+            this->loadToSolver();
             smt_status_t res = yices_check_context(context, NULL);
 
             switch (res) {
@@ -152,7 +159,7 @@ namespace SMT {
             */
 
             if (assertions.empty()) {
-                yices_assert_formula(context, yices_true());
+                return;
             }
             else {
                 auto ite = assertions.begin();
@@ -162,29 +169,34 @@ namespace SMT {
                 }
                 yices_assert_formula(context, body);
                 // yices_pp_term(stderr, body, 120, 40, 0);
+                this->assertions.clear();
             }
-        }
-        void YicesSolver::clean() { }
 
-        void YicesSolver::push() { 
-            // loadToSolver();
-            // int res = yices_push(context);
-            // if (res != 0) {
-            //     fprintf(stderr, "Failed to push yices context!\n");
-            //     throw new std::runtime_error("Failed to push yices context!\n");
-            // }
-            // assertions.clear();
         }
-        void YicesSolver::pop() { 
-            // int res = yices_pop(context);
-            // if (res != 0) {
-            //     fprintf(stderr, "Failed to pop yices context!\n");
-            //     throw new std::runtime_error("Failed to pop yices context!\n");
-            // }
-            // printf("Popping: %p\t", context);
-            auto tmp = this->context;
+        void YicesSolver::clean() { 
+            yices_free_context(this->context);
             this->context = yices_new_context(NULL);
-            yices_free_context(tmp);
-            // printf("new one: %p\n", context);
         }
+
+        // void YicesSolver::push() { 
+        //     // loadToSolver();
+        //     // int res = yices_push(context);
+        //     // if (res != 0) {
+        //     //     fprintf(stderr, "Failed to push yices context!\n");
+        //     //     throw new std::runtime_error("Failed to push yices context!\n");
+        //     // }
+        //     // assertions.clear();
+        // }
+        // void YicesSolver::pop() { 
+        //     // int res = yices_pop(context);
+        //     // if (res != 0) {
+        //     //     fprintf(stderr, "Failed to pop yices context!\n");
+        //     //     throw new std::runtime_error("Failed to pop yices context!\n");
+        //     // }
+        //     // printf("Popping: %p\t", context);
+        //     auto tmp = this->context;
+        //     this->context = yices_new_context(NULL);
+        //     yices_free_context(tmp);
+        //     // printf("new one: %p\n", context);
+        // }
 }

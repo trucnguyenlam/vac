@@ -32,6 +32,8 @@ namespace SMT {
 
         virtual TExpr createBVConst(int value, int size) = 0;
         virtual TExpr createBoolConst(int value) = 0;
+        virtual TExpr createTrue() = 0;
+        virtual TExpr createFalse() = 0;
         virtual TExpr createOrExpr(TExpr lhs, TExpr rhs) = 0;
         virtual TExpr createAndExpr(TExpr lhs, TExpr rhs) = 0;
         virtual TExpr createNotExpr(TExpr expr) = 0;
@@ -47,8 +49,8 @@ namespace SMT {
         virtual void loadToSolver() = 0;
         virtual void clean() = 0;
 
-        virtual void push() = 0;
-        virtual void pop() = 0;
+        // virtual void push() = 0;
+        // virtual void pop() = 0;
     };
 
 }

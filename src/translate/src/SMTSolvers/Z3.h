@@ -41,8 +41,8 @@ namespace SMT {
         void loadToSolver() override;
         void clean() override;
         
-        void push() override;
-        void pop() override;
+        // void push() override;
+        // void pop() override;
 
         private:
         z3::context context;
