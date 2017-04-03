@@ -6,12 +6,14 @@
 #include <chrono>
 #include <iostream>
 #include <utility>
+#include <algorithm>
 
 #include "ARBACExact.h"
 #include "SMT_Pruning.h"
 #include "SMT.h"
 #include "Logics.h"
 #include "SMTSolvers/yices.h"
+#include "SMTSolvers/Z3.h"
 
 namespace SMT {
 
@@ -151,7 +153,7 @@ namespace SMT {
                 
                 std::map<std::string, TVar> map;
                 TExpr fexpr = generateSMTFunction(solver, cond, map, "");
-                
+                                
                 TExpr lexpr = generateSMTFunction(solver, role_vars[roleId], map, "");
 
                 // if (std::string(role_array[roleId]) == "rd") {
@@ -252,7 +254,7 @@ namespace SMT {
             }
         }
 
-        TExpr irr_pos(int roleId, std::vector<std::pair<Expr, Expr>> using_r, std::vector<std::pair<Expr, Expr>> assigning_r) {
+        TExpr irr_pos_cond(int roleId, std::vector<std::pair<Expr, Expr>> using_r, std::vector<std::pair<Expr, Expr>> assigning_r) {
             // ASSERT that ca uses role r
             std::map<std::string, TVar> c_map;
             std::map<std::string, TVar> adm_map;
@@ -273,9 +275,9 @@ namespace SMT {
                 rule_pn_expr->setLiteralValue(role_name, createConstantExpr(true, 1));
                 TExpr phi_r_true_c = generateSMTFunction(solver, rule_pn_expr, c_map, c);
                 
-                //generating \not(\phi_r^{false}(C))
-                // rule_pn_expr->setLiteralValue(role_name, createConstantExpr(false, 1));
-                // TExpr phi_r_false_c = generateSMTFunction(solver, createNotExpr(rule_pn_expr), c_map, c);
+                // generating \not(\phi_r^{false}(C))
+                rule_pn_expr->setLiteralValue(role_name, createConstantExpr(false, 1));
+                TExpr phi_r_false_c = generateSMTFunction(solver, createNotExpr(rule_pn_expr), c_map, c);
 
                 rule_pn_expr->resetValue();
                 
@@ -283,28 +285,32 @@ namespace SMT {
                 TExpr phi_a_adm = generateSMTFunction(solver, rule_adm_expr, adm_map, adm);
 
                 // AND left side
-                TExpr lhs = solver->createAndExpr(phi_r_true_c, phi_a_adm);
+                TExpr lhs = solver->createAndExpr(solver->createAndExpr(phi_r_true_c, phi_r_false_c), phi_a_adm);
 
                 lhs_exprs.push_back(lhs);
             }
 
             std::vector<TExpr> rhs_exprs;
-            for (int i = 0; i < ca_array_size; i++) {
-                //take only the rules assigning r. (\phi_a', \phi', r) \in CA
-                if (ca_array[i].target_role_index != roleId) {
-                    continue;
-                }
+            for (auto ass_ite = assigning_r.begin(); ass_ite != assigning_r.end(); ++ass_ite) {
+                //For all rule (\phi_a', \phi', r) \in CA
 
                 // \not \phi'(C)
-                Expr phi1 = ca_pn_formulae[i];
+                Expr phi1 = (*ass_ite).second;
                 TExpr not_phi1_c = generateSMTFunction(solver, createNotExpr(phi1), c_map, c);
 
-                // \not \phi_a'(adm)ca_adm_formulae
-                Expr phi1_a = ca_adm_formulae[i];
+                // \phi_a'(adm)
+                Expr phi1_a = (*ass_ite).first;
                 //setting ADMIN suffix on all literals
-                TExpr not_phi1_a_adm = generateSMTFunction(solver, createNotExpr(phi1_a), adm_map, adm);
+                TExpr not_phi1_a_adm = generateSMTFunction(solver, phi1_a, adm_map, adm);
 
-                rhs_exprs.push_back(solver->createOrExpr(not_phi1_c, not_phi1_a_adm));
+                // \phi_a'(C)
+                //setting C suffix on all literals
+                TExpr not_phi1_a_c = generateSMTFunction(solver, phi1_a, c_map, c);
+
+                // \not (\phi_a'(adm) \/ \phi_a'(C))
+                TExpr lhs = solver->createNotExpr(solver->createOrExpr(not_phi1_a_adm, not_phi1_a_c));
+
+                rhs_exprs.push_back(solver->createOrExpr(not_phi1_c, lhs));
             }
 
             // JOIN TOGETHER ALL LHS
@@ -325,11 +331,93 @@ namespace SMT {
             return res;
         }
 
+        TExpr irr_neg_cond(int roleId, std::vector<std::pair<Expr, Expr>> using_r, std::vector<std::pair<Expr, Expr>> removing_r) {
+            // ASSERT that ca uses role r
+            std::map<std::string, TVar> c_map;
+            std::map<std::string, TVar> adm_map;
+            std::string role_name(role_array[roleId]);
+            std::string c = "C";
+            std::string adm = "adm";
+
+            // C.r
+            TExpr r_c = generateSMTFunction(solver, role_vars[roleId], c_map, c);
+
+            std::vector<TExpr> lhs_exprs;
+            for (auto u_ite = using_r.begin(); u_ite != using_r.end(); ++u_ite) {
+                auto adm_pn = *u_ite;
+                Expr rule_adm_expr = adm_pn.first;
+                Expr rule_pn_expr = adm_pn.second;
+
+                //generating \phi_r^{false}(C)
+                rule_pn_expr->setLiteralValue(role_name, createConstantExpr(false, 1));
+                TExpr phi_r_false_c = generateSMTFunction(solver, rule_pn_expr, c_map, c);
+                
+                // generating \not(\phi_r^{true}(C))
+                rule_pn_expr->setLiteralValue(role_name, createConstantExpr(true, 1));
+                TExpr phi_r_true_c = generateSMTFunction(solver, createNotExpr(rule_pn_expr), c_map, c);
+
+                rule_pn_expr->resetValue();
+                
+                //generating \phi_a(admin)
+                TExpr phi_a_adm = generateSMTFunction(solver, rule_adm_expr, adm_map, adm);
+
+                // AND left side
+                TExpr lhs = solver->createAndExpr(solver->createAndExpr(phi_r_false_c, phi_r_true_c), phi_a_adm);
+
+                lhs_exprs.push_back(lhs);
+            }
+
+            std::vector<TExpr> rhs_exprs;
+            for (auto rev_ite = removing_r.begin(); rev_ite != removing_r.end(); ++rev_ite) {
+                //For all rules revoking r. (\phi_a', \phi', r) \in CR
+
+                // \not \phi'(C)
+                Expr phi1 = rev_ite->second;
+                TExpr not_phi1_c = generateSMTFunction(solver, createNotExpr(phi1), c_map, c);
+
+                // \not \phi_a'(adm)ca_adm_formulae
+                Expr phi1_a = rev_ite->first;
+                //setting ADMIN suffix on all literals
+                TExpr not_phi1_a_adm = generateSMTFunction(solver, createNotExpr(phi1_a), adm_map, adm);
+
+                rhs_exprs.push_back(solver->createOrExpr(not_phi1_c, not_phi1_a_adm));
+            }
+
+            // JOIN TOGETHER ALL LHS
+            TExpr final_lhs = solver->createFalse();
+            for (auto ite = lhs_exprs.begin(); ite != lhs_exprs.end(); ++ite) {
+                final_lhs = solver->createOrExpr(final_lhs, *ite);
+            }
+            
+            // JOIN TOGETHER ALL RHS
+            TExpr final_rhs = solver->createTrue();
+            for (auto ite = rhs_exprs.begin(); ite != rhs_exprs.end(); ++ite) {
+                final_rhs = solver->createAndExpr(final_rhs, *ite);
+            }
+
+            // creating implication
+            // TExpr res = solver->createImplExpr(impl_lhs, impl_rhs);
+            TExpr res = solver->createAndExpr(r_c, solver->createAndExpr(final_lhs, final_rhs));
+            return res;
+        }
+
+        TExpr irr_mix_cond(int roleId, std::vector<std::pair<Expr, Expr>> using_r, 
+                            std::vector<std::pair<Expr, Expr>> assigning_r, 
+                            std::vector<std::pair<Expr, Expr>> removing_r) {
+            TExpr pos_cond = irr_pos_cond(roleId, using_r, assigning_r);
+            TExpr neg_cond = irr_neg_cond(roleId, using_r, removing_r);
+            return solver->createOrExpr(pos_cond, neg_cond);
+
+        }
+
         // int deb = false;           
         // if (role_name == "rb") { deb = true; }
         // else                   { deb = false; }
 
         int irrelevantPositive(int roleId) {
+            for (int i = 0; i < 100; i++) {
+                printf("ROTTO PER RUOLI AMMINISTRATIVI!! ");
+            }
             std::string role_name(role_array[roleId]);
             std::vector<std::pair<Expr, Expr>> using_r;
             std::vector<std::pair<Expr, Expr>> assigning_r;
@@ -337,9 +425,9 @@ namespace SMT {
             for (int i = 0; i < ca_array_size; i++) {
                 Expr ca_adm = ca_adm_formulae[i];
                 Expr ca_pn = ca_pn_formulae[i];
-                if (ca_pn->containsLiteral(role_name)) {
-                    using_r.push_back(std::make_pair(ca_adm, ca_pn));
-                }
+                // if (ca_pn->containsLiteral(role_name) || ca_adm->containsLiteral(role_name)) {
+                using_r.push_back(std::make_pair(ca_adm, ca_pn));
+                // }
                 if (ca_array[i].target_role_index == roleId) {
                     assigning_r.push_back(std::make_pair(ca_adm, ca_pn));
                 }
@@ -348,11 +436,11 @@ namespace SMT {
             for (int i = 0; i < cr_array_size; i++) {
                 Expr cr_adm = cr_adm_formulae[i];
                 Expr cr_pn = cr_pn_formulae[i];
-                if (cr_pn->containsLiteral(role_name)) {
-                    using_r.push_back(std::make_pair(cr_adm, cr_pn));
-                }
+                // if (cr_pn->containsLiteral(role_name) || cr_adm->containsLiteral(role_name)) {
+                using_r.push_back(std::make_pair(cr_adm, cr_pn));
+                // }
                 if (cr_array[i].target_role_index == roleId) {
-                    assigning_r.push_back(std::make_pair(cr_adm, cr_pn));
+                    removing_r.push_back(std::make_pair(cr_adm, cr_pn));
                 }
             }
 
@@ -361,7 +449,21 @@ namespace SMT {
                 return true;
             }
             else {
-                TExpr cond = irr_pos(roleId, using_r, assigning_r);
+                TExpr cond = solver->createTrue();
+                if (std::find(nonPositiveRoles.begin(), nonPositiveRoles.end(), roleId) != nonPositiveRoles.end()) {
+                    printf("Role %s is nonPositive\n", role_array[roleId]);
+                    cond = solver->createAndExpr(cond, irr_neg_cond(roleId, using_r, removing_r));
+                }
+                else {
+                    if (std::find(nonNegativeRoles.begin(), nonNegativeRoles.end(), roleId) != nonNegativeRoles.end()) {
+                        printf("Role %s is nonNegative\n", role_array[roleId]);
+                        cond = solver->createAndExpr(cond, irr_pos_cond(roleId, using_r, assigning_r));
+                    }
+                    else {
+                        printf("Role %s is mixed\n", role_array[roleId]);
+                        cond = cond = solver->createAndExpr(cond, irr_mix_cond(roleId, using_r, assigning_r, removing_r));
+                    }
+                }
                 solver->assertNow(cond);
                 SMTResult smt_res = solver->solve();
                 int res = 0;
@@ -380,6 +482,41 @@ namespace SMT {
                 return res;
             }
 
+        }
+
+        int implied(std::pair<Expr, Expr> ca1_phis, std::pair<Expr, Expr> ca2_phis) {
+            Expr ca1_adm = ca1_phis.first;
+            Expr ca1_pn = ca1_phis.second;
+            Expr ca2_adm = ca2_phis.first;
+            Expr ca2_pn = ca2_phis.second;
+            std::map<std::string, TVar> c_map;
+            std::map<std::string, TVar> adm_map;
+            std::string c_suff("C");
+            std::string adm_suff("admin");
+
+            TExpr phi1_adm = generateSMTFunction(solver, ca1_adm, adm_map, adm_suff);
+            TExpr phi1_pn = generateSMTFunction(solver, ca1_pn, c_map, c_suff);
+            TExpr phi2_adm = generateSMTFunction(solver, ca2_adm, adm_map, adm_suff);
+            TExpr phi2_pn = generateSMTFunction(solver, ca2_pn, c_map, c_suff);
+
+            // \phi_a(adm) /\ \phi(C)
+            TExpr lhs = solver->createAndExpr(phi1_adm, phi1_pn);
+
+            // (\not\phi'_a(adm)) \/ (\not\phi'(c))
+            TExpr rhs = solver->createOrExpr(solver->createNotExpr(phi2_adm), solver->createNotExpr(phi2_pn));
+            
+            // (\phi_a(adm) /\ \phi(C)) /\ ((\not\phi'_a(adm)) \/ (\not\phi'(c)))
+            TExpr final_cond = solver->createAndExpr(lhs, rhs);
+
+            solver->assertNow(final_cond);
+            SMTResult res = solver->solve();
+            solver->clean();
+            if (res == UNSAT) {
+                return true;
+            }
+            else {
+                return false;
+            } 
         }
 
 
@@ -425,7 +562,8 @@ namespace SMT {
         }
 
         void PrintIrrelevantPos() {
-            for (auto i = nonNegativeRoles.begin(); i < nonNegativeRoles.end(); ++i) {
+            // for (auto i = nonNegativeRoles.begin(); i < nonNegativeRoles.end(); ++i) {
+            for (int i = 0; i < role_array_size; ++i) {
                 // // solver->push();
                 // int res = irrelevantPositive(i);
                 // if (res) {
@@ -436,13 +574,29 @@ namespace SMT {
                 //     // fprintf(stdout, "Role %s is Negative\n", role_array[i]);
                 // }
                 // // solver->pop();
-                int can_remove = irrelevantPositive(*i);
+                int can_remove = irrelevantPositive(i);
 
                 if (can_remove) {
-                    printf("Role %s can be removed...\n", role_array[*i]);
+                    printf("Role %s can be removed...\n", role_array[i]);
                 }
                 else {
-                    printf("Role %s cannot be removed...\n", role_array[*i]);
+                    printf("Role %s cannot be removed...\n", role_array[i]);
+                }
+            }
+        }
+
+        void printImpliedPairs() {
+            for (int i = 0; i < ca_array_size; i++) {
+                for (int j = 0; j < ca_array_size; j++) {
+                    if (i != j && ca_array[i].target_role_index == ca_array[j].target_role_index) {
+                        printf("Implied: \n");
+                        print_ca_comment(stdout, i);
+                        print_ca_comment(stdout, j);
+                        std::pair<Expr, Expr> ca1_exprs = std::make_pair(ca_adm_formulae[i], ca_pn_formulae[i]);
+                        std::pair<Expr, Expr> ca2_exprs = std::make_pair(ca_adm_formulae[j], ca_pn_formulae[j]);
+                        int are_implied = implied(ca1_exprs, ca2_exprs);
+                        printf("%s!\n", are_implied ? "TRUE" : "FALSE");
+                    }
                 }
             }
         }
@@ -484,8 +638,19 @@ namespace SMT {
         preprocess(0);
         build_config_array();
 
+        std::shared_ptr<SMTFactory<expr, expr>> solver2(new Z3Solver());
+        expr x = solver2->createBoolVar("x");
+        expr y = solver2->createBoolVar("y");
+        expr z = solver2->createAndExpr(x, y);
+
+        solver2->assertNow(z);
+        auto res = solver2->solve();
+        solver2->printContext();
+
+        // Pruning<z3::expr, z3::expr> core(solver);
+
         std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());
-        Pruning<term_t, term_t> core(solver);
+        Pruning<expr, expr> core(solver2);
 
         auto start = std::chrono::high_resolution_clock::now();
 
@@ -503,7 +668,8 @@ namespace SMT {
         milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
         std::cout << "------------ printNonNeg " << milliseconds.count() << " ms ------------\n";
 
-        core.PrintIrrelevantPos();
+        // core.PrintIrrelevantPos();
+        core.printImpliedPairs();
 
         free_data();
         free_precise_temp_data();

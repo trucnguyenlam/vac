@@ -855,6 +855,9 @@ typedef enum
       - Z3_OP_PB_AT_MOST: Cardinality constraint.
               E.g., x + y + z <= 2
 
+      - Z3_OP_PB_AT_LEAST: Cardinality constraint.
+              E.g., x + y + z >= 2
+
       - Z3_OP_PB_LE: Generalized Pseudo-Boolean cardinality constraint.
               Example  2*x + 3*y <= 4
 
@@ -1060,6 +1063,7 @@ typedef enum {
     Z3_OP_EXT_ROTATE_LEFT,
     Z3_OP_EXT_ROTATE_RIGHT,
 
+    Z3_OP_BIT2BOOL,
     Z3_OP_INT2BV,
     Z3_OP_BV2INT,
     Z3_OP_CARRY,
@@ -1148,12 +1152,22 @@ typedef enum {
     Z3_OP_SEQ_TO_RE,
     Z3_OP_SEQ_IN_RE,
 
+    // strings
+    Z3_OP_STR_TO_INT,
+    Z3_OP_INT_TO_STR,
+
     // regular expressions
     Z3_OP_RE_PLUS,
     Z3_OP_RE_STAR,
     Z3_OP_RE_OPTION,
     Z3_OP_RE_CONCAT,
     Z3_OP_RE_UNION,
+    Z3_OP_RE_RANGE,
+    Z3_OP_RE_LOOP,
+    Z3_OP_RE_INTERSECT,
+    Z3_OP_RE_EMPTY_SET,
+    Z3_OP_RE_FULL_SET,
+    Z3_OP_RE_COMPLEMENT,
 
     // Auxiliary
     Z3_OP_LABEL = 0x700,
@@ -1167,6 +1181,7 @@ typedef enum {
 
     // Pseudo Booleans
     Z3_OP_PB_AT_MOST=0x900,
+    Z3_OP_PB_AT_LEAST,
     Z3_OP_PB_LE,
     Z3_OP_PB_GE,
     Z3_OP_PB_EQ,
@@ -1807,7 +1822,7 @@ extern "C" {
 
        def_API('Z3_mk_finite_domain_sort', SORT, (_in(CONTEXT), _in(SYMBOL), _in(UINT64)))
     */
-    Z3_sort Z3_API Z3_mk_finite_domain_sort(Z3_context c, Z3_symbol name, unsigned __int64 size);
+    Z3_sort Z3_API Z3_mk_finite_domain_sort(Z3_context c, Z3_symbol name, __uint64 size);
 
     /**
        \brief Create an array type.
@@ -1942,7 +1957,7 @@ extern "C" {
        The datatype may be recursive. Return the datatype sort.
 
        \param c logical context.
-	   \param name name of datatype.
+       \param name name of datatype.
        \param num_constructors number of constructors passed in.
        \param constructors array of constructor containers.
 
@@ -3077,7 +3092,7 @@ extern "C" {
 
        \param c logical context.
        \param numeral A string representing the numeral value in decimal notation. The string may be of the form \code{[num]*[.[num]*][E[+|-][num]+]}.
-                      If the given sort is a real, then the numeral can be a rational, that is, a string of the form \ccode{[num]* / [num]*}.                      
+                      If the given sort is a real, then the numeral can be a rational, that is, a string of the form \ccode{[num]* / [num]*}.
        \param ty The sort of the numeral. In the current implementation, the given sort can be an int, real, finite-domain, or bit-vectors of arbitrary size.
 
        \sa Z3_mk_int
@@ -3143,14 +3158,14 @@ extern "C" {
     /**
        \brief Create a numeral of a int, bit-vector, or finite-domain sort.
 
-       This function can be use to create numerals that fit in a machine unsigned __int64 integer.
+       This function can be use to create numerals that fit in a machine __uint64 integer.
        It is slightly faster than #Z3_mk_numeral since it is not necessary to parse a string.
 
        \sa Z3_mk_numeral
 
        def_API('Z3_mk_unsigned_int64', AST, (_in(CONTEXT), _in(UINT64), _in(SORT)))
     */
-    Z3_ast Z3_API Z3_mk_unsigned_int64(Z3_context c, unsigned __int64 v, Z3_sort ty);
+    Z3_ast Z3_API Z3_mk_unsigned_int64(Z3_context c, __uint64 v, Z3_sort ty);
 
     /*@}*/
 
@@ -3315,6 +3330,21 @@ extern "C" {
     Z3_ast Z3_API Z3_mk_seq_index(Z3_context c, Z3_ast s, Z3_ast substr, Z3_ast offset);
 
     /**
+       \brief Convert string to integer.
+
+       def_API('Z3_mk_str_to_int' ,AST ,(_in(CONTEXT), _in(AST)))
+     */    
+    Z3_ast Z3_API Z3_mk_str_to_int(Z3_context c, Z3_ast s);
+
+
+    /**
+       \brief Integer to string conversion.
+
+       def_API('Z3_mk_int_to_str' ,AST ,(_in(CONTEXT), _in(AST)))
+     */    
+    Z3_ast Z3_API Z3_mk_int_to_str(Z3_context c, Z3_ast s);
+
+    /**
        \brief Create a regular expression that accepts the sequence \c seq.
 
        def_API('Z3_mk_seq_to_re' ,AST ,(_in(CONTEXT), _in(AST)))
@@ -3366,6 +3396,60 @@ extern "C" {
        def_API('Z3_mk_re_concat' ,AST ,(_in(CONTEXT), _in(UINT), _in_array(1, AST)))
      */
     Z3_ast Z3_API Z3_mk_re_concat(Z3_context c, unsigned n, Z3_ast const args[]);
+
+
+    /**
+       \brief Create the range regular expression over two sequences of length 1.
+
+       def_API('Z3_mk_re_range' ,AST ,(_in(CONTEXT), _in(AST), _in(AST)))
+     */
+    Z3_ast Z3_API Z3_mk_re_range(Z3_context c, Z3_ast lo, Z3_ast hi);
+
+    /**
+       \brief Create a regular expression loop. The supplied regular expression \c r is repated
+       between \c lo and \c hi times. The \c lo should be below \c hi with one exection: when
+       supplying the value \c hi as 0, the meaning is to repeat the argument \c r at least
+       \c lo number of times, and with an unbounded upper bound.
+
+       def_API('Z3_mk_re_loop', AST, (_in(CONTEXT), _in(AST), _in(UINT), _in(UINT)))
+     */
+    Z3_ast Z3_API Z3_mk_re_loop(Z3_context c, Z3_ast r, unsigned lo, unsigned hi);
+
+    /**
+       \brief Create the intersection of the regular languages.
+
+       \pre n > 0
+
+       def_API('Z3_mk_re_intersect' ,AST ,(_in(CONTEXT), _in(UINT), _in_array(1, AST)))
+     */
+    Z3_ast Z3_API Z3_mk_re_intersect(Z3_context c, unsigned n, Z3_ast const args[]);
+
+    /**
+       \brief Create the complement of the regular language \c re.
+
+       def_API('Z3_mk_re_complement' ,AST ,(_in(CONTEXT), _in(AST)))
+     */
+    Z3_ast Z3_API Z3_mk_re_complement(Z3_context c, Z3_ast re);
+
+    /**
+       \brief Create an empty regular expression of sort \c re.
+
+       \pre re is a regular expression sort.
+
+       def_API('Z3_mk_re_empty' ,AST ,(_in(CONTEXT), _in(SORT)))
+     */
+    Z3_ast Z3_API Z3_mk_re_empty(Z3_context c, Z3_sort re);
+
+
+    /**
+       \brief Create an universal regular expression of sort \c re.
+
+       \pre re is a regular expression sort.
+
+       def_API('Z3_mk_re_full' ,AST ,(_in(CONTEXT), _in(SORT)))
+     */
+    Z3_ast Z3_API Z3_mk_re_full(Z3_context c, Z3_sort re);
+
 
     /*@}*/
 
@@ -3722,7 +3806,7 @@ extern "C" {
 
         def_API('Z3_get_finite_domain_sort_size', BOOL, (_in(CONTEXT), _in(SORT), _out(UINT64)))
     */
-    Z3_bool_opt Z3_API Z3_get_finite_domain_sort_size(Z3_context c, Z3_sort s, unsigned __int64* r);
+    Z3_bool_opt Z3_API Z3_get_finite_domain_sort_size(Z3_context c, Z3_sort s, __uint64* r);
 
     /**
        \brief Return the domain of the given array sort.
@@ -3901,9 +3985,18 @@ extern "C" {
 
        def_API('Z3_mk_atmost', AST, (_in(CONTEXT), _in(UINT), _in_array(1,AST), _in(UINT)))
     */
-
     Z3_ast Z3_API Z3_mk_atmost(Z3_context c, unsigned num_args,
                                Z3_ast const args[], unsigned k);
+
+    /**
+       \brief Pseudo-Boolean relations.
+
+       Encode p1 + p2 + ... + pn >= k
+
+       def_API('Z3_mk_atleast', AST, (_in(CONTEXT), _in(UINT), _in_array(1,AST), _in(UINT)))
+    */
+    Z3_ast Z3_API Z3_mk_atleast(Z3_context c, unsigned num_args,
+                                Z3_ast const args[], unsigned k);
 
     /**
        \brief Pseudo-Boolean relations.
@@ -3912,9 +4005,19 @@ extern "C" {
 
        def_API('Z3_mk_pble', AST, (_in(CONTEXT), _in(UINT), _in_array(1,AST), _in_array(1,INT), _in(INT)))
     */
-
     Z3_ast Z3_API Z3_mk_pble(Z3_context c, unsigned num_args,
-                             Z3_ast const args[], int coeffs[],
+                             Z3_ast const args[], int const coeffs[],
+                             int k);
+
+    /**
+       \brief Pseudo-Boolean relations.
+
+       Encode k1*p1 + k2*p2 + ... + kn*pn >= k
+
+       def_API('Z3_mk_pbge', AST, (_in(CONTEXT), _in(UINT), _in_array(1,AST), _in_array(1,INT), _in(INT)))
+    */
+    Z3_ast Z3_API Z3_mk_pbge(Z3_context c, unsigned num_args,
+                             Z3_ast const args[], int const coeffs[],
                              int k);
 
     /**
@@ -3924,9 +4027,8 @@ extern "C" {
 
        def_API('Z3_mk_pbeq', AST, (_in(CONTEXT), _in(UINT), _in_array(1,AST), _in_array(1,INT), _in(INT)))
     */
-
     Z3_ast Z3_API Z3_mk_pbeq(Z3_context c, unsigned num_args,
-                             Z3_ast const args[], int coeffs[],
+                             Z3_ast const args[], int const coeffs[],
                              int k);
 
     /**
@@ -4288,7 +4390,7 @@ extern "C" {
 
     /**
        \brief Similar to #Z3_get_numeral_string, but only succeeds if
-       the value can fit in a machine unsigned __int64 int. Return Z3_TRUE if the call succeeded.
+       the value can fit in a machine __uint64 int. Return Z3_TRUE if the call succeeded.
 
        \pre Z3_get_ast_kind(c, v) == Z3_NUMERAL_AST
 
@@ -4296,7 +4398,7 @@ extern "C" {
 
        def_API('Z3_get_numeral_uint64', BOOL, (_in(CONTEXT), _in(AST), _out(UINT64)))
     */
-    Z3_bool Z3_API Z3_get_numeral_uint64(Z3_context c, Z3_ast v, unsigned __int64* u);
+    Z3_bool Z3_API Z3_get_numeral_uint64(Z3_context c, Z3_ast v, __uint64* u);
 
     /**
        \brief Similar to #Z3_get_numeral_string, but only succeeds if
@@ -5139,7 +5241,7 @@ extern "C" {
     /*@}*/
 
     /**
-       \brief Return a string describing the given error code. 
+       \brief Return a string describing the given error code.
        Retained function name for backwards compatibility within v4.1
     */
     Z3_string Z3_API Z3_get_error_msg_ex(Z3_context c, Z3_error_code err);
@@ -5912,11 +6014,11 @@ extern "C" {
 
     /**
        \brief retrieve consequences from solver that determine values of the supplied function symbols.
-       
+
        def_API('Z3_solver_get_consequences', INT, (_in(CONTEXT), _in(SOLVER), _in(AST_VECTOR), _in(AST_VECTOR), _in(AST_VECTOR)))
      */
 
-    Z3_lbool Z3_API Z3_solver_get_consequences(Z3_context c, 
+    Z3_lbool Z3_API Z3_solver_get_consequences(Z3_context c,
                                                Z3_solver s,
                                                Z3_ast_vector assumptions,
                                                Z3_ast_vector variables,

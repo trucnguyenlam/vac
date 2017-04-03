@@ -11,7 +11,9 @@ translate_CXXFLAGS = -I../../ccl/include/ -I../deps/yices_2.5.2_static/include/ 
 translate_LDADD = \
             ../../ccl/src/libccl.a \
             ../deps/yices_2.5.2_static/lib/libyices.a \
-            -lgmp -lm 
+            ../deps/z3_static/lib/libz3.a \
+            -lgmp -lm -lgomp -ldl -lstdc++
+# 
 # 
 #            ../deps/z3_static/lib/libz3.a \
 #            $(BOOST_FILESYSTEM_LIB) \

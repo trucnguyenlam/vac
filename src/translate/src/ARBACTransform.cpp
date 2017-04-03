@@ -47,9 +47,11 @@ main(int argc, char **argv)
     int wanted_threads = -1;
     int show_statistics = 0;
     int _inline = 0;
+    int prune = 0;
 
     static struct option long_options[] = {
         { "out", required_argument, 0, 'o' },
+        { "prune", required_argument, 0, 'p' },
         { "algorithm", required_argument, 0, 'a' },
         { "format", required_argument, 0, 'f' },
         { "formula", required_argument, 0, 'l' },
@@ -65,7 +67,7 @@ main(int argc, char **argv)
     while (1)
     {
         int option_index = 0;
-        c = getopt_long(argc, argv, "Sihf:a:l:r:s:t:o:", long_options, &option_index);
+        c = getopt_long(argc, argv, "Sihpf:a:l:r:s:t:o:", long_options, &option_index);
 
         if (c == -1)
             break;
@@ -84,7 +86,6 @@ main(int argc, char **argv)
                     \n                                      cbmc\
                     \n                                      hsf\
                     \n                                      eldarica\
-                    \n                                      smt\
                     \n                                      nusmv\
                     \n                                      getafix\
                     \n                                      mucke\
@@ -94,7 +95,9 @@ main(int argc, char **argv)
                     \n                                      completeness_query\
                     \n                                      concurc\
                     \n                                      yices\
+                    \n                                      smt\
                     \n-i,--inline                        :Inline the program (lazycseq only)\
+                    \n-p,--prune                         :Prune the policy using sat based approaches\
                     \n-l,--formula <X>                   :Formula for mucke\
                     \n-r,--rounds <X>                    :Number of rounds (mucke-cav, lazycseq, ssa and completeness_query only)\
                     \n-s,--steps <X>                     :Number of steps (lazycseq, ssa and completeness_query only)\
@@ -109,6 +112,9 @@ main(int argc, char **argv)
             break;
         case 'S':
             show_statistics = 1;
+            break;
+        case 'p':
+            prune = 1;
             break;
         case 'i':
             _inline = 1;
@@ -184,6 +190,9 @@ main(int argc, char **argv)
             show_policy_statistics(filename, out_file, wanted_threads);
             success_exit();
         }
+        if (prune) {
+            SMT::prune(filename, out_file);
+        }
 
 
         if (algo_arg == 0 || format_arg == 0)
@@ -208,10 +217,10 @@ main(int argc, char **argv)
             {
                 transform_2_ELDARICA_ExactAlg(filename, out_file);
             }
-            else if (strcmp(format_arg, "smt") == 0)
-            {
-                transform_2_SMT2_ExactAlg(filename, out_file);
-            }
+            // else if (strcmp(format_arg, "smt") == 0)
+            // {
+            //     transform_2_SMT2_ExactAlg(filename, out_file);
+            // }
             else if (strcmp(format_arg, "nusmv") == 0)
             {
                 transform_2_NuSMV_ExactAlg(filename, out_file);
@@ -276,9 +285,20 @@ main(int argc, char **argv)
                     error_exit();
                 }
 
-                SMT::prune(filename, out_file);
+                SSA::transform_2_yices(filename, out_file, rounds, steps, wanted_threads);
+            }    
+            else if (strcmp(format_arg, "smt") == 0)
+            {
+                if (rounds == -1) {
+                    fprintf(stderr, "smt requires to specify the rounds number (-r)\n");
+                    error_exit();
+                }
+                if (steps == -1) {
+                    fprintf(stderr, "smt requires to specify the steos number (-s)\n");
+                    error_exit();
+                }
 
-                //SSA::transform_2_yices(filename, out_file, rounds, steps, wanted_threads);
+                SMT::transform_2_bounded_smt(filename, out_file, rounds, steps, wanted_threads);
             }            
             else if (strcmp(format_arg, "completeness_query") == 0)
             {

@@ -75,6 +75,10 @@ namespace SSA {
     void transform_2_yices(char *, FILE *outputFile, int rounds, int steps, int wanted_threads_count);
 }
 
+namespace SMT {
+    void transform_2_bounded_smt(char *, FILE *outputFile, int rounds, int steps, int wanted_threads_count);
+}
+
 void
 wait_keypressed();
 

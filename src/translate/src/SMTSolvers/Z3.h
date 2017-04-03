@@ -22,24 +22,27 @@ namespace SMT {
 
         expr createVar2(const std::string name, int size) override;
         expr createBoolVar(const std::string name) override;
-        expr createBVVar(const std::string name, int bv_size) override;
+        expr createBVVar(const std::string name, int size) override;
 
         expr createBVConst(int value, int size) override;
         expr createBoolConst(int value) override;
+        expr createTrue() override;
+        expr createFalse() override;
         expr createOrExpr(expr lhs, expr rhs) override;
         expr createAndExpr(expr lhs, expr rhs) override;
-        expr createNotExpr(expr expr) override;
+        expr createNotExpr(expr _expr) override;
         expr createCondExpr(expr cond, expr choice1, expr choice2) override;
         expr createEqExpr(expr lhs, expr rhs) override;
         expr createImplExpr(expr lhs, expr rhs) override;
 
-        // void assert(expr expr) override;
-        // void assertNow(expr expr) override;
+        void assertLater(expr e) override;
+        void assertNow(expr e) override;
 
         SMTResult solve() override;
         void printModel() override;
         void loadToSolver() override;
         void clean() override;
+        void printContext() override;
         
         // void push() override;
         // void pop() override;

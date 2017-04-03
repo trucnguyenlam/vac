@@ -8,6 +8,7 @@
 
 #include "SMT.h"
 #include "SMTSolvers/yices.h"
+#include "SMTSolvers/Z3.h"
 
 #include <chrono>
 
@@ -39,11 +40,18 @@ class Transformer {
 
     typedef 
         struct _variable {
-            TVar solver_var;
-            TExpr solver_val;
+            std::shared_ptr<TVar> solver_var;
+            std::shared_ptr<TExpr> solver_val;
             int bv_size;
             string name;
             int idx;
+            inline TVar get_solver_var() {
+                if (solver_var == nullptr)
+                    throw new std::runtime_error("Null variable");
+                else {
+                    return *solver_var;
+                }
+            }
         } variable;
 
     variable dummy_var;
@@ -226,16 +234,16 @@ class Transformer {
 
     void
     emitAssignment(variable var) {
-        if (var.solver_val == -2) {
+        if (var.solver_val == nullptr) {
             // fprintf(stderr, "Warning, variable %s%d is assumed nondeterministic\n", var.name.c_str(), var.idx);
             return;
         }
-        if (var.solver_val == -1) {
-            fprintf(stderr, "Warning, variable %s%d is broken\n", var.name.c_str(), var.idx);
-            return;
-        }
-        TExpr tmp = solver->createEqExpr(var.solver_var, var.solver_val);
-        solver->assert(tmp);
+        // if (var.solver_val == -1) {
+        //     fprintf(stderr, "Warning, variable %s%d is broken\n", var.name.c_str(), var.idx);
+        //     return;
+        // }
+        TExpr tmp = solver->createEqExpr(*var.solver_var, *var.solver_val);
+        solver->assertLater(tmp);
     }
 
     void
@@ -250,7 +258,7 @@ class Transformer {
 
     void
     emitAssumption(TExpr assumption) {
-        solver->assert(assumption);
+        solver->assertLater(assumption);
     }
 
     variable
@@ -260,8 +268,23 @@ class Transformer {
         ret.idx = idx;
         ret.bv_size = bv_size;
 
-        ret.solver_var = solver->createVar2(ret.name + std::to_string(ret.idx), bv_size);
-        ret.solver_val = value;
+        std::shared_ptr<TExpr> valp = std::make_shared<TExpr>(value);
+
+        ret.solver_var = std::make_shared<TVar>(solver->createVar2(ret.name + std::to_string(ret.idx), bv_size));
+        ret.solver_val = valp;
+
+        return ret;
+    }
+
+    variable
+    create_variable(const string name, int idx, int bv_size) {
+        variable ret;
+        ret.name = name;
+        ret.idx = idx;
+        ret.bv_size = bv_size;
+
+        ret.solver_var = std::make_shared<TVar>(solver->createVar2(ret.name + std::to_string(ret.idx), bv_size));
+        ret.solver_val = nullptr;
 
         return ret;
     }
@@ -272,12 +295,18 @@ class Transformer {
         return nvar;
     }
 
+    variable
+    createFrom(variable var) {
+        variable nvar = create_variable(var.name, var.idx + 1, var.bv_size);
+        return nvar;
+    }
+
     TExpr
     create_constant(int value, int bv_size) {
         TExpr ret;
 
         if (bv_size > 1) {
-            ret = solver->createBVConst(bv_size, value);
+            ret = solver->createBVConst(value, bv_size);
         }
         else if (value) {
             ret = one;
@@ -285,7 +314,6 @@ class Transformer {
         else {
             ret = zero;
         }
-
         return ret;
     }
 
@@ -331,13 +359,16 @@ class Transformer {
         ret.name = name;
         ret.idx = idx;
         ret.bv_size = bv_size;
+        ret.solver_var = std::make_shared<TVar>(solver->createVar2(ret.name + std::to_string(ret.idx), bv_size));
+        ret.solver_val = nullptr;
         return ret;
     }
 
     void
-    generate_zero_one(){
+    generate_zero_one_dummy(){
         zero = solver->createBoolConst(false);
         one = solver->createBoolConst(true);
+        generate_empty_variable("dummy", -1, 1);
     }
 
     void
@@ -434,8 +465,8 @@ class Transformer {
         emitComment(fmt.str());
 
         TExpr con_e = create_constant(thread_id, pc_size);
-        TExpr eq_e = solver->createEqExpr(nondet_int.solver_var, con_e);
-        TExpr not_e = solver->createNotExpr(thread_assigneds[thread_id].solver_var);
+        TExpr eq_e = solver->createEqExpr(nondet_int.get_solver_var(), con_e);
+        TExpr not_e = solver->createNotExpr(thread_assigneds[thread_id].get_solver_var());
         TExpr if_guard = solver->createAndExpr(
             eq_e , 
             not_e );
@@ -443,7 +474,7 @@ class Transformer {
         emitAssignment(n_guard);
         guard = n_guard;
 
-        TExpr ass_val = solver->createCondExpr(guard.solver_var, one, thread_assigneds[thread_id].solver_var);
+        TExpr ass_val = solver->createCondExpr(guard.get_solver_var(), one, thread_assigneds[thread_id].get_solver_var());
 
         variable assigned = createFrom(thread_assigneds[thread_id], ass_val);
         emitAssignment(assigned);
@@ -456,7 +487,7 @@ class Transformer {
             //     emit(generateAssignment(glob));
             //     globals[user_config_array[user_id].array[j]] = glob;
             // }
-            TExpr loc_val = solver->createCondExpr(guard.solver_var, one, locals[thread_id][user_config_array[user_id].array[j]].solver_var);
+            TExpr loc_val = solver->createCondExpr(guard.get_solver_var(), one, locals[thread_id][user_config_array[user_id].array[j]].get_solver_var());
             variable loc = createFrom(locals[thread_id][user_config_array[user_id].array[j]], loc_val);
             emitAssignment(loc);
             locals[thread_id][user_config_array[user_id].array[j]] = loc;
@@ -468,7 +499,7 @@ class Transformer {
         clean_fmt();
         fmt << "--------------- CONFIGURATION OF USER " << user_id << " (" << user_array[user_id] << ") ------------";
         emitComment(fmt.str());
-        variable nondet = createFrom(nondet_int, -2);
+        variable nondet = createFrom(nondet_int);
         emitAssignment(nondet);
         nondet_int = nondet;
 
@@ -483,9 +514,9 @@ class Transformer {
             assign_thread_to_user(i);
         }
 
-        TExpr assume_body = thread_assigneds[0].solver_var;
+        TExpr assume_body = thread_assigneds[0].get_solver_var();
         for (int i = 1; i < threads_count; i++) {
-            assume_body = solver->createAndExpr(thread_assigneds[i].solver_var, assume_body);
+            assume_body = solver->createAndExpr(thread_assigneds[i].get_solver_var(), assume_body);
         }
         emitAssumption(assume_body);
     }
@@ -497,7 +528,7 @@ class Transformer {
             for (int j = 0; j < cr_array_size; j++) {
                 if (admin_role_array_index[i] == cr_array[j].target_role_index) {
                     int r_index = admin_role_array_index[i];
-                    TExpr value = solver->createOrExpr(globals[r_index].solver_var, locals[thread_id][r_index].solver_var);
+                    TExpr value = solver->createOrExpr(globals[r_index].get_solver_var(), locals[thread_id][r_index].get_solver_var());
                     variable n_glob = createFrom(globals[r_index], value);
                     emitAssignment(n_glob);
                     globals[r_index] = n_glob;
@@ -510,52 +541,54 @@ class Transformer {
 
     TExpr generate_CA_cond(int thread_id, int ca_index) {
         int j;
-        TExpr cond = -1;
+        TExpr cond;
+        // TExpr cond = -1;
         // Admin role must be available
-        TExpr admin_cond = globals[ca_array[ca_index].admin_role_index].solver_var;
+        TExpr admin_cond = globals[ca_array[ca_index].admin_role_index].get_solver_var();
         cond = admin_cond;
 
         // Precondition must be satisfied
         if (ca_array[ca_index].type == 0) {     // Has precondition
             if (ca_array[ca_index].positive_role_array_size > 0) {
                 int* ca_array_p = ca_array[ca_index].positive_role_array;
-                TExpr ca_cond = locals[thread_id][ca_array_p[0]].solver_var;
+                TExpr ca_cond = locals[thread_id][ca_array_p[0]].get_solver_var();
                 for (j = 1; j < ca_array[ca_index].positive_role_array_size; j++) {
-                    ca_cond = solver->createAndExpr(ca_cond, locals[thread_id][ca_array_p[j]].solver_var);
+                    ca_cond = solver->createAndExpr(ca_cond, locals[thread_id][ca_array_p[j]].get_solver_var());
                 }
                 cond = solver->createAndExpr(cond, ca_cond);
             }
             if (ca_array[ca_index].negative_role_array_size > 0) {
                 int* ca_array_n = ca_array[ca_index].negative_role_array;
-                TExpr cr_cond = solver->createNotExpr(locals[thread_id][ca_array_n[0]].solver_var);
+                TExpr cr_cond = solver->createNotExpr(locals[thread_id][ca_array_n[0]].get_solver_var());
                 for (j = 1; j < ca_array[ca_index].negative_role_array_size; j++) {
-                    cr_cond = solver->createAndExpr(cr_cond, solver->createNotExpr(locals[thread_id][ca_array_n[j]].solver_var));
+                    cr_cond = solver->createAndExpr(cr_cond, solver->createNotExpr(locals[thread_id][ca_array_n[j]].get_solver_var()));
                 }
                 cond = solver->createAndExpr(cond, cr_cond);
             }
         }
         // Optional this user is not in this target role yet
-        TExpr not_ass = solver->createNotExpr(locals[thread_id][ca_array[ca_index].target_role_index].solver_var);
+        TExpr not_ass = solver->createNotExpr(locals[thread_id][ca_array[ca_index].target_role_index].get_solver_var());
         cond = solver->createAndExpr(cond, not_ass);
         return cond;
     }
 
     TExpr generate_CR_cond(int thread_id, int cr_index) {
         int i;
-        TExpr cond = -1;
+        TExpr cond;
+        // TExpr cond = -1;
         // Admin role must be available
-        TExpr admin_cond = globals[cr_array[cr_index].admin_role_index].solver_var;
+        TExpr admin_cond = globals[cr_array[cr_index].admin_role_index].get_solver_var();
         // Optional this user is in this target role yet
-        TExpr not_ass = locals[thread_id][cr_array[cr_index].target_role_index].solver_var;
+        TExpr not_ass = locals[thread_id][cr_array[cr_index].target_role_index].get_solver_var();
         cond = admin_cond;
         cond = solver->createAndExpr(admin_cond, not_ass);
         return cond;
     }
 
     TExpr generate_PC_cond(int rule_id) {
-        TExpr cond = solver->createEqExpr(program_counters[0].solver_var, create_constant(rule_id, pc_size));
+        TExpr cond = solver->createEqExpr(program_counters[0].get_solver_var(), create_constant(rule_id, pc_size));
         for (int i = 1; i < steps; i++) {
-            cond = solver->createOrExpr(cond, solver->createEqExpr(program_counters[i].solver_var, create_constant(rule_id, pc_size)));
+            cond = solver->createOrExpr(cond, solver->createEqExpr(program_counters[i].get_solver_var(), create_constant(rule_id, pc_size)));
         }
         return cond;
     }
@@ -620,7 +653,8 @@ class Transformer {
     simulate_can_assigns_by_role(int thread_id, int target_role_index, int rule_id) {
         // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
         int i = 0;
-        TExpr pc_cond = -1, ca_cond = -1, all_cond = -1;
+        TExpr pc_cond, ca_cond, all_cond;
+        // TExpr pc_cond = -1, ca_cond = -1, all_cond = -1;
         //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
         clean_fmt();
         fmt << "--- ASSIGNMENT RULES FOR ROLE " << role_array[target_role_index] << " ---";
@@ -653,9 +687,9 @@ class Transformer {
         guard = ca_guard;
 
         if (belong_to(admin_role_array_index, admin_role_array_index_size, target_role_index)) {
-            TExpr ngval = solver->createCondExpr(ca_guard.solver_var, one, globals[target_role_index].solver_var);
+            TExpr ngval = solver->createCondExpr(ca_guard.get_solver_var(), one, globals[target_role_index].get_solver_var());
             variable nglob = createFrom(globals[target_role_index], ngval);
-            TExpr nlval = solver->createCondExpr(ca_guard.solver_var, one, locals[thread_id][target_role_index].solver_var);
+            TExpr nlval = solver->createCondExpr(ca_guard.get_solver_var(), one, locals[thread_id][target_role_index].get_solver_var());
             variable nloc = createFrom(locals[thread_id][target_role_index], nlval);
             emitAssignment(nglob);
             emitAssignment(nloc);
@@ -663,7 +697,7 @@ class Transformer {
             locals[thread_id][target_role_index] = nloc;
         }
         else {
-            TExpr nlval = solver->createCondExpr(ca_guard.solver_var, one, locals[thread_id][target_role_index].solver_var);
+            TExpr nlval = solver->createCondExpr(ca_guard.get_solver_var(), one, locals[thread_id][target_role_index].get_solver_var());
             variable nloc = createFrom(locals[thread_id][target_role_index], nlval);
             emitAssignment(nloc);
             locals[thread_id][target_role_index] = nloc;
@@ -674,7 +708,8 @@ class Transformer {
     simulate_can_revokes_by_role(int thread_id, int target_role_index, int rule_id) {
         // Precondition: exists always at least one CR that assign the role i.e.: roles_cr_counts[target_role_index] > 1
         int i = 0;
-        TExpr pc_cond = -1, cr_cond = -1, all_cond = -1;
+        TExpr pc_cond, cr_cond, all_cond;
+        // TExpr pc_cond = -1, cr_cond = -1, all_cond = -1;
         //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
         clean_fmt();
         fmt << "--- REVOKE RULES FOR ROLE " << role_array[target_role_index] << " ---";
@@ -707,9 +742,9 @@ class Transformer {
         guard = cr_guard;
 
         if (belong_to(admin_role_array_index, admin_role_array_index_size, target_role_index)) {
-            TExpr ngval = solver->createCondExpr(cr_guard.solver_var, zero, globals[target_role_index].solver_var);
+            TExpr ngval = solver->createCondExpr(cr_guard.get_solver_var(), zero, globals[target_role_index].get_solver_var());
             variable nglob = createFrom(globals[target_role_index], ngval);
-            TExpr nlval = solver->createCondExpr(cr_guard.solver_var, zero, locals[thread_id][target_role_index].solver_var);
+            TExpr nlval = solver->createCondExpr(cr_guard.get_solver_var(), zero, locals[thread_id][target_role_index].get_solver_var());
             variable nloc = createFrom(locals[thread_id][target_role_index], nlval);
             emitAssignment(nglob);
             emitAssignment(nloc);
@@ -717,7 +752,7 @@ class Transformer {
             locals[thread_id][target_role_index] = nloc;
         }
         else {
-            TExpr nlval = solver->createCondExpr(cr_guard.solver_var, zero, locals[thread_id][target_role_index].solver_var);
+            TExpr nlval = solver->createCondExpr(cr_guard.get_solver_var(), zero, locals[thread_id][target_role_index].get_solver_var());
             variable nloc = createFrom(locals[thread_id][target_role_index], nlval);
             emitAssignment(nloc);
             locals[thread_id][target_role_index] = nloc;
@@ -730,11 +765,11 @@ class Transformer {
         clean_fmt();
         fmt << "---------------ERROR CHECK THREAD " << thread_id << " ROLE " << role_array[goal_role_index] << "------------"; 
         emitComment(fmt.str());
-        TExpr term_cond = locals[thread_id][goal_role_index].solver_var;
+        TExpr term_cond = locals[thread_id][goal_role_index].get_solver_var();
         variable term_guard = createFrom(guard, term_cond);
         emitAssignment(term_guard);
         guard = term_guard;
-        TExpr assertion_cond = solver->createCondExpr(term_guard.solver_var, zero, one);
+        TExpr assertion_cond = solver->createCondExpr(term_guard.get_solver_var(), zero, one);
         emitAssertion(assertion_cond);
     }
 
@@ -777,10 +812,10 @@ class Transformer {
         fmt << "---------- ASSIGNING PC FOR THREAD " << thread_id << " ROUND " << round << " ---------";
         emitComment(fmt.str());
         for (int step = 0; step < steps; step++) {
-            variable nondet_res = createFrom(nondet_int, -2);
+            variable nondet_res = createFrom(nondet_int);
             emitAssignment(nondet_res);
             nondet_int = nondet_res;
-            variable npc_n = createFrom(program_counters[step], nondet_res.solver_var);
+            variable npc_n = createFrom(program_counters[step], nondet_res.get_solver_var());
             emitAssignment(npc_n);
             program_counters[step] = npc_n;
         }
@@ -811,11 +846,11 @@ class Transformer {
         for ( ; aite != final_assertions.end(); ++aite) {
             assert_body = solver->createOrExpr(assert_body, solver->createNotExpr((*aite)));
         }
-        solver->assert(assert_body);
+        solver->assertLater(assert_body);
     }
 
     void generate_program(int rounds) {
-        generate_zero_one();
+        generate_zero_one_dummy();
 
         auto start = std::chrono::high_resolution_clock::now();
 
@@ -936,7 +971,7 @@ static void polymorphic_transform(std::shared_ptr<SMTFactory<TVar, TExpr>> solve
             core.transform_2_bounded_smt(solver, rounds, steps, wanted_threads_count);
 }
 
-static void transform_2_bounded_smt(AvailableSolvers::Solver solver, char *inputFile, int rounds, int steps, int wanted_threads_count) {
+void transform_2_bounded_smt(char *inputFile, FILE* outputFile, int rounds, int steps, int wanted_threads_count) {
     if (rounds < 1) {
         fprintf(stderr, "Cannot simulate a number of rounds < 1\n");
         exit(EXIT_FAILURE);
@@ -951,11 +986,20 @@ static void transform_2_bounded_smt(AvailableSolvers::Solver solver, char *input
     preprocess(0);
     build_config_array();
 
+    AvailableSolvers::Solver solver(AvailableSolvers::Z3);
+
     switch (solver) {
         case AvailableSolvers::YICES: {
             std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());
             // auto core(solver);
             polymorphic_transform(solver, rounds, steps, wanted_threads_count);
+            break;
+        }
+        case AvailableSolvers::Z3: {
+            std::shared_ptr<SMTFactory<expr, expr>> solver(new Z3Solver());
+            // auto core(solver);
+            polymorphic_transform(solver, rounds, steps, wanted_threads_count);
+            break;
         }
         break;
     }

@@ -15,7 +15,8 @@ namespace SMT {
     class AvailableSolvers {
         public:
         enum Solver {
-            YICES
+            YICES,
+            Z3
         };
     };
 
@@ -41,13 +42,14 @@ namespace SMT {
         virtual TExpr createEqExpr(TExpr lhs, TExpr rhs) = 0;
         virtual TExpr createImplExpr(TExpr lhs, TExpr rhs) = 0;
 
-        virtual void assert(TExpr expr) = 0;
+        virtual void assertLater(TExpr expr) = 0;
         virtual void assertNow(TExpr expr) = 0;
         virtual SMTResult solve() = 0;
         virtual void printModel() = 0;
 
         virtual void loadToSolver() = 0;
         virtual void clean() = 0;
+        virtual void printContext() = 0;
 
         // virtual void push() = 0;
         // virtual void pop() = 0;
