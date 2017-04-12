@@ -150,7 +150,7 @@ main(int argc, char **argv)
         }
     }
 
-    if (algo_arg == NULL && !show_statistics){
+    if (algo_arg == NULL && !show_statistics && !prune){
         if (format_arg == NULL) {
             error_exit();
         }
@@ -192,6 +192,7 @@ main(int argc, char **argv)
         }
         if (prune) {
             SMT::prune(filename, out_file);
+            success_exit();
         }
 
 

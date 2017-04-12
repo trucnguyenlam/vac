@@ -40,6 +40,10 @@ namespace SMT {
         virtual TExpr createNotExpr(TExpr expr) = 0;
         virtual TExpr createCondExpr(TExpr cond, TExpr choice1, TExpr choice2) = 0;
         virtual TExpr createEqExpr(TExpr lhs, TExpr rhs) = 0;
+        virtual TExpr createGtExpr(TExpr lhs, TExpr rhs) = 0;
+        virtual TExpr createGEqExpr(TExpr lhs, TExpr rhs) = 0;
+        virtual TExpr createLtExpr(TExpr lhs, TExpr rhs) = 0;
+        virtual TExpr createLEqExpr(TExpr lhs, TExpr rhs) = 0;
         virtual TExpr createImplExpr(TExpr lhs, TExpr rhs) = 0;
 
         virtual void assertLater(TExpr expr) = 0;

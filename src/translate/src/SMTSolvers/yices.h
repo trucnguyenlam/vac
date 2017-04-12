@@ -27,6 +27,10 @@ namespace SMT {
         term_t createNotExpr(term_t expr) override;
         term_t createCondExpr(term_t cond, term_t choice1, term_t choice2) override;
         term_t createEqExpr(term_t lhs, term_t rhs) override;
+        term_t createGtExpr(term_t lhs, term_t rhs) override;
+        term_t createGEqExpr(term_t lhs, term_t rhs) override;
+        term_t createLtExpr(term_t lhs, term_t rhs) override;
+        term_t createLEqExpr(term_t lhs, term_t rhs) override;
         term_t createImplExpr(term_t lhs, term_t rhs) override;
 
         void assertLater(term_t expr) override;

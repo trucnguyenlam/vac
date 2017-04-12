@@ -60,6 +60,23 @@ namespace SMT {
         return res;
     }
 
+    expr Z3Solver::createGtExpr(expr lhs, expr rhs) {
+        expr res = lhs > rhs;
+        return res;
+    }
+    expr Z3Solver::createGEqExpr(expr lhs, expr rhs) {
+        expr res = lhs >= rhs;
+        return res;
+    }
+    expr Z3Solver::createLtExpr(expr lhs, expr rhs) {
+        expr res = lhs < rhs;
+        return res;
+    }
+    expr Z3Solver::createLEqExpr(expr lhs, expr rhs) {
+        expr res = lhs <= rhs;
+        return res;
+    }
+
     expr Z3Solver::createImplExpr(expr lhs, expr rhs) {
         expr res = implies(lhs, rhs);
         return res;

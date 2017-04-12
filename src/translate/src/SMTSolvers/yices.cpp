@@ -2,13 +2,24 @@
 #include <stdexcept>
 
 namespace SMT {
+    
+    //FIXME: remove this barbarian thing using a singleton o whatever else but this.
+    static bool destroyed = false;
 
     YicesSolver::YicesSolver() {
         yices_init();
         context = yices_new_context(NULL);
     }
     YicesSolver::~YicesSolver() {
-        yices_exit();
+        if (!destroyed) {
+            //FIXME: remove this barbarian thing using a singleton o whatever else but this.
+            yices_exit();
+            destroyed = true;
+        }
+        else {
+            // fprintf(stderr, "Yices already destroyed...\n");
+            // eptr = std::current_exception(); // capture
+        }
     }
 
     // term_t YicesSolver::createBoolType() {
@@ -62,35 +73,91 @@ namespace SMT {
     term_t YicesSolver::createOrExpr(term_t lhs, term_t rhs) {
         term_t res = yices_or2(lhs, rhs);
         if (res < 0) {
-            fprintf(stderr, "Error! Term is less than 0!\n");
+            fprintf(stderr, "Error in %s! Term is less than 0!\n\t(lhs: %d,\n\t rhs: %d)\n", "YicesSolver::createOrExpr", lhs, rhs);
+            yices_pp_term(stderr, lhs, 160, 80, 0);
+            yices_pp_term(stderr, rhs, 160, 80, 0);
+            yices_print_error(stderr);
         }
         return res;
     }
     term_t YicesSolver::createAndExpr(term_t lhs, term_t rhs) {
         term_t res = yices_and2(lhs, rhs);
         if (res < 0) {
-            fprintf(stderr, "Error! Term is less than 0!\n");
+            fprintf(stderr, "Error in %s! Term is less than 0!\n\t(lhs: %d,\n\t rhs: %d)\n", "YicesSolver::createAndExpr", lhs, rhs);
+            yices_pp_term(stderr, lhs, 160, 80, 0);
+            yices_pp_term(stderr, rhs, 160, 80, 0);
+            yices_print_error(stderr);
         }
         return res;
     }
     term_t YicesSolver::createNotExpr(term_t expr) {
         term_t res = yices_not(expr);
         if (res < 0) {
-            fprintf(stderr, "Error! Term is less than 0!\n");
+            fprintf(stderr, "Error in %s! Term is less than 0!\n\t(expr: %d)\n", "YicesSolver::createNotExpr", expr);
+            yices_pp_term(stderr, expr, 160, 80, 0);
+            yices_print_error(stderr);
         }
         return res;
     }
     term_t YicesSolver::createCondExpr(term_t cond, term_t choice1, term_t choice2) {
         term_t res = yices_ite(cond, choice1, choice2);
         if (res < 0) {
-            fprintf(stderr, "Error! Term is less than 0!\n");
+            fprintf(stderr, "Error in %s! Term is less than 0!\n\t(cond: %d,\n\t then: %d\n\t else: %d)\n", "YicesSolver::createCondExpr", cond, choice1, choice2);
+            yices_pp_term(stderr, cond, 160, 80, 0);
+            yices_pp_term(stderr, choice1, 160, 80, 0);
+            yices_pp_term(stderr, choice2, 160, 80, 0);
+            yices_print_error(stderr);
         }
         return res;
     }
     term_t YicesSolver::createEqExpr(term_t lhs, term_t rhs) {
         term_t res = yices_eq(lhs, rhs);
         if (res < 0) {
-            fprintf(stderr, "Error! Term is less than 0!\n");
+            fprintf(stderr, "Error in %s! Term is less than 0!\n\t(lhs: %d,\n\t rhs: %d)\n", "YicesSolver::createEqExpr", lhs, rhs);
+            yices_pp_term(stderr, lhs, 160, 80, 0);
+            yices_pp_term(stderr, rhs, 160, 80, 0);
+            yices_print_error(stderr);
+        }
+        return res;
+    }
+
+    term_t YicesSolver::createGtExpr(term_t lhs, term_t rhs) {
+        term_t res = yices_bvgt_atom(lhs, rhs);
+        if (res < 0) {
+            fprintf(stderr, "Error in %s! Term is less than 0!\n\t(lhs: %d,\n\t rhs: %d)\n", "YicesSolver::createGtExpr", lhs, rhs);
+            yices_pp_term(stderr, lhs, 160, 80, 0);
+            yices_pp_term(stderr, rhs, 160, 80, 0);
+            yices_print_error(stderr);
+        }
+        return res;
+    }
+    term_t YicesSolver::createGEqExpr(term_t lhs, term_t rhs) {
+        term_t res = yices_bvge_atom(lhs, rhs);
+        if (res < 0) {
+            fprintf(stderr, "Error in %s! Term is less than 0!\n\t(lhs: %d,\n\t rhs: %d)\n", "YicesSolver::createGEqExpr", lhs, rhs);
+            yices_pp_term(stderr, lhs, 160, 80, 0);
+            yices_pp_term(stderr, rhs, 160, 80, 0);
+            yices_print_error(stderr);
+        }
+        return res;
+    }
+    term_t YicesSolver::createLtExpr(term_t lhs, term_t rhs) {
+        term_t res = yices_bvlt_atom(lhs, rhs);
+        if (res < 0) {
+            fprintf(stderr, "Error in %s! Term is less than 0!\n\t(lhs: %d,\n\t rhs: %d)\n", "YicesSolver::createLtExpr", lhs, rhs);
+            yices_pp_term(stderr, lhs, 160, 80, 0);
+            yices_pp_term(stderr, rhs, 160, 80, 0);
+            yices_print_error(stderr);
+        }
+        return res;
+    }
+    term_t YicesSolver::createLEqExpr(term_t lhs, term_t rhs) {
+        term_t res = yices_bvle_atom(lhs, rhs);
+        if (res < 0) {
+            fprintf(stderr, "Error in %s! Term is less than 0!\n\t(lhs: %d,\n\t rhs: %d)\n", "YicesSolver::createLEqExpr", lhs, rhs);
+            yices_pp_term(stderr, lhs, 160, 80, 0);
+            yices_pp_term(stderr, rhs, 160, 80, 0);
+            yices_print_error(stderr);
         }
         return res;
     }
@@ -98,7 +165,10 @@ namespace SMT {
     term_t YicesSolver::createImplExpr(term_t lhs, term_t rhs) {
         term_t res = yices_implies(lhs, rhs);
         if (res < 0) {
-            fprintf(stderr, "Error! Term is less than 0!\n");
+            fprintf(stderr, "Error in %s! Term is less than 0!\n\t(lhs: %d,\n\t rhs: %d)\n", "YicesSolver::createImplExpr", lhs, rhs);
+            yices_pp_term(stderr, lhs, 160, 80, 0);
+            yices_pp_term(stderr, rhs, 160, 80, 0);
+            yices_print_error(stderr);
         }
         return res;
     }

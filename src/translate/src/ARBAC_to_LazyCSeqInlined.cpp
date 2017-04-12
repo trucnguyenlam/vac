@@ -117,7 +117,7 @@ deallocate_precomputated_values() {
 static int NumBits(int pc) {
     int i = 1, bit = 0;
 
-    if (pc <= 2 ) return 1;
+    if (pc < 2 ) return 1;
 
     while (pc >= i) {
         i = i * 2;

@@ -601,6 +601,41 @@ namespace SMT {
             }
         }
 
+
+
+        void apply_rule_6(char* inputFile, FILE* outputFile) {
+
+            // int ca_index = 38;
+            int ca_index = 0;
+            int removed = 0;
+            transform_2_lazycseq_r6(inputFile, outputFile, ca_index, true);
+            auto start = std::chrono::high_resolution_clock::now();
+            fprintf(stdout, "Total: %d rules\n", ca_array_size);
+            for (int i = 0; i < ca_array_size; i++) {
+                bool res = apply_r6(i, true);
+
+                if (res) {
+                    // print_ca_comment(stdout, i);
+                    // fprintf(stdout, "Rule %d %s be removed since not fireable\n\n", i, res ? "CAN" : "CANNOT");
+                    removed++;
+                    fprintf(stdout, "X");
+                    fflush(stdout);
+                }
+                else {
+                    fprintf(stdout, "-");
+                    fflush(stdout);
+                }
+            }
+
+            fprintf(stdout, "\nRemoved %d rules\n", removed);
+
+
+            auto end = std::chrono::high_resolution_clock::now();
+            auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+            std::cout << "------------ printNonPos " << milliseconds.count() << " ms ------------\n";
+
+        }
+
         Pruning(std::shared_ptr<SMTFactory<TVar, TExpr>> _solver) : solver(_solver) {
             generateRoleVars();
             generate_ca_cr_formulae();
@@ -638,19 +673,15 @@ namespace SMT {
         preprocess(0);
         build_config_array();
 
-        std::shared_ptr<SMTFactory<expr, expr>> solver2(new Z3Solver());
-        expr x = solver2->createBoolVar("x");
-        expr y = solver2->createBoolVar("y");
-        expr z = solver2->createAndExpr(x, y);
-
-        solver2->assertNow(z);
-        auto res = solver2->solve();
-        solver2->printContext();
+        
 
         // Pruning<z3::expr, z3::expr> core(solver);
-
         std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());
-        Pruning<expr, expr> core(solver2);
+        Pruning<term_t, term_t> core(solver);
+
+        core.apply_rule_6(inputFile, output);
+
+        return;
 
         auto start = std::chrono::high_resolution_clock::now();
 

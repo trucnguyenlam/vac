@@ -33,6 +33,10 @@ namespace SMT {
         expr createNotExpr(expr _expr) override;
         expr createCondExpr(expr cond, expr choice1, expr choice2) override;
         expr createEqExpr(expr lhs, expr rhs) override;
+        expr createGtExpr(expr lhs, expr rhs) override;
+        expr createGEqExpr(expr lhs, expr rhs) override;
+        expr createLtExpr(expr lhs, expr rhs) override;
+        expr createLEqExpr(expr lhs, expr rhs) override;
         expr createImplExpr(expr lhs, expr rhs) override;
 
         void assertLater(expr e) override;

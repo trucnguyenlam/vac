@@ -12,7 +12,7 @@ translate_LDADD = \
             ../../ccl/src/libccl.a \
             ../deps/yices_2.5.2_static/lib/libyices.a \
             ../deps/z3_static/lib/libz3.a \
-            -lgmp -lm -lgomp -ldl -lstdc++
+             -lgmp -lgomp -ldl -lstdc++
 # 
 # 
 #            ../deps/z3_static/lib/libz3.a \
@@ -44,6 +44,8 @@ translate_SOURCES =	ARBACData.cpp \
 					ARBAC_to_LazyCSeqInlined.cpp \
 					ARBAC_to_SSA.cpp \
 					ARBAC_to_yices.cpp \
+					ARBAC_to_LazyCSeq_r6.cpp \
+					ARBAC_to_LazyCSeq_r6_ssa.cpp \
 					ARBAC_to_CompletenessLazyCSeq.cpp \
 					ARBAC_to_smt.cpp \
 					SSA_Structs.cpp \
@@ -53,4 +55,5 @@ translate_SOURCES =	ARBACData.cpp \
 					Logics.cpp \
 					Yices.cpp \
 					varOrd.cpp
+
 
