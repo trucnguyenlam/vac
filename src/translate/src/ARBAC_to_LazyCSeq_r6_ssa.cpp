@@ -708,14 +708,21 @@ class R6Transformer {
     }
 };
 
-    // template <typename TVar, typename TExpr>
-    // PruningR6<TVar, TExpr>::PruningR6(std::shared_ptr<SMTFactory<TVar, TExpr>> _solver) : solver(_solver) { }
-    // template <typename TVar, typename TExpr>
-    // bool PruningR6<TVar, TExpr>::apply(int rule_index, bool is_ca) {
-    //     R6Transformer<term_t, term_t> transf(solver, rule_index, is_ca);
-    //     bool res = transf.apply_r6(rule_index, is_ca);
-    //     return res;
-    // }
+    template <typename TVar, typename TExpr>
+    bool apply_r6(std::shared_ptr<SMTFactory<TVar, TExpr>> solver, int rule_index, bool is_ca) {
+        R6Transformer<TVar, TExpr> transf(solver, rule_index, is_ca);
+        // std::shared_ptr<SMTFactory<expr, expr>> solver(new Z3Solver());
+        // R6Transformer<expr, expr> transf(solver, rule_index, is_ca);
+        bool res = transf.apply_r6(rule_index, is_ca);
+        // if (res || true)
+        //     solver->printContext();
+        return res;
+    }
+
+
+    template bool apply_r6<term_t, term_t>(std::shared_ptr<SMTFactory<term_t, term_t>> solver, int rule_index, bool is_ca);
+    template bool apply_r6<expr, expr>(std::shared_ptr<SMTFactory<expr, expr>> solver, int rule_index, bool is_ca);
+
 
     bool apply_r6(int rule_index, bool is_ca) {
         std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());

@@ -4,22 +4,13 @@
 namespace SMT {
     
     //FIXME: remove this barbarian thing using a singleton o whatever else but this.
-    static bool destroyed = false;
 
     YicesSolver::YicesSolver() {
         yices_init();
         context = yices_new_context(NULL);
     }
     YicesSolver::~YicesSolver() {
-        if (!destroyed) {
-            //FIXME: remove this barbarian thing using a singleton o whatever else but this.
-            yices_exit();
-            destroyed = true;
-        }
-        else {
-            // fprintf(stderr, "Yices already destroyed...\n");
-            // eptr = std::current_exception(); // capture
-        }
+        yices_exit();
     }
 
     // term_t YicesSolver::createBoolType() {

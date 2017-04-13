@@ -4,7 +4,7 @@
 #include <map>
 #include <memory>
 
-#include <SMT.h>
+#include "SMT.h"
 
 namespace SMT {
     class Defs {

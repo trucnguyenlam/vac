@@ -606,17 +606,22 @@ namespace SMT {
         void apply_rule_6(char* inputFile, FILE* outputFile) {
 
             // int ca_index = 38;
-            int ca_index = 0;
+            int ca_index = 2;
             int removed = 0;
             transform_2_lazycseq_r6(inputFile, outputFile, ca_index, true);
             auto start = std::chrono::high_resolution_clock::now();
             fprintf(stdout, "Total: %d rules\n", ca_array_size);
             for (int i = 0; i < ca_array_size; i++) {
-                bool res = apply_r6(i, true);
+                solver->clean();
+                bool res = apply_r6<TVar, TExpr>(this->solver, i, true);
+
+//                if (i == ca_index) {
+//                    solver->printContext();
+//                }
 
                 if (res) {
-                    // print_ca_comment(stdout, i);
-                    // fprintf(stdout, "Rule %d %s be removed since not fireable\n\n", i, res ? "CAN" : "CANNOT");
+//                    print_ca_comment(stdout, i);
+//                    fprintf(stdout, "Rule %d %s be removed since not fireable\n\n", i, res ? "CAN" : "CANNOT");
                     removed++;
                     fprintf(stdout, "X");
                     fflush(stdout);
@@ -673,11 +678,11 @@ namespace SMT {
         preprocess(0);
         build_config_array();
 
-        
 
-        // Pruning<z3::expr, z3::expr> core(solver);
-        std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());
-        Pruning<term_t, term_t> core(solver);
+        std::shared_ptr<SMTFactory<z3::expr, z3::expr>> solver(new Z3Solver());
+        Pruning<z3::expr, z3::expr> core(solver);
+//        std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());
+//        Pruning<term_t, term_t> core(solver);
 
         core.apply_rule_6(inputFile, output);
 
