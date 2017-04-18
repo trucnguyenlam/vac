@@ -1,4 +1,4 @@
-set(Z3_PREFIX "" CACHE PATH "path ")
+set(Z3_PREFIX "${Z3_PREFIX}" CACHE PATH "path ")
 
 
 find_path(Z3_INCLUDE_DIR z3pp.h
@@ -17,7 +17,7 @@ if(Z3_FOUND)
    if(NOT Z3_FIND_QUIETLY)
       MESSAGE(STATUS "Found Z3: ${Z3_LIBRARY}")
    endif()
-elseif(Z3_FOUND)
+elseif(NOT Z3_FOUND)
    if(Z3_FIND_REQUIRED)
       message(FATAL_ERROR "Could not find Z3")
    endif()

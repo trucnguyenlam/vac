@@ -1,4 +1,4 @@
-set(ANTLR3C_PREFIX "" CACHE PATH "path ")
+set(ANTLR3C_PREFIX "${ANTLR3C_PREFIX}" CACHE PATH "path ")
 
 
 find_path(ANTLR3C_INCLUDE_DIR antlr3.h
@@ -17,7 +17,7 @@ if(ANTLR3C_FOUND)
    if(NOT ANTLR3C_FIND_QUIETLY)
       MESSAGE(STATUS "Found ANTLR3C: ${ANTLR3C_LIBRARY}")
    endif()
-elseif(ANTLR3C_FOUND)
+elseif(NOT ANTLR3C_FOUND)
    if(ANTLR3C_FIND_REQUIRED)
       message(FATAL_ERROR "Could not find ANTLR3C")
    endif()

@@ -84,7 +84,7 @@ find_package(CCL REQUIRED)
 find_package(ANTLR3C REQUIRED)
 
 # Add include directories for local libraries
-include_directories( "${GMP_INCLUDE_DIR}" "${YICES_INCLUDE_DIR}" "${Z3_INCLUDE_DIR}" "${CCL_INCLUDE_DIR}" )
+include_directories( "${YICES_INCLUDE_DIR}" "${Z3_INCLUDE_DIR}" "${CCL_INCLUDE_DIR}" )
 
 # Add OpenMP (used by Z3)
 find_package(OpenMP REQUIRED)

@@ -1,4 +1,4 @@
-set(GMP_PREFIX "" CACHE PATH "path ")
+set(GMP_PREFIX "${GMP_PREFIX}" CACHE PATH "path ")
 
 
 find_path(GMP_INCLUDE_DIR gmp.h gmpxx.h
@@ -17,7 +17,7 @@ if(GMP_FOUND)
    if(NOT GMP_FIND_QUIETLY)
       MESSAGE(STATUS "Found GMP: ${GMP_LIBRARY}")
    endif()
-elseif(GMP_FOUND)
+elseif(NOT GMP_FOUND)
    if(GMP_FIND_REQUIRED)
       message(FATAL_ERROR "Could not find GMP")
    endif()

@@ -1,4 +1,4 @@
-set(YICES_PREFIX "" CACHE PATH "path ")
+set(YICES_PREFIX "${YICES_PREFIX}" CACHE PATH "path ")
 
 
 find_path(YICES_INCLUDE_DIR yices.h
@@ -17,7 +17,7 @@ if(YICES_FOUND)
    if(NOT YICES_FIND_QUIETLY)
       MESSAGE(STATUS "Found YICES: ${YICES_LIBRARY}")
    endif()
-elseif(YICES_FOUND)
+elseif(NOT YICES_FOUND)
    if(YICES_FIND_REQUIRED)
       message(FATAL_ERROR "Could not find YICES")
    endif()

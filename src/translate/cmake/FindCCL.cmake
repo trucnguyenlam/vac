@@ -1,4 +1,4 @@
-set(CCL_PREFIX "" CACHE PATH "path ")
+set(CCL_PREFIX "${CCL_PREFIX}" CACHE PATH "path ")
 
 
 find_path(CCL_INCLUDE_DIR containers.h
@@ -17,7 +17,7 @@ if(CCL_FOUND)
    if(NOT CCL_FIND_QUIETLY)
       MESSAGE(STATUS "Found CCL: ${CCL_LIBRARY}")
    endif()
-elseif(CCL_FOUND)
+elseif(NOT CCL_FOUND)
    if(CCL_FIND_REQUIRED)
       message(FATAL_ERROR "Could not find CCL")
    endif()
