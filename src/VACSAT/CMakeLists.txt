@@ -1,6 +1,6 @@
 #cmake_minimum_required(VERSION 3.7)
 cmake_minimum_required(VERSION 3.5)
-project(satvac)
+project(vacsat)
 
 set(CMAKE_CXX_STANDARD 11)  # enable C++11 standard
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive -Wwrite-strings -static")
@@ -93,6 +93,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 link_directories(${YICES_LIBRARY_DIR} ${Z3_LIBRARY_DIR} ${CCL_LIBRARY_DIR})
 
 
-add_executable(satvac ${SOURCE_FILES})
+add_executable(vacsat ${SOURCE_FILES})
 # Set the link libraries (GMP MUST BE THE LAST)
-target_link_libraries(satvac yices z3 ccl antlr3c gmp)
+target_link_libraries(vacsat yices z3 ccl antlr3c gmp)
