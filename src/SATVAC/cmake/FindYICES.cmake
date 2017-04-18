@@ -1,0 +1,24 @@
+set(YICES_PREFIX "${YICES_PREFIX}" CACHE PATH "path ")
+
+
+find_path(YICES_INCLUDE_DIR yices.h
+    PATHS ${YICES_PREFIX}/include /usr/include /usr/local/include )
+
+find_library(YICES_LIBRARY NAMES yices
+    PATHS ${YICES_PREFIX}/lib /usr/lib /usr/local/lib)
+
+
+if(YICES_INCLUDE_DIR AND YICES_LIBRARY)
+    get_filename_component(YICES_LIBRARY_DIR ${YICES_LIBRARY} PATH)
+    set(YICES_FOUND TRUE)
+endif()
+
+if(YICES_FOUND)
+   if(NOT YICES_FIND_QUIETLY)
+      MESSAGE(STATUS "Found YICES: ${YICES_LIBRARY}")
+   endif()
+elseif(NOT YICES_FOUND)
+   if(YICES_FIND_REQUIRED)
+      message(FATAL_ERROR "Could not find YICES")
+   endif()
+endif()

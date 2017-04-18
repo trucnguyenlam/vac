@@ -1,0 +1,531 @@
+#include "ARBACExact.h"
+
+static void
+declare_variables(FILE *outputFile)
+{
+    int i, j;
+
+    // Declare Fixedpoint
+    fprintf(outputFile, "; Declare options and fixedpoint\n");
+    fprintf(outputFile, "(set-logic HORN)\n");
+
+    fprintf(outputFile, ";---------- FUNCTION DECLARATION ---------\n");
+
+    // Declare Relations
+    fprintf(outputFile, "; The number of users to track is %d\n", NUM_USER_TO_TRACK);
+    fprintf(outputFile, "; Declare the relations, big relation for all tracked users\n");
+    // Big relation for all tracked users
+    fprintf(outputFile, "(declare-fun ARBAC (");
+    for (i = 0; i < NUM_USER_TO_TRACK; i++)
+    {
+        fprintf(outputFile, " Bool");
+        for (j = 0; j < role_array_size; j++)
+        {
+            fprintf(outputFile, " Bool");
+        }
+    }
+    fprintf(outputFile, ") Bool)\n");
+}
+
+// Print the big relation with associated variables to it
+static void
+relation_shorthand(FILE *outputFile)
+{
+    int i, j;
+    fprintf(outputFile, "(ARBAC ");
+    for (j = 0 ; j < NUM_USER_TO_TRACK; ++j)
+    {
+        fprintf(outputFile, " %s", tracked_user_var(j));
+        for (i = 0; i < role_array_size; i++)
+        {
+            fprintf(outputFile, " %s", tracked_user_and_role(j, i));
+        }
+    }
+    fprintf(outputFile, ")");
+}
+
+static void
+admin_condition_shorthand(FILE *outputFile, int user_index, int admin_role_index)
+{
+    fprintf(outputFile, " (and ");
+    relation_shorthand(outputFile);
+    fprintf(outputFile, " (= %s true)", tracked_user_var(user_index));
+    fprintf(outputFile, " (= %s true)", tracked_user_and_role(user_index, admin_role_index));
+    fprintf(outputFile, ")");
+}
+
+static void
+configuration_user_combinatoric_help(FILE * outputFile, const int* vector, int counter)
+{
+    int i, j;
+
+    fprintf(outputFile, "; Configuration %d\n", counter);
+
+    fprintf(outputFile, "(assert (forall (");
+    for (i = 0; i < NUM_USER_TO_TRACK; i++)
+    {
+        fprintf(outputFile, " (%s Bool)", tracked_user_var(i));
+        fprintf(outputFile, " (%s_1 Bool)", tracked_user_var(i));
+        for (j = 0; j < role_array_size; ++j)
+        {
+            fprintf(outputFile, " (%s Bool)", tracked_user_and_role(i, j));
+            if (belong_to(user_config_array[vector[i]].array, user_config_array[vector[i]].array_size, j))
+            {
+                fprintf(outputFile, " (%s_1 Bool)", tracked_user_and_role(i, j));
+            }
+        }
+    }
+    fprintf(outputFile, ") (=> (and ");
+    relation_shorthand(outputFile);
+    for (i = 0; i < NUM_USER_TO_TRACK; i++)
+    {
+        fprintf(outputFile, " (= %s false)", tracked_user_var(i));
+        fprintf(outputFile, " (= %s_1 true)", tracked_user_var(i));
+        for (j = 0; j < role_array_size; j++)
+        {
+            fprintf(outputFile, " (= %s false)", tracked_user_and_role(i, j));
+            if (belong_to(user_config_array[vector[i]].array, user_config_array[vector[i]].array_size, j))
+            {
+                fprintf(outputFile, " (= %s_1 true)", tracked_user_and_role(i, j));
+            }
+        }
+    }
+    fprintf(outputFile, ") (ARBAC ");
+    for (i = 0; i < NUM_USER_TO_TRACK; i++)
+    {
+        fprintf(outputFile, " %s_1", tracked_user_var(i));
+        for (j = 0; j < role_array_size; j++)
+        {
+            if (belong_to(user_config_array[vector[i]].array, user_config_array[vector[i]].array_size, j))
+            {
+                fprintf(outputFile, " %s_1", tracked_user_and_role(i, j));
+            }
+            else
+            {
+                fprintf(outputFile, " %s", tracked_user_and_role(i, j));
+            }
+        }
+    }
+    fprintf(outputFile, "))))\n");
+}
+
+
+static void
+configuration_user_combinatoric(FILE * outputFile)
+{
+    // Pick k track user from n real user
+    // Combinatoric generator
+    int n           = user_array_size;    //number of user in the system
+    int k           = NUM_USER_TO_TRACK;    //length of figures
+    int *vector     = NULL;                 //where the current figure is stored
+    int             gen_result;         //return value of generation functions
+    unsigned int    set_counter;        //counting generated sequences
+    int             x;                  //iterator
+
+    //alloc memory for vector
+    vector = calloc(k, sizeof (int));
+    set_counter = 0;
+    // printf("comb_norep_lex(%u, %u)\n", n, k);
+
+//initialize
+    gen_result = gen_comb_norep_lex_init(vector, n, k);
+
+    if (gen_result == 3)
+    {
+        fprintf(stderr, "error: couldn't initialize\n");
+        abort();
+    }
+
+    if (gen_result == 2)
+    {
+        set_counter++;
+        // printf("{} (%u)\n", set_counter);
+    }
+
+//generate all successors
+    while (gen_result == 0)
+    {
+        set_counter++;
+
+        // for (x = 0; x < k; x++)
+        // {
+        // printf("%u ", vector[x]);
+        configuration_user_combinatoric_help(outputFile, vector, set_counter);
+        // }
+
+        // printf("(%u)\n", set_counter);
+
+        gen_result = gen_comb_norep_lex_next(vector, n, k);
+    }
+}
+
+static void
+configuration_user_selective(FILE *outputFile)
+{
+    int i, j, k, l;
+
+    // For each user, consecutively assign to every tracked user as long as
+    // that user has not been assigned
+
+    for (i = 0; i < user_array_size; ++i)
+    {
+        fprintf(outputFile, "; Configuration for user %s\n", user_array[i]);
+        for (j = 0; j < NUM_USER_TO_TRACK; ++j)   // j is the user to be assigned as user i
+        {
+            fprintf(outputFile, "(assert (forall (");
+            for (k = 0; k < NUM_USER_TO_TRACK; ++k)   // k is just for the combination of all user
+            {
+
+            }
+        }
+
+
+    }
+
+
+}
+
+// TODO: fix it later (for the case of #real users smaller than #tracked users)
+static void
+configuration_user_with_counter(FILE *outputFile)
+{
+    int i, j;
+
+    fprintf(outputFile, "; Configuration \n");
+
+    fprintf(outputFile, "(assert (forall (");
+    for (i = 0; i < NUM_USER_TO_TRACK; i++)
+    {
+        fprintf(outputFile, " (%s Bool)", tracked_user_var(i));
+        if (i < user_array_size)
+        {
+            fprintf(outputFile, " (%s_1 Bool)", tracked_user_var(i));
+        }
+        for (j = 0; j < role_array_size; j++)
+        {
+            fprintf(outputFile, " (%s Bool)", tracked_user_and_role(i, j));
+            if (i < user_array_size)
+            {
+                if (belong_to(user_config_array[i].array, user_config_array[i].array_size, j))
+                {
+                    fprintf(outputFile, " (%s_1 Bool)", tracked_user_and_role(i, j));
+                }
+            }
+        }
+    }
+    fprintf(outputFile, ") (=> (and ");
+    relation_shorthand(outputFile);
+
+    for (i = 0; i < NUM_USER_TO_TRACK; i++)
+    {
+        fprintf(outputFile, " (= %s false)", tracked_user_var(i));
+        if ( i < user_array_size)
+        {
+            fprintf(outputFile, " (= %s_1 true)", tracked_user_var(i));
+        }
+        for (j = 0; j < role_array_size; j++)
+        {
+            fprintf(outputFile, " (= %s false)", tracked_user_and_role(i, j));
+            if (i < user_array_size)
+            {
+                if (belong_to(user_config_array[i].array, user_config_array[i].array_size, j))
+                {
+                    fprintf(outputFile, " (= %s_1 true)", tracked_user_and_role(i, j));
+                }
+            }
+        }
+    }
+    fprintf(outputFile, ") (ARBAC ");
+    for (i = 0; i < NUM_USER_TO_TRACK; i++)
+    {
+        if (i < user_array_size)
+        {
+            fprintf(outputFile, " %s", tracked_user_var(i));
+        }
+        else
+        {
+            fprintf(outputFile, " %s_1", tracked_user_var(i));
+        }
+        for (j = 0; j < role_array_size; j++)
+        {
+            if (i < user_array_size && belong_to(user_config_array[i].array, user_config_array[i].array_size, j))
+            {
+                fprintf(outputFile, " %s_1", tracked_user_and_role(i, j));
+            }
+            else
+            {
+                fprintf(outputFile, " %s", tracked_user_and_role(i, j));
+            }
+        }
+    }
+    fprintf(outputFile, "))))\n");
+}
+
+static void
+initialize_variables(FILE *outputFile)
+{
+    int i, j;
+
+    fprintf(outputFile, "\n;---------- INITIALIZE VARIABLES ---------\n");
+
+    // Initialize variables
+    fprintf(outputFile, "(assert (forall (");
+    for (i = 0; i < NUM_USER_TO_TRACK; i++)
+    {
+        fprintf(outputFile, " (%s Bool)", tracked_user_var(i));
+        for (j = 0; j < role_array_size; j++)
+        {
+            fprintf(outputFile, " (%s Bool)", tracked_user_and_role(i, j));
+        }
+    }
+    fprintf(outputFile, ") (=> (and");
+
+    for (i = 0; i < NUM_USER_TO_TRACK; i++)
+    {
+        fprintf(outputFile, " (= %s false)", tracked_user_var(i));
+        for (j = 0; j < role_array_size; j++)
+        {
+            fprintf(outputFile, " (= %s false)", tracked_user_and_role(i, j));
+        }
+    }
+    fprintf(outputFile, ") "); // end of and
+    relation_shorthand(outputFile);
+    fprintf(outputFile, ")))\n");
+
+    // Initialize variables by user configurations
+    fprintf(outputFile, "\n;---------- CONFIGURATION_USERS ---------\n");
+
+    int NUM_USER_IN_SYSTEM = user_array_size;
+
+    // There will be two cases for this
+    if (NUM_USER_IN_SYSTEM > NUM_USER_TO_TRACK)  // if user in the system more than need to be tracked
+    {
+        // pick k track users from n user
+        // configuration_user_combinatoric(outputFile);
+        configuration_user_selective(outputFile);
+    }
+    else
+    {
+        configuration_user_with_counter(outputFile);
+    }
+
+    fprintf(outputFile, "\n");
+}
+
+static void
+simulate_can_assign_rule(FILE *outputFile, int ca_rule)
+{
+    int i, j, k, l;
+
+    for (i = 0; i < NUM_USER_TO_TRACK; i++)  // i is target user
+    {
+        for (k = 0; k < NUM_USER_TO_TRACK; k++)  // k is admin user
+        {
+            fprintf(outputFile, "(assert (forall (");
+            for (l = 0; l < NUM_USER_TO_TRACK; ++l)  // k is admin user
+            {
+                fprintf(outputFile, " (%s Bool)", tracked_user_var(l));
+                for (j = 0; j < role_array_size; j++)
+                {
+                    fprintf(outputFile, " (%s Bool)", tracked_user_and_role(l, j));
+                    if (j == ca_array[ca_rule].target_role_index && l == i)
+                    {
+                        fprintf(outputFile, " (%s_1 Bool)", tracked_user_and_role(i, j));
+                    }
+                }
+            }
+            fprintf(outputFile, ") (=> ");
+            // Condition
+            fprintf(outputFile, "(and ");
+            // Admin role condition
+            admin_condition_shorthand(outputFile, k, ca_array[ca_rule].admin_role_index);
+            // Condition for target user
+            fprintf(outputFile, " (= %s true)", tracked_user_var(i));
+            if (ca_array[ca_rule].type == 0)
+            {
+                for (j = 0; j < ca_array[ca_rule].positive_role_array_size; j++)
+                {
+                    fprintf(outputFile, " (= %s true)", tracked_user_and_role(i, ca_array[ca_rule].positive_role_array[j]));
+                }
+                for (j = 0; j < ca_array[ca_rule].negative_role_array_size; j++)
+                {
+                    fprintf(outputFile, " (= %s false)", tracked_user_and_role(i, ca_array[ca_rule].negative_role_array[j]));
+                }
+            }
+            fprintf(outputFile, " (= %s false) ", tracked_user_and_role(i, ca_array[ca_rule].target_role_index));
+            fprintf(outputFile, " (= %s_1 true))", tracked_user_and_role(i, ca_array[ca_rule].target_role_index));
+            // Execution
+            fprintf(outputFile, " (ARBAC");
+            for (l = 0; l < NUM_USER_TO_TRACK; ++l)  // k is admin user
+            {
+                fprintf(outputFile, " %s", tracked_user_var(l));
+                for (j = 0; j < role_array_size; j++)
+                {
+                    if (j != ca_array[ca_rule].target_role_index || l != i)
+                    {
+                        fprintf(outputFile, " %s", tracked_user_and_role(l, j));
+                    }
+                    else
+                    {
+                        fprintf(outputFile, " %s_1", tracked_user_and_role(l, j));
+                    }
+                }
+            }
+            fprintf(outputFile, "))))\n");
+        }
+    }
+}
+
+static void
+simulate_can_assigns(FILE *outputFile)
+{
+    int i;
+    for (i = 0; i < ca_array_size; i++)
+    {
+        print_ca_comment_smt2(outputFile, i);
+        if (ca_array[i].type != 2)
+        {
+            simulate_can_assign_rule(outputFile, i);
+        }
+        else
+        {
+            fprintf(outputFile, ";Rule with NEW in the precondition are already involved in initialization\n");
+        }
+    }
+}
+
+static void
+simulate_can_revoke_rule(FILE *outputFile, int cr_rule)
+{
+    int i, j, k, l;
+
+    for (i = 0; i < NUM_USER_TO_TRACK; i++)  // i is target user
+    {
+        for (k = 0; k < NUM_USER_TO_TRACK; k++)  // k is admin user
+        {
+            fprintf(outputFile, "(assert (forall (");
+            for (l = 0; l < NUM_USER_TO_TRACK; l++)
+            {
+                fprintf(outputFile, " (%s Bool)", tracked_user_var(l));
+                for (j = 0; j < role_array_size; j++)
+                {
+                    fprintf(outputFile, " (%s Bool)", tracked_user_and_role(l, j));
+                    if (j == cr_array[cr_rule].target_role_index && i == l)
+                    {
+                        fprintf(outputFile, " (%s_1 Bool)", tracked_user_and_role(i, j));
+                    }
+                }
+            }
+            fprintf(outputFile, ") (=> ");
+            // Condition
+            fprintf(outputFile, "(and ");
+            admin_condition_shorthand(outputFile, k, cr_array[cr_rule].admin_role_index);
+
+            fprintf(outputFile, " (= %s true)", tracked_user_var(i));
+            fprintf(outputFile, " (= %s true) ", tracked_user_and_role(i, cr_array[cr_rule].target_role_index));
+            fprintf(outputFile, " (= %s_1 false))", tracked_user_and_role(i, cr_array[cr_rule].target_role_index));
+            // Execution
+            fprintf(outputFile, "(ARBAC ");
+
+            for (l = 0; l < NUM_USER_TO_TRACK; l++)
+            {
+                fprintf(outputFile, " %s", tracked_user_var(l));
+                for (j = 0; j < role_array_size; j++)
+                {
+                    if (j != cr_array[cr_rule].target_role_index || l != i)
+                    {
+                        fprintf(outputFile, " %s", tracked_user_and_role(l, j));
+                    }
+                    else
+                    {
+                        fprintf(outputFile, " %s_1", tracked_user_and_role(l, j));
+                    }
+                }
+            }
+            fprintf(outputFile, "))))\n");
+        }
+    }
+}
+static void
+simulate_can_revokes(FILE * outputFile)
+{
+    int i;
+    for (i = 0; i < cr_array_size; i++)
+    {
+        print_cr_comment_smt2(outputFile, i);
+        simulate_can_revoke_rule(outputFile, i);
+    }
+}
+
+static void
+query(FILE * outputFile)
+{
+    int i, j, k;
+
+    for (k = 0; k < NUM_USER_TO_TRACK; k++)
+    {
+        fprintf(outputFile, "(assert (not (exists (");
+        for (i = 0; i < NUM_USER_TO_TRACK; i++)
+        {
+            fprintf(outputFile, " (%s Bool)", tracked_user_var(i));
+            for (j = 0; j < role_array_size; j++)
+            {
+                fprintf(outputFile, " (%s Bool)", tracked_user_and_role(i, j));
+            }
+        }
+        fprintf(outputFile, ") (and (= %s true) (= %s true) ", tracked_user_var(k), tracked_user_and_role(k, goal_role_index));
+        relation_shorthand(outputFile);
+        fprintf(outputFile, "))))\n");
+    }
+}
+
+static void
+simulate(FILE * outputFile)
+{
+    fprintf(outputFile, ";---------- SIMULATION OF RULES ---------\n");
+
+    simulate_can_assigns(outputFile);
+    simulate_can_revokes(outputFile);
+
+    // Query the error state
+    fprintf(outputFile, ";------------- The query ------------\n");
+    query(outputFile);
+    fprintf(outputFile, "(check-sat)\n");
+}
+
+void
+transform_2_SMT2_ExactAlg(char *inputFile, FILE *outputFile)
+{
+    /*FILE *outputFile;
+    char *newfile = 0;
+
+    newfile = malloc(strlen(inputFile) + strlen("_ExactAlg_SMT.smt2") + 2);
+    sprintf(newfile, "%s_ExactAlg_SMT.smt2", inputFile);
+    
+    outputFile = fopen(out_name, "w");
+    */
+
+    read_ARBAC(inputFile);
+
+    // Preprocess the ARBAC Policies
+    preprocess(1);
+
+    // Build user configuration array
+    build_config_array();
+
+    //Specify the number of user to track
+    NUM_USER_TO_TRACK = admin_role_array_index_size + 1;
+
+    //Declare variable
+    declare_variables(outputFile);
+
+    //Initialize variables
+    initialize_variables(outputFile);
+
+    //Simulation in while loop
+    simulate(outputFile);
+
+    //fclose(outputFile);
+    free_data();
+    free_precise_temp_data();
+}

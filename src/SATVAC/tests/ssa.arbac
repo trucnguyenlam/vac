@@ -1,0 +1,18 @@
+Roles ra rb rc rd rt;
+
+Users u1 u2  ;
+
+UA  <u1, ra> 
+
+	;
+
+CR 	<ra,ra>;
+
+CA 	<ra,ra,ra>
+	<ra,ra&rb,ra> 
+	<ra,TRUE,rc>
+	<ra,ra&rb,rd>
+	<ra,-ra&-rc&-rd,rt>
+	;
+
+SPEC rt ;
