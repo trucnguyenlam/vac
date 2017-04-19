@@ -111,9 +111,9 @@ namespace SMT {
     }
     
 /*LITERAL OPS*/
-    Literal::Literal(const std::string _name, int _bv_size, Expr _value):
+    Literal::Literal(const std::string _name, int _role_array_index, int _bv_size, Expr _value):
         Exprv(Exprv::LITERAL, std::set<Literalp>()), 
-        name(_name), bv_size(_bv_size), value(_value) { }
+        name(_name), role_array_index(_role_array_index), bv_size(_bv_size), value(_value) { }
 
     void Literal::setLiterals(Literalp &self) {
         this->_literals.insert(self);
@@ -487,14 +487,14 @@ namespace SMT {
 
 
 /*OTHER OPS*/
-    Literalp createLiteralp(const std::string name, int bv_size, Expr value) {
-        std::shared_ptr<Literal> res(new Literal(name, bv_size, value));
+    Literalp createLiteralp(const std::string name, int role_array_index, int bv_size, Expr value) {
+        std::shared_ptr<Literal> res(new Literal(name, role_array_index, bv_size, value));
         res->setLiterals(res);
         return res;
     }
 
-    Expr createLiteralExpr(const std::string name, int bv_size, Expr value) {
-        return std::shared_ptr<Exprv>(new Literal(name, bv_size, value));
+    Expr createLiteralExpr(const std::string name, int role_array_index, int bv_size, Expr value) {
+        return std::shared_ptr<Exprv>(new Literal(name, role_array_index, bv_size, value));
     }
     Expr createConstantExpr(int value, int bv_size) {
         return std::shared_ptr<Exprv>(new Constant(value, bv_size));

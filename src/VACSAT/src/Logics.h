@@ -78,9 +78,9 @@ namespace SMT {
         Exprv(ExprType ty, std::set<Literalp> literals);
         
         int containsLiteral(std::string full_name);
-        void setSuffix(int idx);
-        void setSuffix(std::string suffix);
-        void resetSuffix();
+        virtual void setSuffix(int idx);
+        virtual void setSuffix(std::string suffix);
+        virtual void resetSuffix();
         void setLiteralValue(std::string lit_name, Expr value);
         void resetValue(std::string lit_name = "");
         
@@ -101,7 +101,7 @@ namespace SMT {
 
     class Literal : public Exprv {
         public:
-            Literal(const std::string _name, int bv_size, Expr _value = nullptr);
+            Literal(const std::string _name, int _role_array_index, int bv_size, Expr _value = nullptr);
 
             std::string getSMTName();
             std::string fullName();
@@ -122,6 +122,8 @@ namespace SMT {
             // std::set<std::shared_ptr<Literal>> literals() override;
         
             std::string name;
+            // Index in the role_array
+            int role_array_index;
             // VarType type;
             int bv_size;
             Expr value;
@@ -243,9 +245,9 @@ namespace SMT {
     //         VarType nondet_type;
     //  };
 
-    Literalp createLiteralp(const std::string name, int bv_size, Expr value = nullptr);
+    Literalp createLiteralp(const std::string name, int role_array_index, int bv_size, Expr value = nullptr);
 
-    Expr createLiteralExpr(const std::string name, int bv_size, Expr value = nullptr);
+    Expr createLiteralExpr(const std::string name, int role_array_index, int bv_size, Expr value = nullptr);
     Expr createConstantExpr(int value, int bv_size);
     Expr createOrExpr(Expr lhs, Expr rhs);
     Expr createAndExpr(Expr lhs, Expr rhs);

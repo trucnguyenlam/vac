@@ -10,6 +10,7 @@
 #include "SMT_Pruning.h"
 #include "SMTSolvers/yices.h"
 #include "SMTSolvers/Z3.h"
+#include "Logics.h"
 
 #include <chrono>
 
@@ -103,26 +104,22 @@ class R6Transformer {
 
     /*--- SMT VARIABLE INDEXES ---*/
     /*--- VALUES ARE  ---*/
-    // std::shared_ptr<variable>* role_vars;
-    // std::shared_ptr<variable>* core_sets;
-    // std::shared_ptr<variable> program_counter;
-    // std::shared_ptr<variable> guard;
-    // std::shared_ptr<variable> skip;
-    // std::shared_ptr<variable> nondet_bool;
-    
     variable* role_vars;
     variable* core_value_true;
     variable* core_value_false;
     variable* core_sets;
     variable program_counter;
-    variable guard;
     variable skip;
     variable nondet_bool;
+
+    std::vector<Expr> ca_prec;
+    std::vector<Expr> cr_prec;
+    Expr target;
 
     TExpr zero;
     TExpr one;
 
-    int *core_roles = NULL;
+    bool *core_roles = NULL;
     int core_roles_size = 0;
     int pc_size;
 
@@ -140,32 +137,22 @@ class R6Transformer {
         solver->assertLater(expr);
     }
 
-    void allocate_core_role_array(int ca_index, int is_ca) {
-        core_roles = (int*) calloc(sizeof(int), role_array_size);
+    void allocate_core_role_array(Expr t_expr) {
+        auto cores = t_expr->literals();
+        core_roles = new bool[role_array_size];
         for (int i = 0; i < role_array_size; i++) {
-            core_roles[i] = 0;
+            core_roles[i] = false;
         }
 
-        if (is_ca) {
-            for (int i = 0; i < ca_array[ca_index].positive_role_array_size; i++) {
-                core_roles[ca_array[ca_index].positive_role_array[i]] = 1;
-                core_roles_size++;
-            }
-            for (int i = 0; i < ca_array[ca_index].negative_role_array_size; i++) {
-                core_roles[ca_array[ca_index].negative_role_array[i]] = 1;
-                core_roles_size++;
-            }
-            pc_size = numBits(core_roles_size + 1);
+        for (auto ite = cores.begin(); ite != cores.end(); ++ite) {
+            core_roles[(*ite)->role_array_index] = true;
+            core_roles_size++;
         }
-        else {
-            throw new std::runtime_error("Not firable for CR is not implemented yet...\n");
-            //DO NOTHING FOR THE MOMENT
-        }
-        
+        pc_size = numBits(core_roles_size + 1);
     }
 
     void free_core_role_array() {
-        free(core_roles);
+        delete[] core_roles;
     }
 
     void precompute_merge() {
@@ -173,10 +160,10 @@ class R6Transformer {
         float assignable_roles_count = 0;
         float removable_roles_count = 0;
 
-        roles_ca_counts = (int *) malloc(sizeof(int) * role_array_size);
-        roles_cr_counts = (int *) malloc(sizeof(int) * role_array_size);
-        per_role_ca_indexes = (int **) malloc(sizeof(int *) * role_array_size);
-        per_role_cr_indexes = (int **) malloc(sizeof(int *) * role_array_size);
+        roles_ca_counts = new int[role_array_size];
+        roles_cr_counts = new int[role_array_size];
+        per_role_ca_indexes = new int*[role_array_size];
+        per_role_cr_indexes = new int*[role_array_size];
 
         for (int i = 0; i < role_array_size; ++i) {
             //INSTANTIATING roles_ca_counts and per_role_ca_indexes
@@ -193,7 +180,7 @@ class R6Transformer {
             if (roles_ca_counts[i] > 0) {
                 int k = 0;
                 assignable_roles_count++;
-                per_role_ca_indexes[i] = (int *) malloc(sizeof(int) * roles_ca_counts[i]);
+                per_role_ca_indexes[i] = new int[roles_ca_counts[i]];
 
                 for (int j = 0; j < ca_array_size; ++j) {
                     if (ca_array[j].target_role_index == i) {
@@ -218,7 +205,7 @@ class R6Transformer {
             //INSTANTIATING per_role_cr_indexes CONTENT
             if (roles_cr_counts[i] > 0) {
                 int k = 0;
-                per_role_cr_indexes[i] = (int *) malloc(sizeof(int) * roles_cr_counts[i]);
+                per_role_cr_indexes[i] = new int[roles_cr_counts[i]];
 
                 for (int j = 0; j < cr_array_size; ++j) {
                     if (cr_array[j].target_role_index == i) {
@@ -235,14 +222,14 @@ class R6Transformer {
     void deallocate_precomputated_values() {
         for (int i = 0; i < role_array_size; ++i) {
             if (per_role_ca_indexes[i] != NULL)
-                free(per_role_ca_indexes[i]);
+                delete[] per_role_ca_indexes[i];
             if (per_role_cr_indexes[i] != NULL)
-                free(per_role_cr_indexes[i]);
+                delete[] per_role_cr_indexes[i];
         }
-        free(roles_ca_counts);
-        free(roles_cr_counts);
-        free(per_role_ca_indexes);
-        free(per_role_cr_indexes);
+        delete[] roles_ca_counts;
+        delete[] roles_cr_counts;
+        delete[] per_role_ca_indexes;
+        delete[] per_role_cr_indexes;
     }
 
     int numBits(int pc) {
@@ -257,54 +244,41 @@ class R6Transformer {
 
         return (bit);
     }
-    
-    // int get_pc_count() {
-        //     int n = 0;
-        //     for (int i = 0; i < role_array_size; ++i) {
-        //         if (core_roles[i]) {
-        //             if (roles_ca_counts[i] > 0)
-        //                 n++;
-        //             if (roles_cr_counts[i] > 0)
-        //                 n++;
-        //         }
-        //     }
-        //     return NumBits(n + 1);
-    // }
 
-    void generate_header(FILE *outputFile, char *inputFile, int rule_id, int is_ca) {
+    void generate_header(char *inputFile, int rule_id, int is_ca) {
         time_t mytime;
         mytime = time(NULL);
-        fprintf(outputFile, "/*\n");
-        fprintf(outputFile, "*  generated by VAC pruning-R6 [ 0000 / 0000 ]\n");
-        fprintf(outputFile, "*\n");
-        fprintf(outputFile, "*  instance version    {}\n");
-        fprintf(outputFile, "*\n");
-        fprintf(outputFile, "*  %s\n", ctime(&mytime));
-        fprintf(outputFile, "*\n");
-        fprintf(outputFile, "*  params:\n");
-        fprintf(outputFile, "*    %s, --rounds %d\n", inputFile, core_roles_size + 1);
-        fprintf(outputFile, "* MERGE_RULES\n");
-        fprintf(outputFile, "*\n");
-        fprintf(outputFile, "*  users: %d\n", user_array_size);
-        fprintf(outputFile, "*  roles: %d\n", role_array_size);
-        fprintf(outputFile, "*  adminroles: %d\n", admin_role_array_index_size);
-        fprintf(outputFile, "*  CA: %d\n", ca_array_size);
-        fprintf(outputFile, "*  CR: %d\n", cr_array_size);
-        fprintf(outputFile, "*\n");
-        fprintf(outputFile, "*  Rule: %s, id: %d:\n", is_ca ? "CA" : "CR", rule_id);
+        fprintf(stdout, "/*\n");
+        fprintf(stdout, "*  generated by VAC pruning-R6 [ 0000 / 0000 ]\n");
+        fprintf(stdout, "*\n");
+        fprintf(stdout, "*  instance version    {}\n");
+        fprintf(stdout, "*\n");
+        fprintf(stdout, "*  %s\n", ctime(&mytime));
+        fprintf(stdout, "*\n");
+        fprintf(stdout, "*  params:\n");
+        fprintf(stdout, "*    %s, --rounds %d\n", inputFile, core_roles_size + 1);
+        fprintf(stdout, "* MERGE_RULES\n");
+        fprintf(stdout, "*\n");
+        fprintf(stdout, "*  users: %d\n", user_array_size);
+        fprintf(stdout, "*  roles: %d\n", role_array_size);
+        fprintf(stdout, "*  adminroles: %d\n", admin_role_array_index_size);
+        fprintf(stdout, "*  CA: %d\n", ca_array_size);
+        fprintf(stdout, "*  CR: %d\n", cr_array_size);
+        fprintf(stdout, "*\n");
+        fprintf(stdout, "*  Rule: %s, id: %d:\n", is_ca ? "CA" : "CR", rule_id);
         if (is_ca) {
-            print_ca_comment(outputFile, rule_id);
+            print_ca_comment(stdout, rule_id);
         }
         else {
-            print_cr_comment(outputFile, rule_id);
+            print_cr_comment(stdout, rule_id);
         }
-        fprintf(outputFile, "*/\n");
-        fprintf(outputFile, "\n\n");
+        fprintf(stdout, "*/\n");
+        fprintf(stdout, "\n\n");
 
-        // fprintf(outputFile, "#define IF(PC,COND,APPL) if (");
-        // fprintf(outputFile, "(__cs_pc0 == PC) && (COND) ) { APPL; }\n");
+        // fprintf(stdout, "#define IF(PC,COND,APPL) if (");
+        // fprintf(stdout, "(__cs_pc0 == PC) && (COND) ) { APPL; }\n");
 
-        fprintf(outputFile, "\n");
+        fprintf(stdout, "\n");
 
         return;
     }
@@ -320,7 +294,7 @@ class R6Transformer {
         core_value_false = new variable[role_array_size];
         // ext_vars = new std::shared_ptr<variable>[role_array_size];
         program_counter = variable("pc", -1, pc_size, _solver_ptr);
-        guard = variable("guard", -1, 1, _solver_ptr);
+
         nondet_bool = variable("nondet_bool", -1, 1, _solver_ptr);
         // fprintf(outputFile, "\n/*---------- SKIP CHECKS ---------*/\n");
         skip = variable("skip", 0, 1, _solver_ptr);
@@ -383,42 +357,37 @@ class R6Transformer {
                                                           solver->createBVConst(pc, pc_size)));
     }
 
-    TExpr generate_CA_cond(int ca_index) {
-        TExpr cond = solver->createTrue();
-        // fprintf(outputFile, "        /* Precondition */\n");
-        // Precondition must be satisfied
-        if (ca_array[ca_index].type == 0) {     // Has precondition
-            // fprintf(outputFile, "          /* Positive preconditions */\n");
-            TExpr pos_cond = solver->createTrue();
-            if (ca_array[ca_index].positive_role_array_size > 0) {
-                pos_cond = role_vars[ca_array[ca_index].positive_role_array[0]].get_solver_var();
-                for (int j = 1; j < ca_array[ca_index].positive_role_array_size; j++) {
-                    pos_cond = solver->createAndExpr(pos_cond, role_vars[ca_array[ca_index].positive_role_array[j]].get_solver_var());
-                }
+    const std::map<std::string, TVar> get_t_map(const std::set<Literalp>& literals) {
+        std::map<std::string, TVar> map;
+        for (auto ite = literals.begin(); ite != literals.end(); ++ite) {
+            Literalp role_lit = *ite;
+            std::shared_ptr<TVar> var = role_vars[role_lit->role_array_index].solver_varp;
+            if (var == nullptr) {
+                std::cerr << "Solver variable of role " << role_lit->name << " is null..." << std::endl;
+                throw new std::runtime_error("Null variable");
             }
-            TExpr neg_cond = solver->createTrue();
-            if (ca_array[ca_index].negative_role_array_size > 0) {
-                // fprintf(outputFile, "          /* Negative preconditions */\n");
-                neg_cond = solver->createNotExpr(role_vars[ca_array[ca_index].negative_role_array[0]].get_solver_var());
-                for (int j = 1; j < ca_array[ca_index].negative_role_array_size; j++) {
-                    neg_cond = solver->createAndExpr(neg_cond, 
-                                                     solver->createNotExpr(role_vars[ca_array[ca_index].negative_role_array[j]].get_solver_var()));
-                }
-            }
-            cond = solver->createAndExpr(pos_cond, neg_cond);
+            //FIXME: remove this obnoxious "+ _"
+            map[role_lit->name + "_"] = *var;
         }
-        return cond;
+        return map;
+    };
+
+    TExpr generate_from_prec(const Expr &precond) {
+        std::map<std::string, TVar> map = get_t_map(precond->literals());
+        TExpr res = generateSMTFunction(solver, precond, map, "");
+//        std::cout << "\t" << res << std::endl;
+//        for (auto ite = map.begin(); ite != map.end(); ++ite) {
+//            std::cout << ite->first << ": " << ite->second << std::endl;
+//        }
+        return res;
     }
 
-    TExpr generate_CR_cond(int cr_index) {
-        // fprintf(outputFile, "        /*Thread %d is assinged to some user*/\n", thread_id);
-        // fprintf(outputFile, "        thread_%d_SET\n", thread_id);
-        // Condition to apply a can_assign rule
-        // fprintf(outputFile, "        /* Positive preconditions */\n");
-        // Admin role must be available
-        // fprintf(outputFile, "        (1)\n");
-        TExpr cond = solver->createTrue();
-        return cond;
+    TExpr generate_CA_cond(const Expr& ca_precond) {
+        return generate_from_prec(ca_precond);
+    }
+
+    TExpr generate_CR_cond(const Expr& cr_precond) {
+        return generate_from_prec(cr_precond);
     }
 
     TExpr get_assignment_cond_by_role(int target_role_index, int label_index, int excluded_rule) {
@@ -431,7 +400,7 @@ class R6Transformer {
             int ca_idx = per_role_ca_indexes[target_role_index][i];
             if (ca_idx != excluded_rule) {
                 // print_ca_comment(outputFile, ca_idx);
-                ca_guards = solver->createOrExpr(ca_guards, generate_CA_cond(ca_idx));                
+                ca_guards = solver->createOrExpr(ca_guards, generate_CA_cond(ca_prec[ca_idx]));
                 // fprintf(outputFile, "        ||\n");
             }
         }
@@ -453,7 +422,7 @@ class R6Transformer {
             int cr_idx = per_role_cr_indexes[target_role_index][i];
             if (cr_idx != excluded_rule) {
                 // print_cr_comment(outputFile, ca_idx);
-                cr_guards = solver->createOrExpr(cr_guards, generate_CR_cond(cr_idx));                
+                cr_guards = solver->createOrExpr(cr_guards, generate_CR_cond(cr_prec[cr_idx]));
                 // fprintf(outputFile, "        ||\n");
             }
         }
@@ -550,16 +519,11 @@ class R6Transformer {
         return cond;
     }
 
-    void generate_check(int rule_index, int is_ca) {
+    void generate_check() {
         // fprintf(outputFile, "    /*--------------- ERROR CHECK ------------*/\n");
         // fprintf(outputFile, "    /*--------------- assume(\\phi) ------------*/\n");
-        TExpr rule_assumption = zero;
-        if (is_ca) {
-            rule_assumption = generate_CA_cond(rule_index);
-        }
-        else {
-            rule_assumption = generate_CR_cond(rule_index);
-        }
+
+        TExpr rule_assumption = generate_from_prec(target);
         emit_assumption(rule_assumption);
 
         int user_id = 0;
@@ -655,20 +619,20 @@ class R6Transformer {
     }
 
     void
-    generate_main(int rule_id, int is_ca) {
+    generate_main(int exclude_idx, bool excluded_is_ca) {
         // fprintf(outputFile, "int main(void) {\n\n");
         
         for (int i = 0; i < core_roles_size; ++i) {
-            generate_round(rule_id, is_ca);
+            generate_round(exclude_idx, excluded_is_ca);
         }
-        generate_check(rule_id, is_ca);
+        generate_check();
         // fprintf(outputFile, "    return 0;\n");
         // fprintf(outputFile, "}\n");
     }
 
-    bool checkUnreachable(int rule_index, bool is_ca) {
+    bool checkUnreachable(int exclude_idx, bool excluded_is_ca) {
         set_globals();
-        generate_main(rule_index, is_ca);
+        generate_main(exclude_idx, excluded_is_ca);
 
         SMTResult res = solver->solve();
 
@@ -677,62 +641,51 @@ class R6Transformer {
 
 
     public:
-    R6Transformer(std::shared_ptr<SMTFactory<TVar, TExpr>> _solver, int rule_index, bool is_ca) : 
-        solver(_solver), zero(solver->createFalse()), one(solver->createTrue()) {
+    R6Transformer(std::shared_ptr<SMTFactory<TVar, TExpr>> _solver, std::vector<Expr>& _ca_exprs, std::vector<Expr>& _cr_exprs, Expr _to_check) :
+        solver(_solver), pc_size(numBits(_to_check->literals().size())),
+        ca_prec(_ca_exprs), cr_prec(_cr_exprs), target(_to_check),
+        zero(solver->createFalse()), one(solver->createTrue()) {
         precompute_merge();
-        allocate_core_role_array(rule_index, is_ca);
+        allocate_core_role_array(_to_check);
         generate_variables();
     }
 
     ~R6Transformer() {
         deallocate_precomputated_values();
         free_core_role_array();
+        free_globals();
     }
 
-    bool apply_r6(int rule_index, bool is_ca) {
-
-        //Generate header with common funtions and comments
-        // generate_header(outputFile, inputFile, rule_index, is_ca);
-        
-        //Declare global variables
-        // generate_globals();
-
-        //Generate Main funtion
-        
-
-        //fclose(outputFile);
-        //free(newfile);
-
-        return checkUnreachable(rule_index, is_ca);
-        
+    bool apply_r6(int exclude_idx, bool excluded_is_ca) {
+        return checkUnreachable(exclude_idx, excluded_is_ca);
     }
 };
 
     template <typename TVar, typename TExpr>
-    bool apply_r6(std::shared_ptr<SMTFactory<TVar, TExpr>> solver, int rule_index, bool is_ca) {
-        R6Transformer<TVar, TExpr> transf(solver, rule_index, is_ca);
+    bool apply_r6(std::shared_ptr<SMTFactory<TVar, TExpr>> solver, std::vector<Expr>& ca_exprs, std::vector<Expr>& cr_exprs, Expr to_check, int exclude_idx, bool excluded_is_ca) {
+        R6Transformer<TVar, TExpr> transf(solver, ca_exprs, cr_exprs, to_check);
         // std::shared_ptr<SMTFactory<expr, expr>> solver(new Z3Solver());
         // R6Transformer<expr, expr> transf(solver, rule_index, is_ca);
-        bool res = transf.apply_r6(rule_index, is_ca);
+        bool res = transf.apply_r6(exclude_idx, excluded_is_ca);
         // if (res || true)
         //     solver->printContext();
         return res;
     }
 
 
-    template bool apply_r6<term_t, term_t>(std::shared_ptr<SMTFactory<term_t, term_t>> solver, int rule_index, bool is_ca);
-    template bool apply_r6<expr, expr>(std::shared_ptr<SMTFactory<expr, expr>> solver, int rule_index, bool is_ca);
+    template bool apply_r6<term_t, term_t>(std::shared_ptr<SMTFactory<term_t, term_t>> solver, std::vector<Expr>& ca_exprs, std::vector<Expr>& cr_exprs, Expr to_check, int exclude_idx, bool excluded_is_ca);
+    template bool apply_r6<expr, expr>(std::shared_ptr<SMTFactory<expr, expr>> solver, std::vector<Expr>& ca_exprs, std::vector<Expr>& cr_exprs, Expr to_check, int exclude_idx, bool excluded_is_ca);
 
 
-    bool apply_r6(int rule_index, bool is_ca) {
-        std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());
-        R6Transformer<term_t, term_t> transf(solver, rule_index, is_ca);
-        // std::shared_ptr<SMTFactory<expr, expr>> solver(new Z3Solver());
-        // R6Transformer<expr, expr> transf(solver, rule_index, is_ca);
-        bool res = transf.apply_r6(rule_index, is_ca);
-        // if (res || true)
-        //     solver->printContext();
-        return res;
-    }
+//    bool apply_r6(int rule_index, bool is_ca) {
+//        std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());
+//        R6Transformer<term_t, term_t> transf(solver, rule_index, is_ca);
+//        // std::shared_ptr<SMTFactory<expr, expr>> solver(new Z3Solver());
+//        // R6Transformer<expr, expr> transf(solver, rule_index, is_ca);
+//        bool res = transf.apply_r6(rule_index, is_ca);
+//        // if (res || true)
+//        //     solver->printContext();
+//        return res;
+//    }
 
 }

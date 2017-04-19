@@ -38,7 +38,7 @@ namespace SMT {
         void generateRoleVars() {
             for (int i = 0; i < role_array_size; i++) {
                 std::string rname(role_array[i]);
-                Literalp var = createLiteralp(rname, 1);
+                Literalp var = createLiteralp(rname, i, 1);
                 role_vars.push_back(var);
             }
         }
@@ -511,12 +511,7 @@ namespace SMT {
             solver->assertNow(final_cond);
             SMTResult res = solver->solve();
             solver->clean();
-            if (res == UNSAT) {
-                return true;
-            }
-            else {
-                return false;
-            } 
+            return res == UNSAT;
         }
 
 
@@ -613,17 +608,28 @@ namespace SMT {
             fprintf(stdout, "Total: %d rules\n", ca_array_size);
             for (int i = 0; i < ca_array_size; i++) {
                 solver->clean();
-                bool res = apply_r6<TVar, TExpr>(this->solver, i, true);
+                bool rem_pn = apply_r6<TVar, TExpr>(this->solver, ca_pn_formulae, cr_pn_formulae, ca_pn_formulae[i], i, true);
+                solver->clean();
+                bool rem_adm = apply_r6<TVar, TExpr>(this->solver, ca_pn_formulae, cr_pn_formulae, ca_adm_formulae[i], i, true);
+
+//                std::cout << ca_adm_formulae[i]->print() << std::endl;
+
+//                if (!rem_pn && rem_adm)
+//                    solver->printContext();
 
 //                if (i == ca_index) {
 //                    solver->printContext();
 //                }
 
-                if (res) {
+                if (rem_pn) {
 //                    print_ca_comment(stdout, i);
 //                    fprintf(stdout, "Rule %d %s be removed since not fireable\n\n", i, res ? "CAN" : "CANNOT");
                     removed++;
                     fprintf(stdout, "X");
+                    fflush(stdout);
+                }
+                else if (rem_adm) {
+                    fprintf(stdout, "O");
                     fflush(stdout);
                 }
                 else {
@@ -637,7 +643,7 @@ namespace SMT {
 
             auto end = std::chrono::high_resolution_clock::now();
             auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-            std::cout << "------------ printNonPos " << milliseconds.count() << " ms ------------\n";
+            std::cout << "------------ Rule6 executed in " << milliseconds.count() << " ms ------------\n";
 
         }
 

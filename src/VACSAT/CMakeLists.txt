@@ -48,8 +48,8 @@ set(SOURCE_FILES
         src/ARBAC_to_LazyCSeq.cpp
         src/ARBAC_to_LazyCSeqInlined.cpp
         src/ARBAC_to_CompletenessLazyCSeq.cpp
-        src/ARBAC_to_LazyCSeq_r6.cpp
-        src/ARBAC_to_LazyCSeq_r6_ssa.cpp
+        src/SMT_Pruning_R6_LazyCSeq.cpp
+        src/SMT_Pruning_R6_SSA.cpp
         src/ARBAC_to_smt.cpp
 #        Moved to old_encodings and removed from project
 #        src/SSA_Structs.h
@@ -96,3 +96,5 @@ link_directories(${YICES_LIBRARY_DIR} ${Z3_LIBRARY_DIR} ${CCL_LIBRARY_DIR})
 add_executable(vacsat ${SOURCE_FILES})
 # Set the link libraries (GMP MUST BE THE LAST)
 target_link_libraries(vacsat yices z3 ccl antlr3c gmp)
+
+install (TARGETS vacsat DESTINATION bin)
