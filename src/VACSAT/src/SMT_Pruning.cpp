@@ -610,7 +610,7 @@ namespace SMT {
                 solver->clean();
                 bool rem_pn = apply_r6<TVar, TExpr>(this->solver, ca_pn_formulae, cr_pn_formulae, ca_pn_formulae[i], i, true);
                 solver->clean();
-                bool rem_adm = apply_r6<TVar, TExpr>(this->solver, ca_pn_formulae, cr_pn_formulae, ca_adm_formulae[i], i, true);
+                bool rem_adm = rem_pn ? false : apply_r6<TVar, TExpr>(this->solver, ca_pn_formulae, cr_pn_formulae, ca_adm_formulae[i], i, true);
 
 //                std::cout << ca_adm_formulae[i]->print() << std::endl;
 
@@ -692,29 +692,29 @@ namespace SMT {
 
         core.apply_rule_6(inputFile, output);
 
-        return;
-
-        auto start = std::chrono::high_resolution_clock::now();
-
-        core.printNonPos();
-
-        auto end = std::chrono::high_resolution_clock::now();
-        auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-        std::cout << "------------ printNonPos " << milliseconds.count() << " ms ------------\n";
-
-
-        start = std::chrono::high_resolution_clock::now();
-        core.printNonNeg();
-
-        end = std::chrono::high_resolution_clock::now();
-        milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-        std::cout << "------------ printNonNeg " << milliseconds.count() << " ms ------------\n";
-
-        // core.PrintIrrelevantPos();
-        core.printImpliedPairs();
-
-        free_data();
-        free_precise_temp_data();
+//        return;
+//
+//        auto start = std::chrono::high_resolution_clock::now();
+//
+//        core.printNonPos();
+//
+//        auto end = std::chrono::high_resolution_clock::now();
+//        auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+//        std::cout << "------------ printNonPos " << milliseconds.count() << " ms ------------\n";
+//
+//
+//        start = std::chrono::high_resolution_clock::now();
+//        core.printNonNeg();
+//
+//        end = std::chrono::high_resolution_clock::now();
+//        milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+//        std::cout << "------------ printNonNeg " << milliseconds.count() << " ms ------------\n";
+//
+//        // core.PrintIrrelevantPos();
+//        core.printImpliedPairs();
+//
+//        free_data();
+//        free_precise_temp_data();
 
     }
 }

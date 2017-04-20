@@ -13,6 +13,7 @@ namespace SMT {
     // }
 
     expr Z3Solver::createVar2(const std::string name, int size) {
+//        std::cout << name << std::endl;
         if (size == 1) {
             return context.bool_const(name.c_str());
         }
@@ -20,10 +21,12 @@ namespace SMT {
     }
 
     expr Z3Solver::createBoolVar(const std::string name) {
+//        std::cout << name << std::endl;
         return context.bool_const(name.c_str());
     }
 
     expr Z3Solver::createBVVar(const std::string name, int size) {
+//        std::cout << name << std::endl;
         return context.bv_const(name.c_str(), size);;
     }
 
@@ -61,19 +64,23 @@ namespace SMT {
     }
 
     expr Z3Solver::createGtExpr(expr lhs, expr rhs) {
-        expr res = lhs > rhs;
+        // WARNING: default > is signed. Use unsigned!
+        expr res = z3::ugt(lhs, rhs);
         return res;
     }
     expr Z3Solver::createGEqExpr(expr lhs, expr rhs) {
-        expr res = lhs >= rhs;
+        // WARNING: default >= is signed. Use unsigned!
+        expr res = z3::uge(lhs, rhs);
         return res;
     }
     expr Z3Solver::createLtExpr(expr lhs, expr rhs) {
-        expr res = lhs < rhs;
+        // WARNING: default < is signed. Use unsigned!
+        expr res = z3::ult(lhs, rhs);
         return res;
     }
     expr Z3Solver::createLEqExpr(expr lhs, expr rhs) {
-        expr res = lhs <= rhs;
+        // WARNING: default <= is signed. Use unsigned!
+        expr res = z3::ule(lhs, rhs);
         return res;
     }
 
@@ -95,6 +102,8 @@ namespace SMT {
     SMTResult Z3Solver::solve() {
         this->loadToSolver();
         check_result res = solver.check();
+
+//        std::cout << solver.get_model() << std::endl;
 
         switch (res) {
             case sat: {

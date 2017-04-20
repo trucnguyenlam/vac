@@ -232,7 +232,7 @@ class R6Transformer {
         delete[] per_role_cr_indexes;
     }
 
-    int numBits(int pc) {
+    int numBits(unsigned long pc) {
         int i = 1, bit = 0;
 
         if (pc < 2) return 1;
@@ -357,8 +357,11 @@ class R6Transformer {
                                                           solver->createBVConst(pc, pc_size)));
     }
 
-    const std::map<std::string, TVar> get_t_map(const std::set<Literalp>& literals) {
-        std::map<std::string, TVar> map;
+    std::shared_ptr<TVar>* get_t_array(const std::set<Literalp>& literals) {
+        std::shared_ptr<TVar>* array = new std::shared_ptr<TVar>[role_array_size];
+        for (int i = 0; i < role_array_size; ++i) {
+            array[i] = nullptr;
+        }
         for (auto ite = literals.begin(); ite != literals.end(); ++ite) {
             Literalp role_lit = *ite;
             std::shared_ptr<TVar> var = role_vars[role_lit->role_array_index].solver_varp;
@@ -366,15 +369,17 @@ class R6Transformer {
                 std::cerr << "Solver variable of role " << role_lit->name << " is null..." << std::endl;
                 throw new std::runtime_error("Null variable");
             }
-            //FIXME: remove this obnoxious "+ _"
-            map[role_lit->name + "_"] = *var;
+            array[role_lit->role_array_index] = var;
         }
-        return map;
+        return array;
     };
 
     TExpr generate_from_prec(const Expr &precond) {
-        std::map<std::string, TVar> map = get_t_map(precond->literals());
-        TExpr res = generateSMTFunction(solver, precond, map, "");
+        std::shared_ptr<TVar>* array = get_t_array(precond->literals());
+
+        TExpr res = generateSMTFunction(solver, precond, array, "");
+
+        delete[] array;
 //        std::cout << "\t" << res << std::endl;
 //        for (auto ite = map.begin(); ite != map.end(); ++ite) {
 //            std::cout << ite->first << ": " << ite->second << std::endl;
@@ -662,7 +667,11 @@ class R6Transformer {
 };
 
     template <typename TVar, typename TExpr>
-    bool apply_r6(std::shared_ptr<SMTFactory<TVar, TExpr>> solver, std::vector<Expr>& ca_exprs, std::vector<Expr>& cr_exprs, Expr to_check, int exclude_idx, bool excluded_is_ca) {
+    bool apply_r6(std::shared_ptr<SMTFactory<TVar, TExpr>> solver,
+                  std::vector<Expr>& ca_exprs,
+                  std::vector<Expr>& cr_exprs,
+                  Expr to_check,
+                  int exclude_idx, bool excluded_is_ca) {
         R6Transformer<TVar, TExpr> transf(solver, ca_exprs, cr_exprs, to_check);
         // std::shared_ptr<SMTFactory<expr, expr>> solver(new Z3Solver());
         // R6Transformer<expr, expr> transf(solver, rule_index, is_ca);
@@ -673,8 +682,16 @@ class R6Transformer {
     }
 
 
-    template bool apply_r6<term_t, term_t>(std::shared_ptr<SMTFactory<term_t, term_t>> solver, std::vector<Expr>& ca_exprs, std::vector<Expr>& cr_exprs, Expr to_check, int exclude_idx, bool excluded_is_ca);
-    template bool apply_r6<expr, expr>(std::shared_ptr<SMTFactory<expr, expr>> solver, std::vector<Expr>& ca_exprs, std::vector<Expr>& cr_exprs, Expr to_check, int exclude_idx, bool excluded_is_ca);
+    template bool apply_r6<term_t, term_t>(std::shared_ptr<SMTFactory<term_t, term_t>> solver,
+                                           std::vector<Expr>& ca_exprs,
+                                           std::vector<Expr>& cr_exprs,
+                                           Expr to_check,
+                                           int exclude_idx, bool excluded_is_ca);
+    template bool apply_r6<expr, expr>(std::shared_ptr<SMTFactory<expr, expr>> solver,
+                                       std::vector<Expr>& ca_exprs,
+                                       std::vector<Expr>& cr_exprs,
+                                       Expr to_check,
+                                       int exclude_idx, bool excluded_is_ca);
 
 
 //    bool apply_r6(int rule_index, bool is_ca) {

@@ -113,6 +113,7 @@ namespace SMT {
     }
 
     term_t YicesSolver::createGtExpr(term_t lhs, term_t rhs) {
+        // // WARNING: default Gt is unsigned. Do not use signed!
         term_t res = yices_bvgt_atom(lhs, rhs);
         if (res < 0) {
             fprintf(stderr, "Error in %s! Term is less than 0!\n\t(lhs: %d,\n\t rhs: %d)\n", "YicesSolver::createGtExpr", lhs, rhs);
@@ -123,6 +124,7 @@ namespace SMT {
         return res;
     }
     term_t YicesSolver::createGEqExpr(term_t lhs, term_t rhs) {
+        // // WARNING: default GEq is unsigned. Do not use signed!
         term_t res = yices_bvge_atom(lhs, rhs);
         if (res < 0) {
             fprintf(stderr, "Error in %s! Term is less than 0!\n\t(lhs: %d,\n\t rhs: %d)\n", "YicesSolver::createGEqExpr", lhs, rhs);
@@ -133,6 +135,7 @@ namespace SMT {
         return res;
     }
     term_t YicesSolver::createLtExpr(term_t lhs, term_t rhs) {
+        // // WARNING: default Lt is unsigned. Do not use signed!
         term_t res = yices_bvlt_atom(lhs, rhs);
         if (res < 0) {
             fprintf(stderr, "Error in %s! Term is less than 0!\n\t(lhs: %d,\n\t rhs: %d)\n", "YicesSolver::createLtExpr", lhs, rhs);
@@ -143,6 +146,7 @@ namespace SMT {
         return res;
     }
     term_t YicesSolver::createLEqExpr(term_t lhs, term_t rhs) {
+        // // WARNING: default LEq is unsigned. Do not use signed!
         term_t res = yices_bvle_atom(lhs, rhs);
         if (res < 0) {
             fprintf(stderr, "Error in %s! Term is less than 0!\n\t(lhs: %d,\n\t rhs: %d)\n", "YicesSolver::createLEqExpr", lhs, rhs);
