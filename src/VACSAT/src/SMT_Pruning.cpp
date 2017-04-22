@@ -600,45 +600,61 @@ namespace SMT {
 
         void apply_rule_6(char* inputFile, FILE* outputFile) {
 
-            // int ca_index = 38;
-            int ca_index = 2;
-            int removed = 0;
-            transform_2_lazycseq_r6(inputFile, outputFile, ca_index, true);
+            bool fixpoint = false;
+            int fix_ite = 1;
+
+//            transform_2_lazycseq_r6(inputFile, outputFile, ca_index, true);
             auto start = std::chrono::high_resolution_clock::now();
-            fprintf(stdout, "Total: %d rules\n", ca_array_size);
-            for (int i = 0; i < ca_array_size; i++) {
-                solver->clean();
-                bool rem_pn = apply_r6<TVar, TExpr>(this->solver, ca_pn_formulae, cr_pn_formulae, ca_pn_formulae[i], i, true);
-                solver->clean();
-                bool rem_adm = rem_pn ? false : apply_r6<TVar, TExpr>(this->solver, ca_pn_formulae, cr_pn_formulae, ca_adm_formulae[i], i, true);
+            while (!fixpoint) {
+                fixpoint = true;
+//                std::vector<int> to_remove;
+                int removed = 0;
+                int ca_array_size = (int) this->ca_pn_formulae.size();
+                fprintf(stdout, "Iteration %d: rules\n", fix_ite++);
+                fprintf(stdout, "Total: %d rules\n", ca_array_size);
+                for (int i = 0; i < ca_array_size; i++) {
+                    solver->clean();
+                    bool rem_pn = apply_r6<TVar, TExpr>(this->solver, ca_pn_formulae, cr_pn_formulae, ca_pn_formulae[i],
+                                                        i, true);
+                    solver->clean();
+                    bool rem_adm = rem_pn ? false : apply_r6<TVar, TExpr>(this->solver, ca_pn_formulae, cr_pn_formulae,
+                                                                          ca_adm_formulae[i], i, true);
 
-//                std::cout << ca_adm_formulae[i]->print() << std::endl;
+                    //                std::cout << ca_adm_formulae[i]->print() << std::endl;
 
-//                if (!rem_pn && rem_adm)
-//                    solver->printContext();
+                    //                if (!rem_pn && rem_adm)
+                    //                    solver->printContext();
 
-//                if (i == ca_index) {
-//                    solver->printContext();
+                    //                if (i == ca_index) {
+                    //                    solver->printContext();
+                    //                }
+
+                    if (rem_pn) {
+                        //                    print_ca_comment(stdout, i);
+                        //                    fprintf(stdout, "Rule %d %s be removed since not fireable\n\n", i, res ? "CAN" : "CANNOT");
+                        removed++;
+                        fprintf(stdout, "X");
+                        fflush(stdout);
+//                        to_remove.push_back(i);
+                    } else if (rem_adm) {
+                        fprintf(stdout, "O");
+                        fflush(stdout);
+//                        to_remove.push_back(i);
+                    } else {
+                        fprintf(stdout, "-");
+                        fflush(stdout);
+                    }
+                }
+
+//                for (int j = 0; j < to_remove.size(); ++j) {
+//                    ca_pn_formulae.erase(ca_pn_formulae.begin() + to_remove[j]);
+//                    cr_adm_formulae.erase(cr_adm_formulae.begin() + to_remove[j]);
 //                }
+//
+//                fixpoint = to_remove.size() == 0;
 
-                if (rem_pn) {
-//                    print_ca_comment(stdout, i);
-//                    fprintf(stdout, "Rule %d %s be removed since not fireable\n\n", i, res ? "CAN" : "CANNOT");
-                    removed++;
-                    fprintf(stdout, "X");
-                    fflush(stdout);
-                }
-                else if (rem_adm) {
-                    fprintf(stdout, "O");
-                    fflush(stdout);
-                }
-                else {
-                    fprintf(stdout, "-");
-                    fflush(stdout);
-                }
+                fprintf(stdout, "\nRemoved %d rules\n", removed);
             }
-
-            fprintf(stdout, "\nRemoved %d rules\n", removed);
 
 
             auto end = std::chrono::high_resolution_clock::now();
@@ -685,10 +701,10 @@ namespace SMT {
         build_config_array();
 
 
-        std::shared_ptr<SMTFactory<z3::expr, z3::expr>> solver(new Z3Solver());
-        Pruning<z3::expr, z3::expr> core(solver);
-//        std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());
-//        Pruning<term_t, term_t> core(solver);
+//        std::shared_ptr<SMTFactory<z3::expr, z3::expr>> solver(new Z3Solver());
+//        Pruning<z3::expr, z3::expr> core(solver);
+        std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());
+        Pruning<term_t, term_t> core(solver);
 
         core.apply_rule_6(inputFile, output);
 
