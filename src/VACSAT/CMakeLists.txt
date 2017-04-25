@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.5)
 project(vacsat)
 
 set(CMAKE_CXX_STANDARD 11)  # enable C++11 standard
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive -Wwrite-strings -static -pg")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive -Wwrite-strings -static")
 
 
 
@@ -59,7 +59,8 @@ set(SOURCE_FILES
 #        src/ARBAC_to_SSA.cpp
         src/ARBACTransform.h
         src/ARBACTransform.cpp
-        )
+        src/Policy.h
+        src/Policy.cpp)
 
 
 

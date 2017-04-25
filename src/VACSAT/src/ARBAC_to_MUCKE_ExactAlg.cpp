@@ -360,7 +360,7 @@ simulate_can_assigns(FILE *outputFile)
             }
             else
             {
-                fprintf(outputFile, "\t/ *Rule with NEW in the precondition are already involved in initialization */\n");
+                fprintf(outputFile, "\t/ *rule with NEW in the precondition are already involved in initialization */\n");
             }
         }
         fprintf(outputFile, ");\n");
@@ -1011,7 +1011,7 @@ transform_2_MUCKE_ExactAlg(char *inputFile, FILE *outputFile/*, char* formula_fi
     // Init variables
     initialize_variables(outputFile);
 
-    // Rule simulation functions
+    // rule simulation functions
     simulate_rules(outputFile);
 
     // Thread simulation

@@ -1,4 +1,9 @@
-#pragma once
+//
+// Created by esteffin on 24/04/17.
+//
+
+#ifndef VACSAT_SMT_H
+#define VACSAT_SMT_H
 
 #include <string>
 #include <set>
@@ -60,3 +65,5 @@ namespace SMT {
     };
 
 }
+
+#endif //VACSAT_SMT_H

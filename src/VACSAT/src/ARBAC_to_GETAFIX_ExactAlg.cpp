@@ -199,7 +199,7 @@ simulate_can_assigns(FILE *outputFile)
         }
         else
         {
-            fprintf(outputFile, "\t\t\t//Rule with NEW in the precondition are already involved in initialization\n");
+            fprintf(outputFile, "\t\t\t//rule with NEW in the precondition are already involved in initialization\n");
         }
     }
 }

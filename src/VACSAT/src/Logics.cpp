@@ -159,7 +159,7 @@ namespace SMT {
         }
     }
 
-    std::string Literal::print() {
+    std::string Literal::to_string() {
         std::stringstream fmt;
         // fmt << "|" << this->fullName() << "|";
         fmt << this->fullName();
@@ -171,7 +171,7 @@ namespace SMT {
         Exprv(Exprv::CONSTANT, std::set<Literalp>()),
         value(_value), bv_size(_bv_size) { }
     
-    std::string Constant::print() {
+    std::string Constant::to_string() {
         if (this->bv_size == 1) {
             if (this->value) {
                 return Defs::true_str;
@@ -192,10 +192,10 @@ namespace SMT {
         Exprv(Exprv::OR_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
         lhs(_lhs), rhs(_rhs) { }
     
-    std::string OrExpr::print() {
+    std::string OrExpr::to_string() {
         std::stringstream fmt;
-        std::string lhsv = this->lhs->print();
-        std::string rhsv = this->rhs->print();
+        std::string lhsv = this->lhs->to_string();
+        std::string rhsv = this->rhs->to_string();
         fmt << "(" << lhsv << Defs::or_op << rhsv << ")";
         return fmt.str();
     }
@@ -205,10 +205,10 @@ namespace SMT {
         Exprv(Exprv::AND_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
         lhs(_lhs), rhs(_rhs) { }
     
-    std::string AndExpr::print() {
+    std::string AndExpr::to_string() {
         std::stringstream fmt;
-        std::string lhsv = this->lhs->print();
-        std::string rhsv = this->rhs->print();
+        std::string lhsv = this->lhs->to_string();
+        std::string rhsv = this->rhs->to_string();
         fmt << "(" << lhsv << Defs::and_op << rhsv << ")";
         return fmt.str();
     }
@@ -218,10 +218,10 @@ namespace SMT {
         Exprv(Exprv::EQ_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
         lhs(_lhs), rhs(_rhs) { }
     
-    std::string EqExpr::print() {
+    std::string EqExpr::to_string() {
         std::stringstream fmt;
-        std::string lhsv = this->lhs->print();
-        std::string rhsv = this->rhs->print();
+        std::string lhsv = this->lhs->to_string();
+        std::string rhsv = this->rhs->to_string();
         fmt << "(" << lhsv << Defs::eq_op << rhsv << ")";
         return fmt.str();
     }
@@ -231,10 +231,10 @@ namespace SMT {
         Exprv(Exprv::IMPL_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
         lhs(_lhs), rhs(_rhs) { }
     
-    std::string ImplExpr::print() {
+    std::string ImplExpr::to_string() {
         std::stringstream fmt;
-        std::string lhsv = this->lhs->print();
-        std::string rhsv = this->rhs->print();
+        std::string lhsv = this->lhs->to_string();
+        std::string rhsv = this->rhs->to_string();
         fmt << "(" << lhsv << Defs::impl_op << rhsv << ")";
         return fmt.str();
     }
@@ -244,9 +244,9 @@ namespace SMT {
         Exprv(Exprv::NOT_EXPR, _expr->literals()),
         expr(_expr) { }
     
-    std::string NotExpr::print() {
+    std::string NotExpr::to_string() {
         std::stringstream fmt;
-        std::string exprv = this->expr->print();
+        std::string exprv = this->expr->to_string();
         fmt << Defs::not_op << "(" << exprv << ")";
         return fmt.str();
     }
@@ -257,11 +257,11 @@ namespace SMT {
               setUnion(_cond->literals(), setUnion(_choice1->literals(), _choice2->literals()))),
         cond(_cond), choice1(_choice1), choice2(_choice2) { }
     
-    std::string CondExpr::print() {
+    std::string CondExpr::to_string() {
         std::stringstream fmt;
-        std::string cond = this->cond->print();
-        std::string ch1 = this->choice1->print();
-        std::string ch2 = this->choice2->print();
+        std::string cond = this->cond->to_string();
+        std::string ch1 = this->choice1->to_string();
+        std::string ch2 = this->choice2->to_string();
         fmt << "((" << cond << ") ? (" << ch1 << ") : (" << ch2 << "))";
         return fmt.str();
     }
@@ -586,12 +586,13 @@ namespace SMT {
 //                return solver->createEqExpr(slhs, srhs);
 //            }
             default:
-                fprintf(stderr, "Could not normalize an expression that is not an OR, AND, NOT, CONSTANT, LITERAL.\n\tExpr is %s", expr->print().c_str());
+                fprintf(stderr, "Could not normalize an expression that is not an OR, AND, NOT, CONSTANT, LITERAL.\n\tExpr is %s",
+                        expr->to_string().c_str());
                 throw new std::runtime_error("Could not normalize this expression");
                 return expr;
         }
         throw new std::runtime_error("Cannot translate expression to SMT");
-        fprintf(stderr, "Cannot translate expression to SMT:\n    %s\n", expr->print().c_str());
+        fprintf(stderr, "Cannot translate expression to SMT:\n    %s\n", expr->to_string().c_str());
     }
 
 
@@ -682,7 +683,7 @@ namespace SMT {
     //             break;
     //     }
     //     throw new std::runtime_error("Cannot translate expression to SMT");
-    //     fprintf(stderr, "Cannot translate expression to SMT:\n    %s\n", expr->print().c_str());
+    //     fprintf(stderr, "Cannot translate expression to SMT:\n    %s\n", expr->to_string().c_str());
     // }
 
 }

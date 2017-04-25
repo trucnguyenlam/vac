@@ -157,7 +157,7 @@
 //        fprintf(outputFile, "*  CA: %d\n", ca_array_size);
 //        fprintf(outputFile, "*  CR: %d\n", cr_array_size);
 //        fprintf(outputFile, "*\n");
-//        fprintf(outputFile, "*  Rule: %s, id: %d:\n", is_ca ? "CA" : "CR", rule_id);
+//        fprintf(outputFile, "*  rule: %s, id: %d:\n", is_ca ? "CA" : "CR", rule_id);
 //        if (is_ca) {
 //            print_ca_comment(outputFile, rule_id);
 //        }
