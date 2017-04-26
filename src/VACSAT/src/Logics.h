@@ -282,79 +282,79 @@ namespace SMT {
         std::shared_ptr<TVar> solver_varp;
     };
 
-//    template <typename TVar, typename TExpr>
-//    TExpr generateSMTFunction(std::shared_ptr<SMTFactory<TVar, TExpr>> solver, Expr expr, std::map<std::string, TVar>& var_map, std::string suffix) {
-//        switch (expr->type) {
-//            case Exprv::CONSTANT: {
-//                std::shared_ptr<Constant> c = std::dynamic_pointer_cast<Constant>(expr);
-//                if (c->bv_size == 1) {
-//                    return solver->createBoolConst(c->value);
-//                }
-//                else {
-//                    return solver->createBVConst(c->value, c->bv_size);
-//                }
-//            }
-//            case Exprv::LITERAL: {
-//                Literalp lit = std::dynamic_pointer_cast<Literal>(expr);
-//                if (lit->value == nullptr) {
-//                    std::string name = lit->nameWithSuffix(suffix);
-//                    if(var_map.find(name) != var_map.end()) {
-//                        return var_map[name];
-//                    }
-//                    else {
-//                        TVar var = solver->createVar2(name, lit->bv_size);
-//                        var_map[name] = var;
-//                        // printf("%s not found. Creating it: %d\n", name.c_str(), var);
-//                        return var;
-//                    }
-//                }
-//                else {
-//                    return generateSMTFunction(solver, lit->value, var_map, suffix);
-//                }
-//
-//            }
-//            case Exprv::AND_EXPR: {
-//                std::shared_ptr<AndExpr> andExpr = std::dynamic_pointer_cast<AndExpr>(expr);
-//                TExpr slhs = generateSMTFunction(solver, andExpr->lhs, var_map, suffix);
-//                TExpr srhs = generateSMTFunction(solver, andExpr->rhs, var_map, suffix);
-//                return solver->createAndExpr(slhs, srhs);
-//            }
-//            case Exprv::OR_EXPR: {
-//                std::shared_ptr<OrExpr> orExpr = std::dynamic_pointer_cast<OrExpr>(expr);
-//                TExpr slhs = generateSMTFunction(solver, orExpr->lhs, var_map, suffix);
-//                TExpr srhs = generateSMTFunction(solver, orExpr->rhs, var_map, suffix);
-//                return solver->createOrExpr(slhs, srhs);
-//            }
-//            case Exprv::IMPL_EXPR: {
-//                std::shared_ptr<ImplExpr> implExpr = std::dynamic_pointer_cast<ImplExpr>(expr);
-//                TExpr slhs = generateSMTFunction(solver, implExpr->lhs, var_map, suffix);
-//                TExpr srhs = generateSMTFunction(solver, implExpr->rhs, var_map, suffix);
-//                return solver->createImplExpr(slhs, srhs);
-//            }
-//            case Exprv::COND_EXPR: {
-//                std::shared_ptr<CondExpr> condExpr = std::dynamic_pointer_cast<CondExpr>(expr);
-//                TExpr scond = generateSMTFunction(solver, condExpr->cond, var_map, suffix);
-//                TExpr schoice1 = generateSMTFunction(solver, condExpr->choice1, var_map, suffix);
-//                TExpr schoice2 = generateSMTFunction(solver, condExpr->choice2, var_map, suffix);
-//                return solver->createCondExpr(scond, schoice1, schoice2);
-//            }
-//            case Exprv::EQ_EXPR: {
-//                std::shared_ptr<EqExpr> eqExpr = std::dynamic_pointer_cast<EqExpr>(expr);
-//                TExpr slhs = generateSMTFunction(solver, eqExpr->lhs, var_map, suffix);
-//                TExpr srhs = generateSMTFunction(solver, eqExpr->rhs, var_map, suffix);
-//                return solver->createEqExpr(slhs, srhs);
-//            }
-//            case Exprv::NOT_EXPR:{
-//                std::shared_ptr<NotExpr> notExpr = std::dynamic_pointer_cast<NotExpr>(expr);
-//                TExpr sexpr = generateSMTFunction(solver, notExpr->expr, var_map, suffix);
-//                return solver->createNotExpr(sexpr);
-//            }
-//            default:
-//                break;
-//        }
-//        throw new std::runtime_error("Cannot translate expression to SMT");
-//        fprintf(stderr, "Cannot translate expression to SMT:\n    %s\n", expr->to_string().c_str());
-//    }
+    template <typename TVar, typename TExpr>
+    TExpr generateSMTFunction(std::shared_ptr<SMTFactory<TVar, TExpr>> solver, Expr expr, std::map<std::string, TVar>& var_map, std::string suffix) {
+        switch (expr->type) {
+            case Exprv::CONSTANT: {
+                std::shared_ptr<Constant> c = std::dynamic_pointer_cast<Constant>(expr);
+                if (c->bv_size == 1) {
+                    return solver->createBoolConst(c->value);
+                }
+                else {
+                    return solver->createBVConst(c->value, c->bv_size);
+                }
+            }
+            case Exprv::LITERAL: {
+                Literalp lit = std::dynamic_pointer_cast<Literal>(expr);
+                if (lit->value == nullptr) {
+                    std::string name = lit->nameWithSuffix(suffix);
+                    if(var_map.find(name) != var_map.end()) {
+                        return var_map[name];
+                    }
+                    else {
+                        TVar var = solver->createVar2(name, lit->bv_size);
+                        var_map[name] = var;
+                        // printf("%s not found. Creating it: %d\n", name.c_str(), var);
+                        return var;
+                    }
+                }
+                else {
+                    return generateSMTFunction(solver, lit->value, var_map, suffix);
+                }
+
+            }
+            case Exprv::AND_EXPR: {
+                std::shared_ptr<AndExpr> andExpr = std::dynamic_pointer_cast<AndExpr>(expr);
+                TExpr slhs = generateSMTFunction(solver, andExpr->lhs, var_map, suffix);
+                TExpr srhs = generateSMTFunction(solver, andExpr->rhs, var_map, suffix);
+                return solver->createAndExpr(slhs, srhs);
+            }
+            case Exprv::OR_EXPR: {
+                std::shared_ptr<OrExpr> orExpr = std::dynamic_pointer_cast<OrExpr>(expr);
+                TExpr slhs = generateSMTFunction(solver, orExpr->lhs, var_map, suffix);
+                TExpr srhs = generateSMTFunction(solver, orExpr->rhs, var_map, suffix);
+                return solver->createOrExpr(slhs, srhs);
+            }
+            case Exprv::IMPL_EXPR: {
+                std::shared_ptr<ImplExpr> implExpr = std::dynamic_pointer_cast<ImplExpr>(expr);
+                TExpr slhs = generateSMTFunction(solver, implExpr->lhs, var_map, suffix);
+                TExpr srhs = generateSMTFunction(solver, implExpr->rhs, var_map, suffix);
+                return solver->createImplExpr(slhs, srhs);
+            }
+            case Exprv::COND_EXPR: {
+                std::shared_ptr<CondExpr> condExpr = std::dynamic_pointer_cast<CondExpr>(expr);
+                TExpr scond = generateSMTFunction(solver, condExpr->cond, var_map, suffix);
+                TExpr schoice1 = generateSMTFunction(solver, condExpr->choice1, var_map, suffix);
+                TExpr schoice2 = generateSMTFunction(solver, condExpr->choice2, var_map, suffix);
+                return solver->createCondExpr(scond, schoice1, schoice2);
+            }
+            case Exprv::EQ_EXPR: {
+                std::shared_ptr<EqExpr> eqExpr = std::dynamic_pointer_cast<EqExpr>(expr);
+                TExpr slhs = generateSMTFunction(solver, eqExpr->lhs, var_map, suffix);
+                TExpr srhs = generateSMTFunction(solver, eqExpr->rhs, var_map, suffix);
+                return solver->createEqExpr(slhs, srhs);
+            }
+            case Exprv::NOT_EXPR:{
+                std::shared_ptr<NotExpr> notExpr = std::dynamic_pointer_cast<NotExpr>(expr);
+                TExpr sexpr = generateSMTFunction(solver, notExpr->expr, var_map, suffix);
+                return solver->createNotExpr(sexpr);
+            }
+            default:
+                break;
+        }
+        throw new std::runtime_error("Cannot translate expression to SMT");
+        fprintf(stderr, "Cannot translate expression to SMT:\n    %s\n", expr->to_string().c_str());
+    }
 
     template <typename TVar, typename TExpr, class TWrapper>
     TExpr generateSMTFunction(std::shared_ptr<SMTFactory<TVar, TExpr>> solver, Expr expr, std::vector<TWrapper>& var_vector, std::string suffix) {
@@ -378,7 +378,9 @@ namespace SMT {
                     }
                     else {
                         TVar var = solver->createVar2(name, lit->bv_size);
-                        var_vector[lit->role_array_index].solver_varp = std::make_shared<TVar>(var);
+                        throw new std::runtime_error("I'm gonna crashing...");
+                        //FIXME: call external function for lookup.
+//                        var_vector[lit->role_array_index].solver_varp = std::make_shared<TVar>(var);
                         // printf("%s not found. Creating it: %d\n", name.c_str(), var);
                         return var;
                     }

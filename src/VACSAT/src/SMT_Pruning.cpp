@@ -500,36 +500,31 @@ namespace SMT {
 
         }
 
-        int implied(std::pair<Expr, Expr> ca1_phis, std::pair<Expr, Expr> ca2_phis) {
-            //FIXME: refactored. Fix here
-            throw new std::runtime_error("FIXME: refactored. Fix here");
-//            Expr ca1_adm = ca1_phis.first;
-//            Expr ca1_pn = ca1_phis.second;
-//            Expr ca2_adm = ca2_phis.first;
-//            Expr ca2_pn = ca2_phis.second;
-//            std::map<std::string, TVar> c_map;
-//            std::map<std::string, TVar> adm_map;
-//            std::string c_suff("C");
-//            std::string adm_suff("admin");
-//
-//            TExpr phi1_adm = generateSMTFunction(solver, ca1_adm, adm_map, adm_suff);
-//            TExpr phi1_pn = generateSMTFunction(solver, ca1_pn, c_map, c_suff);
-//            TExpr phi2_adm = generateSMTFunction(solver, ca2_adm, adm_map, adm_suff);
-//            TExpr phi2_pn = generateSMTFunction(solver, ca2_pn, c_map, c_suff);
-//
-//            // \phi_a(adm) /\ \phi(C)
-//            TExpr lhs = solver->createAndExpr(phi1_adm, phi1_pn);
-//
-//            // (\not\phi'_a(adm)) \/ (\not\phi'(c))
-//            TExpr rhs = solver->createOrExpr(solver->createNotExpr(phi2_adm), solver->createNotExpr(phi2_pn));
-//
-//            // (\phi_a(adm) /\ \phi(C)) /\ ((\not\phi'_a(adm)) \/ (\not\phi'(c)))
-//            TExpr final_cond = solver->createAndExpr(lhs, rhs);
-//
-//            solver->assertNow(final_cond);
-//            SMTResult res = solver->solve();
-//            solver->clean();
-//            return res == UNSAT;
+        int implied(std::shared_ptr<rule> ca1, std::shared_ptr<rule> ca2) {
+            std::map<std::string, TVar> c_map;
+            std::map<std::string, TVar> adm_map;
+            std::string c_suff("C");
+            std::string adm_suff("admin");
+
+            TExpr phi1_adm = generateSMTFunction(solver, ca1->admin, adm_map, adm_suff);
+            TExpr phi1_pn = generateSMTFunction(solver, ca1->prec, c_map, c_suff);
+            TExpr phi2_adm = generateSMTFunction(solver, ca2->admin, adm_map, adm_suff);
+            TExpr phi2_pn = generateSMTFunction(solver, ca2->prec, c_map, c_suff);
+
+            // \phi'_a(adm) /\ \phi'(C)
+            TExpr lhs = solver->createAndExpr(phi2_adm, phi2_pn);
+
+            // (\not\phi_a(adm)) \/ (\not\phi(c))
+            // \not (\phi_a(adm) /\ \phi(C))
+            TExpr rhs = solver->createNotExpr(solver->createAndExpr(phi1_adm, phi1_pn));
+
+            // (\phi_a(adm) /\ \phi(C)) /\ ((\not\phi'_a(adm)) \/ (\not\phi'(c)))
+            TExpr final_cond = solver->createAndExpr(lhs, rhs);
+
+            solver->assertNow(final_cond);
+            SMTResult res = solver->solve();
+            solver->clean();
+            return res == UNSAT;
         }
 
         public:
@@ -593,20 +588,51 @@ namespace SMT {
 
         void printImpliedPairs() {
             //FIXME: refactored. Fix here
-            throw new std::runtime_error("FIXME: refactored. Fix here");
-//            for (int i = 0; i < ca_array_size; i++) {
-//                for (int j = 0; j < ca_array_size; j++) {
-//                    if (i != j && ca_array[i].target_role_index == ca_array[j].target_role_index) {
-//                        printf("Implied: \n");
+//            throw new std::runtime_error("FIXME: refactored. Fix here");
+            for (int i = 0; i < policy->can_assign_rules.size(); i++) {
+                std::shared_ptr<rule> ca1 = policy->can_assign_rules[i];
+                for (int j = 0; j < policy->can_assign_rules.size(); j++) {
+                    std::shared_ptr<rule> ca2 = policy->can_assign_rules[j];
+                    if (i != j &&
+                            policy->can_assign_rules[i]->target->role_array_index ==
+                                    policy->can_assign_rules[j]->target->role_array_index) {
+                        printf("Implied: \n");
 //                        print_ca_comment(stdout, i);
+//                        std::cout << ca1 << std::endl;
+//                        std::cout << ca2 << std::endl;
+                        ca1->print();
+                        ca2->print();
 //                        print_ca_comment(stdout, j);
 //                        std::pair<Expr, Expr> ca1_exprs = std::make_pair(ca_adm_formulae[i], ca_pn_formulae[i]);
 //                        std::pair<Expr, Expr> ca2_exprs = std::make_pair(ca_adm_formulae[j], ca_pn_formulae[j]);
-//                        int are_implied = implied(ca1_exprs, ca2_exprs);
-//                        printf("%s!\n", are_implied ? "TRUE" : "FALSE");
-//                    }
-//                }
-//            }
+                        int are_implied = implied(ca1, ca2);
+                        printf("%s!\n", are_implied ? "TRUE" : "FALSE");
+                        if (are_implied) {
+                        }
+                    }
+                }
+            }
+        }
+
+        void test() {
+            TVar v = solver->createBoolVar("polok");
+            TExpr e1 = v;
+
+            solver->assertNow(e1);
+            std::string r1 = solver->solve() == SAT ? "SAT" : "UNSAT";
+
+            std::cout << r1 << std::endl;
+            solver->printModel();
+
+            solver->clean();
+
+            TExpr e2 = solver->createNotExpr(v);
+            solver->assertNow(e2);
+            std::string r2 = solver->solve() == SAT ? "SAT" : "UNSAT";
+
+            std::cout << r2 << std::endl;
+            solver->printModel();
+
         }
 
         void apply_rule_6() {
@@ -658,12 +684,10 @@ namespace SMT {
                     }
                 }
 
-                std::cout << std::endl;
                 for (auto ite = to_remove.begin(); ite != to_remove.end(); ++ite) {
 //                    std::cout << **ite << ", ";
                     policy->remove_can_assign(*ite);
                 }
-                std::cout << std::endl;
 
                 fixpoint = to_remove.size() == 0;
 
@@ -714,12 +738,13 @@ namespace SMT {
         build_config_array();
 
 
-//        std::shared_ptr<SMTFactory<z3::expr, z3::expr>> solver(new Z3Solver());
-//        Pruning<z3::expr, z3::expr> core(solver);
-        std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());
-        Pruning<term_t, term_t> core(solver);
+        std::shared_ptr<SMTFactory<z3::expr, z3::expr>> solver(new Z3Solver());
+        Pruning<z3::expr, z3::expr> core(solver);
+//        std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());
+//        Pruning<term_t, term_t> core(solver);
 
-        core.apply_rule_6();
+//        core.apply_rule_6();
+        core.printImpliedPairs();
 
 //        return;
 //
