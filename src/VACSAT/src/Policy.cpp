@@ -3,6 +3,7 @@
 //
 
 #include <sstream>
+#include <algorithm>
 #include "Policy.h"
 #include "ARBACData.h"
 #include "ARBACTransform.h"
@@ -12,7 +13,7 @@ namespace SMT {
     rule::rule(bool _is_ca, Expr _admin, Expr _prec, Literalp _target, int _original_idx) :
             is_ca(_is_ca), admin(_admin), prec(_prec), target(_target), original_idx(_original_idx) { }
 
-    void rule::print() {
+    void rule::print() const{
         if (this->original_idx < 0) {
             fprintf(stderr, "Trying to print rule with index less than 0: %d\n", this->original_idx);
             return;
@@ -42,22 +43,27 @@ namespace SMT {
         return new rule(false, admin, prec, target, original_idx);
     }
 
-    std::string rule::to_string() {
+    std::string rule::to_string() const{
         std::stringstream fmt;
 
         fmt << this->get_type();
 
         fmt << "; Id:" << this->original_idx << "; ";
 
-        fmt << "<" << this->admin->to_string() << this->prec->to_string() << this->target->name << ">";
+        fmt << "<" << this->admin->to_string() << ", " << this->prec->to_string() << ", " << this->target->name << ">";
 
         return fmt.str();
     }
 
-    std::string rule::get_type() {
+    std::string rule::get_type() const{
         return this->is_ca ? "CA": "CR";
     }
 
+
+    std::ostream& operator<< (std::ostream& stream, const rule& self) {
+        stream << self.to_string();
+        return stream;
+    }
 
 
 
@@ -139,11 +145,32 @@ namespace SMT {
         }
     }
 
-    void arbac_policy::remove_can_assign(int index) {
-        this->can_assign_rules.erase(can_assign_rules.begin() + index);
+    void arbac_policy::remove_can_assign(std::shared_ptr<rule>& _rule) {
+        std::vector<std::shared_ptr<rule>> res;
+        auto filtered =
+            std::copy_if(this->can_assign_rules.begin(),
+                           this->can_assign_rules.end(),
+                           std::back_inserter(res),
+                           [&](const std::shared_ptr<rule>& r)
+                                { return r->original_idx != _rule->original_idx; } );
+        this->can_assign_rules = res;
     }
-    void arbac_policy::remove_can_revoke(int index) {
-        this->can_revoke_rules.erase(can_revoke_rules.begin() + index);
+    void arbac_policy::remove_can_revoke(std::shared_ptr<rule>& _rule) {
+        std::vector<std::shared_ptr<rule>> res;
+        auto filtered =
+            std::copy_if(this->can_revoke_rules.begin(),
+                           this->can_revoke_rules.end(),
+                           std::back_inserter(res),
+                           [&](const std::shared_ptr<rule>& r)
+                                { return r->original_idx != _rule->original_idx; } );
+        this->can_revoke_rules = res;
     }
+
+//    void arbac_policy::remove_can_assign(int index) {
+//        this->can_assign_rules.erase(can_assign_rules.begin() + index);
+//    }
+//    void arbac_policy::remove_can_revoke(int index) {
+//        this->can_revoke_rules.erase(can_revoke_rules.begin() + index);
+//    }
 
 }

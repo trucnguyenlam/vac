@@ -15,13 +15,15 @@ namespace SMT {
     public:
         rule(bool is_ca, Expr admin, Expr prec, Literalp target, int original_idx);
 
-        void print();
+        void print() const;
 
-        std::string to_string();
-        std::string get_type();
+        std::string to_string() const;
+        std::string get_type() const;
 
         static rule* create_ca(Expr admin, Expr prec, Literalp target, int original_idx);
         static rule* create_cr(Expr admin, Expr prec, Literalp target, int original_idx);
+
+        friend std::ostream& operator<< (std::ostream& stream, const rule& self);
 
         bool is_ca;
         Expr admin;
@@ -40,8 +42,11 @@ namespace SMT {
             return (int) atoms.size();
         }
 
-        void remove_can_assign(int index);
-        void remove_can_revoke(int index);
+//        void remove_can_assign(rule to_remove);
+//        void remove_can_revoke(rule to_remove);
+
+        void remove_can_assign(std::shared_ptr<rule>& rule);
+        void remove_can_revoke(std::shared_ptr<rule>& rule);
 
         std::vector<Literalp> atoms;
 
