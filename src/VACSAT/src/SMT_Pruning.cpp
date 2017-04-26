@@ -617,10 +617,15 @@ namespace SMT {
             auto start = std::chrono::high_resolution_clock::now();
             while (!fixpoint) {
                 fixpoint = true;
-                std::vector<int> to_remove;
+                std::vector<std::shared_ptr<rule>> to_remove;
 
                 fprintf(stdout, "Iteration %d:\n", fix_ite++);
                 fprintf(stdout, "Total: %ld rules\n", policy->can_assign_rules.size());
+
+//                for (int j = 0; j < policy->can_assign_rules.size(); ++j) {
+//                    std::cout << *policy->can_assign_rules[j] << std::endl;
+//                }
+
                 for (int i = 0; i < policy->can_assign_rules.size(); i++) {
                     std::shared_ptr<rule> rule = policy->can_assign_rules[i];
                     solver->clean();
@@ -642,11 +647,11 @@ namespace SMT {
                         //                    fprintf(stdout, "rule %d %s be removed since not fireable\n\n", i, res ? "CAN" : "CANNOT");
                         fprintf(stdout, "X");
                         fflush(stdout);
-                        to_remove.push_back(i);
+                        to_remove.push_back(policy->can_assign_rules[i]);
                     } else if (rem_adm) {
                         fprintf(stdout, "O");
                         fflush(stdout);
-                        to_remove.push_back(i);
+                        to_remove.push_back(policy->can_assign_rules[i]);
                     } else {
                         fprintf(stdout, "-");
                         fflush(stdout);
@@ -655,7 +660,7 @@ namespace SMT {
 
                 std::cout << std::endl;
                 for (auto ite = to_remove.begin(); ite != to_remove.end(); ++ite) {
-                    std::cout << *ite << ", ";
+//                    std::cout << **ite << ", ";
                     policy->remove_can_assign(*ite);
                 }
                 std::cout << std::endl;

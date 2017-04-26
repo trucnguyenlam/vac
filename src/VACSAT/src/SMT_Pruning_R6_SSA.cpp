@@ -24,6 +24,8 @@ class R6Transformer {
     std::shared_ptr<SMTFactory<TVar, TExpr>> solver;
     std::stringstream fmt;
 
+    bool log;
+
     void clean_fmt() {
         fmt.str(std::string());
     }
@@ -61,6 +63,11 @@ class R6Transformer {
                 // }
 
              }
+
+        friend std::ostream& operator<< (std::ostream& stream, const variable& var) {
+            stream << var.full_name;
+            return stream;
+        }
 
         // ~variable() {
         //     delete[] solver_varp;
@@ -353,6 +360,14 @@ class R6Transformer {
     TExpr generate_from_prec(const Expr &precond) {
 //        std::shared_ptr<TVar>* array = get_t_array(precond->literals());
 
+//        if (log) {
+//            target_rule->print();
+//            for (int i = 0; i < policy->atom_count(); ++i) {
+//                std::cout << role_vars[i] << "; ";
+//            }
+//            std::cout << std::endl << std::endl;
+//        }
+
         TExpr res = generateSMTFunction(solver, precond, role_vars, "");
 
 //        delete[] array;
@@ -627,7 +642,8 @@ class R6Transformer {
         solver(_solver), pc_size(numBits((int) (check_adm ? _to_check->admin : _to_check->prec)->literals().size() + 1)),
         policy(_policy), target_rule(_to_check),
         target_expr(_check_adm ? target_rule->admin : target_rule->prec), check_adm(_check_adm),
-        zero(solver->createFalse()), one(solver->createTrue()) {
+        zero(solver->createFalse()), one(solver->createTrue()),
+        log(false) {
         precompute_merge();
         allocate_core_role_array();
         generate_variables();
