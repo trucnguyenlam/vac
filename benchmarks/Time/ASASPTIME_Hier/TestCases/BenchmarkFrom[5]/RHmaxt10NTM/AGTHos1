@@ -1,0 +1,401 @@
+[Hierarchies]
+8>6>t1
+2>14>t1
+5>7>t1
+13>7>t1
+15>4>t1
+7>3>t1
+8>2>t1
+15>3>t1
+7>1>t1
+9>7>t1
+12>9>t1
+1>14>t1
+8>6>t2
+2>14>t2
+5>7>t2
+13>7>t2
+15>4>t2
+7>3>t2
+8>2>t2
+15>3>t2
+7>1>t2
+9>7>t2
+12>9>t2
+1>14>t2
+8>6>t3
+2>14>t3
+5>7>t3
+13>7>t3
+15>4>t3
+7>3>t3
+8>2>t3
+15>3>t3
+7>1>t3
+9>7>t3
+12>9>t3
+1>14>t3
+11>1>t3
+8>6>t4
+2>14>t4
+5>7>t4
+13>7>t4
+15>4>t4
+7>3>t4
+8>2>t4
+15>3>t4
+7>1>t4
+9>7>t4
+12>9>t4
+1>14>t4
+11>1>t4
+15>1>t4
+8>12>t4
+8>6>t5
+2>14>t5
+5>7>t5
+13>7>t5
+15>4>t5
+7>3>t5
+8>2>t5
+15>3>t5
+7>1>t5
+9>7>t5
+12>9>t5
+1>14>t5
+11>1>t5
+15>1>t5
+8>12>t5
+8>6>t6
+2>14>t6
+5>7>t6
+13>7>t6
+15>4>t6
+7>3>t6
+8>2>t6
+15>3>t6
+7>1>t6
+9>7>t6
+12>9>t6
+1>14>t6
+11>1>t6
+15>1>t6
+8>12>t6
+14>12>t6
+8>6>t7
+2>14>t7
+5>7>t7
+13>7>t7
+15>4>t7
+7>3>t7
+8>2>t7
+15>3>t7
+7>1>t7
+9>7>t7
+12>9>t7
+1>14>t7
+11>1>t7
+15>1>t7
+8>12>t7
+14>12>t7
+10>13>t7
+8>6>t8
+2>14>t8
+5>7>t8
+13>7>t8
+15>4>t8
+7>3>t8
+8>2>t8
+15>3>t8
+7>1>t8
+9>7>t8
+12>9>t8
+1>14>t8
+11>1>t8
+15>1>t8
+8>12>t8
+14>12>t8
+10>13>t8
+15>10>t8
+7>8>t8
+8>6>t9
+2>14>t9
+5>7>t9
+13>7>t9
+15>4>t9
+7>3>t9
+8>2>t9
+15>3>t9
+7>1>t9
+9>7>t9
+12>9>t9
+1>14>t9
+11>1>t9
+15>1>t9
+8>12>t9
+14>12>t9
+10>13>t9
+15>10>t9
+7>8>t9
+13>14>t9
+14>7>t9
+8>6>t10
+2>14>t10
+5>7>t10
+13>7>t10
+15>4>t10
+7>3>t10
+8>2>t10
+15>3>t10
+7>1>t10
+9>7>t10
+12>9>t10
+1>14>t10
+11>1>t10
+15>1>t10
+8>12>t10
+14>12>t10
+10>13>t10
+15>10>t10
+7>8>t10
+13>14>t10
+14>7>t10
+[UA0]
+[Rules]
+can_revoke true , t6 , true ; t8 , 14
+can_revoke 3 , t3 , true ; t1 , 14
+can_revoke 3 , t4 , true ; t9 , 14
+can_revoke true , t7 , true ; t4 , 14
+can_revoke 3 , t8 , true ; t10 , 14
+can_revoke 3 , t6 , true ; t6 , 13
+can_revoke 6 , t1 , true ; t10 , 7
+can_revoke 6 , t9 , true ; t4 , 7
+can_revoke 6 , t6 , true ; t3 , 7
+can_revoke 6 , t4 , true ; t9 , 7
+can_revoke 6 , t10 , true ; t7 , 7
+can_revoke 6 , t1 , true ; t5 , 7
+can_revoke true , t7 , true ; t6 , 7
+can_revoke 6 , t5 , true ; t2 , 7
+can_revoke 6 , t8 , true ; t8 , 7
+can_revoke 6 , t2 , true ; t1 , 7
+can_revoke 5 , t10 , true ; t8 , 4
+can_revoke true , t8 , true ; t6 , 4
+can_revoke 5 , t1 , true ; t10 , 4
+can_revoke true , t7 , true ; t3 , 4
+can_revoke true , t9 , true ; t7 , 4
+can_revoke 5 , t2 , true ; t1 , 4
+can_revoke 5 , t8 , true ; t8 , 6
+can_revoke 5 , t6 , true ; t7 , 6
+can_revoke 5 , t1 , true ; t7 , 12
+can_revoke 5 , t4 , true ; t6 , 12
+can_revoke 5 , t2 , true ; t8 , 12
+can_revoke 5 , t3 , true ; t10 , 12
+can_revoke 5 , t5 , true ; t9 , 12
+can_revoke 5 , t8 , true ; t3 , 12
+can_revoke 5 , t6 , true ; t1 , 12
+can_revoke 5 , t9 , true ; t2 , 12
+can_revoke 5 , t7 , true ; t4 , 12
+can_revoke 5 , t10 , true ; t5 , 12
+can_revoke 5 , t4 , true ; t6 , 8
+can_revoke 5 , t7 , true ; t7 , 8
+can_revoke 5 , t10 , true ; t5 , 8
+can_revoke true , t8 , true ; t1 , 8
+can_revoke 5 , t9 , true ; t8 , 8
+can_revoke 5 , t6 , true ; t9 , 8
+can_revoke 5 , t1 , true ; t10 , 8
+can_revoke 5 , t2 , true ; t1 , 3
+can_revoke true , t8 , true ; t3 , 3
+can_revoke 5 , t9 , true ; t9 , 3
+can_revoke 5 , t5 , true ; t10 , 3
+can_revoke 5 , t3 , true ; t2 , 3
+can_revoke 9 , t3 , true ; t4 , 2
+can_revoke true , t7 , true ; t3 , 2
+can_revoke 9 , t8 , true ; t10 , 2
+can_revoke 9 , t9 , true ; t2 , 2
+can_revoke true , t10 , true ; t8 , 2
+can_revoke 9 , t1 , true ; t8 , 11
+can_revoke 9 , t2 , true ; t6 , 11
+can_revoke true , t3 , true ; t3 , 11
+can_revoke 9 , t9 , true ; t7 , 11
+can_revoke 9 , t4 , true ; t10 , 11
+can_revoke 3 , t4 , true ; t2 , 9
+can_revoke 3 , t6 , true ; t6 , 9
+can_revoke 3 , t7 , true ; t7 , 9
+can_revoke 3 , t3 , true ; t3 , 9
+can_revoke 3 , t8 , true ; t4 , 9
+can_revoke 3 , t9 , true ; t9 , 9
+can_revoke true , t5 , true ; t5 , 9
+can_revoke 3 , t2 , true ; t8 , 9
+can_revoke 3 , t10 , true ; t10 , 9
+can_revoke 3 , t1 , true ; t1 , 9
+can_revoke 14 , t9 , true ; t10 , 10
+can_assign 1 , t4 , 9 11 ; t4 , 15
+can_assign 1 , t2 , 9 11 ; t10 , 15
+can_assign 1 , t8 , 9 11 ; t5 , 15
+can_assign 3 , t7 , true ; t10 , 14
+can_assign 3 , t6 , true ; t4 , 14
+can_assign true , t3 , true ; t5 , 14
+can_assign true , t9 , true ; t7 , 14
+can_assign 3 , t2 , true ; t8 , 14
+can_assign 3 , t4 , true ; t6 , 14
+can_assign 3 , t8 , true ; t2 , 14
+can_assign 3 , t5 , true ; t9 , 14
+can_assign 3 , t1 , true ; t3 , 14
+can_assign true , t10 , true ; t1 , 14
+can_assign 5 , t7 , true ; t8 , 4
+can_assign 5 , t8 , true ; t2 , 4
+can_assign 5 , t10 , true ; t4 , 4
+can_assign 5 , t1 , true ; t8 , 6
+can_assign 5 , t4 , true ; t8 , 8
+can_assign 9 , t8 , true ; t10 , 2
+can_assign 9 , t2 , true ; t1 , 2
+can_assign 9 , t6 , true ; t2 , 2
+can_assign 9 , t9 , true ; t8 , 2
+can_assign 9 , t3 , true ; t3 , 2
+can_assign 3 , t1 , true ; t7 , 14
+can_assign 3 , t9 , true ; t6 , 14
+can_assign 3 , t2 , true ; t8 , 14
+can_assign 3 , t4 , true ; t1 , 14
+can_assign 3 , t3 , true ; t9 , 14
+can_assign 3 , t5 , true ; t2 , 14
+can_assign 3 , t6 , true ; t3 , 14
+can_assign 3 , t7 , true ; t10 , 14
+can_assign true , t5 , true ; t6 , 4
+can_assign 5 , t4 , true ; t7 , 4
+can_assign 5 , t1 , true ; t2 , 4
+can_assign 5 , t2 , true ; t3 , 4
+can_assign 5 , t9 , true ; t8 , 4
+can_assign 5 , t10 , true ; t10 , 4
+can_assign true , t8 , true ; t3 , 6
+can_assign 5 , t1 , true ; t4 , 8
+can_assign 5 , t5 , true ; t7 , 8
+can_assign 5 , t6 , true ; t5 , 8
+can_assign 5 , t2 , true ; t9 , 8
+can_assign true , t3 , true ; t6 , 8
+can_assign true , t10 , true ; t8 , 8
+can_assign true , t7 , true ; t10 , 8
+can_assign true , t4 , true ; t10 , 2
+can_assign 9 , t5 , true ; t4 , 2
+can_assign 9 , t8 , true ; t5 , 2
+can_assign true , t6 , true ; t2 , 2
+can_assign 9 , t2 , true ; t1 , 2
+can_assign 9 , t3 , true ; t8 , 2
+can_assign 9 , t7 , true ; t7 , 2
+can_assign 3 , t1 , 3 ; t5 , 13
+can_assign 6 , t5 , 3 ; t1 , 7
+can_assign 6 , t1 , 3 ; t5 , 7
+can_assign 6 , t3 , 3 ; t3 , 7
+can_assign 6 , t4 , 3 ; t6 , 7
+can_assign 6 , t10 , 3 ; t2 , 7
+can_assign true , t8 , 3 ; t4 , 7
+can_assign 6 , t7 , 3 ; t7 , 7
+can_assign 6 , t9 , 3 ; t10 , 7
+can_assign 6 , t6 , 3 ; t8 , 7
+can_assign 6 , t2 , 3 ; t9 , 7
+can_assign 6 , t8 , 8 ; t2 , 7
+can_assign 6 , t6 , 8 ; t7 , 7
+can_assign 6 , t7 , 8 ; t6 , 7
+can_assign 6 , t9 , 8 ; t3 , 7
+can_assign 6 , t1 , 8 ; t1 , 7
+can_assign 6 , t10 , 8 ; t10 , 7
+can_assign 6 , t2 , 8 ; t9 , 7
+can_assign 6 , t3 , 8 ; t4 , 7
+can_assign 6 , t4 , 8 ; t5 , 7
+can_assign 5 , t2 , -3 ; t1 , 12
+can_assign 5 , t3 , -3 ; t3 , 12
+can_assign 5 , t10 , -3 ; t8 , 12
+can_assign true , t4 , -3 ; t2 , 12
+can_assign 5 , t1 , -3 ; t5 , 12
+can_assign true , t8 , -3 ; t10 , 12
+can_assign 5 , t5 , -3 ; t6 , 12
+can_assign true , t9 , -3 ; t4 , 12
+can_assign true , t6 , -3 ; t7 , 12
+can_assign true , t8 , -12 ; t3 , 3
+can_assign true , t3 , -12 ; t7 , 3
+can_assign 5 , t5 , -12 ; t9 , 3
+can_assign 5 , t9 , -12 ; t8 , 3
+can_assign true , t6 , -12 ; t10 , 3
+can_assign 5 , t7 , -12 ; t1 , 3
+can_assign 5 , t4 , -12 ; t5 , 3
+can_assign 5 , t10 , -12 ; t2 , 3
+can_assign 5 , t1 , -12 ; t4 , 3
+can_assign 5 , t2 , -12 ; t6 , 3
+can_assign 9 , t4 , 3 -9 ; t2 , 11
+can_assign 9 , t5 , 3 -9 ; t7 , 11
+can_assign 9 , t3 , 3 -9 ; t3 , 11
+can_assign 9 , t8 , 3 -9 ; t9 , 11
+can_assign true , t8 , -11 ; t10 , 9
+can_assign 12 , t7 , -11 ; t9 , 9
+can_assign true , t3 , -11 ; t6 , 9
+can_assign 12 , t2 , -11 ; t7 , 9
+can_assign 12 , t4 , -11 ; t4 , 9
+can_assign true , t9 , -11 ; t3 , 9
+can_assign 12 , t5 , -11 ; t8 , 9
+can_assign 12 , t10 , -11 ; t2 , 9
+can_assign 12 , t6 , -11 ; t5 , 9
+can_assign 14 , t4 , 9 ; t4 , 10
+can_assign 14 , t2 , 9 ; t5 , 10
+can_assign 14 , t1 , 9 ; t6 , 10
+can_assign 14 , t7 , 9 ; t3 , 10
+can_enable 3 , t6 , true ; t6 , 13
+can_enable 6 , t9 , true ; t4 , 7
+can_disable 6 , t1 , true ; t5 , 7
+can_disable 6 , t5 , true ; t2 , 7
+can_disable 6 , t8 , true ; t8 , 7
+can_disable 5 , t1 , true ; t10 , 4
+can_enable true , t7 , true ; t3 , 4
+can_disable true , t9 , true ; t7 , 4
+can_enable 5 , t6 , true ; t1 , 12
+can_enable 5 , t7 , true ; t7 , 8
+can_enable 5 , t10 , true ; t5 , 8
+can_enable true , t8 , true ; t1 , 8
+can_enable 5 , t9 , true ; t8 , 8
+can_enable 5 , t1 , true ; t10 , 8
+can_enable 5 , t2 , true ; t1 , 3
+can_disable 5 , t9 , true ; t9 , 3
+can_enable 9 , t1 , true ; t8 , 11
+can_disable 9 , t2 , true ; t6 , 11
+can_enable 9 , t9 , true ; t7 , 11
+can_enable 9 , t4 , true ; t10 , 11
+can_enable 3 , t3 , true ; t3 , 9
+can_enable 3 , t9 , true ; t9 , 9
+can_disable true , t5 , true ; t5 , 9
+can_disable 3 , t2 , true ; t8 , 9
+can_enable 1 , t4 , 9 11 ; t4 , 15
+can_enable 1 , t8 , 9 11 ; t5 , 15
+can_enable 5 , t10 , true ; t4 , 4
+can_disable 3 , t4 , true ; t1 , 14
+can_enable 3 , t3 , true ; t9 , 14
+can_disable 3 , t6 , true ; t3 , 14
+can_enable 3 , t7 , true ; t10 , 14
+can_disable true , t5 , true ; t6 , 4
+can_enable 5 , t4 , true ; t7 , 4
+can_enable 5 , t10 , true ; t10 , 4
+can_enable 5 , t5 , true ; t7 , 8
+can_enable 9 , t5 , true ; t4 , 2
+can_disable 9 , t8 , true ; t5 , 2
+can_enable true , t6 , true ; t2 , 2
+can_enable 9 , t2 , true ; t1 , 2
+can_disable 3 , t1 , 3 ; t5 , 13
+can_enable 6 , t6 , 8 ; t7 , 7
+can_disable 6 , t7 , 8 ; t6 , 7
+can_enable 6 , t9 , 8 ; t3 , 7
+can_enable 6 , t1 , 8 ; t1 , 7
+can_enable 6 , t4 , 8 ; t5 , 7
+can_disable 5 , t2 , -3 ; t1 , 12
+can_disable 5 , t10 , -3 ; t8 , 12
+can_enable true , t8 , -3 ; t10 , 12
+can_enable 5 , t5 , -3 ; t6 , 12
+can_disable true , t9 , -3 ; t4 , 12
+can_enable true , t3 , -12 ; t7 , 3
+can_enable 5 , t5 , -12 ; t9 , 3
+can_enable 5 , t9 , -12 ; t8 , 3
+can_enable true , t6 , -12 ; t10 , 3
+can_disable 5 , t1 , -12 ; t4 , 3
+can_enable 9 , t4 , 3 -9 ; t2 , 11
+can_disable 9 , t3 , 3 -9 ; t3 , 11
+can_enable 12 , t2 , -11 ; t7 , 9
+can_enable 12 , t6 , -11 ; t5 , 9
+can_enable 14 , t4 , 9 ; t4 , 10
+can_enable 14 , t1 , 9 ; t6 , 10
+can_disable 14 , t7 , 9 ; t3 , 10

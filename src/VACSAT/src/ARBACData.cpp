@@ -17,6 +17,10 @@ int newuser_array_size;
 _UA *ua_array;
 int ua_array_size;
 
+//Define array of PO (partial-order) of role
+_PO *hierarchy_array;
+int hierarchy_array_size;
+
 //Define array of can_revoke rules
 _CR *cr_array;
 int cr_array_size;

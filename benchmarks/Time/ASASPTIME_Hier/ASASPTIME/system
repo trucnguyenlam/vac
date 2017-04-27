@@ -1,0 +1,5 @@
+can_assign true , t1 , true ; t1 , 2
+can_assign true , t1 , 2 ; t1 , 1
+can_assign 1 , t1 , 1 -2 ; t1 , 3
+can_revoke 1 , t1 , true ; t1 , 2
+can_enable true , t1 , true ; t1 , 1

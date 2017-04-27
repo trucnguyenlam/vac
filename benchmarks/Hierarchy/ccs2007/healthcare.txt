@@ -1,0 +1,235 @@
+   RBAC AND ARBAC POLICIES FOR A SMALL HEALTH CARE FACILITY
+  Scott D. Stoller, Ping Yang, C.R. Ramakrishnan, and Mikhail I. Gofman
+            12 August 2007
+
+This policy is based roughly on the policy for a small aged-care facility
+described in [Evered 2004].  We extended the policy with some aspects of
+the electronic health records policy in [Becker 2005].
+
+[Evered 2004] Mark Evered and Serge Bogeholz.  A Case Study in Access
+Control Requirements for a Health Information System, Proc. 2004
+Australasian Information Security Workshop (AISW), volume 32 of
+Conferences in Research and Practice in Information Technology.
+http://crpit.com/confpapers/CRPITV32Evered.pdf
+
+[Becker 2005] Moritz Y. Becker.  Cassandra: Flexible Trust Management and
+its Application to Electronic Health Records.  Ph.D. thesis, University of
+Cambridge, October 2005.  http://research.microsoft.com/~moritzb/
+
+****************************************
+TERMINOLOGY
+
+personal information: data entered into the system when a patient is
+admitted, e.g. personal details, medical insurance information, and past
+medical records.
+
+care plan: contains detailed information and instructions regarding the
+day-to-day care of the resident, e.g. what assistence is required with
+meals.
+
+progress notes: notes about changes in the patient's condition.  may
+indicate updates to the care plan.
+
+medical records: after each examination, the doctor adds an entry to the
+medical records of the patient.
+
+****************************************
+ROLES
+
+note: many of these roles should have parameters.  we plan to add
+parameters later.  for now, we assume there is only a single value for
+each parameter, so we elide it.
+
+Agent (called ResponsiblePerson in [Evered 2004]): someone who can make
+decisions on a patient's behalf.  the agent is normally selected by  the
+patient.  add can_assign rule for this!
+
+Doctor: has access to all the medical information of his/her patients and
+can add entries to their medical records.  Can also add private notes
+about a resident, which are not visible to health care staff or the
+manager.  Occasionally, due to some emergency situation, we may allow a
+doctor to examine a patient who is not his/her patient.  This doctor can
+then temporarily access the patient's medical records, but not the private
+notes of the patient's usual doctor.
+
+Manager: has broadest access to the information.  The manager can enter
+the past medical records when a resident is admitted, but he/she cannot
+subsequently add medical entries to the system.  Also, the manager cannot
+view the private notes of doctors and cannot sign legal agreement on
+behalf of a resident.  This means that the manager may not have all the
+permission the doctor has unless the manager is also a doctor.  -- I am
+not sure if we should assume that the manager is also a doctor.
+
+MedicalManager: can assign doctors and nurses to medical teams.
+
+Nurse (also called health care worker): need to sign a confidentiality
+agreement before they have access to any resident data.  can view the care
+plan and add progress entries based on their abservations.  can view
+recent medical records of residents (up to one year old), but cannot view
+older medical information.
+
+Patient (a.k.a. Resident): can view his/her own personal information and
+medical records, including the private notes of the doctor (which are
+normally not accessibly by other doctors), but cannot modify the
+information.
+
+PrimaryDoctor: a patient's primary care physician.
+
+ReferredDoctor: a doctor to which a patient has been referred by another
+doctor.  the referred doctor gains access to the patient's information.
+
+Receptionist: can register patients and make appointments
+
+ThirdParty, PatientWithTPC: a third party's consent may be required
+for a patient to view part of his own medical record.  for example, if a
+medical record contains comments comparing a patient's medical condition
+with his father's, the father is a third party whose consent is required
+for the patient to read those comments.  in our model, the third party
+grants consent by adding the patient to the role PatientWithTPC.
+
+****************************************
+ROLE HIERARCHY
+
+Employee > Nurse
+         > Doctor
+         > Receptionist
+         > MedicalManager
+         > Manager
+
+should we put MedicalManager > Manager?
+
+it is unnecessary to include Patient > PatientWithTPC, because a user
+would be assigned to Patient before being assigned to PatientWithTPC.
+Similarly, Doctor > ReferredDoctor and Doctor > PrimaryDoctor are
+unnecessary.
+
+****************************************
+RBAC POLICY
+
+note: we wrote parts of the RBAC policy, to help illustrate the functions
+of each role, but since our main interest is the ARBAC policy, we did not
+write a complete RBAC policy.
+
+PA(Doctor, [View, OldMedicalRecords])
+PA(Doctor, [View, RecentMedicalRecords])
+PA(Doctor, [View, PrivateNotes])
+PA(Doctor, [Add, PrivateNotes])
+PA(Doctor, [Add, RecentMedicalRecords])
+PA(Doctor, [View, Prescriptions])
+PA(Doctor, [Modify, Prescriptions])
+
+PA(Manager, [Access, PatientPersonalInfo])
+PA(Manager, [Access, PatientFinancialInfo])
+PA(Manager, [Access, PatientMedicalInfo])
+PA(Manager, [Enter, OldMedicalRecords])
+PA(Manager, [Enter, RecentMedicalRecords])
+PA(Manager, [Update, CarePlan])
+
+PA(Receptionist, [Create, Appointment])
+
+PA(Nurse, [Access, OldMedicalRecords])
+PA(Nurse, [View, CarePlan])
+PA(Nurse, [Add, ProgressNotes])
+PA(Nurse, [View, RecentMedicalRecords])
+
+PA(Patient, (View, [OldMedicalRecords])
+PA(Patient, (View, [RecentMedicalRecords])
+PA(PatientWithTPC, [View, MedicalRecordsWithThirdPartyInfo])
+PA(Patient, [Sign, LegalAgreement])
+PA(Patient, [View, Prescriptions])
+PA(Patient, [View, Bills])
+
+****************************************
+ARBAC POLICY: can_assign
+
+can_assign(Doctor, true, ThirdParty)
+can_assign(Doctor, Doctor, ReferredDoctor)
+
+can_assign(MedicalManager, Doctor, MedicalTeam)
+can_assign(MedicalManager, Nurse, MedicalTeam)
+
+can_assign(Manager, true, Employee)
+can_assign(Manager, true, MedicalManager)
+can_assign(Manager, true, Receptionist)
+can_assign(Manager, true, Nurse)
+can_assign(Manager, true, Doctor)
+
+can_assign(Patient, true, Agent)
+can_assign(Patient, Doctor, PrimaryDoctor)
+
+can_assign(Receptionist, true, Patient)
+
+can_assign(ThirdParty, Patient, PatientWithTPC)
+
+****************************************
+ARBAC POLICY: can_revoke
+
+for each rule can_assign(r_a, c, r), there is a corresponding rule
+can_revoke(r_a, r), except that a doctor, not a receptionist, can revoke
+the Patient role.  this reflects the policy that a patient must be
+discharged from the facility by a doctor.  or, we could make the patient
+role irrevocable.
+
+****************************************
+ARBAC POLICY: SMER
+
+SMER(Patient, PrimaryDoctor).  in a framework with parameters, this SMER
+constraint would ensure that a user cannot be his own primary doctor.
+
+SMER(Receptionist, Doctor).  this SMER constraint helps prevent fraud, by
+ensuring that a single user cannot falsely register and then falsely claim
+to treat a patient, billing the insurance company, etc.
+
+the SMER constraint SMER(Nurse, Doctor) should probably hold for the RBAC
+state to be well-formed, but it does not seem necessary for security,
+since doctors have more permissions than nurses, so we omit this
+constraint from the policy.
+
+****************************************
+CHARACTERISTICS OF THE POLICY
+
+# of roles: 11
+# of negative roles (after expanding role hierarchy): 4/11 = 36%
+# of positive roles (after expanding role hierarchy:  3/11 = 27%
+# of administrative roles: 6
+
+separate administration: no.
+
+hierarchical role assignment: a few of the can_assign rules allow
+violations of hierarchical role assignment.
+
+Total Revocation (TR): yes, except that Receptionist can assign but not
+revoke the Patient role.
+
+****************************************
+SAMPLE ANALYSIS QUESTIONS
+
+1. (reachability) Can a user initially in Doctor and a user intially in no
+roles together assign the latter user to PatientWithTPC?
+
+note: the policy does not have hierarchical administration with respect to
+{Doctor}, because Doctor can assign users to ThirdParty, and Doctor is not
+senior to ThirdParty.
+
+answer: Yes.  The Doctor can assign himself to ThirdParty and then assign
+the target user to PatientWithTPC.
+
+2. (role-role containment) Is every Doctor an Employee?  (i.e., is Doctor
+contained in Employee?)
+
+answer: Yes.  This follows directly from the role-hierarchy.
+
+
+3. (permission-role containment) Is every user with permission [View,
+RecentMedicalRecords] a member of some role in {Doctor, Patient}?
+
+answer: No.  Nurse also has that permission.
+
+
+4. (other) Can a user have both of the permissions [Add, ProgressNotes]
+and [Add, PrivateNotes].
+
+answer: yes, if the user is a member of both Doctor and Nurse.  The policy
+does not enforce disjointness of those roles.
+
+

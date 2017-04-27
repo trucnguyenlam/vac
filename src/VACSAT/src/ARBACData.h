@@ -20,6 +20,13 @@ typedef struct __UA
 	int role_index;
 } _UA;
 
+// A partial order of role hierarchy
+typedef struct __PO
+{
+	int inferior_role_index;
+	int superior_role_index;
+} _PO;
+
 // A can_revoke element
 typedef struct __CR
 {
@@ -56,6 +63,10 @@ extern int newuser_array_size;
 //Define array of user role assignment
 extern _UA *ua_array;
 extern int ua_array_size;
+
+//Define array of PO (partial-order) of role
+extern _PO *hierarchy_array;
+extern int hierarchy_array_size;
 
 //Define array of can_revoke rules
 extern _CR *cr_array;

@@ -1,0 +1,129 @@
+--------------------------------------
+INSTALLATION AND RUNNING ASASPTIME
+--------------------------------------
+
+The directory should include the following three folders:
+
+- ASASPTIME: containing the implementation of ASASPTIME
+- Testcases: benchmark problems, includes three sub-folders for experiments in the paper at SAC15.
+
+The executables included here work under Ubuntu (e.g., 12.04 LTS). If you need executables for another operating system, please, let us know.
+
+Notice that you need to download and install the SMT solver Yices, which is used as a backend reasoner by the MCMT model checker. You need to use version 1.0.xx not 2.0.xx!  You can dowload it at the following address: http://yices.csl.sri.com/download-old.shtml.
+
+
+I. INSTALLATION
+
+Before installing ASASPTIME
+------------------------
+
+- install g++: sudo apt-get install g++
+- sudo apt-get install build-essential
+- install m4:  sudo apt-get install m4
+- install GMP:
+     ./configure
+     make
+
+     Some self-tests can be run with
+
+     make check
+
+     And you can install (under /usr/local by default) with
+
+     make install
+
+
+- Installing Yices on Linux
+
+	 Download version 1.0.xx of Yices and unpack the archive. You will find that the package contains three directories: lib, bin and include. You will have to copy the content to your /usr directory. You need to be administrator to do this. Via the terminal, you can do this by typing:
+
+     cd folder_where_yices_is_unpacked
+     sudo mv lib/* /usr/lib
+     sudo mv include/* /usr/include
+     sudo mv bin/* /usr/bin
+     sudo chmod 777 /usr/bin/yices
+
+
+- Installing MCMT
+
+	 Please visit http://users.mat.unimi.it/users/ghilardi/mcmt/ for the installation
+
+
+
+Installing ASASPTIME
+-----------------
+
+- Install Python: in Ubuntu 12.04 Python 2.7.3 is already pre-installed? If not, please follow instruction on the internet for setting up Python or use:
+
+     sudo apt-get install build-essential
+     sudo apt-get install libreadline-gplv2-dev libncursesw5-dev libssl-dev libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev
+     sudo apt-get install python
+
+- Copy Folder ASASPTIME to the folder bin inside the MCMT
+
+
+
+II. INVOKING ASASPTIME
+---------------
+
+1. Input file
+
+- We use integers to represent Roles. For example: -5 means "not role5"
+- We use 't' + integers to represent TimeSlots. For example: t3 means "the third timeslot"
+
+
+The input file for ASASPTIME can be saved in any location and must follow the following form:
+
+ [Hierarchies]
+ hierarchy_rules
+ [UA0]
+ [Rules]
+ can_assign/can_revoke/can_disable/can_enable
+
+ where:
+ * hierarchy_rules: a set of hierarchy rules, one rule in each line
+  For example: we write:
+      9>13>t1
+	  14>12>t1
+       meaning that role 9 is more sennnior than role 13 at timeslot t1; and role 14 is more senior than role 12 at timeslot t1
+
+ * can_assign/can_revoke/can_disable/can_enable: administrative actions, one action in each line
+
+ For example: we write:
+      can_assign 5 , t8 , 2 -4 ; t1 , 8
+       meaning that 5 is administrative role, 2 and -4 are the roles in the precondition, 8 is the target role, t8 is the rule timeslot, and t1 is the role timeslot
+
+      Similarly to:
+  	  can_revoke 3 , t8 , true ; t29 , 14
+ 	  can_enable 6 , t11 , 3 -8 ; t25 , 7
+	  can_disable 5 , t23 , true ; t13 , 4
+
+
+2. Running ASASPTIME
+
+- Cd to folder ASASPTIME
+
+- Type the following command to run the system
+
+	./mainSystem.py testcaseFile ur_Mode max_num_of_roles max_num_of_time_slots role_index time_slot_index
+
+   where
+	*testcaseFile: the input file name
+	*Mode: the security mapping used. Mode should be "Adapt", "Linear", or "Multi"
+	*max_num_of_roles: a natural number indicating how many roles in the policy
+	*max_num_of_time_slots: a natural number indicating how many timeslots in the policy
+	*role_index: a natural number indicating the role in goal
+	*time_slot_index: a natural number indicating the timeslot in goal
+
+
+
+For example:
+./mainSystem.py Testcase/test1 ur_Adapt 34 20 9 17 will run the system with test1 as the input file and Adapt as the security mapping
+
+---------------------------------------------------------------------------
+
+
+Should you have any further questions, please, do not hesitate to contact us:
+
+Silvio Ranise <ranise@fbk.eu>
+Anh Truong <anhtt@hcmut.edu.vn>
