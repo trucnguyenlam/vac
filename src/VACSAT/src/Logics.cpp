@@ -60,7 +60,7 @@ namespace SMT {
     }
 
 /*EXPR OPS*/
-    Exprv::Exprv(ExprType ty, std::set<Literalp> literals) : type(ty), _literals(literals) { } 
+    Exprv::Exprv(ExprType ty, std::set<Literalp> literals) : type(ty), _literals(literals) { }
     
     int Exprv::containsLiteral(std::string full_name) {
         for (auto ite = _literals.begin(); ite != _literals.end(); ++ite) {
@@ -87,6 +87,10 @@ namespace SMT {
         }
     }
 
+    void Exprv::setLiteralValue(Literalp lit, Expr value) {
+        lit->setValue(value);
+    }
+
     void Exprv::setLiteralValue(std::string lit_name, Expr value) {
         auto lits = this->literals();
         for (std::set<Literalp>::iterator ite = lits.begin(); ite != lits.end(); ++ite) {
@@ -104,6 +108,12 @@ namespace SMT {
                 lit->resetValue();
             }
         }
+    }
+
+    std::ostream & operator<<(std::ostream & out, Exprv const & expr) {
+        out << expr.to_string();
+
+        return out;
     }
 
     std::set<Literalp> Exprv::literals() {
@@ -133,11 +143,11 @@ namespace SMT {
     void Literal::resetValue() {
         this->value = nullptr;
     }
-    std::string Literal::getSMTName() {
+    std::string Literal::getSMTName() const {
         return this->fullName();
     }
 
-    std::string Literal::fullName() {
+    std::string Literal::fullName() const {
         if (this->suffix == "") {
             return this->name;
         }
@@ -148,7 +158,7 @@ namespace SMT {
         }
     }
 
-    std::string Literal::nameWithSuffix(std::string suffix) {
+    std::string Literal::nameWithSuffix(std::string suffix) const {
         if (this->suffix == "") {
             return this->fullName() + "_" + suffix;
         }
@@ -159,7 +169,7 @@ namespace SMT {
         }
     }
 
-    std::string Literal::to_string() {
+    std::string Literal::to_string() const {
         std::stringstream fmt;
         // fmt << "|" << this->fullName() << "|";
         fmt << this->fullName();
@@ -171,7 +181,7 @@ namespace SMT {
         Exprv(Exprv::CONSTANT, std::set<Literalp>()),
         value(_value), bv_size(_bv_size) { }
     
-    std::string Constant::to_string() {
+    std::string Constant::to_string() const {
         if (this->bv_size == 1) {
             if (this->value) {
                 return Defs::true_str;
@@ -192,7 +202,7 @@ namespace SMT {
         Exprv(Exprv::OR_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
         lhs(_lhs), rhs(_rhs) { }
     
-    std::string OrExpr::to_string() {
+    std::string OrExpr::to_string() const {
         std::stringstream fmt;
         std::string lhsv = this->lhs->to_string();
         std::string rhsv = this->rhs->to_string();
@@ -205,7 +215,7 @@ namespace SMT {
         Exprv(Exprv::AND_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
         lhs(_lhs), rhs(_rhs) { }
     
-    std::string AndExpr::to_string() {
+    std::string AndExpr::to_string() const {
         std::stringstream fmt;
         std::string lhsv = this->lhs->to_string();
         std::string rhsv = this->rhs->to_string();
@@ -218,7 +228,7 @@ namespace SMT {
         Exprv(Exprv::EQ_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
         lhs(_lhs), rhs(_rhs) { }
     
-    std::string EqExpr::to_string() {
+    std::string EqExpr::to_string() const {
         std::stringstream fmt;
         std::string lhsv = this->lhs->to_string();
         std::string rhsv = this->rhs->to_string();
@@ -231,7 +241,7 @@ namespace SMT {
         Exprv(Exprv::IMPL_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
         lhs(_lhs), rhs(_rhs) { }
     
-    std::string ImplExpr::to_string() {
+    std::string ImplExpr::to_string() const {
         std::stringstream fmt;
         std::string lhsv = this->lhs->to_string();
         std::string rhsv = this->rhs->to_string();
@@ -244,7 +254,7 @@ namespace SMT {
         Exprv(Exprv::NOT_EXPR, _expr->literals()),
         expr(_expr) { }
     
-    std::string NotExpr::to_string() {
+    std::string NotExpr::to_string() const {
         std::stringstream fmt;
         std::string exprv = this->expr->to_string();
         fmt << Defs::not_op << "(" << exprv << ")";
@@ -257,7 +267,7 @@ namespace SMT {
               setUnion(_cond->literals(), setUnion(_choice1->literals(), _choice2->literals()))),
         cond(_cond), choice1(_choice1), choice2(_choice2) { }
     
-    std::string CondExpr::to_string() {
+    std::string CondExpr::to_string() const {
         std::stringstream fmt;
         std::string cond = this->cond->to_string();
         std::string ch1 = this->choice1->to_string();
@@ -498,6 +508,12 @@ namespace SMT {
     }
     Expr createConstantExpr(int value, int bv_size) {
         return std::shared_ptr<Exprv>(new Constant(value, bv_size));
+    }
+    Expr createConstantTrue() {
+        return createConstantExpr(true, 1);
+    }
+    Expr createConstantFalse() {
+        return createConstantExpr(false, 1);
     }
     Expr createOrExpr(Expr lhs, Expr rhs) {
         return std::shared_ptr<Exprv>(new OrExpr(lhs, rhs));

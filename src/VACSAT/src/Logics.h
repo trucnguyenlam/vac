@@ -88,10 +88,13 @@ namespace SMT {
         virtual void setSuffix(int idx);
         virtual void setSuffix(std::string suffix);
         virtual void resetSuffix();
+        void setLiteralValue(Literalp lit, Expr value);
         void setLiteralValue(std::string lit_name, Expr value);
         void resetValue(std::string lit_name = "");
-        
-        virtual std::string to_string() = 0;
+
+        friend std::ostream & operator<<(std::ostream & out, Exprv const & expr);
+
+        virtual std::string to_string() const = 0;
         // virtual void toFile(FILE* outputFile) = 0;
         // virtual void toSMT(FILE* outputFile) = 0;
 
@@ -110,9 +113,9 @@ namespace SMT {
         public:
             Literal(const std::string _name, int _role_array_index, int bv_size, Expr _value = nullptr);
 
-            std::string getSMTName();
-            std::string fullName();
-            std::string nameWithSuffix(std::string suffix);
+            std::string getSMTName() const;
+            std::string fullName() const;
+            std::string nameWithSuffix(std::string suffix) const;
 
             void setLiterals(Literalp &self);
             void setSuffix(std::string suffix);
@@ -121,7 +124,7 @@ namespace SMT {
             void setValue(Expr  value);
             void resetValue();
             
-            std::string to_string() override;
+            std::string to_string() const override;
             // void toFile(FILE* outputFile) override;
             // void toSMT(FILE* outputFile) override;
             // void writeSMTDeclaration(FILE* outputFile);
@@ -140,7 +143,7 @@ namespace SMT {
         public:
             Constant(int val, int bv_size);
 
-            std::string to_string() override;
+            std::string to_string() const override;
             // void toFile(FILE* outputFile) override;
             // void toSMT(FILE* outputFile) override;
             
@@ -154,7 +157,7 @@ namespace SMT {
         public:
             OrExpr(Expr _lhs, Expr _rhs);
 
-            std::string to_string() override;
+            std::string to_string() const override;
             // void toFile(FILE* outputFile) override;
             // void toSMT(FILE* outputFile) override;
 
@@ -169,7 +172,7 @@ namespace SMT {
         public:
             AndExpr(Expr _lhs, Expr _rhs);
 
-            std::string to_string() override;
+            std::string to_string() const override;
             // void toFile(FILE* outputFile) override;
             // void toSMT(FILE* outputFile) override;
 
@@ -184,7 +187,7 @@ namespace SMT {
         public:
             EqExpr(Expr _lhs, Expr _rhs);
 
-            std::string to_string() override;
+            std::string to_string() const override;
             // void toFile(FILE* outputFile) override;
             // void toSMT(FILE* outputFile) override;
 
@@ -199,7 +202,7 @@ namespace SMT {
         public:
             ImplExpr(Expr _lhs, Expr _rhs);
 
-            std::string to_string() override;
+            std::string to_string() const override;
             // void toFile(FILE* outputFile) override;
             // void toSMT(FILE* outputFile) override;
 
@@ -214,7 +217,7 @@ namespace SMT {
         public:
             NotExpr(Expr _expr);
 
-            std::string to_string() override;
+            std::string to_string() const override;
             // void toFile(FILE* outputFile) override;
             // void toSMT(FILE* outputFile) override;
 
@@ -228,7 +231,7 @@ namespace SMT {
         public:
             CondExpr(Expr _cond, Expr _choice1, Expr _choice2);
 
-            std::string to_string() override;
+            std::string to_string() const override;
             // void toFile(FILE* outputFile) override;
             // void toSMT(FILE* outputFile) override;
 
@@ -256,6 +259,8 @@ namespace SMT {
 
     Expr createLiteralExpr(const std::string name, int role_array_index, int bv_size, Expr value = nullptr);
     Expr createConstantExpr(int value, int bv_size);
+    Expr createConstantTrue();
+    Expr createConstantFalse();
     Expr createOrExpr(Expr lhs, Expr rhs);
     Expr createAndExpr(Expr lhs, Expr rhs);
     Expr createImplExpr(Expr lhs, Expr rhs);
