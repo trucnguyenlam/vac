@@ -12,8 +12,12 @@ CA 	<ra,ra,ra>
     <ra,-ra,rb>
 	<ra,ra&rb,ra> 
 	<ra,TRUE,rc>
-	<ra,ra&rb,rd>
-	<rb,-ra&-rc&-rd,rt>
+	<ra,ra&rb&rc,rd>
+	<ra,-ra&-rc&-rd,rt>
 	;
 
 SPEC rt ;
+
+HIERARCHY
+    <ra, rb>
+;

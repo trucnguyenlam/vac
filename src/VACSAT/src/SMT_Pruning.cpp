@@ -108,158 +108,83 @@ namespace SMT {
 //            }
 //        }
 
-        int nonPositive(int roleId) {
-            //FIXME: refactored. Fix here
-            throw new std::runtime_error("FIXME: refactored. Fix here");
-//            std::string role_name(role_array[roleId]);
-//            std::vector<Expr> to_check;
-//            auto ite = ca_adm_formulae.begin();
-//            for ( ; ite != ca_adm_formulae.end(); ++ite) {
-//                Expr e = *ite;
-//                if (set_contains(e, std::string(role_array[roleId]))) {
-//                    to_check.push_back(*ite);
-//                }
-//            }
-//            for (ite = ca_pn_formulae.begin(); ite != ca_pn_formulae.end(); ++ite) {
-//                Expr e = *ite;
-//                if (set_contains(e, std::string(role_array[roleId]))) {
-//                    to_check.push_back(*ite);
-//                }
-//            }
-//
-//            ite = cr_adm_formulae.begin();
-//            for ( ; ite != cr_adm_formulae.end(); ++ite) {
-//                Expr e = *ite;
-//                if (set_contains(e, std::string(role_array[roleId]))) {
-//                    to_check.push_back(*ite);
-//                }
-//            }
-//            ite = cr_pn_formulae.begin();
-//            for ( ; ite != cr_pn_formulae.end(); ++ite) {
-//                Expr e = *ite;
-//                if (set_contains(e, std::string(role_array[roleId]))) {
-//                    to_check.push_back(*ite);
-//                }
-//            }
-//
-//            if (to_check.empty()) {
-//                return true;
-//            }
-//            else {
-//                solver->clean();
-//                ite = to_check.begin();
-//                Expr cond = *ite;
-//                for ( ; ite != to_check.end(); ++ite) {
-//                    cond = createOrExpr(cond, *ite);
-//                }
-//
-//                // if (std::string(role_array[roleId]) == "rd") {
-//                //     cond->setLiteralValue("rd", createConstantExpr(1, 1));
-//                // }
-//
-//                std::map<std::string, TVar> map;
-//                TExpr fexpr = generateSMTFunction(solver, cond, map, "");
-//
-//                TExpr lexpr = generateSMTFunction(solver, role_vars[roleId], map, "");
-//
-//                // if (std::string(role_array[roleId]) == "rd") {
-//                //     yices_pp_term(stdout, fexpr, 160, 40, 0);
-//                //     yices_pp_term(stdout, lexpr, 160, 40, 0);
-//                // }
-//
-//                solver->assertNow(lexpr);
-//                solver->assertNow(fexpr);
-//
-//                // solver->loadToSolver();
-//                int res = false;
-//                switch (solver->solve()) {
-//                    case SAT:
-//                        // fprintf(stdout, "System is SAT. Printing model...\n");
-//                        // solver->printModel();
-//                        return false;
-//                        break;
-//                    case UNSAT:
-//                        return true;
-//                        break;
-//                    case UNKNOWN:
-//                        return false;
-//                        break;
-//                }
-//                return res;
-//            }
-        }
+        int nonPositiveNegative(int roleId, bool check_positive) {
+            Literalp role = policy->atoms[roleId];
+            std::vector<Expr> to_check;
 
-        int nonNegative(int roleId) {
-            //FIXME: refactored. Fix here
-            throw new std::runtime_error("FIXME: refactored. Fix here");
-//            std::string role_name(role_array[roleId]);
-//            std::vector<Expr> to_check;
-//            auto ite = ca_adm_formulae.begin();
-//            for ( ; ite != ca_adm_formulae.end(); ++ite) {
-//                Expr e = *ite;
-//                if (set_contains(e, std::string(role_array[roleId]))) {
-//                    to_check.push_back(*ite);
-//                }
-//            }
-//            ite = ca_pn_formulae.begin();
-//            for ( ; ite != ca_pn_formulae.end(); ++ite) {
-//                Expr e = *ite;
-//                if (set_contains(e, std::string(role_array[roleId]))) {
-//                    to_check.push_back(*ite);
-//                }
-//            }
-//            ite = cr_adm_formulae.begin();
-//            for ( ; ite != cr_adm_formulae.end(); ++ite) {
-//                Expr e = *ite;
-//                if (set_contains(e, std::string(role_array[roleId]))) {
-//                    to_check.push_back(*ite);
-//                }
-//            }
-//
-//            ite = cr_pn_formulae.begin();
-//            for ( ; ite != cr_pn_formulae.end(); ++ite) {
-//                Expr e = *ite;
-//                if (set_contains(e, std::string(role_array[roleId]))) {
-//                    to_check.push_back(*ite);
-//                }
-//            }
-//
-//            if (to_check.empty()) {
-//                return true;
-//            }
-//            else {
-//                solver->clean();
-//                ite = to_check.begin();
-//                Expr cond = *ite;
-//                for ( ; ite != to_check.end(); ++ite) {
-//                    cond = createOrExpr(cond, *ite);
-//                }
-//
-//                std::map<std::string, TVar> map;
-//                TExpr fexpr = generateSMTFunction(solver, cond, map, "");
-//
-//                TExpr r_cond = generateSMTFunction(solver, createNotExpr(role_vars[roleId]), map, "");
-//                solver->assertNow(r_cond);
-//                solver->assertNow(fexpr);
-//
-//                solver->loadToSolver();
-//
-//                int res;
-//                switch (solver->solve()) {
-//                    case SAT:
-//                        // fprintf(stdout, "System is SAT. Printing model...\n");
-//                        // solver->printModel();
-//                        res = false;
-//                        break;
-//                    case UNSAT:
-//                        res = true;
-//                        break;
-//                    case UNKNOWN:
-//                        res = false;
-//                        break;
-//                }
-//                return res;
-//            }
+            for (auto ite = policy->can_assign_rules.begin(); ite != policy->can_assign_rules.end(); ++ite) {
+                std::shared_ptr<rule> rule = (*ite);
+                if (rule->admin->literals().count(role) > 0) {
+//                    std::cout << "Role: " << role->fullName() << " is administrative thus NOT non-positive" << std::endl;
+                    return false;
+                    to_check.push_back(rule->admin);
+                }
+                if (rule->prec->literals().count(role) > 0) {
+                    to_check.push_back(rule->prec);
+                }
+            }
+
+            for (auto ite = policy->can_revoke_rules.begin(); ite != policy->can_revoke_rules.end(); ++ite) {
+                std::shared_ptr<rule> rule = *ite;
+                if (rule->admin->literals().count(role)) {
+//                    std::cout << "Role: " << role->fullName() << " is administrative thus NOT non-positive" << std::endl;
+                    return false;
+                    to_check.push_back(rule->admin);
+                }
+                if (rule->prec->literals().count(role)) {
+                    to_check.push_back(rule->prec);
+                }
+            }
+
+            if (to_check.empty()) {
+                return true;
+            }
+            else {
+                solver->clean();
+
+                bool exists = false;
+
+                for (auto ite = to_check.begin(); ite != to_check.end(); ++ite) {
+                    //TODO: eventually create a big dinsjunction on all formulae
+
+                    std::map<std::string, TVar> tmap;
+                    Expr expr = *ite;
+                    // phi_a^TRUE
+                    role->setValue(createConstantTrue());
+                    TExpr phi_a_true = generateSMTFunction(solver, expr, tmap, "C");
+
+                    // phi_a^FALSE
+                    role->setValue(createConstantFalse());
+                    TExpr phi_a_false = generateSMTFunction(solver, expr, tmap, "C");
+
+                    role->resetValue();
+
+                    TExpr final = solver->createTrue();
+                    if (check_positive) {
+                        // (phi_a^TRUE /\ \not phi_a^FALSE)
+                        final = solver->createAndExpr(phi_a_true, solver->createNotExpr(phi_a_false));
+                    }
+                    else {
+                        // (phi_a^FALSE /\ \not phi_a^TRUE)
+                        final = solver->createAndExpr(phi_a_false, solver->createNotExpr(phi_a_true));
+                    }
+
+                    solver->assertNow(final);
+//                    solver->assertNow(phi_a_true);
+//                    solver->assertNow(solver->createNotExpr(phi_a_false));
+
+                    SMTResult res = solver->solve();
+
+                    if (res == SAT) {
+                        exists = true;
+                        break;
+                    }
+                }
+
+//                std::cout << "Role: " << role->name << (exists ? " is NOT " : " IS ") << "non-positive." << std::endl;
+
+                return !exists;
+            }
         }
 
         TExpr irr_pos_cond(int roleId, std::vector<std::pair<Expr, Expr>> using_r, std::vector<std::pair<Expr, Expr>> assigning_r) {
@@ -530,34 +455,30 @@ namespace SMT {
         public:
 
         void printNonPos() {
-            //FIXME: refactored. Fix here
-            throw new std::runtime_error("FIXME: refactored. Fix here");
-//            for (int i = 0; i < role_array_size; i++) {
-//                int res = nonPositive(i);
-//                if (res) {
-//                    fprintf(stdout, "Role %s is nonPositive\n", role_array[i]);
-//                    nonPositiveRoles.push_back(i);
-//                }
-//                else {
-//                    // fprintf(stdout, "Role %s is Positive\n", role_array[i]);
-//                }
-//            }
+            for (int i = 0; i < policy->atom_count(); i++) {
+                int res = nonPositiveNegative(i, true);
+                if (res) {
+                    fprintf(stdout, "Role %s is nonPositive\n", role_array[i]);
+                    nonPositiveRoles.push_back(i);
+                }
+                else {
+                     fprintf(stdout, "Role %s is administrative or NOT nonPositive\n", role_array[i]);
+                }
+            }
             
         }
 
         void printNonNeg() {
-            //FIXME: refactored. Fix here
-            throw new std::runtime_error("FIXME: refactored. Fix here");
-//            for (int i = 0; i < role_array_size; i++) {
-//                int res = nonNegative(i);
-//                if (res) {
-//                    fprintf(stdout, "Role %s is nonNegative\n", role_array[i]);
-//                    nonNegativeRoles.push_back(i);
-//                }
-//                else {
-//                    // fprintf(stdout, "Role %s is Negative\n", role_array[i]);
-//                }
-//            }
+            for (int i = 0; i < role_array_size; i++) {
+                int res = nonPositiveNegative(i, false);
+                if (res) {
+                    fprintf(stdout, "Role %s is nonNegative\n", role_array[i]);
+                    nonNegativeRoles.push_back(i);
+                }
+                else {
+                     fprintf(stdout, "Role %s is administrative or NOT nonNegative\n", role_array[i]);
+                }
+            }
         }
 
         void PrintIrrelevantPos() {
@@ -737,6 +658,9 @@ namespace SMT {
         preprocess(0);
         build_config_array();
 
+        for (int i = 0; i < hierarchy_array_size; ++i) {
+            std::cout << hierarchy_array[i].inferior_role_index << " < " << hierarchy_array[i].superior_role_index << std::endl;
+        }
 
         std::shared_ptr<SMTFactory<z3::expr, z3::expr>> solver(new Z3Solver());
         Pruning<z3::expr, z3::expr> core(solver);
@@ -744,7 +668,7 @@ namespace SMT {
 //        Pruning<term_t, term_t> core(solver);
 
 //        core.apply_rule_6();
-        core.printImpliedPairs();
+        core.printNonPos();
 
 //        return;
 //
