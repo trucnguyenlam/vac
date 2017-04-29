@@ -62,12 +62,15 @@ namespace SMT {
 /*EXPR OPS*/
     Exprv::Exprv(ExprType ty, std::set<Literalp> literals) : type(ty), _literals(literals) { }
     
-    int Exprv::containsLiteral(std::string full_name) {
+    bool Exprv::containsLiteral(std::string full_name) {
         for (auto ite = _literals.begin(); ite != _literals.end(); ++ite) {
             if ((*ite)->fullName() == full_name) 
                 return true;
         }
         return false;
+    }
+    bool Exprv::containsLiteral(Literalp lit) {
+        return this->_literals.count(lit) > 0;
     }
     void Exprv::setSuffix(std::string suffix) {
         auto lits = this->literals();

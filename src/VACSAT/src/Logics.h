@@ -83,8 +83,9 @@ namespace SMT {
             };
 
         Exprv(ExprType ty, std::set<Literalp> literals);
-        
-        int containsLiteral(std::string full_name);
+
+        bool containsLiteral(std::string full_name);
+        bool containsLiteral(Literalp lit);
         virtual void setSuffix(int idx);
         virtual void setSuffix(std::string suffix);
         virtual void resetSuffix();
