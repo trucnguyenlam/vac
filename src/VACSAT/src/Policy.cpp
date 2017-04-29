@@ -120,10 +120,14 @@ namespace SMT {
         can_revoke_rules(std::vector<std::shared_ptr<rule>>()) {
 
         int i;
+
         for (i = 0; i < role_array_size; i++) {
             std::string rname(role_array[i]);
             Literalp var = createLiteralp(rname, i, 1);
             this->atoms.push_back(var);
+            if (goal_role_index == i) {
+                goal_role = var;
+            }
         }
         for (i = 0; i < ca_array_size; i++) {
             Expr ca_adm = getCAAdmFormula(this->atoms, i);

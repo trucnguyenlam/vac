@@ -48,6 +48,8 @@ namespace SMT {
         void remove_can_assign(std::shared_ptr<rule>& rule);
         void remove_can_revoke(std::shared_ptr<rule>& rule);
 
+        Literalp goal_role;
+
         std::vector<Literalp> atoms;
 
         std::vector<std::shared_ptr<rule>> can_assign_rules;
