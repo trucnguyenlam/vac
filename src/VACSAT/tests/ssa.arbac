@@ -1,4 +1,4 @@
-Roles ra rb rc rd rt;
+Roles r0 ra rb rc rd rt;
 
 Users u1 u2  ;
 
@@ -6,11 +6,14 @@ UA  <u1, ra>
     <u1, ra>
 	;
 
-CR 	<ra,ra>;
+CR 	<ra,r0>;
 
-CA 	<ra,ra,ra>
-    <ra,-ra,rb>
-	<ra,ra&rb,ra> 
+CA
+    <ra,ra&r0,rb>
+    <ra,-r0,ra>
+    <ra,ra,r0>
+    <ra,-ra,r0>
+	<ra,ra&rb,ra>
 	<ra,TRUE,rc>
 	<ra,ra&rb&rc,rd>
 	<ra,-ra&-rc&-rd,rt>

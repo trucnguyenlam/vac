@@ -33,10 +33,14 @@ namespace SMT {
         term_t createLEqExpr(term_t lhs, term_t rhs) override;
         term_t createImplExpr(term_t lhs, term_t rhs) override;
 
+        term_t joinExprsWithAnd(std::vector<term_t> exprs) override;
+        term_t joinExprsWithOr(std::vector<term_t> exprs) override;
+
         void assertLater(term_t expr) override;
         void assertNow(term_t expr) override;
 
         SMTResult solve() override;
+        void printExpr(term_t expr) override;
         void printModel() override;
         void loadToSolver() override;
         void clean() override;

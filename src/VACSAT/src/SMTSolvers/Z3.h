@@ -39,6 +39,9 @@ namespace SMT {
         expr createLEqExpr(expr lhs, expr rhs) override;
         expr createImplExpr(expr lhs, expr rhs) override;
 
+        expr joinExprsWithAnd(std::vector<expr> exprs) override;
+        expr joinExprsWithOr(std::vector<expr> exprs) override;
+
         void assertLater(expr e) override;
         void assertNow(expr e) override;
 
@@ -46,6 +49,8 @@ namespace SMT {
         void printModel() override;
         void loadToSolver() override;
         void clean() override;
+
+        void printExpr(expr e) override;
         void printContext() override;
         
         // void push() override;

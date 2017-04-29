@@ -89,6 +89,33 @@ namespace SMT {
         return res;
     }
 
+    expr Z3Solver::joinExprsWithAnd(std::vector<expr> exprs) {
+        if (exprs.size() < 1) {
+            return createTrue();
+//            fprintf(stderr, "Cannot join zero expressions...\n");
+//            throw new std::runtime_error("Cannot join zero expressions");
+        }
+        auto ite = exprs.begin();
+        expr ret = *ite;
+        for (++ite; ite != exprs.end(); ++ite) {
+            ret = ret && *ite;
+        }
+        return ret;
+    }
+    expr Z3Solver::joinExprsWithOr(std::vector<expr> exprs) {
+        if (exprs.size() < 1) {
+            return createTrue();
+//            fprintf(stderr, "Cannot join zero expressions...\n");
+//            throw new std::runtime_error("Cannot join zero expressions");
+        }
+        auto ite = exprs.begin();
+        expr ret = *ite;
+        for (++ite; ite != exprs.end(); ++ite) {
+            ret = ret || *ite;
+        }
+        return ret;
+    }
+
     void Z3Solver::assertLater(expr e) {
         solver.add(e);
     }
@@ -127,6 +154,10 @@ namespace SMT {
         return ERROR;
     }
 
+
+    void Z3Solver::printExpr(expr e) {
+        std::cout << e << std::endl;
+    }
     void Z3Solver::printModel() {
         model model = solver.get_model();
         if (model == NULL) {

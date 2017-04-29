@@ -1,5 +1,6 @@
 #include "yices.h"
 #include <stdexcept>
+#include <iostream>
 
 namespace SMT {
     
@@ -168,6 +169,33 @@ namespace SMT {
         return res;
     }
 
+    term_t YicesSolver::joinExprsWithAnd(std::vector<term_t> exprs) {
+        if (exprs.size() < 1) {
+            return createTrue();
+//            fprintf(stderr, "Cannot join zero expressions...\n");
+//            throw new std::runtime_error("Cannot join zero expressions");
+        }
+        auto ite = exprs.begin();
+        term_t ret = *ite;
+        for (++ite; ite != exprs.end(); ++ite) {
+            ret = yices_and2(ret, *ite);
+        }
+        return ret;
+    }
+    term_t YicesSolver::joinExprsWithOr(std::vector<term_t> exprs) {
+        if (exprs.size() < 1) {
+            return createTrue();
+//            fprintf(stderr, "Cannot join zero expressions...\n");
+//            throw new std::runtime_error("Cannot join zero expressions");
+        }
+        auto ite = exprs.begin();
+        term_t ret = *ite;
+        for (++ite; ite != exprs.end(); ++ite) {
+            ret = yices_or2(ret, *ite);
+        }
+        return ret;
+    }
+
     void YicesSolver::assertLater(term_t expr) {
         to_be_asserted.push_back(expr);
     }
@@ -220,6 +248,10 @@ namespace SMT {
             yices_pp_model(stdout, model, 120, 40, 0);
             yices_free_model(model);
         }
+    }
+
+    void YicesSolver::printExpr(term_t expr) {
+        yices_pp_term(stdout, expr, 120, 40, 0);
     }
     
     void YicesSolver::loadToSolver() {
