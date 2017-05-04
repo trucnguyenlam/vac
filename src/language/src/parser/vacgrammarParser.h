@@ -210,18 +210,54 @@ public:
   class  PrimaryExpressionContext : public antlr4::ParserRuleContext {
   public:
     PrimaryExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+   
+    PrimaryExpressionContext() : antlr4::ParserRuleContext() { }
+    void copyFrom(PrimaryExpressionContext *context);
+    using antlr4::ParserRuleContext::copyFrom;
+
     virtual size_t getRuleIndex() const override;
+
+   
+  };
+
+  class  PConstantContext : public PrimaryExpressionContext {
+  public:
+    PConstantContext(PrimaryExpressionContext *ctx);
+
     antlr4::tree::TerminalNode *Constant();
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+  };
+
+  class  PAttributeRefContext : public PrimaryExpressionContext {
+  public:
+    PAttributeRefContext(PrimaryExpressionContext *ctx);
+
     std::vector<antlr4::tree::TerminalNode *> Identifier();
     antlr4::tree::TerminalNode* Identifier(size_t i);
     antlr4::tree::TerminalNode *DOT();
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+  };
+
+  class  PCompoundContext : public PrimaryExpressionContext {
+  public:
+    PCompoundContext(PrimaryExpressionContext *ctx);
+
     antlr4::tree::TerminalNode *LEFTPAREN();
     ExpressionContext *expression();
     antlr4::tree::TerminalNode *RIGHTPAREN();
-
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
-   
+  };
+
+  class  PIdentifierContext : public PrimaryExpressionContext {
+  public:
+    PIdentifierContext(PrimaryExpressionContext *ctx);
+
+    antlr4::tree::TerminalNode *Identifier();
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
   };
 
   PrimaryExpressionContext* primaryExpression();

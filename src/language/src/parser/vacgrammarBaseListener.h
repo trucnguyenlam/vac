@@ -45,8 +45,17 @@ public:
   virtual void enterInit_assignment(vacgrammarParser::Init_assignmentContext * /*ctx*/) override { }
   virtual void exitInit_assignment(vacgrammarParser::Init_assignmentContext * /*ctx*/) override { }
 
-  virtual void enterPrimaryExpression(vacgrammarParser::PrimaryExpressionContext * /*ctx*/) override { }
-  virtual void exitPrimaryExpression(vacgrammarParser::PrimaryExpressionContext * /*ctx*/) override { }
+  virtual void enterPConstant(vacgrammarParser::PConstantContext * /*ctx*/) override { }
+  virtual void exitPConstant(vacgrammarParser::PConstantContext * /*ctx*/) override { }
+
+  virtual void enterPIdentifier(vacgrammarParser::PIdentifierContext * /*ctx*/) override { }
+  virtual void exitPIdentifier(vacgrammarParser::PIdentifierContext * /*ctx*/) override { }
+
+  virtual void enterPAttributeRef(vacgrammarParser::PAttributeRefContext * /*ctx*/) override { }
+  virtual void exitPAttributeRef(vacgrammarParser::PAttributeRefContext * /*ctx*/) override { }
+
+  virtual void enterPCompound(vacgrammarParser::PCompoundContext * /*ctx*/) override { }
+  virtual void exitPCompound(vacgrammarParser::PCompoundContext * /*ctx*/) override { }
 
   virtual void enterUnaryExpression(vacgrammarParser::UnaryExpressionContext * /*ctx*/) override { }
   virtual void exitUnaryExpression(vacgrammarParser::UnaryExpressionContext * /*ctx*/) override { }

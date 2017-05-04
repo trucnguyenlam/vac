@@ -43,8 +43,17 @@ public:
   virtual void enterInit_assignment(vacgrammarParser::Init_assignmentContext *ctx) = 0;
   virtual void exitInit_assignment(vacgrammarParser::Init_assignmentContext *ctx) = 0;
 
-  virtual void enterPrimaryExpression(vacgrammarParser::PrimaryExpressionContext *ctx) = 0;
-  virtual void exitPrimaryExpression(vacgrammarParser::PrimaryExpressionContext *ctx) = 0;
+  virtual void enterPConstant(vacgrammarParser::PConstantContext *ctx) = 0;
+  virtual void exitPConstant(vacgrammarParser::PConstantContext *ctx) = 0;
+
+  virtual void enterPIdentifier(vacgrammarParser::PIdentifierContext *ctx) = 0;
+  virtual void exitPIdentifier(vacgrammarParser::PIdentifierContext *ctx) = 0;
+
+  virtual void enterPAttributeRef(vacgrammarParser::PAttributeRefContext *ctx) = 0;
+  virtual void exitPAttributeRef(vacgrammarParser::PAttributeRefContext *ctx) = 0;
+
+  virtual void enterPCompound(vacgrammarParser::PCompoundContext *ctx) = 0;
+  virtual void exitPCompound(vacgrammarParser::PCompoundContext *ctx) = 0;
 
   virtual void enterUnaryExpression(vacgrammarParser::UnaryExpressionContext *ctx) = 0;
   virtual void exitUnaryExpression(vacgrammarParser::UnaryExpressionContext *ctx) = 0;

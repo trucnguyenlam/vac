@@ -54,10 +54,10 @@ init_assignment
 
 
 primaryExpression
-    :   Constant
-    |   Identifier
-    |   Identifier DOT Identifier
-    |   LEFTPAREN expression RIGHTPAREN
+    :   Constant                           # PConstant
+    |   Identifier                         # PIdentifier
+    |   Identifier DOT Identifier          # PAttributeRef
+    |   LEFTPAREN expression RIGHTPAREN    # PCompound
     ;
 
 unaryExpression

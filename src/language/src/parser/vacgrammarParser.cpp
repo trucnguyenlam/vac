@@ -710,51 +710,103 @@ vacgrammarParser::PrimaryExpressionContext::PrimaryExpressionContext(ParserRuleC
   : ParserRuleContext(parent, invokingState) {
 }
 
-tree::TerminalNode* vacgrammarParser::PrimaryExpressionContext::Constant() {
-  return getToken(vacgrammarParser::Constant, 0);
-}
-
-std::vector<tree::TerminalNode *> vacgrammarParser::PrimaryExpressionContext::Identifier() {
-  return getTokens(vacgrammarParser::Identifier);
-}
-
-tree::TerminalNode* vacgrammarParser::PrimaryExpressionContext::Identifier(size_t i) {
-  return getToken(vacgrammarParser::Identifier, i);
-}
-
-tree::TerminalNode* vacgrammarParser::PrimaryExpressionContext::DOT() {
-  return getToken(vacgrammarParser::DOT, 0);
-}
-
-tree::TerminalNode* vacgrammarParser::PrimaryExpressionContext::LEFTPAREN() {
-  return getToken(vacgrammarParser::LEFTPAREN, 0);
-}
-
-vacgrammarParser::ExpressionContext* vacgrammarParser::PrimaryExpressionContext::expression() {
-  return getRuleContext<vacgrammarParser::ExpressionContext>(0);
-}
-
-tree::TerminalNode* vacgrammarParser::PrimaryExpressionContext::RIGHTPAREN() {
-  return getToken(vacgrammarParser::RIGHTPAREN, 0);
-}
-
 
 size_t vacgrammarParser::PrimaryExpressionContext::getRuleIndex() const {
   return vacgrammarParser::RulePrimaryExpression;
 }
 
-void vacgrammarParser::PrimaryExpressionContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
-  if (parserListener != nullptr)
-    parserListener->enterPrimaryExpression(this);
+void vacgrammarParser::PrimaryExpressionContext::copyFrom(PrimaryExpressionContext *ctx) {
+  ParserRuleContext::copyFrom(ctx);
 }
 
-void vacgrammarParser::PrimaryExpressionContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
-  if (parserListener != nullptr)
-    parserListener->exitPrimaryExpression(this);
+//----------------- PConstantContext ------------------------------------------------------------------
+
+tree::TerminalNode* vacgrammarParser::PConstantContext::Constant() {
+  return getToken(vacgrammarParser::Constant, 0);
 }
 
+vacgrammarParser::PConstantContext::PConstantContext(PrimaryExpressionContext *ctx) { copyFrom(ctx); }
+
+void vacgrammarParser::PConstantContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterPConstant(this);
+}
+void vacgrammarParser::PConstantContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitPConstant(this);
+}
+//----------------- PAttributeRefContext ------------------------------------------------------------------
+
+std::vector<tree::TerminalNode *> vacgrammarParser::PAttributeRefContext::Identifier() {
+  return getTokens(vacgrammarParser::Identifier);
+}
+
+tree::TerminalNode* vacgrammarParser::PAttributeRefContext::Identifier(size_t i) {
+  return getToken(vacgrammarParser::Identifier, i);
+}
+
+tree::TerminalNode* vacgrammarParser::PAttributeRefContext::DOT() {
+  return getToken(vacgrammarParser::DOT, 0);
+}
+
+vacgrammarParser::PAttributeRefContext::PAttributeRefContext(PrimaryExpressionContext *ctx) { copyFrom(ctx); }
+
+void vacgrammarParser::PAttributeRefContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterPAttributeRef(this);
+}
+void vacgrammarParser::PAttributeRefContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitPAttributeRef(this);
+}
+//----------------- PCompoundContext ------------------------------------------------------------------
+
+tree::TerminalNode* vacgrammarParser::PCompoundContext::LEFTPAREN() {
+  return getToken(vacgrammarParser::LEFTPAREN, 0);
+}
+
+vacgrammarParser::ExpressionContext* vacgrammarParser::PCompoundContext::expression() {
+  return getRuleContext<vacgrammarParser::ExpressionContext>(0);
+}
+
+tree::TerminalNode* vacgrammarParser::PCompoundContext::RIGHTPAREN() {
+  return getToken(vacgrammarParser::RIGHTPAREN, 0);
+}
+
+vacgrammarParser::PCompoundContext::PCompoundContext(PrimaryExpressionContext *ctx) { copyFrom(ctx); }
+
+void vacgrammarParser::PCompoundContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterPCompound(this);
+}
+void vacgrammarParser::PCompoundContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitPCompound(this);
+}
+//----------------- PIdentifierContext ------------------------------------------------------------------
+
+tree::TerminalNode* vacgrammarParser::PIdentifierContext::Identifier() {
+  return getToken(vacgrammarParser::Identifier, 0);
+}
+
+vacgrammarParser::PIdentifierContext::PIdentifierContext(PrimaryExpressionContext *ctx) { copyFrom(ctx); }
+
+void vacgrammarParser::PIdentifierContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterPIdentifier(this);
+}
+void vacgrammarParser::PIdentifierContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitPIdentifier(this);
+}
 vacgrammarParser::PrimaryExpressionContext* vacgrammarParser::primaryExpression() {
   PrimaryExpressionContext *_localctx = _tracker.createInstance<PrimaryExpressionContext>(_ctx, getState());
   enterRule(_localctx, 18, vacgrammarParser::RulePrimaryExpression);
@@ -767,6 +819,7 @@ vacgrammarParser::PrimaryExpressionContext* vacgrammarParser::primaryExpression(
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 7, _ctx)) {
     case 1: {
+      _localctx = dynamic_cast<PrimaryExpressionContext *>(_tracker.createInstance<vacgrammarParser::PConstantContext>(_localctx));
       enterOuterAlt(_localctx, 1);
       setState(103);
       match(vacgrammarParser::Constant);
@@ -774,6 +827,7 @@ vacgrammarParser::PrimaryExpressionContext* vacgrammarParser::primaryExpression(
     }
 
     case 2: {
+      _localctx = dynamic_cast<PrimaryExpressionContext *>(_tracker.createInstance<vacgrammarParser::PIdentifierContext>(_localctx));
       enterOuterAlt(_localctx, 2);
       setState(104);
       match(vacgrammarParser::Identifier);
@@ -781,6 +835,7 @@ vacgrammarParser::PrimaryExpressionContext* vacgrammarParser::primaryExpression(
     }
 
     case 3: {
+      _localctx = dynamic_cast<PrimaryExpressionContext *>(_tracker.createInstance<vacgrammarParser::PAttributeRefContext>(_localctx));
       enterOuterAlt(_localctx, 3);
       setState(105);
       match(vacgrammarParser::Identifier);
@@ -792,6 +847,7 @@ vacgrammarParser::PrimaryExpressionContext* vacgrammarParser::primaryExpression(
     }
 
     case 4: {
+      _localctx = dynamic_cast<PrimaryExpressionContext *>(_tracker.createInstance<vacgrammarParser::PCompoundContext>(_localctx));
       enterOuterAlt(_localctx, 4);
       setState(108);
       match(vacgrammarParser::LEFTPAREN);
