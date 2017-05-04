@@ -13,6 +13,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 #include <memory>
 
 #include "Logics.h"
@@ -47,8 +48,6 @@ class Entity: public Literal {
     {};
     ~Entity();
 
-    std::string to_string() override;
-
     int getLocalID(void) const {return local_ID;}
     // AttributePtr getAttribute(void) const {return attr;}
     int getAttributeID(void) const {return attr_ID;}
@@ -57,12 +56,13 @@ class Entity: public Literal {
     int local_ID;
     // AttributePtr attr; // Attribute, too complicated
     int attr_ID; // Attribute ID
+    std::string name;
 };
 
 class User {
   public:
-    User(int ID, std::string name):
-        ID(ID), name(name) {}
+    User(int ID, std::string name, bool isNew=false):
+        ID(ID), name(name), isNew(isNew) {}
 
     void getAttribute(std::string name) const;
     void getAttribute(int ID) const;
@@ -94,7 +94,7 @@ class Rule {
     void addTargetExpr(EqExpr expr);
 
 
-    ExpressionPtr getPrecondition(void) const {return precondition;}
+    Expr getPrecondition(void) const {return precondition;}
     std::vector<std::shared_ptr<EqExpr>> getApplyTarget(void) const {return apply_target;}
 
   private:
@@ -108,16 +108,47 @@ typedef std::shared_ptr<Rule> RulePtr;
 
 class Model {
 public:
+    Model():query(nullptr){
+
+    }
+    ~Model(){
+        users.clear();
+        attrs.clear();
+        rules.clear();
+        user_map.clear();
+        attr_map.clear();
+    }
+
+    void insertNewUser(UserPtr u, int id) {
+        users.push_back(u);
+        user_map.insert(std::pair<UserPtr, int>(u, id));
+    }
+    void insertNewAttribute(AttributePtr);
+    void insertNewRule(RulePtr);
+
     int getUserIDFromName(std::string _username);
     int getAttributeIDFromName(std::string _attributename);
+
+    std::vector<UserPtr> getCopyOfUsers(void){ return users;}
+    int getCurrentUserSize(void){ return users.size();}
+    std::vector<AttributePtr> getCopyOfAttributes(void) {return attrs;}
+    std::vector<RulePtr> getCopyOfRules(void) {return rules;}
+
+    Expr getQuery(void);
+    void setQuery(Expr);
 
   private:
     std::vector<UserPtr> users;
     std::vector<AttributePtr> attrs;
-}
+    std::vector<RulePtr> rules;
+    Expr query;
+
+    std::map<UserPtr, int> user_map;
+    std::map<AttributePtr, int> attr_map;
+};
 
 
-typedef std::unique_ptr<Model> ModelPtr;
+typedef std::shared_ptr<Model> ModelPtr;
 
 
 } // SMT
