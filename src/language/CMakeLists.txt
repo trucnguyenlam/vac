@@ -40,10 +40,11 @@ endforeach(generated_file)
 
 set(SOURCES
     ${PROJECT_SOURCE_DIR}/src/Logics.cpp
+    ${PROJECT_SOURCE_DIR}/src/Models.cpp
     ${PROJECT_SOURCE_DIR}/src/main.cpp
 )
 
 # add generated grammar to demo binary target
-add_executable(test_antlr ${SOURCES} ${antlr_generated_files})
-add_dependencies(test_antlr antlr4cpp)
-target_link_libraries(test_antlr antlr4-runtime)
+add_executable(vacparser ${SOURCES} ${antlr_generated_files})
+add_dependencies(vacparser antlr4cpp)
+target_link_libraries(vacparser antlr4-runtime)

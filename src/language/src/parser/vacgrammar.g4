@@ -1,20 +1,21 @@
 /*
  @author: trucnguyenlam@gmail.com
+ @description:
+    This grammar is defined in LANGUAGE_STANDARD.md file.
+    Some rules are borrowed from
+        https://raw.githubusercontent.com/antlr/grammars-v4/master/c/C.g4
  @changelog:
     2017.05.02   Initial version
-
  */
 
 
 grammar vacgrammar;
 
-/* Borrow from C lexer
-at https://raw.githubusercontent.com/antlr/grammars-v4/master/c/C.g4 */
-
-
 /* Parser */
 
-file: r_start+;
+file                      /* start rule */
+    :   r_start+
+    ;
 
 r_start
     :   r_user
@@ -49,15 +50,13 @@ init_element
     ;
 
 init_assignment
-    : Identifier EQUAL Constant
+    :   Identifier EQUAL Constant
     ;
 
-
 primaryExpression
-    :   Constant                           # PConstant
-    |   Identifier                         # PIdentifier
-    |   Identifier DOT Identifier          # PAttributeRef
-    |   LEFTPAREN expression RIGHTPAREN    # PCompound
+    :   Constant
+    |   u=Identifier DOT a=Identifier
+    |   LEFTPAREN expression RIGHTPAREN
     ;
 
 unaryExpression
@@ -88,30 +87,33 @@ implyExpression
     ;
 
 conditionalExpression
-    :   orExpression (QUESTION expression COLON conditionalExpression)?
+    :   implyExpression (QUESTION expression COLON conditionalExpression)?
     ;
 
 expression
     :   conditionalExpression
     ;
 
-
 r_rules
-    : RULE (rule_element)* SEMI;
+    :   RULE rule_element* SEMI
+    ;
 
 rule_element
-    : LEFTTUPLE precondition (COMMA normal_assignment)+ RIGHTTUPLE
+    :   LEFTTUPLE precondition (COMMA normal_assignment)+ RIGHTTUPLE
     ;
 
 normal_assignment
-    :   Identifier DOT Identifier EQUAL Constant
+    :   u=Identifier DOT a=Identifier EQUAL Constant
     ;
 
 precondition
     :   TRUE
-    |   expression ;
+    |   expression
+    ;
 
-r_query: QUERY normal_assignment SEMI;
+r_query
+    :   QUERY normal_assignment SEMI
+    ;
 
 
 /* Lexer */

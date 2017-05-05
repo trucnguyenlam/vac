@@ -21,6 +21,9 @@ class  MyListener : public vacgrammarBaseListener {
   MyListener(){ vac_model = std::make_shared<Model>(Model());}
   ~MyListener() {}
 
+  virtual void enterFile(vacgrammarParser::FileContext * /*ctx*/) override;
+  virtual void exitFile(vacgrammarParser::FileContext * /*ctx*/) override;
+
   virtual void enterR_user(vacgrammarParser::R_userContext * /*ctx*/) override;
   virtual void exitR_user(vacgrammarParser::R_userContext * /*ctx*/) override;
 
@@ -42,8 +45,28 @@ class  MyListener : public vacgrammarBaseListener {
   virtual void enterInit_assignment(vacgrammarParser::Init_assignmentContext * /*ctx*/) override;
   virtual void exitInit_assignment(vacgrammarParser::Init_assignmentContext * /*ctx*/) override;
 
+  virtual void enterRule_element(vacgrammarParser::Rule_elementContext * /*ctx*/) override;
+  virtual void exitRule_element(vacgrammarParser::Rule_elementContext * /*ctx*/) override;
+
+  virtual void enterR_query(vacgrammarParser::R_queryContext * /*ctx*/) override;
+  virtual void exitR_query(vacgrammarParser::R_queryContext * /*ctx*/) override;
+
+
+  ModelPtr getPolicy(void) const;
 
  private:
+
+  Expr buildPrimaryExpression(vacgrammarParser::PrimaryExpressionContext *, std::map<std::string, int> &) const;
+  Expr buildUnaryExpression(vacgrammarParser::UnaryExpressionContext *, std::map<std::string, int> &) const;
+  Expr buildEqualityExpression(vacgrammarParser::EqualityExpressionContext *, std::map<std::string, int> &) const;
+  Expr buildAndExpression(vacgrammarParser::AndExpressionContext *, std::map<std::string, int> &) const;
+  Expr buildOrExpression(vacgrammarParser::OrExpressionContext *, std::map<std::string, int> &) const;
+  Expr buildImplyExpression(vacgrammarParser::ImplyExpressionContext *, std::map<std::string, int> &) const;
+  Expr buildConditionalExpression(vacgrammarParser::ConditionalExpressionContext *, std::map<std::string, int> &) const;
+  Expr buildExpression(vacgrammarParser::ExpressionContext *, std::map<std::string, int> &) const;
+  Expr buildPrecondition(vacgrammarParser::PreconditionContext *, std::map<std::string, int> &) const;
+
+  // attibute
   ModelPtr vac_model;
 
 };

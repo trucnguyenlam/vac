@@ -4,6 +4,6 @@
 -I/usr/include/x86_64-linux-gnu/c++/5
 -I/usr/include/x86_64-linux-gnu/5/include
 -I/usr/include/x86_64-linux-gnu/5/include-fixed
--Isrc
--Isrc/parser
 -I/home/trucnguyenlam/ides/antlr/antlr4-cpp-runtime-4.7-source/runtime/src
+-I./src/parser
+-I./src

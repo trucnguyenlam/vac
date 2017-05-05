@@ -30,5 +30,8 @@ int main(int argc, const char* argv[]) {
     MyListener listener;
     tree::ParseTreeWalker::DEFAULT.walk(&listener, program);
 
+    ModelPtr policy = listener.getPolicy();
+
+    std::cout << policy->to_string();
     return 0;
 }

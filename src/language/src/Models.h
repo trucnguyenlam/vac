@@ -1,12 +1,13 @@
-// Author: trucnguyenlam@gmail.com
-// Description:
-//    This is ...
+// @author: trucnguyenlam@gmail.com
+// @description:
+//    This is the model of VAC general language for
+//         access control policies
+//    This model can encode easily ARBAC, ABAC
 //
 // TODO:
 //
-// ChangeLog:
+// @changeLog:
 //    2017.04.28   Initial version
-
 
 #ifndef VACSAT_MODEL_H
 #define VACSAT_MODEL_H
@@ -23,24 +24,17 @@ namespace SMT {
 class Attribute {
   public:
     Attribute(int _ID, std::string _name, int _size, Expr _default = nullptr):
-        ID(_ID), name(_name), size(_size), value(_default) {}
+        ID(_ID), name(_name), size(_size), value(_default)
+    {}
     ~Attribute() {}
 
-    int getID(void) const { return ID;}
-    std::string getName(void) const { return name;}
-    int getSize(void) const { return size;}
-    Expr getValue(void) const { return value;}
-    void setValue(Expr _value)  { value = _value;}
+    int getID(void) const;
+    std::string getName(void) const;
+    int getSize(void) const;
+    Expr getValue(void) const;
+    void setValue(Expr _value);
 
-    std::string to_string(void) const {
-        std::string ret = "{";
-        ret += "name:" + name + ",";
-        ret += "id:" + std::to_string(ID) + ",";
-        ret += "size:" + std::to_string(size) + ",";
-        ret += "value:" + value->to_string();
-        ret += "}";
-        return ret;
-    }
+    std::string to_string(void) const;
 
   private:
     int ID;
@@ -50,84 +44,71 @@ class Attribute {
 };
 typedef std::shared_ptr<Attribute> AttributePtr;
 
-// A variable name in Expression
+// AttributeRef in Expression
 class Entity: public Literal {
   public:
-    Entity(const std::string _name, int _id, int _attr_ID):
-        name(_name), local_ID(_id), attr_ID(_attr_ID)
-    {};
+    Entity(std::string _name, std::string _user_name, int _local_id,
+           std::string _attr_name, int _attr_ID):
+        name(_name), user_name(_user_name), local_ID(_local_id),
+        attr_name(_attr_name), attr_ID(_attr_ID)
+    {}
     ~Entity() {}
 
-    int getLocalID(void) const {return local_ID;}
-    // AttributePtr getAttribute(void) const {return attr;}
-    int getAttributeID(void) const {return attr_ID;}
-
-    std::string to_string(void) const {
-        return name;
-    }
+    int getLocalID(void) const;
+    int getAttributeID(void) const;
+    std::string getAttributeName(void) const;
+    std::string getUserName(void) const;
+    std::string to_string(void) const;
 
   private:
-    int local_ID; // local ID of user e.g. x
-    // AttributePtr attr; // Attribute, too complicated
+    std::string name;  // full name
+    int local_ID; // local ID of user
+    std::string user_name; // Attribute name
     int attr_ID; // Attribute ID
-    std::string name;
+    std::string attr_name; // Attribute name
 };
+
+typedef std::shared_ptr<Entity> Entityp;
 
 class User {
   public:
     User(int ID, std::string name, bool isNew = false):
-        ID(ID), name(name), isNew(isNew) {}
+        ID(ID), name(name), isNew(isNew)
+    {}
     ~User() {}
 
-    AttributePtr getAttribute(std::string name) const;
-    void setAttribute(std::string name, Expr expr) {
-        attr_value_map.at(name) = expr; // TODO: Dangerous
-    }
 
-    void setAttribute(AttributePtr attr) {
-        attrs.push_back(attr);
-        attr_value_map.insert(std::pair<std::string, Expr>(attr->getName(), attr->getValue()));
-    }
-
-    std::string getName(void) const { return name;}
-
-    int getID(void) const { return ID;}
-
+    // Set attribute for user, if this user does not have
+    // this attribute, insert new one, otherwise, update
+    // the existing one.
+    void setAttribute(AttributePtr attr) ;
     bool hasAttribute(std::string name) const;
+    AttributePtr getAttribute(std::string name) const;
 
-    std::vector<AttributePtr> getCopyConfiguration(void) const {return attrs;}
-
-    std::string to_string(void) const {
-        std::string ret = "{";
-        ret += "name:" + name + ",";
-        ret += "id:" + std::to_string(ID) + ",";
-        ret += "isNew:" + std::to_string(isNew) + ",";
-        ret += "attributes:[";
-        for (const auto & a: attrs) {
-            ret += a->to_string() + ",";
-        }
-        ret += "]}";
-        return ret;
-    }
+    std::string getName(void) const;
+    int getID(void) const;
+    std::vector<AttributePtr> getCopyConfiguration(void) const;
+    std::string to_string(void) const;
 
   private:
     int ID; //
     std::string name;
     bool isNew;   // If this user if a new user (unlimited)
     std::vector<AttributePtr> attrs;
-    std::map<std::string, Expr> attr_value_map;
+    std::map<std::string, int> attr_map;
 };
 
 typedef std::shared_ptr<User> UserPtr;
 
 class Rule {
-    Rule(Expr _precondition) {}
+  public:
+    Rule(Expr _precondition): precondition(_precondition) {}
+    ~Rule() {}
 
     void addTargetExpr(EqExpr expr);
-
-
-    Expr getPrecondition(void) const {return precondition;}
-    std::vector<std::shared_ptr<EqExpr>> getApplyTarget(void) const {return apply_target;}
+    Expr getPrecondition(void) const;
+    std::vector<std::shared_ptr<EqExpr>> getCopyApplyTarget(void) const;
+    std::string to_string(void) const;
 
   private:
     Expr precondition;
@@ -140,9 +121,7 @@ typedef std::shared_ptr<Rule> RulePtr;
 
 class Model {
   public:
-    Model(): query(nullptr) {
-
-    }
+    Model(): query(nullptr) {}
     ~Model() {
         users.clear();
         attrs.clear();
@@ -151,66 +130,25 @@ class Model {
         attr_map.clear();
     }
 
-    void insertNewUser(UserPtr u, int id) {
-        users.push_back(u);
-        user_map.insert(std::pair<std::string, int>(u->getName(), id));
-    }
-    void insertNewAttribute(AttributePtr a, int id) {
-        attrs.push_back(a);
-        attr_map.insert(std::pair<std::string, int>(a->getName(), id));
-    }
-
+    void insertNewUser(UserPtr u, int id);
+    void insertNewAttribute(AttributePtr a, int id);
     void insertNewRule(RulePtr);
 
-    int getUserID(std::string _username);
-    UserPtr getUser(std::string _username) const {
-        auto user_pos = user_map.find(_username);
-        if (user_pos != user_map.end()) {
-            int user_id = user_pos->second;
-            return users[user_id];
-        } else {
-            return nullptr;
-        }
-    }
+    int getUserID(std::string _username) const;
+    UserPtr getUser(std::string _username) const;
 
-    int getAttributeID(std::string _attributename) const {
-        auto attr_pos = attr_map.find(_attributename);
-        if (attr_pos != attr_map.end()) {
-            return attr_pos->second;
-        } else {
-            return -1;
-        }
-    }
-
-    std::string getAttributeName(int _id) const {
-        if (_id < 0 || _id > attrs.size()){
-            std::cerr << "Out of bound attribute index: " << _id << std::endl;
-        }
-        else{
-            return attrs[_id]->getName();
-        }
-    }
-
-
-    AttributePtr getAttribute(std::string _attributename) const {
-        auto attr_pos = attr_map.find(_attributename);
-        if (attr_pos != attr_map.end()) {
-            int attr_id = attr_pos->second;
-            return attrs[attr_id];
-        } else {
-            return nullptr;
-        }
-    }
-
-    std::vector<UserPtr> getCopyOfUsers(void) { return users;}
-    int getCurrentUserSize(void) const { return users.size();}
-    std::vector<AttributePtr> getCopyOfAttributes(void) const {return attrs;}
-    int getCurrentAttributeSize(void) const {return attrs.size();}
-    std::vector<RulePtr> getCopyOfRules(void) const {return rules;}
-
-    Expr getQuery(void);
+    int getAttributeID(std::string _attributename) const;
+    std::string getAttributeName(int _id) const;
+    AttributePtr getAttribute(std::string _attributename) const;
+    std::vector<UserPtr> getCopyOfUsers(void) const;
+    int getCurrentUserSize(void) const;
+    std::vector<AttributePtr> getCopyOfAttributes(void) const;
+    int getCurrentAttributeSize(void) const;
+    std::vector<RulePtr> getCopyOfRules(void) const;
+    Expr getQuery(void) const;
     void setQuery(Expr);
 
+    std::string to_string(void) const;
   private:
     std::vector<UserPtr> users;
     std::vector<AttributePtr> attrs;

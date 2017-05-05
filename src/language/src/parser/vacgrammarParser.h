@@ -209,55 +209,21 @@ public:
 
   class  PrimaryExpressionContext : public antlr4::ParserRuleContext {
   public:
+    antlr4::Token *u = nullptr;;
+    antlr4::Token *a = nullptr;;
     PrimaryExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-   
-    PrimaryExpressionContext() : antlr4::ParserRuleContext() { }
-    void copyFrom(PrimaryExpressionContext *context);
-    using antlr4::ParserRuleContext::copyFrom;
-
     virtual size_t getRuleIndex() const override;
-
-   
-  };
-
-  class  PConstantContext : public PrimaryExpressionContext {
-  public:
-    PConstantContext(PrimaryExpressionContext *ctx);
-
     antlr4::tree::TerminalNode *Constant();
-    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
-    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
-  };
-
-  class  PAttributeRefContext : public PrimaryExpressionContext {
-  public:
-    PAttributeRefContext(PrimaryExpressionContext *ctx);
-
+    antlr4::tree::TerminalNode *DOT();
     std::vector<antlr4::tree::TerminalNode *> Identifier();
     antlr4::tree::TerminalNode* Identifier(size_t i);
-    antlr4::tree::TerminalNode *DOT();
-    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
-    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
-  };
-
-  class  PCompoundContext : public PrimaryExpressionContext {
-  public:
-    PCompoundContext(PrimaryExpressionContext *ctx);
-
     antlr4::tree::TerminalNode *LEFTPAREN();
     ExpressionContext *expression();
     antlr4::tree::TerminalNode *RIGHTPAREN();
+
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
-  };
-
-  class  PIdentifierContext : public PrimaryExpressionContext {
-  public:
-    PIdentifierContext(PrimaryExpressionContext *ctx);
-
-    antlr4::tree::TerminalNode *Identifier();
-    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
-    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+   
   };
 
   PrimaryExpressionContext* primaryExpression();
@@ -343,7 +309,7 @@ public:
   public:
     ConditionalExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    OrExpressionContext *orExpression();
+    ImplyExpressionContext *implyExpression();
     antlr4::tree::TerminalNode *QUESTION();
     ExpressionContext *expression();
     antlr4::tree::TerminalNode *COLON();
@@ -406,13 +372,15 @@ public:
 
   class  Normal_assignmentContext : public antlr4::ParserRuleContext {
   public:
+    antlr4::Token *u = nullptr;;
+    antlr4::Token *a = nullptr;;
     Normal_assignmentContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    std::vector<antlr4::tree::TerminalNode *> Identifier();
-    antlr4::tree::TerminalNode* Identifier(size_t i);
     antlr4::tree::TerminalNode *DOT();
     antlr4::tree::TerminalNode *EQUAL();
     antlr4::tree::TerminalNode *Constant();
+    std::vector<antlr4::tree::TerminalNode *> Identifier();
+    antlr4::tree::TerminalNode* Identifier(size_t i);
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;

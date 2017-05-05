@@ -82,6 +82,7 @@ namespace SMT {
                 IMPL_EXPR,
             };
 
+        Exprv(void){}
         Exprv(ExprType ty, std::set<Literalp> literals);
 
         bool containsLiteral(std::string full_name);
@@ -112,7 +113,7 @@ namespace SMT {
 
     class Literal : public Exprv {
         public:
-            Literal();
+            Literal(void) {}
             Literal(const std::string _name, int _role_array_index, int bv_size, Expr _value = nullptr);
 
             std::string getSMTName() const;
