@@ -76,7 +76,6 @@ void MyListener::enterInit_element(vacgrammarParser::Init_elementContext * ctx) 
                 int value = std::stoi(e->Constant()->getText(), nullptr);
                 Constantp valptr = std::make_shared<Constant>(Constant(value, attrptr->getSize()));
                 attr->setValue(valptr);
-
                 // Add to user
                 user->setAttribute(attr);
             } else {

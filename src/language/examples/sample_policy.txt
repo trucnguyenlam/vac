@@ -30,7 +30,6 @@ RULES
 <x.rule0=1 && y.age=10, x.age=1, x.salary=20>
 
 ;
-
 QUERY
 x.rule5=1
 ;

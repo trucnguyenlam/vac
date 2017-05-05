@@ -39,7 +39,13 @@ std::string Attribute::to_string(void) const {
     ret += "name:" + name + ",";
     ret += "id:" + std::to_string(ID) + ",";
     ret += "size:" + std::to_string(size) + ",";
-    ret += "value:" + (value == nullptr) ? "EMPTY" : value->to_string();
+
+    ret += "value:";
+    if (value) {
+        ret += value->to_string();
+    } else {
+        ret += "EMPTY";
+    }
     ret += "}";
     return ret;
 }
