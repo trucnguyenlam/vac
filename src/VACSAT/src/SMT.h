@@ -63,6 +63,7 @@ namespace SMT {
 
         virtual void loadToSolver() = 0;
         virtual void clean() = 0;
+        virtual void deep_clean() = 0;
         virtual void printContext() = 0;
 
         // virtual void push() = 0;

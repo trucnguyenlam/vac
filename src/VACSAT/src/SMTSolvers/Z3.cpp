@@ -2,8 +2,9 @@
 #include <z3++.h>
 
 namespace SMT {
-    Z3Solver::Z3Solver() : solver(context) { }
-    Z3Solver::~Z3Solver() { }
+    static unsigned int var_counter = 0;
+    Z3Solver::Z3Solver() : /*context(new z3::context()),*/ solver(context) { }
+    Z3Solver::~Z3Solver() { /*delete context;*/ }
 
     // expr YicesSolver::createBoolType() {
     //     return yices_bool_type();
@@ -15,19 +16,21 @@ namespace SMT {
     expr Z3Solver::createVar2(const std::string name, int size) {
 //        std::cout << name << std::endl;
         if (size == 1) {
-            return context.bool_const(name.c_str());
+            return createBoolVar(name);
         }
-        return context.bv_const(name.c_str(), size);
+        return createBVVar(name, size);
     }
 
     expr Z3Solver::createBoolVar(const std::string name) {
 //        std::cout << name << std::endl;
-        return context.bool_const(name.c_str());
+        std::string enum_name = name + "_" + std::to_string(var_counter++);
+        return context.bool_const(enum_name .c_str());
     }
 
     expr Z3Solver::createBVVar(const std::string name, int size) {
 //        std::cout << name << std::endl;
-        return context.bv_const(name.c_str(), size);;
+        std::string enum_name = name + "_" + std::to_string(var_counter++);
+        return context.bv_const(enum_name .c_str(), size);;
     }
 
     expr Z3Solver::createBVConst(int value, int size) {
@@ -148,7 +151,7 @@ namespace SMT {
                 break;
 
             default:
-                fprintf(stderr, "Error in check_context\n");
+            std::cerr << "Error in check_context" << std::endl;
                 break;
         }
         return ERROR;
@@ -159,11 +162,17 @@ namespace SMT {
         std::cout << e << std::endl;
     }
     void Z3Solver::printModel() {
-        model model = solver.get_model();
-        if (model == NULL) {
-            fprintf(stdout, "Model is NULL...\n");
+        try {
+            model model = solver.get_model();
+            if (model == NULL) {
+                std::cerr << "Model is NULL..." << std::endl;
+            }
+            std::cout << model << std::endl;
+
         }
-        std::cout << model << std::endl;
+        catch (z3::exception e) {
+            std::cerr << "Model is NULL..." << std::endl;
+        }
     }
     
     void Z3Solver::loadToSolver() {
@@ -193,8 +202,16 @@ namespace SMT {
     //     }
     }
 
-    void Z3Solver::clean() { 
-        this->solver = z3::solver(this->context);
+    void Z3Solver::clean() {
+        //TODO: both var_counter and context should be cleaned
+        this->solver = z3::solver(context);
+    }
+    void Z3Solver::deep_clean() {
+        var_counter = 0;
+        //FIXME: nondtext should be regenerated
+        /*delete context;
+        context = new z3::context();*/
+        this->solver = z3::solver(context);
     }
     void Z3Solver::printContext() {
         std::cout << this->solver << std::endl;

@@ -57,10 +57,11 @@ set(SOURCE_FILES
 #        src/Solvers.h
 #        src/Yices.cpp
 #        src/ARBAC_to_SSA.cpp
+        src/ExprToSmt.h
         src/ARBACTransform.h
         src/ARBACTransform.cpp
         src/Policy.h
-        src/Policy.cpp)
+        src/Policy.cpp src/prelude.h)
 
 
 

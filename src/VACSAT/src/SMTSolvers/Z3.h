@@ -49,6 +49,7 @@ namespace SMT {
         void printModel() override;
         void loadToSolver() override;
         void clean() override;
+        void deep_clean() override;
 
         void printExpr(expr e) override;
         void printContext() override;
