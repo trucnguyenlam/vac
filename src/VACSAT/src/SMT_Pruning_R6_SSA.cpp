@@ -246,10 +246,12 @@ class R6Transformer {
         fprintf(stdout, "*    %s, --rounds %d\n", inputFile, core_roles_size + 1);
         fprintf(stdout, "* MERGE_RULES\n");
         fprintf(stdout, "*\n");
-        fprintf(stdout, "*  users: %d\n", user_array_size);
+        fprintf(stdout, "*  users: %d\n", (int)policy->users().size());
         fprintf(stdout, "*  roles: %d\n", policy->atom_count());
         fprintf(stdout, "*  adminroles: %d\n", admin_role_array_index_size);
         fprintf(stdout, "*  CA: %lu\n", policy->can_assign_rules().size());
+        fprintf(stdout, "*  CR: %lu\n", policy->can_revoke_rules().size());
+        fprintf(stdout, "*  CR: %lu\n", policy->can_revoke_rules().size());
         fprintf(stdout, "*  CR: %lu\n", policy->can_revoke_rules().size());
         fprintf(stdout, "*\n");
         fprintf(stdout, "*  rule: %s, id: %d:\n", target_rule->get_type().c_str(), target_rule->original_idx);
@@ -486,11 +488,11 @@ class R6Transformer {
         
     }
 
-    TExpr generate_check_implication(int role_index, int user_id) {
+    TExpr generate_check_implication(int role_index, const userp& user) {
         //((core_r_i != init_r_i) \/ ((set_false_r_i /\ init_r_i = 1) \/ (set_true_r_i /\ init_r_i = 0)) ==> set_r_i))
         TExpr init_r_i = zero;
-        for (int j = 0; j < user_config_array[user_id].array_size; j++) {
-            if (user_config_array[user_id].array[j] == role_index) {
+        for (auto &&atom : user->config()) {
+            if (atom->role_array_index == role_index) {
                 init_r_i = one;
                 break;
             }
@@ -531,11 +533,11 @@ class R6Transformer {
         // fprintf(outputFile, "// assume(  \\/        ( /  \\          ((core_r_i != init_r_i) \\/ ((set_false_r_i /\\ init_r_i = 1) \\/ (set_true_r_i /\\ init_r_i = 0)) => set_r_i)))\n");
         // fprintf(outputFile, "//        u_i \\in U    r_i \\in \\phi\n");
         TExpr impl_assumption = zero;
-        for (int u = 0; u < user_array_size; u++) {
+        for (auto &&user : policy->users()) {
             TExpr inner_and = one;
             for (int i = 0; i < policy->atom_count(); i++) {
                 if (core_roles[i]) {
-                    TExpr impl_r_ui = generate_check_implication(i, u);
+                    TExpr impl_r_ui = generate_check_implication(i, user);
                     inner_and = solver->createAndExpr(inner_and, impl_r_ui);
                 }
             }
