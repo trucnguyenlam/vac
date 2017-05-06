@@ -15,12 +15,10 @@ INIT <ident (,.attribute=CONSTANT)+>  SEMI
 RULES <precondition (,ident.attribute=CONSTANT)+>+;
 
 // There are three types of query
-// 1. ident1 is not in the list of user
+// 1. ident1 is not in the list of user: any user
 // 2. ident1 is a normal user
 // 3. ident1 is a new user
 QUERY ident1 . attri = CONSTANT;
-
-
 
 # Note
 

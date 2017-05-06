@@ -7,8 +7,6 @@
 // ChangeLog:
 //    2017.05.05   Initial version
 
-#include <csignal>
-#include <iostream>
 #include "Models.h"
 
 using namespace SMT;
@@ -39,7 +37,6 @@ std::string Attribute::to_string(void) const {
     ret += "name:" + name + ",";
     ret += "id:" + std::to_string(ID) + ",";
     ret += "size:" + std::to_string(size) + ",";
-
     ret += "value:";
     if (value) {
         ret += value->to_string();

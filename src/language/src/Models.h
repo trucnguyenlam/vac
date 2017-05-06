@@ -16,6 +16,8 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <iostream>
+#include <csignal>
 
 #include "Logics.h"
 

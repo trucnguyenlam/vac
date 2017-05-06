@@ -8,8 +8,6 @@
 //    2017.05.04   Initial version
 
 
-#include <csignal>
-#include <typeinfo>
 #include "MyListener.h"
 
 using namespace SMT;
