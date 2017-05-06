@@ -174,6 +174,7 @@ Constant
 fragment
 DecimalConstant
     :   Sign? NonzeroDigit Digit*
+    |   Sign? Digit
     ;
 
 fragment

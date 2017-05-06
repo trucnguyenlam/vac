@@ -28,6 +28,7 @@ RULES
 <TRUE, x.age=3, x.salary=10>
 <x.rule0=1, x.age=1, x.salary=20>
 <x.rule0=1 && y.age=10, x.age=1, x.salary=20>
+<x.rule0=1 || y.age=10, x.age=0, x.salary=20>
 
 ;
 QUERY
