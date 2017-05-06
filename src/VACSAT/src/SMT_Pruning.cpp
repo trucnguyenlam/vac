@@ -15,6 +15,7 @@
 #include "Policy.h"
 #include "SMTSolvers/yices.h"
 #include "SMTSolvers/Z3.h"
+#include "ExprToSmt.h"
 
 namespace SMT {
 
@@ -28,7 +29,7 @@ namespace SMT {
 
         std::shared_ptr<arbac_policy> policy;
 
-        int set_contains(Expr expr, std::string name) {
+        bool set_contains(Expr expr, std::string name) {
             std::set<Literalp> literals = expr->literals();
             for (auto ite = literals.begin(); ite != literals.end(); ++ite) {
                 Literalp e = *ite;
@@ -39,80 +40,118 @@ namespace SMT {
             return false;
         }
 
-//        void generateRoleVars() {
-//            for (int i = 0; i < role_array_size; i++) {
-//                std::string rname(role_array[i]);
-//                Literalp var = createLiteralp(rname, i, 1);
-//                role_vars.push_back(var);
-//            }
-//        }
+        bool have_common_atoms(Expr e1, Expr e2) {
+            std::list<Literalp> intersection;
+            std::set_intersection(e1->literals().begin(), e1->literals().end(),
+                                  e2->literals().begin(), e2->literals().end(),
+                                  std::back_inserter(intersection));
+            return intersection.size() > 0;
 
-//        Expr getCRAdmFormula(int ruleId) {
-//            Expr ret = role_vars[cr_array[ruleId].admin_role_index];
-//            return ret;
-//        }
-//
-//        Expr getCRPNFormula(int ruleId) {
-//            return createConstantExpr(true, 1);
-//        }
-//
-//        Expr getCAAdmFormula(int ca_index) {
-//            Expr ret = role_vars[ca_array[ca_index].admin_role_index];
-//            return ret;
-//        }
-//
-//        Expr getCAPNFormula(int ca_index) {
-//            Expr cond = createConstantExpr(true, 1);
-//
-//            if (ca_array[ca_index].type == 0) {     // Has precondition
-//                // P
-//                if (ca_array[ca_index].positive_role_array_size > 0) {
-//                    int* ca_array_p = ca_array[ca_index].positive_role_array;
-//                    std::string rp_name = std::string(role_array[ca_array_p[0]]);
-//                    Expr ca_cond = role_vars[ca_array_p[0]];
-//                    for (int j = 1; j < ca_array[ca_index].positive_role_array_size; j++) {
-//                        rp_name = std::string(role_array[ca_array_p[j]]);
-//                        ca_cond = createAndExpr(ca_cond, role_vars[ca_array_p[j]]);
-//                    }
-//                    cond = createAndExpr(cond, ca_cond);
-//                }
-//                // N
-//                if (ca_array[ca_index].negative_role_array_size > 0) {
-//                    int* ca_array_n = ca_array[ca_index].negative_role_array;
-//                    std::string rn_name = std::string(role_array[ca_array_n[0]]);
-//                    Expr cr_cond = createNotExpr(role_vars[ca_array_n[0]]);
-//                    for (int j = 1; j < ca_array[ca_index].negative_role_array_size; j++) {
-//                        rn_name = std::string(role_array[ca_array_n[j]]);
-//                        cr_cond = createAndExpr(cr_cond, createNotExpr(role_vars[ca_array_n[j]]));
-//                    }
-//                    cond = createAndExpr(cond, cr_cond);
-//                }
-//            }
-//
-//            return cond;
-//        }
+        }
 
-//        void generate_ca_cr_formulae() {
-//            int i;
-//            for (i = 0; i < ca_array_size; i++) {
-//                ca_adm_formulae.push_back(getCAAdmFormula(i));
-//                ca_pn_formulae.push_back(getCAPNFormula(i));
-//                // print_ca_comment(stdout, i);
-//                // printf("%s\n", getCAPNFormula(i)->to_string().c_str());
-//            }
-//            for (i = 0; i < cr_array_size; i++) {
-//                cr_adm_formulae.push_back(getCRAdmFormula(i));
-//                cr_pn_formulae.push_back(getCRPNFormula(i));
-//                // print_cr_comment(stdout, i);
-//                // printf("%s\n", getCRPNFormula(i)->to_string().c_str());
-//            }
-//        }
+        void printLookup(std::vector<std::shared_ptr<TVar>> lookup) {
+            for (int i = 0; i < lookup.size(); ++i) {
+                std::cout << i << ": ";
+                if (lookup[i] != nullptr) {
+                    solver->printExpr(*lookup[i]);
+                }
+                else
+                    std::cout << "NULL" << std::endl;
+            }
+        }
+
+        bool immaterial_not_interfere(Expr adm) {
+            // Check if the administrative expression interfere (cause false) in other expressions
+            // TODO: consider changing with set to reduce equals checks
+            std::list<Expr> other_exprs;
+            for (auto iterator = policy->rules().begin();
+                 iterator != policy->rules().end(); ++iterator) {
+                rulep r = *iterator;
+                other_exprs.push_back(r->prec);
+                if (adm != r->admin) {
+                    other_exprs.push_back(r->admin);
+                }
+            }
+
+            std::vector<std::shared_ptr<TVar>> adm_var_vec((unsigned long) policy->atom_count());
+            TExpr solver_adm = generateSMTFunction2(solver, adm, adm_var_vec, std::string("adm"));
+
+            for (auto ite = other_exprs.begin(); ite != other_exprs.end(); ++ite) {
+                Expr expr = *ite;
+
+                if (!have_common_atoms(adm, expr)) {
+                    // can go forward since atoms are disjoint
+                    continue;
+                }
+
+                solver->clean();
+
+                std::vector<std::shared_ptr<TVar>> free_var_vec((unsigned long) policy->atom_count());
+                TExpr solver_exp = generateSMTFunction2(solver, expr, free_var_vec, std::string("adm"));
+
+                std::vector<std::shared_ptr<TVar>> updated_vec = update_tlookup(free_var_vec, adm_var_vec);
+                TExpr not_solver_exp = solver->createNotExpr(generateSMTFunction2(solver, expr, updated_vec, std::string("adm")));
+
+                solver->assertNow(solver_adm);
+                solver->assertNow(solver_exp);
+                solver->assertNow(not_solver_exp);
+
+                bool res = solver->solve() == UNSAT;
+
+                if (!res) {
+                    std::cout << *adm << " administrative part interfere with " << *expr << std::endl;
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        bool immaterial_k_plus_two(Expr adm) {
+            //FIXME: implement this method: immaterial_k_plus_two...
+            return false;
+        }
+
+        bool immaterial_adm(Expr adm) {
+            bool exists_user = false;
+            //exists a user that satisfies phi_adm
+            for (auto &&user : policy->users()) {
+                solver->clean();
+
+                Expr adm_expr = adm;
+                Expr user_expr = policy->user_to_expr(user->original_idx);
+
+                std::map<std::string, TVar> map;
+
+                TExpr solver_adm_expr = generateSMTFunction(solver, adm_expr, map, user->name);
+                TExpr solver_user_expr = generateSMTFunction(solver, user_expr, map, user->name);
+
+                solver->assertNow(solver_user_expr);
+                solver->assertNow(solver_adm_expr);
+
+                bool satisfies = solver->solve() == SAT;
+
+                if (satisfies) {
+                    exists_user = true;
+                    std::cout << "User " << *user << " satisfies administrative formula "
+                              << *adm << std::endl;
+                    break;
+                }
+            }
+
+            if (!exists_user) {
+                return false;
+            }
+            else {
+                return immaterial_k_plus_two(adm) || immaterial_not_interfere(adm);
+            }
+        }
 
         int nonPositiveNegative(int roleId, bool check_positive) {
-            Literalp role = policy->atoms[roleId];
+            Literalp role = policy->atoms(roleId);
             std::vector<Expr> to_check;
 
-            for (auto ite = policy->can_assign_rules.begin(); ite != policy->can_assign_rules.end(); ++ite) {
+            for (auto ite = policy->can_assign_rules().begin(); ite != policy->can_assign_rules().end(); ++ite) {
                 std::shared_ptr<rule> rule = (*ite);
                 if (rule->admin->literals().count(role) > 0) {
 //                    std::cout << "Role: " << role->fullName() << " is administrative thus NOT non-positive" << std::endl;
@@ -124,7 +163,7 @@ namespace SMT {
                 }
             }
 
-            for (auto ite = policy->can_revoke_rules.begin(); ite != policy->can_revoke_rules.end(); ++ite) {
+            for (auto ite = policy->can_revoke_rules().begin(); ite != policy->can_revoke_rules().end(); ++ite) {
                 std::shared_ptr<rule> rule = *ite;
                 if (rule->admin->literals().count(role)) {
 //                    std::cout << "Role: " << role->fullName() << " is administrative thus NOT non-positive" << std::endl;
@@ -451,28 +490,20 @@ namespace SMT {
             return res;
         }
 
-        // int deb = false;           
-        // if (role_name == "rb") { deb = true; }
-        // else                   { deb = false; }
-
-        int irrelevantPositive(int roleId) {
-            //FIXME: refactored. Fix here
-//            throw new std::runtime_error("FIXME: refactored. Fix here");
-
-            Literalp role = policy->atoms[roleId];
+        bool irrelevantRole(Literalp role) {
 
             if (role == policy->goal_role) {
-                std::cout << "Role " << role->fullName() << " is TARGET" << std::endl;
+//                std::cout << "Role " << role->fullName() << " is TARGET" << std::endl;
                 return false;
             }
 
             std::vector<std::shared_ptr<rule>> using_r;
             std::vector<std::shared_ptr<rule>> assigning_r;
             std::vector<std::shared_ptr<rule>> removing_r;
-            for (auto ite = policy->can_assign_rules.begin(); ite != policy->can_assign_rules.end(); ++ite) {
+            for (auto ite = policy->can_assign_rules().begin(); ite != policy->can_assign_rules().end(); ++ite) {
                 std::shared_ptr<rule> ca = *ite;
                 if (ca->admin->literals().count(role) > 0) {
-                    std::cout << "Role " << role->fullName() << " is administrative in " << *ca << std::endl;
+//                    std::cout << "Role " << role->fullName() << " is administrative in " << *ca << std::endl;
                     return false;
                 }
                 if (ca->prec->containsLiteral(role)) {
@@ -482,10 +513,10 @@ namespace SMT {
                     assigning_r.push_back(ca);
                 }
             }
-            for (auto ite = policy->can_revoke_rules.begin(); ite != policy->can_revoke_rules.end(); ++ite) {
+            for (auto ite = policy->can_revoke_rules().begin(); ite != policy->can_revoke_rules().end(); ++ite) {
                 std::shared_ptr<rule> cr = *ite;
                 if (cr->admin->literals().count(role) > 0) {
-                    std::cout << "Role " << role->fullName() << " is administrative in " << *cr << std::endl;
+//                    std::cout << "Role " << role->fullName() << " is administrative in " << *cr << std::endl;
                     return false;
                 }
                 if (cr->prec->containsLiteral(role)) {
@@ -497,7 +528,7 @@ namespace SMT {
             }
 
             if (using_r.size() == 0) {
-                printf("Role %s is never used. Remove it\n", role_array[roleId]);
+//                printf("Role %s is never used. Remove it\n", role->to_string().c_str());
                 return true;
             }
             else {
@@ -513,9 +544,9 @@ namespace SMT {
 
                     SMTResult res = solver->solve();
 
-                    solver->printContext();
-
-                    solver->printModel();
+//                    solver->printContext();
+//
+//                    solver->printModel();
 
                     if (res == SAT) {
                         can_remove = false;
@@ -523,40 +554,10 @@ namespace SMT {
                     }
 
                 }
-                std::cout << "role: " << *role << (can_remove ? " Can" : " Cannot") << " be removed" << std::endl;
+//                std::cout << "role: " << *role << (can_remove ? " Can" : " Cannot") << " be removed" << std::endl;
 
                 return can_remove;
             }
-//                TExpr cond = solver->createTrue();
-//                if (std::find(nonPositiveRoles.begin(), nonPositiveRoles.end(), roleId) != nonPositiveRoles.end()) {
-//                    printf("Role %s is nonPositive\n", role_array[roleId]);
-//                    cond = solver->createAndExpr(cond, irr_neg_cond(roleId, using_r, removing_r));
-//                } else {
-//                    if (std::find(nonNegativeRoles.begin(), nonNegativeRoles.end(), roleId) != nonNegativeRoles.end()) {
-//                        printf("Role %s is nonNegative\n", role_array[roleId]);
-//                        cond = solver->createAndExpr(cond, irr_pos_cond(roleId, using_r, assigning_r));
-//                    } else {
-//                        printf("Role %s is mixed\n", role_array[roleId]);
-//                        cond = solver->createAndExpr(cond, irr_mix_cond(roleId, using_r, assigning_r, removing_r));
-//                    }
-//                }
-//                solver->assertNow(cond);
-//                SMTResult smt_res = solver->solve();
-//                int res = 0;
-//                switch (smt_res) {
-//                    case SAT:
-//                        res = false;
-//                        break;
-//                    case UNSAT:
-//                        res = true;
-//                        break;
-//                    case UNKNOWN:
-//                        res = false;
-//                        break;
-//                }
-//                solver->clean();
-//                return res;
-//            }
 
         }
 
@@ -587,80 +588,124 @@ namespace SMT {
             return res == UNSAT;
         }
 
+        bool equivalent_exprs(Expr e1, Expr e2) {
+//            if (e1->literals() != e2->literals()) {
+//                return false;
+//            }
+//            else {
+
+            solver->clean();
+
+            std::vector<std::shared_ptr<TVar>> var_vec;
+            TExpr se1 = generateSMTFunction(solver, e1, var_vec, "eq");
+            TExpr se2 = generateSMTFunction(solver, e2, var_vec, "eq");
+
+            // e1 /\ not e2
+            TExpr e1_not_e2 = solver->createAndExpr(se1,
+                                                    solver->createNotExpr(se2));
+            // not e1 /\ e2
+            TExpr not_e1_e2 = solver->createAndExpr(solver->createNotExpr(se1),
+                                                    se2);
+
+            // (e1 /\ not e2) \/ (not e1 /\ e2)
+            TExpr final = solver->createOrExpr(e1_not_e2,
+                                               not_e1_e2);
+
+            solver->assertNow(final);
+
+            bool res = solver->solve() == UNSAT;
+
+            if (res) {
+                std::cout << "Expressions " << *e1 << std::endl;
+                std::cout << "            " << *e2 << std::endl;
+                std::cout << "            are equivalent!" << *e1 << std::endl;
+            }
+
+            return res;
+
+//            }
+        }
+
+        void merge_rules() {
+            std::map<Literalp, std::list<rulep>> assigning;
+            std::map<Literalp, std::list<rulep>> revoking;
+
+            for (auto &&ca : policy->can_assign_rules()) {
+                assigning[ca->target].push_back(ca);
+            }
+            for (auto &&cr : policy->can_revoke_rules()) {
+                assigning[cr->target].push_back(cr);
+            }
+
+
+            for (auto &&pair : assigning) {
+                std::list<rulep> rules = pair.second;
+                std::list<std::list<rulep>> to_merge;
+
+                for (auto &&rule : rules) {
+
+                }
+
+
+            }
+            //FIXME: continue here
+            throw new std::runtime_error("Not implemented yet");
+
+        }
+
         public:
 
-        void printNonPos() {
-            for (int i = 0; i < policy->atom_count(); i++) {
-                int res = nonPositiveNegative(i, true);
-                if (res) {
-                    fprintf(stdout, "Role %s is nonPositive\n", role_array[i]);
-                    nonPositiveRoles.push_back(i);
-                }
-                else {
-                     fprintf(stdout, "Role %s is administrative or NOT nonPositive\n", role_array[i]);
-                }
+        void PruneImmaterialRoles() {
+            std::map<Expr, std::list<rulep>> admins;
+            for (auto &&rule : policy->rules()) {
+                admins[rule->admin].push_back(rule);
             }
-            
-        }
-
-        void printNonNeg() {
-            for (int i = 0; i < role_array_size; i++) {
-                int res = nonPositiveNegative(i, false);
-                if (res) {
-                    fprintf(stdout, "Role %s is nonNegative\n", role_array[i]);
-                    nonNegativeRoles.push_back(i);
-                }
-                else {
-                     fprintf(stdout, "Role %s is administrative or NOT nonNegative\n", role_array[i]);
+            for (auto &&adm_pair : admins) {
+                bool can_change = immaterial_adm(adm_pair.first);
+                if (can_change) {
+                    std::cout << "Administrative expression " << *adm_pair.first << " IS IMMATERIAL" << std::endl;
+                    for (auto &&rule : adm_pair.second) {
+                        rule->admin = createConstantTrue();
+                    }
                 }
             }
         }
 
-        void PrintIrrelevantPos() {
-//            Literalp target = policy->atoms[0];
-//            std::cout << *target << std::endl;
+        void PruneIrrelevantRoles() {
+            std::vector<Literalp> irrelevant;
 
-            irrelevantPositive(0);
+            auto start = std::chrono::high_resolution_clock::now();
 
+            for (auto iterator = policy->atoms().begin(); iterator != policy->atoms().end(); ++iterator) {
+                Literalp r = *iterator;
+                bool can_remove = irrelevantRole(r);
+                if (can_remove) {
+                    std::cout << *r << " is irrelevant." << std::endl;
+                    irrelevant.push_back(r);
+                }
+            }
 
+            auto end = std::chrono::high_resolution_clock::now();
+            auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+            std::cout << "------------ Rule6 executed in " << milliseconds.count() << " ms ------------\n";
 
+            // REMOVAL:
+            for (auto &&i_role : irrelevant) {
+                policy->reomove_atom(i_role);
+            }
             return;
-
-//            //FIXME: refactored. Fix here
-//            throw new std::runtime_error("FIXME: refactored. Fix here");
-//            // for (auto i = nonNegativeRoles.begin(); i < nonNegativeRoles.end(); ++i) {
-//            for (int i = 0; i < role_array_size; ++i) {
-//                // // solver->push();
-//                // int res = irrelevantPositive(i);
-//                // if (res) {
-//                //     fprintf(stdout, "Role %s is irrelevantPositive\n", role_array[i]);
-//                //     // nonNegativeRoles.push_back(i);
-//                // }
-//                // else {
-//                //     // fprintf(stdout, "Role %s is Negative\n", role_array[i]);
-//                // }
-//                // // solver->pop();
-//                int can_remove = irrelevantPositive(i);
-//
-//                if (can_remove) {
-//                    printf("Role %s can be removed...\n", role_array[i]);
-//                }
-//                else {
-//                    printf("Role %s cannot be removed...\n", role_array[i]);
-//                }
-//            }
         }
 
         void printImpliedPairs() {
             //FIXME: refactored. Fix here
 //            throw new std::runtime_error("FIXME: refactored. Fix here");
-            for (int i = 0; i < policy->can_assign_rules.size(); i++) {
-                std::shared_ptr<rule> ca1 = policy->can_assign_rules[i];
-                for (int j = 0; j < policy->can_assign_rules.size(); j++) {
-                    std::shared_ptr<rule> ca2 = policy->can_assign_rules[j];
+            for (int i = 0; i < policy->can_assign_rules().size(); i++) {
+                std::shared_ptr<rule> ca1 = policy->can_assign_rules()[i];
+                for (int j = 0; j < policy->can_assign_rules().size(); j++) {
+                    std::shared_ptr<rule> ca2 = policy->can_assign_rules()[j];
                     if (i != j &&
-                            policy->can_assign_rules[i]->target->role_array_index ==
-                                    policy->can_assign_rules[j]->target->role_array_index) {
+                            policy->can_assign_rules()[i]->target->role_array_index ==
+                                    policy->can_assign_rules()[j]->target->role_array_index) {
                         printf("Implied: \n");
 //                        print_ca_comment(stdout, i);
 //                        std::cout << ca1 << std::endl;
@@ -711,14 +756,14 @@ namespace SMT {
                 std::vector<std::shared_ptr<rule>> to_remove;
 
                 fprintf(stdout, "Iteration %d:\n", fix_ite++);
-                fprintf(stdout, "Total: %ld rules\n", policy->can_assign_rules.size());
+                fprintf(stdout, "Total: %ld rules\n", policy->can_assign_rules().size());
 
-//                for (int j = 0; j < policy->can_assign_rules.size(); ++j) {
-//                    std::cout << *policy->can_assign_rules[j] << std::endl;
+//                for (int j = 0; j < policy->can_assign_rules().size(); ++j) {
+//                    std::cout << *policy->can_assign_rules()[j] << std::endl;
 //                }
 
-                for (int i = 0; i < policy->can_assign_rules.size(); i++) {
-                    std::shared_ptr<rule> rule = policy->can_assign_rules[i];
+                for (int i = 0; i < policy->can_assign_rules().size(); i++) {
+                    std::shared_ptr<rule> rule = policy->can_assign_rules()[i];
                     solver->clean();
                     bool rem_pn = apply_r6<TVar, TExpr>(this->solver, this->policy, rule, false);
                     solver->clean();
@@ -738,11 +783,11 @@ namespace SMT {
                         //                    fprintf(stdout, "rule %d %s be removed since not fireable\n\n", i, res ? "CAN" : "CANNOT");
                         fprintf(stdout, "X");
                         fflush(stdout);
-                        to_remove.push_back(policy->can_assign_rules[i]);
+                        to_remove.push_back(policy->can_assign_rules()[i]);
                     } else if (rem_adm) {
                         fprintf(stdout, "O");
                         fflush(stdout);
-                        to_remove.push_back(policy->can_assign_rules[i]);
+                        to_remove.push_back(policy->can_assign_rules()[i]);
                     } else {
                         fprintf(stdout, "-");
                         fflush(stdout);
@@ -806,13 +851,15 @@ namespace SMT {
             std::cout << hierarchy_array[i].inferior_role_index << " < " << hierarchy_array[i].superior_role_index << std::endl;
         }
 
-//        std::shared_ptr<SMTFactory<z3::expr, z3::expr>> solver(new Z3Solver());
-//        Pruning<z3::expr, z3::expr> core(solver);
-        std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());
-        Pruning<term_t, term_t> core(solver);
+        std::shared_ptr<SMTFactory<z3::expr, z3::expr>> solver(new Z3Solver());
+        Pruning<z3::expr, z3::expr> core(solver);
+//        std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());
+//        Pruning<term_t, term_t> core(solver);
 
 //        core.apply_rule_6();
-        core.PrintIrrelevantPos();
+        core.PruneIrrelevantRoles();
+        core.PruneImmaterialRoles();
+        core.PruneIrrelevantRoles();
 
 //        return;
 //
