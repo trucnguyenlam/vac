@@ -118,10 +118,6 @@ namespace SMT {
 
         return out;
     }
-
-    std::set<Literalp> Exprv::literals() {
-        return this->_literals;
-    }
     
 /*LITERAL OPS*/
     Literal::Literal(const std::string _name, int _role_array_index, int _bv_size, Expr _value):
@@ -614,6 +610,80 @@ namespace SMT {
         fprintf(stderr, "Cannot translate expression to SMT:\n    %s\n", expr->to_string().c_str());
     }
 
+
+    Expr delete_atom(Expr expr, Literalp lit) {
+        switch (expr->type) {
+            case Exprv::CONSTANT: {
+                return expr;
+            }
+            case Exprv::LITERAL: {
+                if (expr == lit) {
+                    return createConstantTrue();
+                }
+                else {
+                    return expr;
+                }
+            }
+            case Exprv::AND_EXPR: {
+                std::shared_ptr<AndExpr> andExpr = std::dynamic_pointer_cast<AndExpr>(expr);
+                Expr nlhs = delete_atom(andExpr->lhs, lit);
+                Expr nrhs = delete_atom(andExpr->rhs, lit);
+                return createAndExpr(nlhs, nrhs);
+            }
+            case Exprv::OR_EXPR: {
+                std::shared_ptr<OrExpr> orExpr = std::dynamic_pointer_cast<OrExpr>(expr);
+                Expr nlhs = delete_atom(orExpr->lhs, lit);
+                Expr nrhs = delete_atom(orExpr->rhs, lit);
+                return createOrExpr(nlhs, nrhs);
+            }
+            case Exprv::NOT_EXPR:{
+                std::shared_ptr<NotExpr> notExpr = std::dynamic_pointer_cast<NotExpr>(expr);
+                Expr inner = notExpr->expr;
+                switch (inner->type) {
+                    case Exprv::CONSTANT:
+                        return expr;
+                    case Exprv::LITERAL:
+                        if (inner == lit) {
+                            return createConstantTrue();
+                        }
+                        else {
+                            return expr;
+                        }
+                    default:
+                    std::cerr << "NOT expression MUST be located close to atoms (LITERAL or CONSTANT)" << std::endl;
+                    std::cerr << "\tExpr is " << *expr << std::endl;
+                        throw std::runtime_error("NOT expression MUST be located close to atoms (LITERAL or CONSTANT)");
+                        return nullptr;
+                }
+            }
+//            case Exprv::IMPL_EXPR: {
+//                std::shared_ptr<ImplExpr> implExpr = std::dynamic_pointer_cast<ImplExpr>(expr);
+//                TExpr slhs = generateSMTFunction(solver, implExpr->lhs, var_array, suffix);
+//                TExpr srhs = generateSMTFunction(solver, implExpr->rhs, var_array, suffix);
+//                return solver->createImplExpr(slhs, srhs);
+//            }
+//            case Exprv::COND_EXPR: {
+//                std::shared_ptr<CondExpr> condExpr = std::dynamic_pointer_cast<CondExpr>(expr);
+//                TExpr scond = generateSMTFunction(solver, condExpr->cond, var_array, suffix);
+//                TExpr schoice1 = generateSMTFunction(solver, condExpr->choice1, var_array, suffix);
+//                TExpr schoice2 = generateSMTFunction(solver, condExpr->choice2, var_array, suffix);
+//                return solver->createCondExpr(scond, schoice1, schoice2);
+//            }
+//            case Exprv::EQ_EXPR: {
+//                std::shared_ptr<EqExpr> eqExpr = std::dynamic_pointer_cast<EqExpr>(expr);
+//                TExpr slhs = generateSMTFunction(solver, eqExpr->lhs, var_array, suffix);
+//                TExpr srhs = generateSMTFunction(solver, eqExpr->rhs, var_array, suffix);
+//                return solver->createEqExpr(slhs, srhs);
+//            }
+            default:
+            std::cerr << "Could not simplify an expression that is not an OR, AND, NOT, CONSTANT, LITERAL." << std::endl;
+            std::cerr << "\tExpr is " << *expr << std::endl;
+                throw new std::runtime_error("Could not normalize this expression");
+                return expr;
+        }
+        throw new std::runtime_error("Cannot translate expression to SMT");
+        fprintf(stderr, "Cannot translate expression to SMT:\n    %s\n", expr->to_string().c_str());
+    }
 
     // Variable* createConstVar(const char* var_name, int occ, int value) {
     //     Expr var_e = createVariable(var_name, occ, 0, NULL);
