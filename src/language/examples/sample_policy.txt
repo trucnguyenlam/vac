@@ -1,59 +1,36 @@
-/*
-    keywords:
-        can_assign
-        can_revoke
+USERS
+u0
+u1
+u2
+u3*
+u4
+;
 
- */
+// This is a comment
 
-// This is a line comment
-/* This is a block comment */
+ATTRIBUTES
+rule0[1]
+rule1[1]
+rule2[1]
+rule3[1]
+rule4[1]
+rule5[1]
+age[3]
+salary[10]
+;
 
-[DOMAINS]
+INIT
+<u0, rule0=1, age = 3>
+<u1, salary=30, rule2 = 1 >
+;
 
+RULES
+<TRUE, x.age=3, x.salary=10>
+<x.rule0=1, x.age=1, x.salary=20>
+<x.rule0=1 && y.age=10, x.age=1, x.salary=20>
+<x.rule0=1 || y.age=10, x.age=0, x.salary=20>
 
-[ATTRIBUTES]
-
-[INTERVALS]
-
-[ROLES]
-
-
-[HIERARCHIES]
-
-
-[PERMISSIONS]
-actions
-
-[OBJECTS]
-objects
-
-
-[USERS]
-
-
-[URA]   // User role assignment
-<user, role>
-
-[PRA]  // Permission role assignment
-<role, [action, object]>
-
-[RULES]
-
-can_assign<admin_formula, precondition_formula, target_atom>
-can_revoke<admin_formula, precondition_formula, target_atom>
-
-t_can_assign<role, (interval), precondition, (interval), target_atom>
-t_can_revoke<role, (interval), precondition, (interval), target_atom>
-can_enable<role, (interval), precondition, (interval), target_atom>
-can_disable<role, (interval), precondition, (interval), target_atom>
-
-
-[CONSTRAINTS]
-
-
-
-[WORKFLOW]
-
-[TIME]
-
-[QUERY]
+;
+QUERY
+x.rule5=1
+;
