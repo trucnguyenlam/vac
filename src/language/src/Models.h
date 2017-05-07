@@ -12,6 +12,8 @@
 #ifndef VACSAT_MODEL_H
 #define VACSAT_MODEL_H
 
+#include "Logics.h"
+
 #include <string>
 #include <vector>
 #include <map>
@@ -19,7 +21,6 @@
 #include <iostream>
 #include <csignal>
 
-#include "Logics.h"
 
 namespace SMT {
 

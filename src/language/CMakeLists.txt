@@ -25,7 +25,6 @@ message(STATUS "Found antlr4cpp libs: ${ANTLR4CPP_LIBS} and includes: ${ANTLR4CP
 include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/src/parser/)
 
-
 FILE(GLOB generated_files ${PROJECT_SOURCE_DIR}/src/parser/*.cpp)
 
 # export generated cpp files into list
@@ -48,3 +47,17 @@ set(SOURCES
 add_executable(vacparser ${SOURCES} ${antlr_generated_files})
 add_dependencies(vacparser antlr4cpp)
 target_link_libraries(vacparser antlr4-runtime)
+
+# Unit Test
+# Prepare "Catch" library for other executables
+set(CATCH_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/catch)
+add_library(Catch INTERFACE)
+target_include_directories(Catch INTERFACE ${CATCH_INCLUDE_DIR})
+
+# Make test executable
+set(TEST_SOURCES ${PROJECT_SOURCE_DIR}/tests/test.cpp)
+add_executable(tests ${TEST_SOURCES})
+target_link_libraries(tests Catch)
+
+
+

@@ -1,9 +1,10 @@
-/*
-* @Author: Truc Nguyen Lam
-* @Date:   2017-05-03 13:37:26
-* @Last Modified by:   Truc Nguyen Lam
-* @Last Modified time: 2017-05-03 22:53:09
-*/
+// @author: trucnguyenlam@gmail.com
+// @description:
+//      main executable to demonstrate the parser
+// TODO:
+//
+// @changeLog:
+//    2017.05.01   Initial version
 
 #include <iostream>
 #include "vacgrammarLexer.h"
@@ -11,27 +12,28 @@
 #include "MyListener.h"
 #include "Models.h"
 
-
-using namespace antlr4;
 using namespace SMT;
 
 int main(int argc, const char* argv[]) {
     std::ifstream stream;
     stream.open(argv[1]);
 
-    ANTLRInputStream input(stream);
+    antlr4::ANTLRInputStream input(stream);
     vacgrammarLexer lexer(&input);
-    CommonTokenStream tokens(&lexer);
+    antlr4::CommonTokenStream tokens(&lexer);
 
     // Create parser
     vacgrammarParser parser(&tokens);
-    tree::ParseTree * program = parser.file();
+    antlr4::tree::ParseTree * program = parser.file();
 
+    // Work through parser tree to produce the model
     MyListener listener;
-    tree::ParseTreeWalker::DEFAULT.walk(&listener, program);
+    antlr4::tree::ParseTreeWalker::DEFAULT.walk(&listener, program);
 
+    // Retrieve policy
     ModelPtr policy = listener.getPolicy();
 
+    // Print policy
     std::cout << policy->to_string();
     return 0;
 }
