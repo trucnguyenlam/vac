@@ -183,7 +183,7 @@ class R6Transformer {
 //            per_role_ca_indexes[i];
 
             //INSTANTIATING per_role_ca_indexes CONTENT
-            for (auto ite = policy->can_assign_rules.begin(); ite != policy->can_assign_rules.end(); ++ite) {
+            for (auto ite = policy->can_assign_rules().begin(); ite != policy->can_assign_rules().end(); ++ite) {
                 if ((*ite)->target->role_array_index == i) {
                     per_role_ca_rules[i].push_back(*ite);
                 }
@@ -194,7 +194,7 @@ class R6Transformer {
 
 
             //INSTANTIATING per_role_cr_indexes
-            for (auto ite = policy->can_revoke_rules.begin(); ite != policy->can_revoke_rules.end(); ++ite) {
+            for (auto ite = policy->can_revoke_rules().begin(); ite != policy->can_revoke_rules().end(); ++ite) {
                 if ((*ite)->target->role_array_index == i) {
                     per_role_cr_rules[i].push_back(*ite);
                 }
@@ -246,11 +246,13 @@ class R6Transformer {
         fprintf(stdout, "*    %s, --rounds %d\n", inputFile, core_roles_size + 1);
         fprintf(stdout, "* MERGE_RULES\n");
         fprintf(stdout, "*\n");
-        fprintf(stdout, "*  users: %d\n", user_array_size);
+        fprintf(stdout, "*  users: %d\n", (int)policy->users().size());
         fprintf(stdout, "*  roles: %d\n", policy->atom_count());
         fprintf(stdout, "*  adminroles: %d\n", admin_role_array_index_size);
-        fprintf(stdout, "*  CA: %lu\n", policy->can_assign_rules.size());
-        fprintf(stdout, "*  CR: %lu\n", policy->can_revoke_rules.size());
+        fprintf(stdout, "*  CA: %lu\n", policy->can_assign_rules().size());
+        fprintf(stdout, "*  CR: %lu\n", policy->can_revoke_rules().size());
+        fprintf(stdout, "*  CR: %lu\n", policy->can_revoke_rules().size());
+        fprintf(stdout, "*  CR: %lu\n", policy->can_revoke_rules().size());
         fprintf(stdout, "*\n");
         fprintf(stdout, "*  rule: %s, id: %d:\n", target_rule->get_type().c_str(), target_rule->original_idx);
         fprintf(stdout, "*  Expr: %s", target_expr->to_string().c_str());
@@ -285,25 +287,25 @@ class R6Transformer {
         for (int i = 0; i < policy->atom_count(); i++) {
             if (core_roles[i]) {
                 // fprintf(outputFile, "/*---------- CORE ROLES ---------*/\n");
-                fmt << "core_" << policy->atoms[i]->name;
+                fmt << "core_" << policy->atoms()[i]->name;
                 role_vars[i] = variable(fmt.str().c_str(), 0, 1, _solver_ptr);
                 clean_fmt();
                 // fprintf(outputFile, "/*---------- SET CHECKS ---------*/\n");
-                fmt << "set_" << policy->atoms[i]->name;
+                fmt << "set_" << policy->atoms()[i]->name;
                 core_sets[i] = variable(fmt.str().c_str(), 0, 1, _solver_ptr);
                 clean_fmt();
                 // fprintf(outputFile, "/*---------- VALUE TRUE CHECKS ---------*/\n");
-                fmt << "value_true_" << policy->atoms[i]->name;
+                fmt << "value_true_" << policy->atoms()[i]->name;
                 core_value_true[i] = variable(fmt.str().c_str(), 0, 1, _solver_ptr);
                 clean_fmt();
                 // fprintf(outputFile, "/*---------- VALUE FALSE CHECKS ---------*/\n");
-                fmt << "value_false_" << policy->atoms[i]->name;
+                fmt << "value_false_" << policy->atoms()[i]->name;
                 core_value_false[i] = variable(fmt.str().c_str(), 0, 1, _solver_ptr);
                 clean_fmt();
             }
             else {
                 // fprintf(outputFile, "/*---------- EXTERNAL ROLES ---------*/\n");
-                fmt << "ext_" << policy->atoms[i]->name;
+                fmt << "ext_" << policy->atoms()[i]->name;
                 role_vars[i] = variable(fmt.str().c_str(), 0, 1, _solver_ptr);
                 clean_fmt();
                 core_sets[i] = variable::dummy();
@@ -486,11 +488,11 @@ class R6Transformer {
         
     }
 
-    TExpr generate_check_implication(int role_index, int user_id) {
+    TExpr generate_check_implication(int role_index, const userp& user) {
         //((core_r_i != init_r_i) \/ ((set_false_r_i /\ init_r_i = 1) \/ (set_true_r_i /\ init_r_i = 0)) ==> set_r_i))
         TExpr init_r_i = zero;
-        for (int j = 0; j < user_config_array[user_id].array_size; j++) {
-            if (user_config_array[user_id].array[j] == role_index) {
+        for (auto &&atom : user->config()) {
+            if (atom->role_array_index == role_index) {
                 init_r_i = one;
                 break;
             }
@@ -531,11 +533,11 @@ class R6Transformer {
         // fprintf(outputFile, "// assume(  \\/        ( /  \\          ((core_r_i != init_r_i) \\/ ((set_false_r_i /\\ init_r_i = 1) \\/ (set_true_r_i /\\ init_r_i = 0)) => set_r_i)))\n");
         // fprintf(outputFile, "//        u_i \\in U    r_i \\in \\phi\n");
         TExpr impl_assumption = zero;
-        for (int u = 0; u < user_array_size; u++) {
+        for (auto &&user : policy->users()) {
             TExpr inner_and = one;
             for (int i = 0; i < policy->atom_count(); i++) {
                 if (core_roles[i]) {
-                    TExpr impl_r_ui = generate_check_implication(i, u);
+                    TExpr impl_r_ui = generate_check_implication(i, user);
                     inner_and = solver->createAndExpr(inner_and, impl_r_ui);
                 }
             }

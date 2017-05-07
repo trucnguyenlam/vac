@@ -3,15 +3,17 @@ Roles r0 ra rb rc rd rt;
 Users u1 u2  ;
 
 UA  <u1, ra> 
-    <u1, ra>
+    <u1, rb>
 	;
 
-CR 	<ra,r0>;
+CR 	<ra,r0>
+    <ra,rc>;
 
 CA
-    <ra,ra&r0,rb>
+    <ra,ra&rc,rb>
+    <ra,ra&-rc,rb>
     <ra,-r0,ra>
-    <ra,ra,r0>
+    <rb,ra,r0>
     <ra,-ra,r0>
 	<ra,ra&rb,ra>
 	<ra,TRUE,rc>

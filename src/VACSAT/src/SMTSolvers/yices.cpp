@@ -281,11 +281,17 @@ namespace SMT {
         }
 
     }
-    void YicesSolver::clean() { 
+    void YicesSolver::clean() {
+        yices_free_context(this->context);
+        this->context = yices_new_context(NULL);
+        this->to_be_asserted.clear();
+        this->asserted.clear();
+    }
+    void YicesSolver::deep_clean() {
         yices_free_context(this->context);
         //FIXME: not sure it is a good idea to restart, but necessary to avoid out of memory
-//        yices_exit();
-//        yices_init();
+        yices_exit();
+        yices_init();
         this->context = yices_new_context(NULL);
         this->to_be_asserted.clear();
         this->asserted.clear();

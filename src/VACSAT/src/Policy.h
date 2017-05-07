@@ -7,53 +7,146 @@
 
 #include <string>
 #include <vector>
+#include <list>
 #include "Logics.h"
+#include "prelude.h"
 
 namespace SMT {
 
+    typedef Literalp atom;
+
     class rule {
     public:
-        rule(bool is_ca, Expr admin, Expr prec, Literalp target, int original_idx);
+        rule(bool is_ca, Expr admin, Expr prec, atom target, int original_idx);
 
         void print() const;
 
         std::string to_string() const;
         std::string get_type() const;
 
-        static rule* create_ca(Expr admin, Expr prec, Literalp target, int original_idx);
-        static rule* create_cr(Expr admin, Expr prec, Literalp target, int original_idx);
+        static rule* create_ca(Expr admin, Expr prec, atom target, int original_idx);
+        static rule* create_cr(Expr admin, Expr prec, atom target, int original_idx);
 
         friend std::ostream& operator<< (std::ostream& stream, const rule& self);
 
         bool is_ca;
         Expr admin;
         Expr prec;
-        Literalp target;
+        atom target;
         int original_idx;
     };
 
+    typedef std::shared_ptr<rule> rulep;
 
+    class user {
+    public:
+        user(int original_idx);
+        user(int original_idx, std::set<atom> config);
+
+        void remove_atom(atom& atom1);
+
+        friend std::ostream& operator<< (std::ostream& stream, const user& self);
+
+        inline const std::set<atom>& config() const {
+            return _config;
+        }
+
+        static user from_policy(std::vector<atom>& atoms, int original_idx);
+
+        const int original_idx;
+        const std::string name;
+    private:
+        std::set<atom> _config;
+    };
+
+    typedef std::shared_ptr<user> userp;
+
+    class arbac_policy;
+
+//    class arbac_cache {
+//    public:
+//        arbac_cache(arbac_policy policy);
+//        arbac_cache(std::vector<Literalp> atoms,
+//                    std::vector<std::shared_ptr<rule>> can_assign_rules,
+//                    std::vector<std::shared_ptr<rule>> can_revoke_rules);
+//        std::list<rulep> get_assigning_r(Literalp atom);
+//        std::list<rulep> get_revoking_r(Literalp atom);
+//        std::list<rulep> get_ca_using_r(Literalp atom);
+//        std::list<rulep> get_cr_using_r(Literalp atom);
+//
+//        void update(arbac_policy policy);
+//
+//    private:
+//        std::vector<std::list<rulep>> assigning_rs;
+//        std::vector<std::list<rulep>> revoking_rs;
+//        std::vector<std::list<rulep>> ca_using_rs;
+//        std::vector<std::list<rulep>> cr_using_rs;
+//    };
 
     class arbac_policy {
     public:
         arbac_policy();
 
-        inline int atom_count() {
-            return (int) atoms.size();
+        inline int atom_count() const {
+            return (int) _atoms.size();
         }
 
 //        void remove_can_assign(rule to_remove);
 //        void remove_can_revoke(rule to_remove);
 
-        void remove_can_assign(std::shared_ptr<rule>& rule);
-        void remove_can_revoke(std::shared_ptr<rule>& rule);
+        Expr user_to_expr(int user_id) const;
+
+        void remove_rule(const rulep& rule);
+        void remove_can_assign(const rulep& rule);
+        void remove_can_revoke(const rulep& rule);
+        void reomove_atom(const Literalp& atom);
 
         Literalp goal_role;
 
-        std::vector<Literalp> atoms;
+        inline const std::vector<rulep>& rules() const {
+            return _rules;
+        }
+        inline const std::vector<rulep>& can_assign_rules() const {
+            return _can_assign_rules;
+        }
+        inline const std::vector<rulep>& can_revoke_rules() const {
+            return _can_revoke_rules;
+        }
+        inline const std::vector<Literalp>& atoms() const {
+            return _atoms;
+        }
+        inline const std::vector<userp>& users() const {
+            return _users;
+        }
 
-        std::vector<std::shared_ptr<rule>> can_assign_rules;
-        std::vector<std::shared_ptr<rule>> can_revoke_rules;
+        inline const rulep& rules(int i) const {
+            return _rules[i];
+        }
+        inline const rulep& can_assign_rules(int i) const {
+            return _can_assign_rules[i];
+        }
+        inline const rulep& can_revoke_rules(int i) const {
+            return _can_revoke_rules[i];
+        }
+        inline const Literalp& atoms(int i) const {
+            return _atoms[i];
+        }
+        inline const userp& users(int i) const {
+            return _users[i];
+        }
+
+        private:
+        void update();
+
+        std::vector<Literalp> _atoms;
+        std::vector<std::shared_ptr<rule>> _rules;
+        std::vector<std::shared_ptr<rule>> _can_assign_rules;
+        std::vector<std::shared_ptr<rule>> _can_revoke_rules;
+
+        std::vector<userp> _users;
+
+//        arbac_cache cache;
+
     };
 
 }
