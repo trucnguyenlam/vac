@@ -39,7 +39,7 @@ r_hier
     ;
 
 hier_element
-    :   Identifier (order Identifier)+
+    :   r=Identifier (order lr=Identifier)+
     ;
 
 order
@@ -74,31 +74,12 @@ cr_rule
 
 precondition
     :   TRUE
-    |   expression
+    |   literal (AND literal)*
     ;
 
-primaryExpression
+literal
     :   Identifier
-    |   LEFTPAREN expression RIGHTPAREN
-    ;
-
-unaryExpression
-    :   primaryExpression
-    |   NOT unaryExpression
-    ;
-
-andExpression
-    :   unaryExpression
-    |   andExpression AND unaryExpression
-    ;
-
-orExpression
-    :   andExpression
-    |   orExpression OR andExpression
-    ;
-
-expression
-    :   orExpression
+    |   NOT Identifier
     ;
 
 r_smer

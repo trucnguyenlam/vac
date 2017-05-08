@@ -130,48 +130,12 @@ class hierarchygrammarListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by hierarchygrammarParser#primaryExpression.
-    def enterPrimaryExpression(self, ctx):
+    # Enter a parse tree produced by hierarchygrammarParser#literal.
+    def enterLiteral(self, ctx):
         pass
 
-    # Exit a parse tree produced by hierarchygrammarParser#primaryExpression.
-    def exitPrimaryExpression(self, ctx):
-        pass
-
-
-    # Enter a parse tree produced by hierarchygrammarParser#unaryExpression.
-    def enterUnaryExpression(self, ctx):
-        pass
-
-    # Exit a parse tree produced by hierarchygrammarParser#unaryExpression.
-    def exitUnaryExpression(self, ctx):
-        pass
-
-
-    # Enter a parse tree produced by hierarchygrammarParser#andExpression.
-    def enterAndExpression(self, ctx):
-        pass
-
-    # Exit a parse tree produced by hierarchygrammarParser#andExpression.
-    def exitAndExpression(self, ctx):
-        pass
-
-
-    # Enter a parse tree produced by hierarchygrammarParser#orExpression.
-    def enterOrExpression(self, ctx):
-        pass
-
-    # Exit a parse tree produced by hierarchygrammarParser#orExpression.
-    def exitOrExpression(self, ctx):
-        pass
-
-
-    # Enter a parse tree produced by hierarchygrammarParser#expression.
-    def enterExpression(self, ctx):
-        pass
-
-    # Exit a parse tree produced by hierarchygrammarParser#expression.
-    def exitExpression(self, ctx):
+    # Exit a parse tree produced by hierarchygrammarParser#literal.
+    def exitLiteral(self, ctx):
         pass
 
 

@@ -33,7 +33,6 @@ def parsePolicy(inputfilename):
     walker = ParseTreeWalker()
     walker.walk(listener, tree)
 
-
 def main():
     parser = argparse.ArgumentParser(description='Access Control Policy Converter')
     parser.add_argument('-i', '--input', metavar='X', help='input policy', type=str, dest='input', required=True)
