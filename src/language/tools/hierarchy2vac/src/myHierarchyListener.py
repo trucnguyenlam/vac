@@ -11,10 +11,6 @@ class myHierarchyListener(hierarchygrammarListener):
     def __init__(self):
         self.policy = Policy()
 
-    # Exit a parse tree produced by hierarchygrammarParser#policy.
-    def exitPolicy(self, ctx):
-        print str(self.policy)
-
     # Enter a parse tree produced by hierarchygrammarParser#r_user.
     def enterR_user(self, ctx):
         for u in ctx.Identifier():

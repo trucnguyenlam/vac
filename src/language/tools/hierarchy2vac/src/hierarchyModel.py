@@ -93,6 +93,18 @@ class CARule:
     def __str__(self):
         return "can_assign(" + self.admin + "," + str(self.precondition) + "," + self.target + ")"
 
+    def toVACRule(self):
+        ret = ""
+        ret += "<"
+        ret += "x." + self.admin + "=1"
+        if not self.precondition.isTrue:
+            for c in self.precondition.conjunct:
+                value = "0" if c.negative else "1"
+                ret += " & " + "y." + c.name + value
+        ret += ", y." + self.target + "=1"
+        ret += ">"
+        return ret
+
 
 class Precondition:
 
@@ -125,6 +137,11 @@ class CRRule:
 
     def __str__(self):
         return "can_revoke(" + self.admin + ',' + self.target + ')'
+
+    def toVACRule(self):
+        ret = ""
+        ret += "<" + "x." + self.admin + "=1" + ', y.' + self.target + "=0" + ">"
+        return ret
 
 
 class SMER:
