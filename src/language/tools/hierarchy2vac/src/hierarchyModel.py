@@ -1,3 +1,16 @@
+""" hierarchy access control model
+    maintained by Truc Nguyen Lam, Univerisity of Southampton
+"""
+"""
+Description:
+    Remember the name
+
+TODO:
+    -
+
+Changelog:
+    2017.05.06  Initial version
+"""
 
 
 class Policy:
@@ -18,8 +31,10 @@ class Policy:
         ret += "Roles:\n" + "\n".join([str(u) for u in self.roles]) + '\n'
         ret += "Hierarchy:\n" + str(self.hier) + '\n'
         ret += "PRA:\n" + "\n".join([str(u) for u in self.pras]) + '\n'
-        ret += "CA Rules:\n" + "\n".join([str(u) for u in self.ca_rules]) + '\n'
-        ret += "CR Rules:\n" + "\n".join([str(u) for u in self.cr_rules]) + '\n'
+        ret += "CA Rules:\n" + "\n".join([str(u)
+                                          for u in self.ca_rules]) + '\n'
+        ret += "CR Rules:\n" + "\n".join([str(u)
+                                          for u in self.cr_rules]) + '\n'
         ret += "Invariants:\n" + "\n".join([str(u) for u in self.smers]) + '\n'
         ret += "Queries:\n" + "\n".join([str(u) for u in self.queries]) + '\n'
         return ret
@@ -46,29 +61,42 @@ class Role:
 class Hierarchy:
 
     def __init__(self):
-        self._partial_orders = {}
+        self._smaller_orders = {}
+        self._larger_orders = {}
 
     def addPartialOrder(self, l, r):
         ''' @parameter
                 l: inferior role
                 r: superior role
         '''
-        if l in self._partial_orders:
-            self._partial_orders[l].append(r)
+        if l in self._smaller_orders:
+            self._smaller_orders[l].append(r)
         else:
-            self._partial_orders[l] = []
-            self._partial_orders[l].append(r)
+            self._smaller_orders[l] = []
+            self._smaller_orders[l].append(r)
+
+        if r in self._larger_orders:
+            self._larger_orders[r].append(l)
+        else:
+            self._larger_orders[r] = []
+            self._larger_orders[r].append(l)
 
     def getSuperiorRoles(self, r):
-        if r in self._partial_orders:
-            return self._partial_orders[r]
+        if r in self._smaller_orders:
+            return self._smaller_orders[r]
+        else:
+            return []
+
+    def getInferiorRoles(self, r):
+        if r in self._larger_orders:
+            return self._larger_orders[r]
         else:
             return []
 
     def __str__(self):
         ret = ""
-        for l in self._partial_orders:
-            for r in self._partial_orders[l]:
+        for l in self._smaller_orders:
+            for r in self._smaller_orders[l]:
                 ret += l + ' < ' + r + '\n'
         return ret
 
@@ -91,7 +119,8 @@ class CARule:
         self.target = target
 
     def __str__(self):
-        return "can_assign(" + self.admin + "," + str(self.precondition) + "," + self.target + ")"
+        return "can_assign(%s, %s, %s)" % (
+            self.admin, str(self.precondition), self.target)
 
     def toVACRule(self):
         ret = ""
@@ -101,6 +130,29 @@ class CARule:
             for c in self.precondition.conjunct:
                 value = "0" if c.negative else "1"
                 ret += " & " + "y." + c.name + value
+        ret += ", y." + self.target + "=1"
+        ret += ">"
+        return ret
+
+    def toVACRuleWithHierarchy(self, hier):
+        ret = ""
+        ret += "<"
+        ret += "(x.%s=1" % self.admin
+        for sr in hier.getSuperiorRoles(self.admin):
+            ret += " | x.%s=1" % sr
+        ret += ')'
+        if not self.precondition.isTrue:
+            for c in self.precondition.conjunct:
+                if not c.negative:
+                    ret += " & (y.%s=0" % c.name
+                    for sr in hier.getSuperiorRoles(c.name):
+                        ret += " & y.%s=0" % sr
+                    ret += ")"
+                else:
+                    ret += " & (y.%s=1" % c.name
+                    for sr in hier.getSuperiorRoles(c.name):
+                        ret += " | y.%s=1" % sr
+                    ret += ")"
         ret += ", y." + self.target + "=1"
         ret += ">"
         return ret
@@ -139,8 +191,15 @@ class CRRule:
         return "can_revoke(" + self.admin + ',' + self.target + ')'
 
     def toVACRule(self):
+        ret = "<x.%s=1, y.%s=0>" % (self.admin, self.target)
+        return ret
+
+    def toVACRuleWithHierarchy(self, hier):
         ret = ""
-        ret += "<" + "x." + self.admin + "=1" + ', y.' + self.target + "=0" + ">"
+        ret += "<x.%s=1" % self.admin
+        for sr in hier.getSuperiorRoles(self.admin):
+            ret += " | x.%s=1" % sr
+        ret += ', y.%s=0>' % self.target
         return ret
 
 
@@ -166,4 +225,4 @@ class Query:
         for ua in self.ua_configs:
             ret += "[" + " ".join(ua) + "]"
 
-        return ret + "(" + str(self.user_index) + "," + " ".join(self.goal) + ")"
+        return ret + "(%s, %s)" % (str(self.user_index), " ".join(self.goal))

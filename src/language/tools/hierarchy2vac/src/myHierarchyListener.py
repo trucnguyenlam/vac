@@ -3,25 +3,28 @@ from antlr4 import *
 from hierarchygrammarListener import hierarchygrammarListener
 from hierarchyModel import *
 
-# This class defines a complete listener for a parse tree produced by hierarchygrammarParser.
+# This class defines a complete listener for a parse tree produced by
+# hierarchygrammarParser.
 
 
 class myHierarchyListener(hierarchygrammarListener):
 
     def __init__(self):
         self.policy = Policy()
+        self.roles = {}
+        self.users = {}
 
     # Enter a parse tree produced by hierarchygrammarParser#r_user.
     def enterR_user(self, ctx):
         for u in ctx.Identifier():
-            # print u.getText()
+            self.users[u.getText()] = True
             new_user = User(u.getText())
             self.policy.users.append(new_user)
 
     # Enter a parse tree produced by hierarchygrammarParser#r_role.
     def enterR_role(self, ctx):
         for r in ctx.Identifier():
-            # print r.getText()
+            self.roles[r.getText()] = True
             new_role = Role(r.getText())
             self.policy.roles.append(new_role)
 
@@ -56,12 +59,14 @@ class myHierarchyListener(hierarchygrammarListener):
 
     # Enter a parse tree produced by hierarchygrammarParser#cr_rule.
     def enterCr_rule(self, ctx):
-        newrule = CRRule(ctx.Identifier()[0].getText(), ctx.Identifier()[1].getText())
+        newrule = CRRule(ctx.Identifier()[
+                         0].getText(), ctx.Identifier()[1].getText())
         self.policy.cr_rules.append(newrule)
 
     # Enter a parse tree produced by hierarchygrammarParser#smer_element.
     def enterSmer_element(self, ctx):
-        self.policy.smers.append(SMER(ctx.Identifier()[0].getText(), ctx.Identifier()[1].getText()))
+        self.policy.smers.append(
+            SMER(ctx.Identifier()[0].getText(), ctx.Identifier()[1].getText()))
 
     # Enter a parse tree produced by hierarchygrammarParser#query_element.
     def enterQuery_element(self, ctx):
@@ -83,3 +88,7 @@ class myHierarchyListener(hierarchygrammarListener):
                 else:
                     conjun.append(Literal(l.Identifier().getText(), False))
             return Precondition(False, conjun)
+
+    def _validRole(self, r):
+        return (r in self.roles)
+

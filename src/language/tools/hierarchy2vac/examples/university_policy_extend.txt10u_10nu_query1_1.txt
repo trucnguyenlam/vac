@@ -1,0 +1,158 @@
+USERS
+user0
+user1
+user2
+user3
+user4
+user5
+user6
+user7
+user8
+user9
+new_user0*
+new_user1*
+new_user2*
+new_user3*
+new_user4*
+new_user5*
+new_user6*
+new_user7*
+new_user8*
+new_user9*
+quser0
+quser1
+;
+
+;
+
+ATTRIBUTES
+Student[1]
+Undergrad[1]
+Grad[1]
+TA[1]
+RA[1]
+Grader[1]
+GradStudOfficer[1]
+HonorsStudent[1]
+GradCommittee[1]
+UndergradPermittedGradClass[1]
+AdmissionsOfficer[1]
+AssistantProf[1]
+Dean[1]
+DeanOfAdmissions[1]
+DeptChair[1]
+Employee[1]
+FacilitiesCommittee[1]
+FacilitiesDirector[1]
+Faculty[1]
+FullTimeEmployee[1]
+GradAdmissionsCommittee[1]
+HonorsPgmDirector[1]
+Lecturer[1]
+President[1]
+Professor[1]
+Provost[1]
+QualExamCommittee[1]
+QualExamCommitteeHead[1]
+Staff[1]
+TenuredFac[1]
+AsstForStudentAffairs[1]
+ProjectDirector[1]
+Supervisor[1]
+;
+
+INIT
+<user0, Student=0, Undergrad=1, Grad=0, TA=1, RA=0, Grader=1, GradStudOfficer=1, HonorsStudent=0, GradCommittee=1, UndergradPermittedGradClass=0, AdmissionsOfficer=1, AssistantProf=0, Dean=1, DeanOfAdmissions=0, DeptChair=0, Employee=0, FacilitiesCommittee=1, FacilitiesDirector=0, Faculty=0, FullTimeEmployee=0, GradAdmissionsCommittee=0, HonorsPgmDirector=0, Lecturer=0, President=1, Professor=0, Provost=1, QualExamCommittee=1, QualExamCommitteeHead=1, Staff=0, TenuredFac=1, AsstForStudentAffairs=1, ProjectDirector=1, Supervisor=0>
+<user1, Student=0, Undergrad=1, Grad=1, TA=1, RA=0, Grader=0, GradStudOfficer=0, HonorsStudent=1, GradCommittee=1, UndergradPermittedGradClass=0, AdmissionsOfficer=1, AssistantProf=1, Dean=0, DeanOfAdmissions=1, DeptChair=1, Employee=0, FacilitiesCommittee=0, FacilitiesDirector=1, Faculty=1, FullTimeEmployee=1, GradAdmissionsCommittee=1, HonorsPgmDirector=1, Lecturer=1, President=0, Professor=1, Provost=0, QualExamCommittee=1, QualExamCommitteeHead=1, Staff=0, TenuredFac=1, AsstForStudentAffairs=1, ProjectDirector=0, Supervisor=0>
+<user2, Student=0, Undergrad=0, Grad=1, TA=1, RA=0, Grader=1, GradStudOfficer=1, HonorsStudent=1, GradCommittee=1, UndergradPermittedGradClass=1, AdmissionsOfficer=1, AssistantProf=1, Dean=0, DeanOfAdmissions=1, DeptChair=0, Employee=1, FacilitiesCommittee=1, FacilitiesDirector=0, Faculty=1, FullTimeEmployee=0, GradAdmissionsCommittee=1, HonorsPgmDirector=0, Lecturer=1, President=0, Professor=1, Provost=1, QualExamCommittee=0, QualExamCommitteeHead=0, Staff=1, TenuredFac=0, AsstForStudentAffairs=1, ProjectDirector=0, Supervisor=0>
+<user3, Student=1, Undergrad=1, Grad=0, TA=0, RA=1, Grader=1, GradStudOfficer=0, HonorsStudent=1, GradCommittee=0, UndergradPermittedGradClass=1, AdmissionsOfficer=0, AssistantProf=0, Dean=0, DeanOfAdmissions=0, DeptChair=1, Employee=0, FacilitiesCommittee=1, FacilitiesDirector=0, Faculty=1, FullTimeEmployee=0, GradAdmissionsCommittee=1, HonorsPgmDirector=1, Lecturer=1, President=0, Professor=1, Provost=0, QualExamCommittee=1, QualExamCommitteeHead=1, Staff=1, TenuredFac=0, AsstForStudentAffairs=0, ProjectDirector=0, Supervisor=0>
+<user4, Student=1, Undergrad=1, Grad=0, TA=0, RA=1, Grader=1, GradStudOfficer=0, HonorsStudent=1, GradCommittee=1, UndergradPermittedGradClass=0, AdmissionsOfficer=0, AssistantProf=0, Dean=0, DeanOfAdmissions=1, DeptChair=0, Employee=0, FacilitiesCommittee=0, FacilitiesDirector=1, Faculty=0, FullTimeEmployee=0, GradAdmissionsCommittee=0, HonorsPgmDirector=0, Lecturer=1, President=0, Professor=1, Provost=0, QualExamCommittee=0, QualExamCommitteeHead=1, Staff=0, TenuredFac=0, AsstForStudentAffairs=0, ProjectDirector=1, Supervisor=0>
+<user5, Student=0, Undergrad=1, Grad=1, TA=0, RA=1, Grader=1, GradStudOfficer=1, HonorsStudent=0, GradCommittee=1, UndergradPermittedGradClass=0, AdmissionsOfficer=0, AssistantProf=0, Dean=0, DeanOfAdmissions=1, DeptChair=0, Employee=1, FacilitiesCommittee=0, FacilitiesDirector=1, Faculty=1, FullTimeEmployee=1, GradAdmissionsCommittee=0, HonorsPgmDirector=0, Lecturer=0, President=1, Professor=1, Provost=1, QualExamCommittee=1, QualExamCommitteeHead=1, Staff=1, TenuredFac=0, AsstForStudentAffairs=0, ProjectDirector=1, Supervisor=0>
+<user6, Student=1, Undergrad=1, Grad=1, TA=0, RA=0, Grader=0, GradStudOfficer=1, HonorsStudent=1, GradCommittee=1, UndergradPermittedGradClass=0, AdmissionsOfficer=1, AssistantProf=0, Dean=1, DeanOfAdmissions=0, DeptChair=0, Employee=1, FacilitiesCommittee=1, FacilitiesDirector=1, Faculty=0, FullTimeEmployee=0, GradAdmissionsCommittee=1, HonorsPgmDirector=0, Lecturer=1, President=1, Professor=0, Provost=0, QualExamCommittee=1, QualExamCommitteeHead=1, Staff=1, TenuredFac=0, AsstForStudentAffairs=0, ProjectDirector=1, Supervisor=0>
+<user7, Student=0, Undergrad=0, Grad=0, TA=1, RA=0, Grader=1, GradStudOfficer=1, HonorsStudent=0, GradCommittee=0, UndergradPermittedGradClass=0, AdmissionsOfficer=1, AssistantProf=0, Dean=1, DeanOfAdmissions=1, DeptChair=1, Employee=0, FacilitiesCommittee=0, FacilitiesDirector=1, Faculty=1, FullTimeEmployee=1, GradAdmissionsCommittee=1, HonorsPgmDirector=0, Lecturer=1, President=1, Professor=0, Provost=1, QualExamCommittee=1, QualExamCommitteeHead=1, Staff=1, TenuredFac=0, AsstForStudentAffairs=0, ProjectDirector=1, Supervisor=0>
+<user8, Student=1, Undergrad=1, Grad=0, TA=0, RA=1, Grader=1, GradStudOfficer=1, HonorsStudent=0, GradCommittee=0, UndergradPermittedGradClass=0, AdmissionsOfficer=1, AssistantProf=1, Dean=1, DeanOfAdmissions=1, DeptChair=0, Employee=1, FacilitiesCommittee=1, FacilitiesDirector=0, Faculty=0, FullTimeEmployee=0, GradAdmissionsCommittee=0, HonorsPgmDirector=0, Lecturer=0, President=0, Professor=0, Provost=1, QualExamCommittee=1, QualExamCommitteeHead=0, Staff=0, TenuredFac=0, AsstForStudentAffairs=0, ProjectDirector=0, Supervisor=1>
+<user9, Student=0, Undergrad=1, Grad=0, TA=1, RA=0, Grader=1, GradStudOfficer=1, HonorsStudent=1, GradCommittee=1, UndergradPermittedGradClass=1, AdmissionsOfficer=1, AssistantProf=1, Dean=1, DeanOfAdmissions=0, DeptChair=1, Employee=0, FacilitiesCommittee=1, FacilitiesDirector=1, Faculty=0, FullTimeEmployee=0, GradAdmissionsCommittee=1, HonorsPgmDirector=1, Lecturer=1, President=0, Professor=1, Provost=1, QualExamCommittee=0, QualExamCommitteeHead=0, Staff=0, TenuredFac=0, AsstForStudentAffairs=0, ProjectDirector=0, Supervisor=0>
+<new_user0*, Student=1, Undergrad=0, Grad=0, TA=1, RA=1, Grader=1, GradStudOfficer=0, HonorsStudent=1, GradCommittee=0, UndergradPermittedGradClass=0, AdmissionsOfficer=1, AssistantProf=1, Dean=1, DeanOfAdmissions=0, DeptChair=1, Employee=0, FacilitiesCommittee=0, FacilitiesDirector=1, Faculty=0, FullTimeEmployee=0, GradAdmissionsCommittee=1, HonorsPgmDirector=1, Lecturer=0, President=0, Professor=1, Provost=0, QualExamCommittee=1, QualExamCommitteeHead=0, Staff=0, TenuredFac=0, AsstForStudentAffairs=1, ProjectDirector=0, Supervisor=1>
+<new_user1*, Student=1, Undergrad=0, Grad=0, TA=0, RA=0, Grader=1, GradStudOfficer=0, HonorsStudent=1, GradCommittee=1, UndergradPermittedGradClass=1, AdmissionsOfficer=1, AssistantProf=0, Dean=1, DeanOfAdmissions=1, DeptChair=0, Employee=0, FacilitiesCommittee=1, FacilitiesDirector=0, Faculty=1, FullTimeEmployee=1, GradAdmissionsCommittee=1, HonorsPgmDirector=0, Lecturer=1, President=0, Professor=1, Provost=0, QualExamCommittee=1, QualExamCommitteeHead=1, Staff=0, TenuredFac=1, AsstForStudentAffairs=0, ProjectDirector=0, Supervisor=1>
+<new_user2*, Student=0, Undergrad=1, Grad=0, TA=0, RA=1, Grader=1, GradStudOfficer=0, HonorsStudent=0, GradCommittee=0, UndergradPermittedGradClass=1, AdmissionsOfficer=0, AssistantProf=1, Dean=1, DeanOfAdmissions=1, DeptChair=1, Employee=1, FacilitiesCommittee=0, FacilitiesDirector=0, Faculty=0, FullTimeEmployee=0, GradAdmissionsCommittee=1, HonorsPgmDirector=0, Lecturer=1, President=1, Professor=1, Provost=1, QualExamCommittee=0, QualExamCommitteeHead=1, Staff=0, TenuredFac=1, AsstForStudentAffairs=1, ProjectDirector=0, Supervisor=1>
+<new_user3*, Student=0, Undergrad=0, Grad=1, TA=0, RA=1, Grader=0, GradStudOfficer=0, HonorsStudent=1, GradCommittee=1, UndergradPermittedGradClass=1, AdmissionsOfficer=1, AssistantProf=0, Dean=1, DeanOfAdmissions=1, DeptChair=0, Employee=1, FacilitiesCommittee=1, FacilitiesDirector=0, Faculty=0, FullTimeEmployee=0, GradAdmissionsCommittee=1, HonorsPgmDirector=1, Lecturer=1, President=0, Professor=1, Provost=0, QualExamCommittee=1, QualExamCommitteeHead=1, Staff=0, TenuredFac=0, AsstForStudentAffairs=1, ProjectDirector=0, Supervisor=0>
+<new_user4*, Student=0, Undergrad=0, Grad=1, TA=1, RA=1, Grader=1, GradStudOfficer=0, HonorsStudent=0, GradCommittee=0, UndergradPermittedGradClass=1, AdmissionsOfficer=1, AssistantProf=0, Dean=1, DeanOfAdmissions=1, DeptChair=1, Employee=1, FacilitiesCommittee=1, FacilitiesDirector=1, Faculty=1, FullTimeEmployee=1, GradAdmissionsCommittee=1, HonorsPgmDirector=0, Lecturer=0, President=1, Professor=0, Provost=1, QualExamCommittee=1, QualExamCommitteeHead=1, Staff=1, TenuredFac=0, AsstForStudentAffairs=0, ProjectDirector=1, Supervisor=0>
+<new_user5*, Student=1, Undergrad=0, Grad=0, TA=0, RA=0, Grader=1, GradStudOfficer=1, HonorsStudent=1, GradCommittee=0, UndergradPermittedGradClass=0, AdmissionsOfficer=0, AssistantProf=0, Dean=1, DeanOfAdmissions=0, DeptChair=0, Employee=1, FacilitiesCommittee=1, FacilitiesDirector=0, Faculty=1, FullTimeEmployee=0, GradAdmissionsCommittee=0, HonorsPgmDirector=1, Lecturer=0, President=1, Professor=1, Provost=0, QualExamCommittee=0, QualExamCommitteeHead=1, Staff=1, TenuredFac=0, AsstForStudentAffairs=0, ProjectDirector=0, Supervisor=1>
+<new_user6*, Student=0, Undergrad=1, Grad=0, TA=0, RA=1, Grader=1, GradStudOfficer=1, HonorsStudent=1, GradCommittee=1, UndergradPermittedGradClass=0, AdmissionsOfficer=0, AssistantProf=1, Dean=1, DeanOfAdmissions=1, DeptChair=1, Employee=0, FacilitiesCommittee=1, FacilitiesDirector=0, Faculty=1, FullTimeEmployee=1, GradAdmissionsCommittee=0, HonorsPgmDirector=1, Lecturer=1, President=1, Professor=0, Provost=1, QualExamCommittee=1, QualExamCommitteeHead=1, Staff=0, TenuredFac=0, AsstForStudentAffairs=0, ProjectDirector=1, Supervisor=1>
+<new_user7*, Student=0, Undergrad=0, Grad=1, TA=0, RA=1, Grader=1, GradStudOfficer=0, HonorsStudent=1, GradCommittee=0, UndergradPermittedGradClass=0, AdmissionsOfficer=0, AssistantProf=0, Dean=1, DeanOfAdmissions=0, DeptChair=0, Employee=1, FacilitiesCommittee=0, FacilitiesDirector=0, Faculty=1, FullTimeEmployee=1, GradAdmissionsCommittee=1, HonorsPgmDirector=0, Lecturer=1, President=1, Professor=0, Provost=1, QualExamCommittee=1, QualExamCommitteeHead=1, Staff=1, TenuredFac=1, AsstForStudentAffairs=0, ProjectDirector=0, Supervisor=1>
+<new_user8*, Student=1, Undergrad=1, Grad=1, TA=0, RA=0, Grader=1, GradStudOfficer=1, HonorsStudent=1, GradCommittee=0, UndergradPermittedGradClass=0, AdmissionsOfficer=0, AssistantProf=1, Dean=1, DeanOfAdmissions=0, DeptChair=0, Employee=1, FacilitiesCommittee=1, FacilitiesDirector=1, Faculty=0, FullTimeEmployee=1, GradAdmissionsCommittee=1, HonorsPgmDirector=0, Lecturer=1, President=1, Professor=1, Provost=1, QualExamCommittee=0, QualExamCommitteeHead=0, Staff=1, TenuredFac=0, AsstForStudentAffairs=1, ProjectDirector=1, Supervisor=0>
+<new_user9*, Student=1, Undergrad=0, Grad=1, TA=0, RA=1, Grader=0, GradStudOfficer=1, HonorsStudent=1, GradCommittee=0, UndergradPermittedGradClass=1, AdmissionsOfficer=1, AssistantProf=1, Dean=1, DeanOfAdmissions=1, DeptChair=1, Employee=1, FacilitiesCommittee=0, FacilitiesDirector=1, Faculty=0, FullTimeEmployee=1, GradAdmissionsCommittee=1, HonorsPgmDirector=0, Lecturer=0, President=1, Professor=1, Provost=0, QualExamCommittee=1, QualExamCommitteeHead=0, Staff=1, TenuredFac=0, AsstForStudentAffairs=0, ProjectDirector=0, Supervisor=1>
+<quser0, President=1>
+<quser1, Professor=1, DeptChair=1>
+;
+
+;
+
+RULES
+<(x.AdmissionsOfficer=1 | x.DeanOfAdmissions=1 | x.Provost=1), y.Undergrad=1>
+<(x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1) & (y.Grad=0 & y.TA=0 & y.RA=0), y.TA=1>
+<(x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1) & (y.Grad=0 & y.TA=0 & y.RA=0), y.GradStudOfficer=1>
+<(x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1) & (y.GradStudOfficer=0), y.GradCommittee=1>
+<(x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1) & (y.Undergrad=0 & y.Grader=0), y.Grader=1>
+<(x.Faculty=1 | x.Lecturer=1 | x.AssistantProf=1 | x.AssociateProf=1 | x.Professor=1 | x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1) & (y.Student=0 & y.Undergrad=0 & y.Grad=0), y.RA=1>
+<(x.GradAdmissionsCommittee=1), y.Grad=1>
+<(x.HonorsPgmDirector=1) & (y.Undergrad=0 & y.Grader=0), y.HonorsStudent=1>
+<(x.Faculty=1 | x.Lecturer=1 | x.AssistantProf=1 | x.AssociateProf=1 | x.Professor=1 | x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1) & (y.Undergrad=0 & y.Grader=0), y.UndergradPermittedGradClass=1>
+<(x.Dean=1 | x.Provost=1 | x.President=1) & (y.Professor=0 & y.DeptChair=0 & y.Dean=0 & y.Provost=0 & y.President=0) & (y.Dean=1 | y.Provost=1 | y.President=1) & (y.Provost=1 | y.President=1), y.DeptChair=1>
+<(x.Dean=1 | x.Provost=1 | x.President=1) & (y.Staff=0 & y.AdmissionsOfficer=0 & y.DeanOfAdmissions=0 & y.Provost=0), y.AsstForStudentAffairs=1>
+<(x.DeanOfAdmissions=1 | x.Provost=1) & (y.Staff=0 & y.AdmissionsOfficer=0 & y.DeanOfAdmissions=0 & y.Provost=0), y.AdmissionsOfficer=1>
+<(x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1) & (y.Faculty=0 & y.Lecturer=0 & y.AssistantProf=0 & y.AssociateProf=0 & y.Professor=0 & y.DeptChair=0 & y.Dean=0 & y.Provost=0 & y.President=0), y.GradAdmissionsCommittee=1>
+<(x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1) & (y.Faculty=0 & y.Lecturer=0 & y.AssistantProf=0 & y.AssociateProf=0 & y.Professor=0 & y.DeptChair=0 & y.Dean=0 & y.Provost=0 & y.President=0), y.GradCommittee=1>
+<(x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1) & (y.Faculty=0 & y.Lecturer=0 & y.AssistantProf=0 & y.AssociateProf=0 & y.Professor=0 & y.DeptChair=0 & y.Dean=0 & y.Provost=0 & y.President=0), y.HonorsPgmDirector=1>
+<(x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1) & (y.Employee=0 & y.Staff=0 & y.AdmissionsOfficer=0 & y.DeanOfAdmissions=0 & y.Provost=0 & y.Faculty=0 & y.Lecturer=0 & y.Faculty=0 & y.AssistantProf=0 & y.AssociateProf=0 & y.Professor=0 & y.DeptChair=0 & y.Dean=0 & y.Provost=0 & y.President=0), y.FacilitiesCommittee=1>
+<(x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1) & (y.Faculty=0 & y.Lecturer=0 & y.AssistantProf=0 & y.AssociateProf=0 & y.Professor=0 & y.DeptChair=0 & y.Dean=0 & y.Provost=0 & y.President=0), y.FacilitiesDirector=1>
+<(x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1) & (y.Faculty=0 & y.Lecturer=0 & y.AssistantProf=0 & y.AssociateProf=0 & y.Professor=0 & y.DeptChair=0 & y.Dean=0 & y.Provost=0 & y.President=0), y.QualExamCommittee=1>
+<(x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1) & (y.GradCommittee=0), y.QualExamCommitteeHead=1>
+<(x.President=1), y.Staff=1>
+<(x.President=1), y.DeanOfAdmissions=1>
+<(x.President=1), y.Lecturer=1>
+<(x.President=1), y.AssistantProf=1>
+<(x.President=1), y.AssociateProf=1>
+<(x.President=1), y.Professor=1>
+<(x.President=1) & (y.Employee=0 & y.Staff=0 & y.AdmissionsOfficer=0 & y.DeanOfAdmissions=0 & y.Provost=0 & y.Faculty=0 & y.Lecturer=0 & y.Faculty=0 & y.AssistantProf=0 & y.AssociateProf=0 & y.Professor=0 & y.DeptChair=0 & y.Dean=0 & y.Provost=0 & y.President=0), y.FullTimeEmployee=1>
+<(x.President=1) & (y.Professor=0 & y.DeptChair=0 & y.Dean=0 & y.Provost=0 & y.President=0) & (y.DeptChair=1 | y.Dean=1 | y.Provost=1 | y.President=1), y.Provost=1>
+<(x.Provost=1 | x.President=1) & (y.Professor=0 & y.DeptChair=0 & y.Dean=0 & y.Provost=0 & y.President=0) & (y.DeptChair=1 | y.Dean=1 | y.Provost=1 | y.President=1), y.Dean=1>
+<(x.President=1) & (y.Employee=0 & y.Staff=0 & y.AdmissionsOfficer=0 & y.DeanOfAdmissions=0 & y.Provost=0 & y.Faculty=0 & y.Lecturer=0 & y.Faculty=0 & y.AssistantProf=0 & y.AssociateProf=0 & y.Professor=0 & y.DeptChair=0 & y.Dean=0 & y.Provost=0 & y.President=0), y.ProjectDirector=1>
+<(x.President=1) & (y.Employee=0 & y.Staff=0 & y.AdmissionsOfficer=0 & y.DeanOfAdmissions=0 & y.Provost=0 & y.Faculty=0 & y.Lecturer=0 & y.Faculty=0 & y.AssistantProf=0 & y.AssociateProf=0 & y.Professor=0 & y.DeptChair=0 & y.Dean=0 & y.Provost=0 & y.President=0), y.Supervisor=1>
+<x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1, y.TA=0>
+<x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1, y.GradStudOfficer=0>
+<x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1, y.GradCommittee=0>
+<x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1, y.Grader=0>
+<x.Faculty=1 | x.Lecturer=1 | x.AssistantProf=1 | x.AssociateProf=1 | x.Professor=1 | x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1, y.RA=0>
+<x.HonorsPgmDirector=1, y.HonorsStudent=0>
+<x.Faculty=1 | x.Lecturer=1 | x.AssistantProf=1 | x.AssociateProf=1 | x.Professor=1 | x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1, y.UndergradPermittedGradClass=0>
+<x.Dean=1 | x.Provost=1 | x.President=1, y.DeptChair=0>
+<x.Dean=1 | x.Provost=1 | x.President=1, y.AsstForStudentAffairs=0>
+<x.DeanOfAdmissions=1 | x.Provost=1, y.AdmissionsOfficer=0>
+<x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1, y.GradAdmissionsCommittee=0>
+<x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1, y.GradCommittee=0>
+<x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1, y.HonorsPgmDirector=0>
+<x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1, y.FacilitiesCommittee=0>
+<x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1, y.FacilitiesDirector=0>
+<x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1, y.QualExamCommittee=0>
+<x.DeptChair=1 | x.Dean=1 | x.Provost=1 | x.President=1, y.QualExamCommitteeHead=0>
+<x.President=1, y.Staff=0>
+<x.President=1, y.DeanOfAdmissions=0>
+<x.President=1, y.Lecturer=0>
+<x.President=1, y.AssistantProf=0>
+<x.President=1, y.AssociateProf=0>
+<x.President=1, y.Professor=0>
+<x.President=1, y.FullTimeEmployee=0>
+<x.President=1, y.Provost=0>
+<x.Provost=1 | x.President=1, y.Dean=0>
+<x.President=1, y.ProjectDirector=0>
+<x.President=1, y.Supervisor=0>
+;
+
+QUERY
+quser1.DeptChair=1
+;
+
+.Dean=1
+;
+
