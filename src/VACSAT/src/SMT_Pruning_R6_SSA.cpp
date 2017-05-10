@@ -638,9 +638,9 @@ class R6Transformer {
 
 
     public:
-    R6Transformer(std::shared_ptr<SMTFactory<TVar, TExpr>> _solver,
-                  std::shared_ptr<arbac_policy>& _policy,
-                  std::shared_ptr<rule> _to_check, bool _check_adm) :
+    R6Transformer(const std::shared_ptr<SMTFactory<TVar, TExpr>> _solver,
+                  const std::shared_ptr<arbac_policy>& _policy,
+                  const std::shared_ptr<rule> _to_check, bool _check_adm) :
         solver(_solver), pc_size(numBits((int) (check_adm ? _to_check->admin : _to_check->prec)->literals().size() + 1)),
         policy(_policy), target_rule(_to_check),
         target_expr(_check_adm ? target_rule->admin : target_rule->prec), check_adm(_check_adm),
@@ -663,9 +663,9 @@ class R6Transformer {
 };
 
     template <typename TVar, typename TExpr>
-    bool apply_r6(std::shared_ptr<SMTFactory<TVar, TExpr>> solver,
-                  std::shared_ptr<arbac_policy>& policy,
-                  std::shared_ptr<rule>& to_check,
+    bool apply_r6(const std::shared_ptr<SMTFactory<TVar, TExpr>> solver,
+                  const std::shared_ptr<arbac_policy>& policy,
+                  const std::shared_ptr<rule>& to_check,
                   bool check_admin) {
         R6Transformer<TVar, TExpr> transf(solver, policy, to_check, check_admin);
         // std::shared_ptr<SMTFactory<expr, expr>> solver(new Z3Solver());
@@ -677,13 +677,13 @@ class R6Transformer {
     }
 
 
-    template bool apply_r6<term_t, term_t>(std::shared_ptr<SMTFactory<term_t, term_t>> solver,
-                                           std::shared_ptr<arbac_policy>& policy,
-                                           std::shared_ptr<rule>& to_check,
+    template bool apply_r6<term_t, term_t>(const std::shared_ptr<SMTFactory<term_t, term_t>> solver,
+                                           const std::shared_ptr<arbac_policy>& policy,
+                                           const std::shared_ptr<rule>& to_check,
                                            bool check_admin);
-    template bool apply_r6<expr, expr>(std::shared_ptr<SMTFactory<expr, expr>> solver,
-                                       std::shared_ptr<arbac_policy>& policy,
-                                       std::shared_ptr<rule>& to_check,
+    template bool apply_r6<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>> solver,
+                                       const std::shared_ptr<arbac_policy>& policy,
+                                       const std::shared_ptr<rule>& to_check,
                                        bool check_admin);
 
 

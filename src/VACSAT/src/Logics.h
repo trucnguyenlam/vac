@@ -30,8 +30,8 @@ namespace SMT {
             static constexpr char nondet_str[] = "nondet_";
             static constexpr char int_ty_str[] = "int";
             static constexpr char bool_ty_str[] = "_Bool";
-            static constexpr char true_str[] = "1";
-            static constexpr char false_str[] = "0";
+            static constexpr char true_str[] = "true";
+            static constexpr char false_str[] = "false";
             // static constexpr char true_str[] = "TRUE";
             // static constexpr char false_str[] = "FALSE";
     };
@@ -274,6 +274,9 @@ namespace SMT {
     // Expr createNondetExpr(Exprv::ExprType type);
     Expr createEqExpr(Expr lhs, Expr rhs);
 
+    bool is_constant_true(const Expr& expr);
+    bool is_constant_false(const Expr& expr);
+
     Expr normalize_expr(Expr expr);
 
     Expr delete_atom(Expr expr, Literalp lit);
@@ -327,19 +330,19 @@ namespace SMT {
 
     template <typename TVar, typename TExpr, typename TLookup>
     TExpr
-    generateSMTFunction2(std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, Expr& expr, TLookup& lookup,
-                         std::string suffix);
+    generateSMTFunction2(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, const Expr& expr, TLookup& lookup,
+                         const std::string suffix);
 
 
 
     template <typename TVar, typename TExpr, typename TLookup>
-    TExpr literalToSMT(std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, Literalp& lit, TLookup& lookup,
-                       std::string suffix);
+    TExpr literalToSMT(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, const Literalp& lit, TLookup& lookup,
+                       const std::string suffix);
 
     template <typename TVar, typename TExpr>
-    TExpr literalToSMT(std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, Literalp& lit,
+    TExpr literalToSMT(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, const Literalp& lit,
                        std::vector<std::shared_ptr<TExpr>>& var_vector,
-                       std::string suffix) {
+                       const std::string suffix) {
         if (lit->value == nullptr) {
             std::string name = lit->nameWithSuffix(suffix);
             if (var_vector[lit->role_array_index] != nullptr) {
@@ -358,9 +361,9 @@ namespace SMT {
     }
 
     template <typename TVar, typename TExpr>
-    TExpr literalToSMT(std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, Literalp& lit,
+    TExpr literalToSMT(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, const Literalp& lit,
                        std::map<std::string, TVar>& var_map,
-                       std::string suffix) {
+                       const std::string suffix) {
         if (lit->value == nullptr) {
             std::string name = lit->nameWithSuffix(suffix);
             if (var_map.find(name) != var_map.end()) {
@@ -379,9 +382,9 @@ namespace SMT {
     }
 
     template <typename TVar, typename TExpr, typename TWrapper>
-    TExpr literalToSMT(std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, Literalp& lit,
+    TExpr literalToSMT(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, const Literalp& lit,
                        std::vector<TWrapper>& var_vector,
-                       std::string suffix) {
+                       const std::string suffix) {
         static_assert(std::is_base_of<TVarWrapper<TVar>, TWrapper>::value, "TWrapper not derived from TWrapper<TVar>");
 
         if (lit->value == nullptr) {
@@ -422,8 +425,8 @@ namespace SMT {
 //    };
 
     template <typename TVar, typename TExpr, typename TLookup>
-    TExpr generateSMTFunction2(std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, Expr& expr, TLookup& lookup,
-                               std::string suffix) {
+    TExpr generateSMTFunction2(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, const Expr& expr, TLookup& lookup,
+                               const std::string suffix) {
         switch (expr->type) {
             case Exprv::CONSTANT: {
                 std::shared_ptr<Constant> c = std::dynamic_pointer_cast<Constant>(expr);

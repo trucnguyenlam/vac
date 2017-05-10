@@ -43,8 +43,9 @@ namespace SMT {
         user(int original_idx);
         user(int original_idx, std::set<atom> config);
 
-        void remove_atom(atom& atom1);
+        void remove_atom(const atom& atom1);
 
+        const std::string to_string() const;
         friend std::ostream& operator<< (std::ostream& stream, const user& self);
 
         inline const std::set<atom>& config() const {
@@ -96,10 +97,18 @@ namespace SMT {
 
         Expr user_to_expr(int user_id) const;
 
+        void add_rule(const rulep& rule);
+        void add_can_assign(const rulep& rule);
+        void add_can_revoke(const rulep& rule);
+
         void remove_rule(const rulep& rule);
         void remove_can_assign(const rulep& rule);
         void remove_can_revoke(const rulep& rule);
-        void reomove_atom(const Literalp& atom);
+        void remove_atom(const Literalp& atom);
+
+        const std::string to_string() const;
+
+        friend std::ostream& operator<< (std::ostream& stream, const arbac_policy& self);
 
         Literalp goal_role;
 
@@ -118,25 +127,34 @@ namespace SMT {
         inline const std::vector<userp>& users() const {
             return _users;
         }
+        inline const int users_to_track() const {
+            return _users_to_track;
+        }
 
-        inline const rulep& rules(int i) const {
+        inline const rulep& rules(int i) {
             return _rules[i];
         }
-        inline const rulep& can_assign_rules(int i) const {
+        inline const rulep& can_assign_rules(int i) {
             return _can_assign_rules[i];
         }
-        inline const rulep& can_revoke_rules(int i) const {
+        inline const rulep& can_revoke_rules(int i) {
             return _can_revoke_rules[i];
         }
-        inline const Literalp& atoms(int i) const {
+        inline const Literalp& atoms(int i) {
             return _atoms[i];
         }
-        inline const userp& users(int i) const {
+        inline const userp& users(int i) {
             return _users[i];
         }
 
         private:
         void update();
+        void unsafe_remove_atom(const Literalp& atom);
+        void unsafe_remove_rule(const rulep& rule);
+        void unsafe_remove_can_assign(const rulep& rule);
+        void unsafe_remove_can_revoke(const rulep& rule);
+
+        int _users_to_track;
 
         std::vector<Literalp> _atoms;
         std::vector<std::shared_ptr<rule>> _rules;
