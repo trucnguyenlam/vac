@@ -95,21 +95,25 @@ namespace SMT {
     // ************  USER  ****************
 
     user::user(int _original_idx) :
-            original_idx(_original_idx), name(std::string(role_array[_original_idx])) { }
+            original_idx(_original_idx), name(std::string(user_array[_original_idx])) { }
     user::user(int _original_idx, std::set<atom> config) :
-            original_idx(_original_idx), name(std::string(role_array[_original_idx])), _config(config) { }
+            original_idx(_original_idx), name(std::string(user_array[_original_idx])), _config(config) { }
 
-    void user::remove_atom(atom& atom1) {
+    void user::remove_atom(const atom& atom1) {
         _config.erase(atom1);
     }
 
+    const std::string user::to_string() const {
+        return this->name;
+    }
+
     std::ostream& operator<< (std::ostream& stream, const user& self) {
-        stream << self.name;
+        stream << self.to_string();
         return stream;
     }
 
     user user::from_policy(std::vector<atom>& atoms, int original_idx) {
-        if (original_idx > user_array_size) {
+        if (original_idx >= user_array_size) {
             std::cerr << original_idx << " is not a valid user id..." << std::endl;
             throw new std::runtime_error("Not a valid user id.");
         }
@@ -187,7 +191,8 @@ namespace SMT {
             _users(std::vector<std::shared_ptr<user>>()),
             _rules(std::vector<std::shared_ptr<rule>>()),
             _can_assign_rules(std::vector<std::shared_ptr<rule>>()),
-            _can_revoke_rules(std::vector<std::shared_ptr<rule>>()) {
+            _can_revoke_rules(std::vector<std::shared_ptr<rule>>()),
+            _users_to_track(std::numeric_limits<int>::max()) {
 
         int i;
 
@@ -238,7 +243,9 @@ namespace SMT {
         return conf;
     }
 
-    void arbac_policy::reomove_atom(const Literalp &atom) {
+
+
+    void arbac_policy::unsafe_remove_atom(const Literalp& atom) {
         std::list<rulep> targeting_atom;
         std::list<rulep> using_atom;
 
@@ -253,8 +260,8 @@ namespace SMT {
             }
         }
         for (auto &&t_r : targeting_atom) {
-            //FIXME: avoid auto update every time...
-            this->remove_rule(t_r);
+            std::cout << *t_r << std::endl;
+            this->unsafe_remove_rule(t_r);
         }
         for (auto &&u_r : using_atom) {
             Expr adm = u_r->admin;
@@ -265,10 +272,42 @@ namespace SMT {
             if (contains(u_r->prec->literals(), atom)) {
                 prec = delete_atom(prec, atom);
             }
+//            std::cout << *u_r << std::endl;
             u_r->admin = adm;
             u_r->prec = prec;
+//            std::cout << "\t===>" << std::endl;
+//            std::cout << *u_r << std::endl;
         }
-        this->update();
+        for (auto &&user : _users) {
+            user->remove_atom(atom);
+        }
+    }
+
+    void arbac_policy::unsafe_remove_rule(const rulep& rule) {
+        if (rule->is_ca) {
+            this->unsafe_remove_can_assign(rule);
+        }
+        else {
+            this->unsafe_remove_can_revoke(rule);
+        }
+    }
+    void arbac_policy::unsafe_remove_can_assign(const rulep& rule) {
+        std::vector<rulep> res;
+        auto filtered =
+                std::copy_if(this->_can_assign_rules.begin(),
+                             this->_can_assign_rules.end(),
+                             std::back_inserter(res),
+                             [&](const rulep &r) { return r != rule; });
+        this->_can_assign_rules = res;
+    }
+    void arbac_policy::unsafe_remove_can_revoke(const rulep& rule) {
+        std::vector<rulep> res;
+        auto filtered =
+                std::copy_if(this->_can_revoke_rules.begin(),
+                             this->_can_revoke_rules.end(),
+                             std::back_inserter(res),
+                             [&](const rulep &r) { return r != rule; });
+        this->_can_revoke_rules = res;
     }
 
     void arbac_policy::update() {
@@ -277,9 +316,11 @@ namespace SMT {
         _rules = result;
 
         std::set<Literalp> new_atoms;
+        new_atoms.insert(goal_role);
         for (auto &&rule : _rules) {
             new_atoms.insert(rule->admin->literals().begin(), rule->admin->literals().end());
             new_atoms.insert(rule->prec->literals().begin(), rule->prec->literals().end());
+            new_atoms.insert(rule->target);
         }
         std::vector<Literalp> _old_atoms = _atoms;
         _atoms = std::vector<Literalp>(new_atoms.begin(), new_atoms.end());
@@ -295,36 +336,85 @@ namespace SMT {
                 }
             }
         }
+        _users_to_track = std::numeric_limits<int>::max();
     }
 
-    void arbac_policy::remove_rule(const rulep &_rule) {
-        if (_rule->is_ca) {
-            remove_can_assign(_rule);
-        } else {
-            remove_can_revoke(_rule);
+    void arbac_policy::add_rule(const rulep& rule) {
+        if (rule->is_ca) {
+            this->add_can_assign(rule);
         }
+        else {
+            this->add_can_revoke(rule);
+        }
+    }
+    void arbac_policy::add_can_assign(const rulep& rule) {
+        this->_can_assign_rules.push_back(rule);
+        this->update();
+    }
+    void arbac_policy::add_can_revoke(const rulep& rule) {
+        this->_can_revoke_rules.push_back(rule);
+        this->update();
+    }
+
+    void arbac_policy::remove_atom(const Literalp &atom) {
+        this->unsafe_remove_atom(atom);
+        this->update();
+    }
+    void arbac_policy::remove_rule(const rulep &_rule) {
+        this->unsafe_remove_rule(_rule);
+        this->update();
     }
 
     void arbac_policy::remove_can_assign(const rulep &_rule) {
-        std::vector<std::shared_ptr<rule>> res;
-        auto filtered =
-                std::copy_if(this->_can_assign_rules.begin(),
-                             this->_can_assign_rules.end(),
-                             std::back_inserter(res),
-                             [&](const std::shared_ptr<rule> &r) { return r->original_idx != _rule->original_idx; });
-        this->_can_assign_rules = res;
+        this->unsafe_remove_can_assign(_rule);
         this->update();
     }
 
     void arbac_policy::remove_can_revoke(const rulep &_rule) {
-        std::vector<std::shared_ptr<rule>> res;
-        auto filtered =
-                std::copy_if(this->_can_revoke_rules.begin(),
-                             this->_can_revoke_rules.end(),
-                             std::back_inserter(res),
-                             [&](const std::shared_ptr<rule> &r) { return r->original_idx != _rule->original_idx; });
-        this->_can_revoke_rules = res;
+        this->unsafe_remove_can_revoke(_rule);
         this->update();
+    }
+
+    const std::string arbac_policy::to_string() const {
+        std::stringstream stream;
+        stream << "ROLES: " << std::endl;
+        for (auto &&atom : this->_atoms) {
+            stream << "\t" << atom->name << std::endl;
+        }
+        stream << "\t;" << std::endl << std::endl;
+        stream << "USERS: " << std::endl;
+        for (auto &&user : this->_users) {
+            stream << "\t" << user->name << std::endl;
+        }
+        stream << "\t;" << std::endl << std::endl;
+        stream << "UA:" << std::endl;
+        for (auto &&user : this->_users) {
+            for (auto &&atom : user->config()) {
+                stream << "\t<" << user->name << ", " << atom->name << ">" << std::endl;
+            }
+        }
+        stream << "\t;" << std::endl << std::endl;
+        stream << "CR:" << std::endl;
+        for (auto &&cr : this->_can_revoke_rules) {
+            stream << "\t" << *cr << std::endl;
+        }
+        stream << "\t;" << std::endl << std::endl;
+        stream << "CA:" << std::endl;
+        for (auto &&ca : this->_can_assign_rules) {
+            stream << "\t" << *ca << std::endl;
+        }
+
+        stream << "\t;" << std::endl << std::endl;
+        stream << "TARGET:" << std::endl;
+        stream << "\t" << *this->goal_role << std::endl;
+        stream << "\t;" << std::endl << std::endl;
+
+        return stream.str();
+    }
+
+    std::ostream& operator<< (std::ostream& stream, const arbac_policy& self) {
+        stream << self.to_string();
+        return stream;
     }
 
 //    void arbac_policy::remove_can_assign(int index) {
