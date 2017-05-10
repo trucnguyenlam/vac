@@ -28,7 +28,6 @@ class Value {
     std::string getVal(void) const;
 
     std::string to_string(void) const;
-
   private:
     int ID;
     std::string valstr;
@@ -43,6 +42,9 @@ class Domain {
     void addValueToSet(std::string v);
     int getValueID(std::string v) const;
     bool belongToDomain(std::string v) const;
+    // std::vector<std::string> getComplement(std::string v) const;
+
+    const std::vector<std::string>& getValues(void) const;
 
     std::string to_string(void) const;
   private:
@@ -58,10 +60,10 @@ class Scope {
     ~Scope() {}
 
     void addDomain(std::string, DomainPtr d);
-
     DomainPtr getDomain(std::string attrname) const;
-
     bool inScope(std::string name) const;
+
+    const std::map<std::string, DomainPtr>& getDomains(void) const;
 
     std::string to_string(void) const;
   private:
@@ -142,10 +144,14 @@ class Precondition {
     Precondition(): isTrue(false) {}
     ~Precondition() {}
 
-    std::string to_string(void) const;
-
-    // Too lazy to put this in private
     bool isTrue;
+    void insertPositive(TargetPtr t);
+    void insertNegative(TargetPtr t);
+    const std::vector<TargetPtr>& getPt(void) const;
+    const std::vector<TargetPtr>& getNt(void) const;
+
+    std::string to_string(void) const;
+private:
     std::vector<TargetPtr> Pt;
     std::vector<TargetPtr> Nt;
 };
@@ -233,6 +239,13 @@ class rGURA {
     int getCurrentAttributeSize(void) const;
     TargetPtr getQuery(void) const;
     void setQuery(TargetPtr t);
+
+    const std::vector<UserPtr> & getUsers(void) const;
+    const std::vector<AttributePtr> &  getAttrs(void) const;
+    const std::vector<std::string> &  getAdmin_roles(void) const;
+    const std::vector<AssignRulePtr> &  getAssign_rules(void) const;
+    const std::vector<AddRulePtr> &  getAdd_rules(void) const;
+    const std::vector<DeleteRulePtr> &  getDelete_rules(void) const;
 
     std::string to_string(void) const;
   private:

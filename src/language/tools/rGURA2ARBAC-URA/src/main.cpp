@@ -36,6 +36,7 @@ int main(int argc, const char* argv[]) {
 
     if (!input) {
         std::cerr << "Input file is required" << std::endl;
+        return 1;
     }
 
     std::string inputFilename = args::get(input);
@@ -45,6 +46,7 @@ int main(int argc, const char* argv[]) {
     if (output) {
         outputFilename = args::get(output);
     }
+
 
     std::ofstream stream;
     stream.open(outputFilename);

@@ -40,6 +40,11 @@ bool Domain::belongToDomain(std::string v) const {
 }
 
 
+const std::vector<std::string>& Domain::getValues(void) const {
+    return values;
+}
+
+
 std::string Domain::to_string(void) const {
     std::string ret = "{";
     for (const auto& s : values) {
@@ -61,6 +66,24 @@ DomainPtr Scope::getDomain(std::string attrname) const {
     } else {
         return nullptr;
     }
+}
+
+bool Scope::inScope(std::string name) const {
+    auto pos = domains.find(name);
+    if (pos != domains.end()) {
+        return true;
+    } else {
+        for (auto it = domains.begin(); it != domains.end(); it++) {
+            if (it->second->belongToDomain(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+const std::map<std::string, DomainPtr>& Scope::getDomains(void) const {
+    return domains;
 }
 
 std::string Scope::to_string(void) const {
@@ -171,11 +194,24 @@ std::string EqualExpression::to_string(void) const {
 }
 
 //class Precondition
+void Precondition::insertPositive(TargetPtr t) {
+    Pt.push_back(t);
+}
+void Precondition::insertNegative(TargetPtr t) {
+    Nt.push_back(t);
+}
+const std::vector<TargetPtr>& Precondition::getPt(void) const {
+    return Pt;
+}
+const std::vector<TargetPtr>& Precondition::getNt(void) const {
+    return Nt;
+}
+
+
 std::string Precondition::to_string(void) const {
     if (isTrue) {
         return "TRUE";
-    }
-    else {
+    } else {
         std::string ret = "Pt:[";
         for (const auto& t : Pt) {
             ret += " " + t->to_string();
@@ -336,29 +372,49 @@ void rGURA::setQuery(TargetPtr t) {
     query = t;
 }
 
-std::string rGURA::to_string(void) const{
+
+const std::vector<UserPtr> & rGURA::getUsers(void) const {
+    return users;
+}
+const std::vector<AttributePtr> &  rGURA::getAttrs(void) const {
+    return attrs;
+}
+const std::vector<std::string> &  rGURA::getAdmin_roles(void) const {
+    return admin_roles;
+}
+const std::vector<AssignRulePtr> &  rGURA::getAssign_rules(void) const {
+    return assign_rules;
+}
+const std::vector<AddRulePtr> &  rGURA::getAdd_rules(void) const {
+    return add_rules;
+}
+const std::vector<DeleteRulePtr> &  rGURA::getDelete_rules(void) const {
+    return delete_rules;
+}
+
+std::string rGURA::to_string(void) const {
     std::string ret = "Users:\n";
-    for(const auto& u: users){
+    for (const auto& u : users) {
         ret += u->to_string() + '\n';
     }
     ret += "Attributes:\n";
-    for(const auto& a: attrs){
+    for (const auto& a : attrs) {
         ret += a->to_string() + '\n';
     }
     ret += "Scope:\n";
     ret += scope->to_string();
     ret += "AdminRoles:\n";
-    for(const auto& a: admin_roles){
+    for (const auto& a : admin_roles) {
         ret += a + '\n';
     }
     ret += "Rules:\n";
-    for(const auto& r: assign_rules){
+    for (const auto& r : assign_rules) {
         ret += r->to_string() + '\n';
     }
-    for(const auto& r: add_rules){
+    for (const auto& r : add_rules) {
         ret += r->to_string() + '\n';
     }
-    for(const auto& r: delete_rules){
+    for (const auto& r : delete_rules) {
         ret += r->to_string() + '\n';
     }
     ret += "Spec:" + query->to_string() + "\n";

@@ -10,6 +10,7 @@ class Reduction {
   public:
     std::string reduceRGURAPolicy(const std::string filename);
   private:
+    std::string to_ARBACURA_precondition(PreconditionPtr p, rGURAPtr policy) const ;
     std::string to_ARBACURA_policy(rGURAPtr policy) const;
 
 };

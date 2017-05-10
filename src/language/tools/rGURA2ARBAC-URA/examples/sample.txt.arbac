@@ -1,0 +1,36 @@
+USERS
+u0
+u1
+u2
+u3
+u4
+u5
+ADMINUSER_0
+;
+ROLES
+admin
+city_Tokyo
+city_NewYork
+city_London
+city_HongKong
+gender_male
+gender_female
+name_Sigma
+name_Alpha
+name_Gamma
+role_Doctor
+role_Student
+role_Patient
+;
+UA
+<ADMINUSER_0, admin>
+;
+CA
+<admin, name_Gamma &-city_Tokyo &-name_Sigma &-name_Alpha, gender_male>
+<admin, gender_female &name_Alpha &-city_London &-gender_male &-name_Sigma &-name_Gamma, role_Patient>
+;
+CR
+<admin, role_Student>
+<admin, city_HongKong>
+;
+SPEC name_Sigma;
