@@ -610,7 +610,7 @@ rGURAParser::Scope_elementContext* rGURAParser::scope_element() {
     _la = _input->LA(1);
     do {
       setState(97);
-      dynamic_cast<Scope_elementContext *>(_localctx)->v = match(rGURAParser::Identifier);
+      match(rGURAParser::Identifier);
       setState(100); 
       _errHandler->sync(this);
       _la = _input->LA(1);

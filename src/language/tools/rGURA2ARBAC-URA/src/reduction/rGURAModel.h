@@ -25,7 +25,7 @@ class Value {
     ~Value() {}
 
     int getID(void) const;
-    int getVal(void) const;
+    std::string getVal(void) const;
 
     std::string to_string(void) const;
 
@@ -44,6 +44,7 @@ class Domain {
     int getValueID(std::string v) const;
     bool belongToDomain(std::string v) const;
 
+    std::string to_string(void) const;
   private:
     std::vector<std::string> values;
     std::map<std::string, int> valuemap;
@@ -124,6 +125,8 @@ class EqualExpression {
     {}
     ~EqualExpression() {}
 
+    std::string getAttribute(void) const;
+    std::string getValue(void) const;
     std::string to_string(void) const;
   private:
     std::string attribute;
@@ -153,6 +156,9 @@ class AssignRule {
         admin(admin), precondition(precondition), target(target) {}
     ~AssignRule() {}
 
+    std::string getAdmin(void) const;
+    PreconditionPtr getPrecondition(void) const;
+    TargetPtr getTarget(void) const;
     std::string to_string(void) const;
 
   private:
@@ -169,6 +175,9 @@ class AddRule {
         admin(admin), precondition(precondition), target(target) {}
     ~AddRule() {}
 
+    std::string getAdmin(void) const;
+    PreconditionPtr getPrecondition(void) const;
+    TargetPtr getTarget(void) const;
     std::string to_string(void) const;
 
   private:
@@ -185,6 +194,8 @@ class DeleteRule {
         admin(admin), target(target) {}
     ~DeleteRule() {}
 
+    std::string getAdmin(void) const;
+    TargetPtr getTarget(void) const;
     std::string to_string(void) const;
 
   private:
@@ -197,7 +208,10 @@ typedef std::shared_ptr<DeleteRule> DeleteRulePtr;
 
 class rGURA {
   public:
-    rGURA() {}
+    rGURA() {
+        scope = std::make_shared<Scope>(Scope());
+        query = std::make_shared<EqualExpression>(EqualExpression("", ""));
+        }
     ~rGURA() {}
 
     void insertNewUser(UserPtr u, int id);
@@ -209,13 +223,10 @@ class rGURA {
     void insertNewAddRule(AddRulePtr);
     void insertNewDeleteRule(DeleteRulePtr);
 
-    int getUserID(std::string _username) const;
     UserPtr getUser(std::string _username) const;
+    AttributePtr getAttribute(std::string _attributename) const;
     bool hasAdminRole(std::string name) const;
 
-    int getAttributeID(std::string _attributename) const;
-    std::string getAttributeName(int _id) const;
-    AttributePtr getAttribute(std::string _attributename) const;
     int getCurrentUserSize(void) const;
     int getCurrentAttributeSize(void) const;
     TargetPtr getQuery(void) const;

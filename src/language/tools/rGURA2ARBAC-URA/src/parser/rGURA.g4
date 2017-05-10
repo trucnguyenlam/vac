@@ -46,7 +46,7 @@ r_scope
     ;
 
 scope_element
-    :   LEFTTUPLE Identifier sep v=Identifier+ RIGHTTUPLE
+    :   LEFTTUPLE Identifier sep Identifier+ RIGHTTUPLE
     ;
 
 sep
@@ -113,7 +113,7 @@ r_spec
 
 USER    : 'USERS' | 'Users';
 ATTR_S  : 'ATTRIBUTE_SINGLE' | 'Attribute_Single';
-ATTR_M  : 'ATTRIBURE_MULTIPLE' | 'Attribute_Multiple';
+ATTR_M  : 'ATTRIBUTE_MULTIPLE' | 'Attribute_Multiple';
 SCOPE   : 'SCOPE';
 AR      : 'ADMINROLES';
 UAS     : 'UATTR_S' | 'UAttr_s';

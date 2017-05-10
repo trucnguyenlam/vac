@@ -31,19 +31,25 @@ void myrGURAListener::enterR_attr_m(rGURAParser::R_attr_mContext * ctx) {
 void myrGURAListener::enterR_scope(rGURAParser::R_scopeContext * ctx) {
     Scope scope;
     for (const auto & c : ctx->scope_element()) {
-        // :   LEFTTUPLE Identifier sep Identifier+ RIGHTTUPLE
-        std::string attr_name = c->Identifier()[0]->getText();
+        std::string attrname = c->Identifier()[0]->getText();
+        AttributePtr attr = this->policy->getAttribute(attrname);
+        if (!attr) {
+            throw ParserException(
+                "Error in line  " + getTokenLocation(c->Identifier()[0]->getSymbol()) + ": attribute " + attrname + " is undefined!");
+
+        }
         DomainPtr d = std::make_shared<Domain>(Domain());
         for (auto it = c->Identifier().begin() + 1; it != c->Identifier().end(); ++it) {
             d->addValueToSet((*it)->getText());
         }
-        scope.addDomain(attr_name, d);
+        scope.addDomain(attrname, d);
     }
     this->policy->setScope(scope);
 }
 
 void myrGURAListener::enterR_admin(rGURAParser::R_adminContext * ctx) {
     for (const auto & c : ctx->Identifier()) {
+
         this->policy->insertAdminRole(c->getText());
     }
 
@@ -60,8 +66,8 @@ void myrGURAListener::enterUas_element(rGURAParser::Uas_elementContext * ctx) {
             std::string attrname = c->a->getText();
             AttributePtr attr = this->policy->getAttribute(attrname);
             if (attr) {
-                if (!attr->isSingle()) throw antlr4::RuntimeException(
-                        "Error in " + getTokenLocation(c->a) + ": attribute " + attrname + " is multiple!");
+                if (!attr->isSingle()) throw ParserException(
+                        "Error in line  " + getTokenLocation(c->a) + ": attribute " + attrname + " is multiple!");
 
                 AttributePtr newattr = std::make_shared<Attribute>(
                                            Attribute(attr->getID(), attr->getName(), attr->isSingle()));
@@ -71,25 +77,25 @@ void myrGURAListener::enterUas_element(rGURAParser::Uas_elementContext * ctx) {
                 if (d) {
                     int value_id = d->getValueID(valuename);
                     if (value_id < 0) {
-                        throw antlr4::RuntimeException(
-                            "Error in " + getTokenLocation(c->v) + ": value " + valuename + " is undefined!");
+                        throw ParserException(
+                            "Error in line  " + getTokenLocation(c->v) + ": value " + valuename + " is undefined!");
                     }
                     // add value to attribute
                     newattr->setValue(Value(valuename, value_id));
                     // add attribute to user
                     user->setAttribute(newattr);
                 } else {
-                    throw antlr4::RuntimeException(
-                        "Error in " + getTokenLocation(c->a) + ": attribute " + attrname + " is undefined!");
+                    throw ParserException(
+                        "Error in line  " + getTokenLocation(c->a) + ": attribute " + attrname + " is undefined!");
                 }
             } else {
-                throw antlr4::RuntimeException(
-                    "Error in " + getTokenLocation(c->a) + ": attribute " + attrname + " is undefined!");
+                throw ParserException(
+                    "Error in line  " + getTokenLocation(c->a) + ": attribute " + attrname + " is undefined!");
             }
         }
     } else {
-        throw antlr4::RuntimeException(
-            "Error in " + getTokenLocation(ctx->Identifier()->getSymbol()) + ": user " + username + " is undefined!");
+        throw ParserException(
+            "Error in line  " + getTokenLocation(ctx->Identifier()->getSymbol()) + ": user " + username + " is undefined!");
     }
 }
 
@@ -103,8 +109,8 @@ void myrGURAListener::enterUam_element(rGURAParser::Uam_elementContext * ctx) {
         std::string attrname = ctx->Identifier()[1]->getText();
         AttributePtr attr = this->policy->getAttribute(attrname);
         if (attr) {
-            if (attr->isSingle()) throw antlr4::RuntimeException(
-                    "Error in " + getTokenLocation(ctx->Identifier()[1]->getSymbol()) + ": attribute " + attrname + " is single!");
+            if (attr->isSingle()) throw ParserException(
+                    "Error in line  " + getTokenLocation(ctx->Identifier()[1]->getSymbol()) + ": attribute " + attrname + " is single!");
 
             AttributePtr newattr = std::make_shared<Attribute>(
                                        Attribute(attr->getID(), attr->getName(), attr->isSingle()));
@@ -115,26 +121,26 @@ void myrGURAListener::enterUam_element(rGURAParser::Uam_elementContext * ctx) {
                 if (d) {
                     int value_id = d->getValueID(valuename);
                     if (value_id < 0) {
-                        throw antlr4::RuntimeException(
-                            "Error in " + getTokenLocation((*it)->getSymbol()) + ": value " + valuename + " is undefined!");
+                        throw ParserException(
+                            "Error in line  " + getTokenLocation((*it)->getSymbol()) + ": value " + valuename + " is undefined!");
                     }
                     // add value to attribute
                     newattr->setValue(Value(valuename, value_id));
                 } else {
-                    throw antlr4::RuntimeException(
-                        "Error in " + getTokenLocation(ctx->Identifier()[1]->getSymbol()) + ": attribute " + attrname + " is undefined!");
+                    throw ParserException(
+                        "Error in line  " + getTokenLocation(ctx->Identifier()[1]->getSymbol()) + ": attribute " + attrname + " is undefined!");
                 }
             }
             // add attribute to user
             user->setAttribute(newattr);
         } else {
-            throw antlr4::RuntimeException(
-                "Error in " + getTokenLocation(ctx->Identifier()[1]->getSymbol()) + ": attribute " + attrname + " is undefined!");
+            throw ParserException(
+                "Error in line  " + getTokenLocation(ctx->Identifier()[1]->getSymbol()) + ": attribute " + attrname + " is undefined!");
         }
 
     } else {
-        throw antlr4::RuntimeException(
-            "Error in " + getTokenLocation(ctx->Identifier()[0]->getSymbol()) + ": user " + username + " is undefined!");
+        throw ParserException(
+            "Error in line  " + getTokenLocation(ctx->Identifier()[0]->getSymbol()) + ": user " + username + " is undefined!");
     }
 
 }
@@ -149,13 +155,13 @@ void myrGURAListener::enterAdd_rule(rGURAParser::Add_ruleContext * ctx) {
             std::string valuename = ctx->value->getText();
             DomainPtr d = this->policy->getScope()->getDomain(attrname);
             if (!d) {
-                throw antlr4::RuntimeException(
-                    "Error in " + getTokenLocation(ctx->attr) + ": attribute " + attrname + " is undefined!");
+                throw ParserException(
+                    "Error in line  " + getTokenLocation(ctx->attr) + ": attribute " + attrname + " is undefined!");
             }
             int value_id = d->getValueID(valuename);
             if (value_id < 0) {
-                throw antlr4::RuntimeException(
-                    "Error in " + getTokenLocation(ctx->value) + ": value " + valuename + " is undefined!");
+                throw ParserException(
+                    "Error in line  " + getTokenLocation(ctx->value) + ": value " + valuename + " is undefined!");
             }
             TargetPtr t = std::make_shared<EqualExpression>(EqualExpression(attrname, valuename));
 
@@ -169,12 +175,12 @@ void myrGURAListener::enterAdd_rule(rGURAParser::Add_ruleContext * ctx) {
                 this->policy->insertNewAddRule(newrule);
             }
         } else {
-            throw antlr4::RuntimeException(
-                "Error in " + getTokenLocation(ctx->attr) + ": attribute " + attrname + " is undefined!");
+            throw ParserException(
+                "Error in line  " + getTokenLocation(ctx->attr) + ": attribute " + attrname + " is undefined!");
         }
     } else {
-        throw antlr4::RuntimeException(
-            "Error in " + getTokenLocation(ctx->admin) + ": admin role " + adminrole + " is undefined!");
+        throw ParserException(
+            "Error in line  " + getTokenLocation(ctx->admin) + ": admin role " + adminrole + " is undefined!");
     }
 }
 
@@ -187,24 +193,24 @@ void myrGURAListener::enterDelete_rule(rGURAParser::Delete_ruleContext * ctx) {
             std::string valuename = ctx->value->getText();
             DomainPtr d = this->policy->getScope()->getDomain(attrname);
             if (!d) {
-                throw antlr4::RuntimeException(
-                    "Error in " + getTokenLocation(ctx->attr) + ": attribute " + attrname + " is undefined!");
+                throw ParserException(
+                    "Error in line  " + getTokenLocation(ctx->attr) + ": attribute " + attrname + " is undefined!");
             }
             int value_id = d->getValueID(valuename);
             if (value_id < 0) {
-                throw antlr4::RuntimeException(
-                    "Error in " + getTokenLocation(ctx->value) + ": value " + valuename + " is undefined!");
+                throw ParserException(
+                    "Error in line  " + getTokenLocation(ctx->value) + ": value " + valuename + " is undefined!");
             }
             TargetPtr t = std::make_shared<EqualExpression>(EqualExpression(attrname, valuename));
             DeleteRulePtr newrule = std::make_shared<DeleteRule>(DeleteRule(adminrole, t));
             this->policy->insertNewDeleteRule(newrule);
         } else {
-            throw antlr4::RuntimeException(
-                "Error in " + getTokenLocation(ctx->attr) + ": attribute " + attrname + " is undefined!");
+            throw ParserException(
+                "Error in line  " + getTokenLocation(ctx->attr) + ": attribute " + attrname + " is undefined!");
         }
     } else {
-        throw antlr4::RuntimeException(
-            "Error in " + getTokenLocation(ctx->admin) + ": admin role " + adminrole + " is undefined!");
+        throw ParserException(
+            "Error in line  " + getTokenLocation(ctx->admin) + ": admin role " + adminrole + " is undefined!");
     }
 }
 
@@ -216,19 +222,19 @@ void myrGURAListener::enterR_spec(rGURAParser::R_specContext * ctx) {
         std::string valuename = ctx->value->getText();
         DomainPtr d = this->policy->getScope()->getDomain(attrname);
         if (!d) {
-            throw antlr4::RuntimeException(
-                "Error in " + getTokenLocation(ctx->attr) + ": attribute " + attrname + " is undefined!");
+            throw ParserException(
+                "Error in line  " + getTokenLocation(ctx->attr) + ": undefined domain for attribute " + attrname);
         }
         int value_id = d->getValueID(valuename);
         if (value_id < 0) {
-            throw antlr4::RuntimeException(
-                "Error in " + getTokenLocation(ctx->value) + ": value " + valuename + " is undefined!");
+            throw ParserException(
+                "Error in line  " + getTokenLocation(ctx->value) + ": value " + valuename + " is undefined!");
         }
         TargetPtr t = std::make_shared<EqualExpression>(EqualExpression(attrname, valuename));
         this->policy->setQuery(t);
     } else {
-        throw antlr4::RuntimeException(
-            "Error in " + getTokenLocation(ctx->attr) + ": attribute " + attrname + " is undefined!");
+        throw ParserException(
+            "Error in line  " + getTokenLocation(ctx->attr) + ": attribute " + attrname + " is undefined!");
     }
 }
 
@@ -246,13 +252,13 @@ PreconditionPtr myrGURAListener::buildPrecondition(rGURAParser::PreconditionCont
                 std::string valuename = a->value->getText();
                 DomainPtr d = this->policy->getScope()->getDomain(attrname);
                 if (!d) {
-                    throw antlr4::RuntimeException(
-                        "Error in " + getTokenLocation(a->attr) + ": attribute " + attrname + " is undefined!");
+                    throw ParserException(
+                        "Error in line  " + getTokenLocation(a->attr) + ": attribute " + attrname + " is undefined!");
                 }
                 int value_id = d->getValueID(valuename);
                 if (value_id < 0) {
-                    throw antlr4::RuntimeException(
-                        "Error in " + getTokenLocation(a->value) + ": value " + valuename + " is undefined!");
+                    throw ParserException(
+                        "Error in line  " + getTokenLocation(a->value) + ": value " + valuename + " is undefined!");
                 }
                 TargetPtr t = std::make_shared<EqualExpression>(EqualExpression(attrname, valuename));
                 if (a->NOT()) { // negative set Nt
@@ -262,8 +268,8 @@ PreconditionPtr myrGURAListener::buildPrecondition(rGURAParser::PreconditionCont
                 }
                 return precond;
             } else {
-                throw antlr4::RuntimeException(
-                    "Error in " + getTokenLocation(a->attr) + ": attribute " + attrname + " is undefined!");
+                throw ParserException(
+                    "Error in line  " + getTokenLocation(a->attr) + ": attribute " + attrname + " is undefined!");
             }
         }
     }

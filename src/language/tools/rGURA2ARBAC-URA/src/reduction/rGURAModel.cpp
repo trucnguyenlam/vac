@@ -2,6 +2,18 @@
 
 using namespace VAC;
 
+// class Value
+int Value::getID(void) const {
+    return ID;
+}
+std::string Value::getVal(void) const {
+    return valstr;
+}
+
+std::string Value::to_string(void) const {
+    return valstr;
+}
+
 
 // class Domain
 void Domain::addValueToSet(std::string v) {
@@ -18,6 +30,24 @@ int Domain::getValueID(std::string v) const {
     }
 }
 
+bool Domain::belongToDomain(std::string v) const {
+    auto pos = valuemap.find(v);
+    if (pos != valuemap.end()) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+
+std::string Domain::to_string(void) const {
+    std::string ret = "{";
+    for (const auto& s : values) {
+        ret += " " + s;
+    }
+    ret += "}";
+    return ret;
+}
 
 //class Scope
 void Scope::addDomain(std::string name, DomainPtr d) {
@@ -32,6 +62,15 @@ DomainPtr Scope::getDomain(std::string attrname) const {
         return nullptr;
     }
 }
+
+std::string Scope::to_string(void) const {
+    std::string ret = "";
+    for (auto it = domains.begin(); it != domains.end(); ++it) {
+        ret += it->first + " : " + it->second->to_string() + "\n";
+    }
+    return ret;
+}
+
 
 
 //class Attribute
@@ -62,13 +101,20 @@ const std::vector<ValuePtr> & Attribute::getValue(void) const {
     return values;
 }
 
+std::string Attribute::to_string(void) const {
+    std::string ret = "{";
+    ret += "name:" + name + ",";
+    ret += "ID:" + std::to_string(ID) + ",";
+    ret += "values:";
+    for (const auto& r : values) {
+        ret += " " + r->to_string();
+    }
+    ret += "}";
+    return ret;
+}
 
 
 //class User
-std::string User::getName(void) const {
-    return name;
-}
-
 void User::setAttribute(AttributePtr attr) {
     // Check if this attribute is already there
     auto pos = attr_map.find(attr->getName());
@@ -89,6 +135,121 @@ bool User::hasAttribute(std::string name) const {
     }
 }
 
+std::string User::getName(void) const {
+    return name;
+}
+
+int User::getID(void) const {
+    return ID;
+}
+
+const std::vector<AttributePtr>& User::getConfiguration(void) const {
+    return attrs;
+}
+
+std::string User::to_string(void) const {
+    std::string ret = "{";
+    ret += "name:" + name + ",";
+    ret += "ID:" + std::to_string(ID) + ",";
+    ret += "attrs:[";
+    for (const auto& a : attrs) {
+        ret += " " + a->to_string();
+    }
+    ret += "]}";
+    return ret;
+}
+
+//class EqualExpression
+std::string EqualExpression::getAttribute(void) const {
+    return attribute;
+}
+std::string EqualExpression::getValue(void) const {
+    return value;
+}
+std::string EqualExpression::to_string(void) const {
+    return attribute + "=" + value;
+}
+
+//class Precondition
+std::string Precondition::to_string(void) const {
+    if (isTrue) {
+        return "TRUE";
+    }
+    else {
+        std::string ret = "Pt:[";
+        for (const auto& t : Pt) {
+            ret += " " + t->to_string();
+        }
+        ret += "] Nt:[";
+        for (const auto& t : Nt) {
+            ret += " " + t->to_string();
+        }
+        ret += "]";
+        return ret;
+    }
+}
+
+//class AssignRule
+std::string AssignRule::getAdmin(void) const {
+    return admin;
+}
+
+PreconditionPtr AssignRule::getPrecondition(void) const {
+    return precondition;
+}
+
+TargetPtr AssignRule::getTarget(void) const {
+    return target;
+}
+
+std::string AssignRule::to_string(void) const {
+    std::string ret = "<";
+    ret += admin + ",";
+    ret += precondition->to_string() + ",";
+    ret += target->to_string();
+    ret += ">";
+    return ret;
+}
+
+
+//class AddRule
+std::string AddRule::getAdmin(void) const {
+    return admin;
+}
+
+PreconditionPtr AddRule::getPrecondition(void) const {
+    return precondition;
+}
+
+TargetPtr AddRule::getTarget(void) const {
+    return target;
+}
+
+std::string AddRule::to_string(void) const {
+    std::string ret = "<";
+    ret += admin + ",";
+    ret += precondition->to_string() + ",";
+    ret += target->to_string();
+    ret += ">";
+    return ret;
+}
+
+// class DeleteRule
+std::string DeleteRule::getAdmin(void) const {
+    return admin;
+}
+
+TargetPtr DeleteRule::getTarget(void) const {
+    return target;
+}
+
+std::string DeleteRule::to_string(void) const {
+    std::string ret = "<";
+    ret += admin + ",";
+    ret += target->to_string();
+    ret += ">";
+    return ret;
+}
 
 
 //class rGURA
@@ -130,7 +291,6 @@ void rGURA::insertNewDeleteRule(DeleteRulePtr r) {
     delete_rules.push_back(r);
 }
 
-
 UserPtr rGURA::getUser(std::string _username) const {
     auto user_pos = user_map.find(_username);
     if (user_pos != user_map.end()) {
@@ -141,17 +301,14 @@ UserPtr rGURA::getUser(std::string _username) const {
     }
 }
 
-
 AttributePtr rGURA::getAttribute(std::string _attributename) const {
     auto attr_pos = attr_map.find(_attributename);
     if (attr_pos != attr_map.end()) {
-        int attr_id = attr_pos->second;
-        return attrs[attr_id];
+        return attrs[attr_pos->second];
     } else {
         return nullptr;
     }
 }
-
 
 bool rGURA::hasAdminRole(std::string name) const {
     auto pos = adminrole_map.find(name);
@@ -171,6 +328,42 @@ int rGURA::getCurrentAttributeSize(void) const {
     return attrs.size();
 }
 
+TargetPtr rGURA::getQuery(void) const {
+    return query;
+}
+
 void rGURA::setQuery(TargetPtr t) {
     query = t;
 }
+
+std::string rGURA::to_string(void) const{
+    std::string ret = "Users:\n";
+    for(const auto& u: users){
+        ret += u->to_string() + '\n';
+    }
+    ret += "Attributes:\n";
+    for(const auto& a: attrs){
+        ret += a->to_string() + '\n';
+    }
+    ret += "Scope:\n";
+    ret += scope->to_string();
+    ret += "AdminRoles:\n";
+    for(const auto& a: admin_roles){
+        ret += a + '\n';
+    }
+    ret += "Rules:\n";
+    for(const auto& r: assign_rules){
+        ret += r->to_string() + '\n';
+    }
+    for(const auto& r: add_rules){
+        ret += r->to_string() + '\n';
+    }
+    for(const auto& r: delete_rules){
+        ret += r->to_string() + '\n';
+    }
+    ret += "Spec:" + query->to_string() + "\n";
+    return ret;
+}
+
+
+

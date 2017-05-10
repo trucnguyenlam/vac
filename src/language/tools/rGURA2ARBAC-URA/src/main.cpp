@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include "args.hxx"
+#include "rGURAModel.h"
 #include "rGURALexer.h"
 #include "rGURAParser.h"
 #include "myrGURAListener.h"
@@ -16,6 +17,8 @@
 using namespace VAC;
 
 int main(int argc, const char* argv[]) {
+
+
     std::ifstream stream;
     stream.open(argv[1]);
 
@@ -30,6 +33,9 @@ int main(int argc, const char* argv[]) {
     // Work through parser tree to produce the model
     myrGURAListener listener;
     antlr4::tree::ParseTreeWalker::DEFAULT.walk(&listener, program);
+
+    // rGURAPtr policy = listener.getPolicy();
+    // std::cout << policy->to_string();
 
     return 0;
 }

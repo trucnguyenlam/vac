@@ -10,6 +10,11 @@
 
 namespace VAC {
 
+class ParserException: public antlr4::RuntimeException {
+ public:
+  ParserException(const std::string &msg = "") : RuntimeException(msg) {};
+};
+
 /**
  * This class provides an empty implementation of rGURAListener,
  * which can be extended to create a listener which only needs to handle a subset
