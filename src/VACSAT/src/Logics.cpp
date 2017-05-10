@@ -536,6 +536,29 @@ namespace SMT {
     //     return std::shared_ptr<Exprv>(new NondetExpr(type));
     // }
 
+    bool is_constant_true(const Expr& expr) {
+        switch (expr->type) {
+            case Exprv::CONSTANT: {
+                Constantp cexpr = std::dynamic_pointer_cast<Constant>(expr);
+                return cexpr->bv_size == 1 && cexpr->value != 0;
+            }
+                break;
+            default:
+                return false;
+        }
+    }
+    bool is_constant_false(const Expr& expr) {
+        switch (expr->type) {
+            case Exprv::CONSTANT: {
+                Constantp cexpr = std::dynamic_pointer_cast<Constant>(expr);
+                return cexpr->bv_size == 1 && cexpr->value == 0;
+            }
+                break;
+            default:
+                return false;
+        }
+    }
+
     Expr normalize_expr(Expr expr) {
         switch (expr->type) {
             case Exprv::CONSTANT: {
