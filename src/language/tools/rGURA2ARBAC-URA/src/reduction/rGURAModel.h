@@ -61,6 +61,8 @@ class Scope {
 
     DomainPtr getDomain(std::string attrname) const;
 
+    bool inScope(std::string name) const;
+
     std::string to_string(void) const;
   private:
     std::map<std::string, DomainPtr> domains;

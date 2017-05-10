@@ -23,8 +23,8 @@ message(STATUS "Found antlr4cpp libs: ${ANTLR4CPP_LIBS} and includes: ${ANTLR4CP
 # include_directories(${antlr4cpp_include_dirs_antlrcpptest})
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
-include_directories(${PROJECT_SOURCE_DIR}/src/parser/)
-include_directories(${PROJECT_SOURCE_DIR}/src/reduction/)
+# include_directories(${PROJECT_SOURCE_DIR}/src/parser/)
+# include_directories(${PROJECT_SOURCE_DIR}/src/reduction/)
 
 
 # export generated cpp files into list
