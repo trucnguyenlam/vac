@@ -2,9 +2,10 @@
 #define _ARBACTransform_H
 
 #include <stdio.h>
+#include <string>
 
 void
-read_ARBAC(char *);
+read_ARBAC(const char *);
 
 void
 reduction_finiteARBAC(void);
