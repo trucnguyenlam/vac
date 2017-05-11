@@ -6,7 +6,7 @@
 
 #include "antlr4-runtime.h"
 #include "rGURABaseListener.h"
-#include "rGURAModel.h"
+#include "reduction/rGURAModel.h"
 
 namespace VAC {
 

@@ -18,16 +18,30 @@ role
 ;
 
 SCOPE
-<roles, Doctor>
+<name, Sigma Alpha Gamma>
+<gender, male female>
+<city, Tokyo NewYork London HongKong>
+<role, Doctor Student Patient>
 ;
+
+UATTR_S
+;
+
+UATTR_M
+;
+
 
 ADMINROLES
 admin
 ;
 
 RULES
+<admin, gender=female & not city=London & name=Alpha, role, Patient>
+<admin, name=Gamma & not city=Tokyo, gender, male>
+<admin, role, Student>
+<admin, city, HongKong>
 ;
 
 SPEC
-name Anna
+name Sigma
 ;

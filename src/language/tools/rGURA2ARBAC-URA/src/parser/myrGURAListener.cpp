@@ -39,8 +39,8 @@ void myrGURAListener::enterR_scope(rGURAParser::R_scopeContext * ctx) {
 
         }
         DomainPtr d = std::make_shared<Domain>(Domain());
-        for (auto it = c->Identifier().begin() + 1; it != c->Identifier().end(); ++it) {
-            d->addValueToSet((*it)->getText());
+        for (int i = 1; i < c->Identifier().size(); i++) {
+            d->addValueToSet(c->Identifier()[i]->getText());
         }
         scope.addDomain(attrname, d);
     }
@@ -262,16 +262,16 @@ PreconditionPtr myrGURAListener::buildPrecondition(rGURAParser::PreconditionCont
                 }
                 TargetPtr t = std::make_shared<EqualExpression>(EqualExpression(attrname, valuename));
                 if (a->NOT()) { // negative set Nt
-                    precond->Nt.push_back(t);
+                    precond->insertNegative(t);
                 } else { // positive set Pt
-                    precond->Pt.push_back(t);
+                    precond->insertPositive(t);
                 }
-                return precond;
             } else {
                 throw ParserException(
                     "Error in line  " + getTokenLocation(a->attr) + ": attribute " + attrname + " is undefined!");
             }
         }
+        return precond;
     }
 }
 

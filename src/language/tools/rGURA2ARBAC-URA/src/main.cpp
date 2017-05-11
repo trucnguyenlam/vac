@@ -7,35 +7,53 @@
 //    2017.05.09   Initial version
 
 #include <iostream>
-#include "args.hxx"
-#include "rGURAModel.h"
-#include "rGURALexer.h"
-#include "rGURAParser.h"
-#include "myrGURAListener.h"
-#include "myrGURAListener.h"
+#include "utils/args.hxx"
+#include "reduction/reduction.h"
 
 using namespace VAC;
 
 int main(int argc, const char* argv[]) {
+    // Parse argument
+    args::ArgumentParser cmdparser("This is a reduction from rGURA to ARBAC-URA policy.", "");
+    args::HelpFlag help(cmdparser, "help", "Display this help menu", {'h', "help"});
+    args::ValueFlag<std::string> input(cmdparser, "X", "input policy (rGURA format)", {'i', "input"});
+    args::ValueFlag<std::string> output(cmdparser, "X", "output policy (ARBAC-URA format)", {'o', "output"});
+
+    try {
+        cmdparser.ParseCLI(argc, argv);
+    } catch (args::Help) {
+        std::cout << cmdparser;
+        return 0;
+    } catch (args::ParseError e) {
+        std::cerr << e.what() << std::endl;
+        std::cerr << cmdparser;
+        return 1;
+    } catch (args::ValidationError e) {
+        std::cerr << e.what() << std::endl;
+        std::cerr << cmdparser;
+        return 1;
+    }
+
+    if (!input) {
+        std::cerr << "Input file is required" << std::endl;
+        return 1;
+    }
+
+    std::string inputFilename = args::get(input);
+    std::string outputpolicy = Reduction().reduceRGURAPolicy(inputFilename);
+
+    std::string outputFilename = inputFilename + ".arbac";
+    if (output) {
+        outputFilename = args::get(output);
+    }
 
 
-    std::ifstream stream;
-    stream.open(argv[1]);
-
-    antlr4::ANTLRInputStream input(stream);
-    rGURALexer lexer(&input);
-    antlr4::CommonTokenStream tokens(&lexer);
-
-    // Create parser
-    rGURAParser parser(&tokens);
-    antlr4::tree::ParseTree * program = parser.file();
-
-    // Work through parser tree to produce the model
-    myrGURAListener listener;
-    antlr4::tree::ParseTreeWalker::DEFAULT.walk(&listener, program);
-
-    // rGURAPtr policy = listener.getPolicy();
-    // std::cout << policy->to_string();
+    std::ofstream stream;
+    stream.open(outputFilename);
+    if (stream.good()){
+        stream << outputpolicy;
+    }
+    stream.close();
 
     return 0;
 }
