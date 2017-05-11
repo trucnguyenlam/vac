@@ -86,6 +86,9 @@ namespace SMT {
 
         Exprv(ExprType ty, std::set<Literalp> literals);
 
+        virtual bool equals(const Expr& other) const = 0;
+
+
         bool containsLiteral(std::string full_name);
         bool containsLiteral(Literalp lit);
         virtual void setSuffix(int idx);
@@ -96,7 +99,6 @@ namespace SMT {
         void resetValue(std::string lit_name = "");
 
         friend std::ostream & operator<<(std::ostream & out, Exprv const & expr);
-
         virtual std::string to_string() const = 0;
         // virtual void toFile(FILE* outputFile) = 0;
         // virtual void toSMT(FILE* outputFile) = 0;
@@ -117,6 +119,7 @@ namespace SMT {
     class Literal : public Exprv {
         public:
             Literal(const std::string _name, int _role_array_index, int bv_size, Expr _value = nullptr);
+            bool equals(const Expr& other) const override;
 
             std::string getSMTName() const;
             std::string fullName() const;
@@ -147,6 +150,7 @@ namespace SMT {
     class Constant : public Exprv  {
         public:
             Constant(int val, int bv_size);
+            bool equals(const Expr& other) const override;
 
             std::string to_string() const override;
             // void toFile(FILE* outputFile) override;
@@ -161,6 +165,7 @@ namespace SMT {
     class OrExpr : public Exprv  {
         public:
             OrExpr(Expr _lhs, Expr _rhs);
+            bool equals(const Expr& other) const override;
 
             std::string to_string() const override;
             // void toFile(FILE* outputFile) override;
@@ -176,6 +181,7 @@ namespace SMT {
     class AndExpr : public Exprv  {
         public:
             AndExpr(Expr _lhs, Expr _rhs);
+            bool equals(const Expr& other) const override;
 
             std::string to_string() const override;
             // void toFile(FILE* outputFile) override;
@@ -191,6 +197,7 @@ namespace SMT {
     class EqExpr : public Exprv  {
         public:
             EqExpr(Expr _lhs, Expr _rhs);
+            bool equals(const Expr& other) const override;
 
             std::string to_string() const override;
             // void toFile(FILE* outputFile) override;
@@ -206,6 +213,7 @@ namespace SMT {
     class ImplExpr : public Exprv  {
         public:
             ImplExpr(Expr _lhs, Expr _rhs);
+            bool equals(const Expr& other) const override;
 
             std::string to_string() const override;
             // void toFile(FILE* outputFile) override;
@@ -221,6 +229,7 @@ namespace SMT {
     class NotExpr : public Exprv  {
         public:
             NotExpr(Expr _expr);
+            bool equals(const Expr& other) const override;
 
             std::string to_string() const override;
             // void toFile(FILE* outputFile) override;
@@ -235,6 +244,7 @@ namespace SMT {
     class CondExpr : public Exprv  {
         public:
             CondExpr(Expr _cond, Expr _choice1, Expr _choice2);
+            bool equals(const Expr& other) const override;
 
             std::string to_string() const override;
             // void toFile(FILE* outputFile) override;

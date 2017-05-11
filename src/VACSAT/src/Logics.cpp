@@ -124,6 +124,16 @@ namespace SMT {
         Exprv(Exprv::LITERAL, std::set<Literalp>()), 
         name(_name), role_array_index(_role_array_index), bv_size(_bv_size), value(_value) { }
 
+    bool Literal::equals(const Expr &other) const {
+        if (other->type != Exprv::LITERAL)
+            return false;
+        Literalp other_lit = std::dynamic_pointer_cast<Literal>(other);
+
+        return  this->role_array_index == other_lit->role_array_index &&
+                this->name == other_lit->name &&
+                this->bv_size == other_lit->bv_size;
+    }
+
     void Literal::setLiterals(Literalp &self) {
         this->_literals.insert(self);
     }
@@ -179,6 +189,15 @@ namespace SMT {
     Constant::Constant(int _value, int _bv_size) :
         Exprv(Exprv::CONSTANT, std::set<Literalp>()),
         value(_value), bv_size(_bv_size) { }
+
+    bool Constant::equals(const Expr &other) const {
+        if (other->type != Exprv::CONSTANT)
+            return false;
+        Constantp other_lit = std::dynamic_pointer_cast<Constant>(other);
+
+        return  this->bv_size == other_lit->bv_size &&
+                this->value == other_lit->value;
+    }
     
     std::string Constant::to_string() const {
         if (this->bv_size == 1) {
@@ -200,6 +219,14 @@ namespace SMT {
     OrExpr::OrExpr(Expr _lhs, Expr _rhs) :
         Exprv(Exprv::OR_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
         lhs(_lhs), rhs(_rhs) { }
+    bool OrExpr::equals(const Expr &other) const {
+        if (other->type != Exprv::OR_EXPR)
+            return false;
+        std::shared_ptr<OrExpr> other_expr = std::dynamic_pointer_cast<OrExpr>(other);
+
+        return  this->lhs->equals(other_expr->lhs) &&
+                this->rhs->equals(other_expr->rhs);
+    }
     
     std::string OrExpr::to_string() const {
         std::stringstream fmt;
@@ -213,6 +240,14 @@ namespace SMT {
     AndExpr::AndExpr(Expr _lhs, Expr _rhs) :
         Exprv(Exprv::AND_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
         lhs(_lhs), rhs(_rhs) { }
+    bool AndExpr::equals(const Expr &other) const {
+        if (other->type != Exprv::AND_EXPR)
+            return false;
+        std::shared_ptr<AndExpr> other_expr = std::dynamic_pointer_cast<AndExpr>(other);
+
+        return  this->lhs->equals(other_expr->lhs) &&
+                this->rhs->equals(other_expr->rhs);
+    }
     
     std::string AndExpr::to_string() const {
         std::stringstream fmt;
@@ -226,6 +261,14 @@ namespace SMT {
     EqExpr::EqExpr(Expr _lhs, Expr _rhs) :
         Exprv(Exprv::EQ_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
         lhs(_lhs), rhs(_rhs) { }
+    bool EqExpr::equals(const Expr &other) const {
+        if (other->type != Exprv::EQ_EXPR)
+            return false;
+        std::shared_ptr<EqExpr> other_expr = std::dynamic_pointer_cast<EqExpr>(other);
+
+        return  this->lhs->equals(other_expr->lhs) &&
+                this->rhs->equals(other_expr->rhs);
+    }
     
     std::string EqExpr::to_string() const {
         std::stringstream fmt;
@@ -239,6 +282,14 @@ namespace SMT {
     ImplExpr::ImplExpr(Expr _lhs, Expr _rhs) :
         Exprv(Exprv::IMPL_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
         lhs(_lhs), rhs(_rhs) { }
+    bool ImplExpr::equals(const Expr &other) const {
+        if (other->type != Exprv::IMPL_EXPR)
+            return false;
+        std::shared_ptr<ImplExpr> other_expr = std::dynamic_pointer_cast<ImplExpr>(other);
+
+        return  this->lhs->equals(other_expr->lhs) &&
+                this->rhs->equals(other_expr->rhs);
+    }
     
     std::string ImplExpr::to_string() const {
         std::stringstream fmt;
@@ -252,6 +303,13 @@ namespace SMT {
     NotExpr::NotExpr(Expr _expr) :
         Exprv(Exprv::NOT_EXPR, _expr->literals()),
         expr(_expr) { }
+    bool NotExpr::equals(const Expr &other) const {
+        if (other->type != Exprv::NOT_EXPR)
+            return false;
+        std::shared_ptr<NotExpr> other_expr = std::dynamic_pointer_cast<NotExpr>(other);
+
+        return  this->expr->equals(other_expr->expr);
+    }
     
     std::string NotExpr::to_string() const {
         std::stringstream fmt;
@@ -265,6 +323,15 @@ namespace SMT {
         Exprv(Exprv::COND_EXPR, 
               setUnion(_cond->literals(), setUnion(_choice1->literals(), _choice2->literals()))),
         cond(_cond), choice1(_choice1), choice2(_choice2) { }
+    bool CondExpr::equals(const Expr &other) const {
+        if (other->type != Exprv::COND_EXPR)
+            return false;
+        std::shared_ptr<CondExpr> other_expr = std::dynamic_pointer_cast<CondExpr>(other);
+
+        return  this->cond->equals(other_expr->cond) &&
+                this->choice1->equals(other_expr->choice1) &&
+                this->choice2->equals(other_expr->choice2);
+    }
     
     std::string CondExpr::to_string() const {
         std::stringstream fmt;
@@ -275,7 +342,7 @@ namespace SMT {
         return fmt.str();
     }
 
-/*SIMPLIFICATION OPS*/
+/*SIMPLIFICATION OPS COMMENTED */
     // Simplifier::Simplifier(SimplLevel _level) : level(_level) { }
 
     // void Simplifier::simplifyStmt(Stmt stmt) {
@@ -532,9 +599,6 @@ namespace SMT {
     Expr createCondExpr(Expr cond, Expr choice1, Expr choice2) {
         return std::shared_ptr<Exprv>(new CondExpr(cond, choice1, choice2));
     }
-    // Expr createNondetExpr(VarType type) {
-    //     return std::shared_ptr<Exprv>(new NondetExpr(type));
-    // }
 
     bool is_constant_true(const Expr& expr) {
         switch (expr->type) {
