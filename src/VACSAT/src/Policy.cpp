@@ -317,7 +317,9 @@ namespace SMT {
 
         std::set<Literalp> new_atoms;
         new_atoms.insert(goal_role);
-        for (auto &&rule : _rules) {
+        for (int i = 0; i < this->_rules.size(); ++i) {
+            rulep rule = _rules[i];
+            rule->original_idx = i;
             new_atoms.insert(rule->admin->literals().begin(), rule->admin->literals().end());
             new_atoms.insert(rule->prec->literals().begin(), rule->prec->literals().end());
             new_atoms.insert(rule->target);
