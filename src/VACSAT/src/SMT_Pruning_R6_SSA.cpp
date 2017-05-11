@@ -138,8 +138,8 @@ class R6Transformer {
 
     //int *roles_ca_counts = NULL;
     //int *roles_cr_counts = NULL;
-    std::vector<std::shared_ptr<rule>>* per_role_ca_rules = NULL;
-    std::vector<std::shared_ptr<rule>>* per_role_cr_rules = NULL;
+    std::vector<std::shared_ptr<rule>>* per_role_ca_rules = nullptr;
+    std::vector<std::shared_ptr<rule>>* per_role_cr_rules = nullptr;
 
     inline void emit_assignment(variable& variable, TExpr value) {
         TExpr assign = solver->createEqExpr(variable.get_solver_var(), value);
@@ -396,7 +396,7 @@ class R6Transformer {
 
         for (auto ite = per_role_ca_rules[target_role_index].begin(); ite != per_role_ca_rules[target_role_index].end(); ++ite) {
             std::shared_ptr<rule> rule = *ite;
-            if ((rule->is_ca == target_rule->is_ca) && (rule->original_idx == target_rule->original_idx)) {
+            if ((rule->is_ca == target_rule->is_ca) && (rule == target_rule)) {
                 // EXCLUDE THE TARGET RULE FROM ASSIGNMENT
                 continue;
             }
@@ -420,7 +420,7 @@ class R6Transformer {
         
         for (auto ite = per_role_cr_rules[target_role_index].begin(); ite != per_role_cr_rules[target_role_index].end(); ++ite) {
             std::shared_ptr<rule> rule = *ite;
-            if ((rule->is_ca == target_rule->is_ca) && (rule->original_idx == target_rule->original_idx)) {
+            if ((rule->is_ca == target_rule->is_ca) && (rule == target_rule)) {
                 // EXCLUDE THE TARGET RULE FROM ASSIGNMENT
                 continue;
             }
