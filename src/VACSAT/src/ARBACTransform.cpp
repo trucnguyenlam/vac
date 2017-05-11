@@ -5,6 +5,7 @@
 #include "ARBACTransform.h"
 #include "ARBACAbstract.h"
 #include "SMT_Pruning.h"
+#include "SMT_Analysis.h"
 #include <iostream>
 
 // using namespace Abstract;
@@ -42,6 +43,7 @@ main(int argc, char **argv)
     char *formula_filename = 0;
     char *filename = 0;
     char *out_name = NULL;
+    std::string backend = "yices";
     int rounds = -1;
     int steps = -1;
     int wanted_threads = -1;
@@ -52,6 +54,7 @@ main(int argc, char **argv)
     static struct option long_options[] = {
         { "out", required_argument, 0, 'o' },
         { "prune", required_argument, 0, 'p' },
+        { "backend", required_argument, 0, 'b' },
         { "algorithm", required_argument, 0, 'a' },
         { "format", required_argument, 0, 'f' },
         { "formula", required_argument, 0, 'l' },
@@ -67,7 +70,7 @@ main(int argc, char **argv)
     while (1)
     {
         int option_index = 0;
-        c = getopt_long(argc, argv, "Sihpf:a:l:r:s:t:o:", long_options, &option_index);
+        c = getopt_long(argc, argv, "Sihpf:b:a:l:r:s:t:o:", long_options, &option_index);
 
         if (c == -1)
             break;
@@ -91,6 +94,9 @@ main(int argc, char **argv)
                     \n                                      completeness_query\
                     \n                                      concurc\
                     \n                                      smt\
+                    \n-b,--backend                       :SMT backend (default=yices)\
+                    \n                                      Z3\
+                    \n                                      YICES\
                     \n-i,--inline                        :Inline the program (lazycseq only)\
                     \n-p,--prune                         :Prune the policy using sat based approaches\
                     \n-l,--formula <X>                   :Formula for mucke\
@@ -125,6 +131,9 @@ main(int argc, char **argv)
         case 'f':
             format_arg = (char *) malloc(strlen(optarg) + 1);
             strcpy(format_arg, optarg);
+            break;
+        case 'b':
+            backend = std::string(optarg);
             break;
         case 'l':
             formula_filename = (char *) malloc(strlen(optarg) + 1);
@@ -186,7 +195,7 @@ main(int argc, char **argv)
             success_exit();
         }
         if (prune) {
-            SMT::prune(filename, out_file);
+            SMT::perform_analysis(std::string(filename), backend);
             success_exit();
         }
 
