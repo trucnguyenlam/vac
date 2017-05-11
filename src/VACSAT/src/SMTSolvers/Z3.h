@@ -14,6 +14,10 @@ namespace SMT {
     // }
     class Z3Solver : public SMTFactory<expr, expr> {
         public:
+        static inline const std::string solver_name() {
+            return "Z3";
+        };
+
         Z3Solver();
         ~Z3Solver();
 

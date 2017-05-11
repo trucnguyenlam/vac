@@ -8,6 +8,10 @@
 namespace SMT {
     class YicesSolver : public SMTFactory<term_t, term_t> {
         public:
+        static inline const std::string solver_name() {
+            return "yices";
+        };
+
         YicesSolver();
         ~YicesSolver();
 

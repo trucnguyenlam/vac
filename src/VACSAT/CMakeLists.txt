@@ -51,6 +51,7 @@ set(SOURCE_FILES
         src/SMT_Pruning_R6_LazyCSeq.cpp
         src/SMT_Pruning_R6_SSA.cpp
         src/ARBAC_to_smt.cpp
+        src/ARBAC_to_smt_new_policy.cpp
 #        Moved to old_encodings and removed from project
 #        src/SSA_Structs.h
 #        src/SSA_Structs.cpp
@@ -61,7 +62,8 @@ set(SOURCE_FILES
         src/ARBACTransform.h
         src/ARBACTransform.cpp
         src/Policy.h
-        src/Policy.cpp src/prelude.h)
+        src/Policy.cpp
+        src/prelude.h src/SMT_Analysis.h src/SMT_Analysis.cpp)
 
 
 
