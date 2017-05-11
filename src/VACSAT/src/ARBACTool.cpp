@@ -199,7 +199,7 @@ find_newuser_from_dict(char *name)
 
 // Helper function to read the ARBAC file input
 void
-read_ARBAC(char * inputFile)
+read_ARBAC(const char * inputFile)
 {
 	pANTLR3_INPUT_STREAM input;
 	pARBACLexer lex;
