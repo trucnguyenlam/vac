@@ -355,6 +355,25 @@ namespace SMT {
             return i > policy->users_to_track();
         }
 
+        bool immaterial_adom_in_prec(const rulep& rule) {
+            // This rule checks if adm is implied in prec. If so we can remove the admin part and replace with TRUE since the check is done on
+            solver->clean();
+            std::vector<std::shared_ptr<TVar>> var_vect(policy->atom_count());
+
+            TExpr s_adm = generateSMTFunction2(solver, rule->admin, var_vect, "C");
+
+            TExpr s_prec = generateSMTFunction2(solver, rule->prec, var_vect, "C");
+
+            TExpr to_check = solver->createAndExpr(solver->createNotExpr(s_adm),
+                                                s_prec);
+
+            solver->assertNow(to_check);
+
+            SMTResult res = solver->solve();
+
+            return res == UNSAT;
+        }
+
         template <typename TComp>
         bool immaterial_adm(const std::set<userp, TComp>& user_confs, const Expr& adm) {
             bool exists_user = false;
@@ -408,6 +427,10 @@ namespace SMT {
             }
             bool has_changed = false;
             for (auto &&adm_pair : admins) {
+                if (is_constant_true(adm_pair.first)) {
+                    // Do nothing if the administrative expression is the True constant
+                    continue;
+                }
                 bool has_admin = immaterial_adm(confs, adm_pair.first);
                 if (has_admin) {
                     std::cout << "Administrative expression " << *adm_pair.first << " IS IMMATERIAL" << std::endl;
@@ -498,12 +521,13 @@ namespace SMT {
                 //phi'_a(adm)
                 TExpr phi1_a_adm = generateSMTFunction(solver, cr->admin, adm1_map, "ADM");
 
-//                //phi'_a(C)
-//                TExpr phi1_a_c = generateSMTFunction(solver, cr->admin, c1_map, "C");
+                //phi'_a(C)
+                TExpr phi1_a_c = generateSMTFunction(solver, cr->admin, c1_map, "C");
 
-                // not phi'(C) \/ not phi'_a(adm)
+                // not (phi'(C)) \/ not (phi'_a(adm) \/ phi'_a(C))
                 TExpr disj = solver->createOrExpr(solver->createNotExpr(phi1_c),
-                                                  solver->createNotExpr(phi1_a_adm));
+                                                  solver->createNotExpr(solver->createOrExpr(phi1_a_adm,
+                                                                                             phi1_a_c)));
 
                 revoke_and_rhs.push_back(disj);
             }
@@ -1138,26 +1162,52 @@ namespace SMT {
 
         }
 
+        std::pair<std::vector<Expr>, std::list<Expr>> partition_admins() {
+            std::list<rulep> rules(policy->rules().begin(), policy->rules().end());
+            std::list<std::list<rulep>> partitions = partition_equivalent(nullptr, rules);
+            std::vector<Expr> admin_map(policy->rules().size());
+            std::list<Expr> parts;
+
+            for (auto &&part : partitions) {
+                Expr adm = (*part.begin())->admin;
+                parts.push_back(adm);
+                for (auto &&rule : part) {
+                    admin_map[rule->original_idx] = adm;
+                }
+            }
+
+            return std::pair<std::vector<Expr>, std::list<Expr>>(admin_map, parts);
+        }
+
         void apply() {
             bool fixpoint = false;
             int fixpoint_iteration = 1;
 
+            auto global_start = std::chrono::high_resolution_clock::now();
+
             while (!fixpoint) {
+                auto step_start = std::chrono::high_resolution_clock::now();
+
                 std::cout << "Applying easy_pruning on " << policy->rules().size() << std::endl;
                 bool easy_pruning_res = this->easy_pruning();
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+
                 std::cout << "Applying prune_immaterial_roles on " << policy->rules().size() << std::endl;
                 bool prune_immaterial_roles_res = this->prune_immaterial_roles();
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
-                std::cout << "Applying merge_rules on " << policy->rules().size() << std::endl;
-                bool merge_rules_res = this->merge_rules();
-                std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+
                 std::cout << "Applying prune_irrelevant_roles on " << policy->rules().size() << std::endl;
                 bool prune_irrelevant_roles_res = this->prune_irrelevant_roles();
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+
                 std::cout << "Applying prune_implied_pairs on " << policy->rules().size() << std::endl;
                 bool prune_implied_pairs_res = this->prune_implied_pairs();
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+
+                std::cout << "Applying merge_rules on " << policy->rules().size() << std::endl;
+                bool merge_rules_res = this->merge_rules();
+                std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+
                 std::cout << "Applying prune_rule_6 on " << policy->rules().size() << std::endl;
                 bool prune_rule_6_res = this->prune_rule_6();
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
@@ -1170,14 +1220,30 @@ namespace SMT {
                           prune_implied_pairs_res    ||
                           prune_rule_6_res);
 
-                std::cout << "Iteration: " << fixpoint_iteration++ << std::endl;
+                std::cout << "Iteration: " << fixpoint_iteration++;
+                auto step_end = std::chrono::high_resolution_clock::now();
+                auto step_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(step_end - step_start);
+                std::cout << " done in " << step_milliseconds .count() << " ms." << std::endl;
             }
 
             std::cout << *policy;
 
+            auto global_end = std::chrono::high_resolution_clock::now();
+            auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(global_end - global_start);
+            std::cout << "------------ Pruning done in " << milliseconds.count() << " ms ------------" << std::endl;
+
+            auto map = partition_admins();
+            for (int i = 0; i < map.first.size(); ++i) {
+                std::cout << i << ": " << *map.first[i] << std::endl;
+            }
+            for (auto &&expr :map.second) {
+                std::cout << *expr << ";" << std::endl;
+            }
+
         }
 
-        Pruning(std::shared_ptr<SMTFactory<TVar, TExpr>> _solver) :
+        Pruning(const std::shared_ptr<SMTFactory<TVar, TExpr>>& _solver,
+                const std::shared_ptr<arbac_policy>& policy) :
             solver(_solver),
             policy(new arbac_policy()) { }
     };
@@ -1206,48 +1272,17 @@ namespace SMT {
     //     return;
     // }
 
-    void prune(char* inputFile, FILE* output) {
+    template <typename TVar, typename TExpr>
+    void prune_policy(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+                      const std::shared_ptr<arbac_policy>& policy) {
 
-        read_ARBAC(inputFile);
-        // Preprocess the ARBAC Policies
-        preprocess(0);
-        build_config_array();
+        Pruning<TVar, TExpr> core(solver, policy);
 
-        for (int i = 0; i < hierarchy_array_size; ++i) {
-            std::cout << hierarchy_array[i].inferior_role_index << " < " << hierarchy_array[i].superior_role_index << std::endl;
-        }
-
-        std::shared_ptr<SMTFactory<z3::expr, z3::expr>> solver(new Z3Solver());
-        Pruning<z3::expr, z3::expr> core(solver);
         core.apply();
-//        std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());
-//        Pruning<term_t, term_t> core(solver);
-
-//        core.apply_rule_6();
-
-//        return;
-//
-//        auto start = std::chrono::high_resolution_clock::now();
-//
-//        core.printNonPos();
-//
-//        auto end = std::chrono::high_resolution_clock::now();
-//        auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-//        std::cout << "------------ printNonPos " << milliseconds.count() << " ms ------------\n";
-//
-//
-//        start = std::chrono::high_resolution_clock::now();
-//        core.printNonNeg();
-//
-//        end = std::chrono::high_resolution_clock::now();
-//        milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-//        std::cout << "------------ printNonNeg " << milliseconds.count() << " ms ------------\n";
-//
-//        // core.PrintIrrelevantPos();
-//        core.printImpliedPairs();
-//
-//        free_data();
-//        free_precise_temp_data();
-
     }
+
+    template void prune_policy<term_t, term_t>(const std::shared_ptr<SMTFactory<term_t, term_t>>& solver,
+                                               const std::shared_ptr<arbac_policy>& policy);
+    template void prune_policy<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>>& solver,
+                                           const std::shared_ptr<arbac_policy>& policy);
 }
