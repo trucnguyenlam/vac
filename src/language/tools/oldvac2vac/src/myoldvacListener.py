@@ -4,7 +4,7 @@ from oldvacListener import oldvacListener
 from oldvacModel import *
 
 # This class defines a complete listener for a parse tree produced by
-# hierarchygrammarParser.
+# TODO:
 
 
 class myHierarchyListener(hierarchygrammarListener):

@@ -37,16 +37,11 @@ std::string Reduction::to_ARBACURA_precondition(PreconditionPtr p, rGURAPtr poli
     if (p->isTrue) {
         ret += "TRUE";
     } else {
-        int i = 0;
         for (const auto & role : p->getPt()) {  // Pt
-            if (i != 0) {
-                ret += " &";
-            }
-            ret += role->getAttribute() + "_" + role->getValue();
-            i++;
+            ret += role->getAttribute() + "_" + role->getValue() + " & ";
         }
         for (const auto & role : p->getNt()) {  // Nt
-            ret += " &-" + role->getAttribute() + "_" + role->getValue();
+            ret += "-" + role->getAttribute() + "_" + role->getValue() + " & ";
         }
         // Additional
         for (const auto & role : p->getPt()) {  // Pt
@@ -54,10 +49,14 @@ std::string Reduction::to_ARBACURA_precondition(PreconditionPtr p, rGURAPtr poli
                 // FIXME: Potential nullptr
                 for (const auto& v : policy->getScope()->getDomain(role->getAttribute())->getValues()) {
                     if (v != role->getValue()) {
-                        ret += " &-" + role->getAttribute() + "_" + v;
+                        ret += "-" + role->getAttribute() + "_" + v + " & ";
                     }
                 }
             }
+        }
+        if (ret.size() > 2) {
+            ret.pop_back();
+            ret.pop_back();
         }
     }
     return ret;
