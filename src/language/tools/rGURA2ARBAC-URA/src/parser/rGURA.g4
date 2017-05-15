@@ -75,7 +75,11 @@ r_ua_m
     ;
 
 uam_element
-    :   Identifier LEFTTUPLE Identifier (COMMA Identifier)+ RIGHTTUPLE
+    :   Identifier attr_mval+
+    ;
+
+attr_mval
+    :   LEFTTUPLE Identifier (COMMA Identifier)+ RIGHTTUPLE
     ;
 
 r_rules

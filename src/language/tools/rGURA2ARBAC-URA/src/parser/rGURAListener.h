@@ -58,6 +58,9 @@ public:
   virtual void enterUam_element(rGURAParser::Uam_elementContext *ctx) = 0;
   virtual void exitUam_element(rGURAParser::Uam_elementContext *ctx) = 0;
 
+  virtual void enterAttr_mval(rGURAParser::Attr_mvalContext *ctx) = 0;
+  virtual void exitAttr_mval(rGURAParser::Attr_mvalContext *ctx) = 0;
+
   virtual void enterR_rules(rGURAParser::R_rulesContext *ctx) = 0;
   virtual void exitR_rules(rGURAParser::R_rulesContext *ctx) = 0;
 

@@ -18,6 +18,11 @@ gender_female
 name_Sigma
 name_Alpha
 name_Gamma
+permission_openfile
+permission_closefile
+permission_appendfile
+permission_removefile
+permission_deletefile
 role_Doctor
 role_Student
 role_Patient
@@ -31,6 +36,8 @@ UA
 <u1, gender_male>
 <u1, city_London>
 <u1, role_Student>
+<u1, permission_closefile>
+<u1, permission_removefile>
 <u3, role_Patient>
 <u3, role_Student>
 ;

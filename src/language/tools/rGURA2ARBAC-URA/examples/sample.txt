@@ -15,6 +15,7 @@ gender
 
 ATTRIBUTE_MULTIPLE
 role
+permission
 ;
 
 SCOPE
@@ -22,6 +23,7 @@ SCOPE
 <gender, male female>
 <city, Tokyo NewYork London HongKong>
 <role, Doctor Student Patient>
+<permission, openfile closefile appendfile removefile deletefile>
 ;
 
 UATTR_S
@@ -30,7 +32,7 @@ u1 <name, Sigma> <gender, male> <city, London>
 ;
 
 UATTR_M
-u1 <role, Student>
+u1 <role, Student> <permission, closefile, removefile>
 u3 <role, Patient, Student>
 ;
 
@@ -47,5 +49,6 @@ RULES
 ;
 
 SPEC
+// Attribute-reachability problem
 name Sigma
 ;

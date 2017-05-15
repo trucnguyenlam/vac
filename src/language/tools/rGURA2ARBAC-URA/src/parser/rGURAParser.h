@@ -25,8 +25,9 @@ public:
     RuleFile = 0, RuleR_start = 1, RuleR_user = 2, RuleR_attr_s = 3, RuleR_attr_m = 4, 
     RuleR_scope = 5, RuleScope_element = 6, RuleSep = 7, RuleR_admin = 8, 
     RuleR_ua_s = 9, RuleUas_element = 10, RuleAttr_val = 11, RuleR_ua_m = 12, 
-    RuleUam_element = 13, RuleR_rules = 14, RuleRule_element = 15, RuleAdd_rule = 16, 
-    RuleDelete_rule = 17, RulePrecondition = 18, RuleAtom = 19, RuleR_spec = 20
+    RuleUam_element = 13, RuleAttr_mval = 14, RuleR_rules = 15, RuleRule_element = 16, 
+    RuleAdd_rule = 17, RuleDelete_rule = 18, RulePrecondition = 19, RuleAtom = 20, 
+    RuleR_spec = 21
   };
 
   rGURAParser(antlr4::TokenStream *input);
@@ -53,6 +54,7 @@ public:
   class Attr_valContext;
   class R_ua_mContext;
   class Uam_elementContext;
+  class Attr_mvalContext;
   class R_rulesContext;
   class Rule_elementContext;
   class Add_ruleContext;
@@ -277,9 +279,24 @@ public:
   public:
     Uam_elementContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *Identifier();
+    std::vector<Attr_mvalContext *> attr_mval();
+    Attr_mvalContext* attr_mval(size_t i);
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+   
+  };
+
+  Uam_elementContext* uam_element();
+
+  class  Attr_mvalContext : public antlr4::ParserRuleContext {
+  public:
+    Attr_mvalContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *LEFTTUPLE();
     std::vector<antlr4::tree::TerminalNode *> Identifier();
     antlr4::tree::TerminalNode* Identifier(size_t i);
-    antlr4::tree::TerminalNode *LEFTTUPLE();
     antlr4::tree::TerminalNode *RIGHTTUPLE();
     std::vector<antlr4::tree::TerminalNode *> COMMA();
     antlr4::tree::TerminalNode* COMMA(size_t i);
@@ -289,7 +306,7 @@ public:
    
   };
 
-  Uam_elementContext* uam_element();
+  Attr_mvalContext* attr_mval();
 
   class  R_rulesContext : public antlr4::ParserRuleContext {
   public:

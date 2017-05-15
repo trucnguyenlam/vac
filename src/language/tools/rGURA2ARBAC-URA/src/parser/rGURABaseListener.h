@@ -60,6 +60,9 @@ public:
   virtual void enterUam_element(rGURAParser::Uam_elementContext * /*ctx*/) override { }
   virtual void exitUam_element(rGURAParser::Uam_elementContext * /*ctx*/) override { }
 
+  virtual void enterAttr_mval(rGURAParser::Attr_mvalContext * /*ctx*/) override { }
+  virtual void exitAttr_mval(rGURAParser::Attr_mvalContext * /*ctx*/) override { }
+
   virtual void enterR_rules(rGURAParser::R_rulesContext * /*ctx*/) override { }
   virtual void exitR_rules(rGURAParser::R_rulesContext * /*ctx*/) override { }
 

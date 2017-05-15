@@ -79,7 +79,7 @@ void myrGURAListener::enterUas_element(rGURAParser::Uas_elementContext * ctx) {
 
                 AttributePtr newattr = std::make_shared<Attribute>(
                                            Attribute(attr->getID(),
-                                            attr->getName(), attr->isSingle()));
+                                                     attr->getName(), attr->isSingle()));
                 // Get value
                 std::string valuename = c->v->getText();
                 DomainPtr d = this->policy->getScope()->getDomain(attrname);
@@ -96,7 +96,7 @@ void myrGURAListener::enterUas_element(rGURAParser::Uas_elementContext * ctx) {
                     user->setAttribute(newattr);
                 } else {
                     throw ParserException(
-                        "Error in line  " + getTokenLocation(c->a) + ": attribute "
+                        "Error in line  " + getTokenLocation(c->a) + ": scope for attribute "
                         + attrname + " is undefined!");
                 }
             } else {
@@ -115,50 +115,52 @@ void myrGURAListener::enterUas_element(rGURAParser::Uas_elementContext * ctx) {
 
 void myrGURAListener::enterUam_element(rGURAParser::Uam_elementContext * ctx) {
     // Find user
-    std::string username = ctx->Identifier()[0]->getText();
+    std::string username = ctx->Identifier()->getText();
     UserPtr user = this->policy->getUser(username);
     if (user) {
-        // Get attribute name
-        std::string attrname = ctx->Identifier()[1]->getText();
-        AttributePtr attr = this->policy->getAttribute(attrname);
-        if (attr) {
-            if (attr->isSingle()) throw ParserException(
-                    "Error in line  " + getTokenLocation(ctx->Identifier()[1]->getSymbol())
-                    + ": attribute " + attrname + " is single!");
+        // Add attribute to user
+        for (const auto& c : ctx->attr_mval()) {
+            // Get attribute name
+            std::string attrname = c->Identifier()[0]->getText();
+            AttributePtr attr = this->policy->getAttribute(attrname);
+            if (attr) {
+                if (attr->isSingle()) throw ParserException(
+                        "Error in line  " + getTokenLocation(c->Identifier()[0]->getSymbol())
+                        + ": attribute " + attrname + " is single!");
 
-            AttributePtr newattr = std::make_shared<Attribute>(
-                                       Attribute(attr->getID(), attr->getName(), attr->isSingle()));
-            for (int i = 2; i < ctx->Identifier().size(); ++i) {
-                std::string valuename = ctx->Identifier()[i]->getText();
-                DomainPtr d = this->policy->getScope()->getDomain(attrname);
-                if (d) {
-                    int value_id = d->getValueID(valuename);
-                    if (value_id < 0) {
+                AttributePtr newattr = std::make_shared<Attribute>(
+                                           Attribute(attr->getID(), attr->getName(), attr->isSingle()));
+                for (int i = 1; i < c->Identifier().size(); ++i) {
+                    std::string valuename = c->Identifier()[i]->getText();
+                    DomainPtr d = this->policy->getScope()->getDomain(attrname);
+                    if (d) {
+                        int value_id = d->getValueID(valuename);
+                        if (value_id < 0) {
+                            throw ParserException(
+                                "Error in line  "
+                                + getTokenLocation(c->Identifier()[i]->getSymbol())
+                                + ": value " + valuename + " is undefined!");
+                        }
+                        // add value to attribute
+                        newattr->setValue(Value(valuename, value_id));
+                    } else {
                         throw ParserException(
                             "Error in line  "
-                            + getTokenLocation(ctx->Identifier()[i]->getSymbol())
-                            + ": value " + valuename + " is undefined!");
+                            + getTokenLocation(c->Identifier()[0]->getSymbol())
+                            + ": scope for attribute " + attrname + " is undefined!");
                     }
-                    // add value to attribute
-                    newattr->setValue(Value(valuename, value_id));
-                } else {
-                    throw ParserException(
-                        "Error in line  "
-                        + getTokenLocation(ctx->Identifier()[1]->getSymbol())
-                        + ": attribute " + attrname + " is undefined!");
                 }
+                // add attribute to user
+                user->setAttribute(newattr);
+            } else {
+                throw ParserException(
+                    "Error in line  " + getTokenLocation(c->Identifier()[0]->getSymbol())
+                    + ": attribute " + attrname + " is undefined!");
             }
-            // add attribute to user
-            user->setAttribute(newattr);
-        } else {
-            throw ParserException(
-                "Error in line  " + getTokenLocation(ctx->Identifier()[1]->getSymbol())
-                + ": attribute " + attrname + " is undefined!");
         }
-
     } else {
         throw ParserException(
-            "Error in line  " + getTokenLocation(ctx->Identifier()[0]->getSymbol())
+            "Error in line  " + getTokenLocation(ctx->Identifier()->getSymbol())
             + ": user " + username + " is undefined!");
     }
 
