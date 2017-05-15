@@ -1,7 +1,8 @@
 #!/bin/bash
 
-PKG=pkg
+PKG=PolicyConverter
 
+rm $PKG.tar.gz
 mkdir $PKG
 
 cp -r src $PKG

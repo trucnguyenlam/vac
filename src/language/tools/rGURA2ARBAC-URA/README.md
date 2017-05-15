@@ -5,11 +5,14 @@ This directory contains source code for the translation from rGURA to ARBAC-URA
 Please refer to [examples/sample.txt](sample.txt)
 
 # Installation
+The compilation has been successfully tested on Ubuntu 16.04 x64.
 ## Prerequisites
- C++ compiler supports C++11, `g++` version 5.0+ is required.
+- JDK, version 8+, ```sudo apt install openjdk-8-jdk```
+- `uuid-dev`, ```sudo apt install uuid-dev```
+- `cmake`, version 2.8+, ```sudo apt install cmake```
+- `g++` version 5.0+, ```sudo apt install g++```
 
 ## COMPILE
-Successfully test on Ubuntu 16.04 x64.
 Change to the same directory of README.md, and launch these command lines:
 
 ```sh
