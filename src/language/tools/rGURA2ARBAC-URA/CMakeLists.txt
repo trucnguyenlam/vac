@@ -49,9 +49,9 @@ set(SOURCES
 # SET(CMAKE_EXE_LINKER_FLAGS "-static")
 
 # add generated grammar to demo binary target
-add_executable(rGURAconverter ${SOURCES} ${antlr_generated_files} ${reduction_files})
-add_dependencies(rGURAconverter antlr4cpp)
-target_link_libraries(rGURAconverter antlr4-runtime)
+add_executable(rGURAConverter ${SOURCES} ${antlr_generated_files} ${reduction_files})
+add_dependencies(rGURAConverter antlr4cpp)
+target_link_libraries(rGURAConverter antlr4-runtime)
 
 # # Unit Test
 # # Prepare "Catch" library for other executables

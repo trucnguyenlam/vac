@@ -4,6 +4,10 @@
     This grammar (rGURA) is defined in LANGUAGE_STANDARD.md file.
     Some rules are borrowed from
         https://raw.githubusercontent.com/antlr/grammars-v4/master/c/C.g4
+
+    Please use this command on the file
+        antlr4 -Werror -Dlanguage=Cpp -package VAC rGURA.g4
+
  @changelog:
     2017.05.09   Initial version
  */

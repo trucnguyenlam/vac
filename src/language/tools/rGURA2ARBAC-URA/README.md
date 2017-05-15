@@ -1,19 +1,28 @@
 # Introduction
-This directory defines reduction from rGURA to ARBAC-URA
-# Language Specification
-Please refer to LANGUAGE_STANDARD.md
+This directory contains source code for the translation from rGURA to ARBAC-URA
 
-# Implementation
-Antlr4 language
-C++ target
+# Language Specification
+Please refer to [examples/sample.txt](sample.txt)
 
 # Installation
-Please launch this command line to generate cpp file (inside src/parser directory)
+## Prerequisites
+ C++ compiler supports C++11, `g++` version 5.0+ is required.
+
+## COMPILE
+Successfully test on Ubuntu 16.04 x64.
+Change to the same directory of README.md, and launch these command lines:
 
 ```sh
-antlr4 -Werror -Dlanguage=Cpp -package VAC rGURA.g4
+mkdir build
+cd build
+cmake ..
+make -j8    # assume that you want to build in parallel
 ```
+The executable file `rGURAConverter` will be created in `build` directory.
+
+# Usage
+Please launch `rGURAConverter` with `-h` option.
 
 # Note
-
+Please contact me on trucnguyenlam@gmail.com for any problem.
 
