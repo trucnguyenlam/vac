@@ -25,9 +25,13 @@ SCOPE
 ;
 
 UATTR_S
+u0 <name, Gamma> <gender, female> <city, Tokyo>
+u1 <name, Sigma> <gender, male> <city, London>
 ;
 
 UATTR_M
+u1 <role, Student>
+u3 <role, Patient, Student>
 ;
 
 

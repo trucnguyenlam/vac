@@ -44,6 +44,10 @@ set(SOURCES
     ${PROJECT_SOURCE_DIR}/src/main.cpp
 )
 
+# SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+# SET(BUILD_SHARED_LIBRARIES OFF)
+# SET(CMAKE_EXE_LINKER_FLAGS "-static")
+
 # add generated grammar to demo binary target
 add_executable(rGURAconverter ${SOURCES} ${antlr_generated_files} ${reduction_files})
 add_dependencies(rGURAconverter antlr4cpp)

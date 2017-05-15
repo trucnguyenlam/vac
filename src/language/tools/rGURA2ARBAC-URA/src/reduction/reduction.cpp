@@ -2,7 +2,7 @@
 
 using namespace VAC;
 
-std::string Reduction::reduceRGURAPolicy(const std::string filename) {
+std::string Reduction::reduceRGURAPolicy(const std::string filename, bool debug) {
     std::ifstream stream;
     stream.open(filename);
 
@@ -25,11 +25,10 @@ std::string Reduction::reduceRGURAPolicy(const std::string filename) {
     stream.close();
 
     rGURAPtr policy = listener.getPolicy();
-
-
-    std::cout << policy->to_string();
-
-    std::string ret = to_ARBACURA_policy(policy);
+    if (debug) {
+        std::cout << policy->to_string();
+    }
+    std::string ret = to_ARBACURA_policy(policy, debug);
     return ret;
 }
 
@@ -65,7 +64,7 @@ std::string Reduction::to_ARBACURA_precondition(PreconditionPtr p, rGURAPtr poli
 }
 
 // Private
-std::string Reduction::to_ARBACURA_policy(rGURAPtr policy) const {
+std::string Reduction::to_ARBACURA_policy(rGURAPtr policy, bool debug) const {
     std::string user_str, role_str, ua_str, ca_str, cr_str, spec_str;
     // 1. User and Administrative Role
     user_str = "USERS\n";

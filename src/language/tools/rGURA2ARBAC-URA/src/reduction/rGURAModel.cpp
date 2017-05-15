@@ -109,14 +109,15 @@ bool Attribute::isSingle(void) const {
 }
 
 void Attribute::setValue(Value v) {
+    ValuePtr vptr = std::make_shared<Value>(v);
     if (single) {
         if (values.size() > 0) {
-            values[0] = std::make_shared<Value>(v);
+            values[0] = vptr;
         } else {
-            values.push_back(std::make_shared<Value>(v));
+            values.push_back(vptr);
         }
     } else {
-        values.push_back(std::make_shared<Value>(v));
+        values.push_back(vptr);
     }
 }
 

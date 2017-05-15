@@ -24,6 +24,15 @@ role_Patient
 ;
 UA
 <ADMINUSER_0, admin>
+<u0, name_Gamma>
+<u0, gender_female>
+<u0, city_Tokyo>
+<u1, name_Sigma>
+<u1, gender_male>
+<u1, city_London>
+<u1, role_Student>
+<u3, role_Patient>
+<u3, role_Student>
 ;
 CA
 <admin, name_Gamma &-city_Tokyo &-name_Sigma &-name_Alpha, gender_male>

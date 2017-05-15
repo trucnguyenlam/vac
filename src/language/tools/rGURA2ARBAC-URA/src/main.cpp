@@ -16,6 +16,7 @@ int main(int argc, const char* argv[]) {
     // Parse argument
     args::ArgumentParser cmdparser("This is a reduction from rGURA to ARBAC-URA policy.", "");
     args::HelpFlag help(cmdparser, "help", "Display this help menu", {'h', "help"});
+    args::Flag debug(cmdparser, "", "debug mode", {'D', "debug"});
     args::ValueFlag<std::string> input(cmdparser, "X", "input policy (rGURA format)", {'i', "input"});
     args::ValueFlag<std::string> output(cmdparser, "X", "output policy (ARBAC-URA format)", {'o', "output"});
 
@@ -34,23 +35,27 @@ int main(int argc, const char* argv[]) {
         return 1;
     }
 
+    bool debugFlag = false;
+    if (debug) {
+        debugFlag = true;
+    }
+
     if (!input) {
         std::cerr << "Input file is required" << std::endl;
         return 1;
     }
 
     std::string inputFilename = args::get(input);
-    std::string outputpolicy = Reduction().reduceRGURAPolicy(inputFilename);
+    std::string outputpolicy = Reduction().reduceRGURAPolicy(inputFilename, debugFlag);
 
     std::string outputFilename = inputFilename + ".arbac";
     if (output) {
         outputFilename = args::get(output);
     }
 
-
     std::ofstream stream;
     stream.open(outputFilename);
-    if (stream.good()){
+    if (stream.good()) {
         stream << outputpolicy;
     }
     stream.close();
