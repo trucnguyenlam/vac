@@ -1,4 +1,4 @@
-#include "ARBACExact.h"
+//#include "ARBACExact.h"
 #include <time.h>
 #include <vector>
 #include <iostream>
@@ -20,7 +20,7 @@ namespace SMT {
 template <typename TVar, typename TExpr>
 class R6Transformer {
     private:
-    
+
     std::shared_ptr<SMTFactory<TVar, TExpr>> solver;
     std::stringstream fmt;
 
@@ -30,7 +30,7 @@ class R6Transformer {
         fmt.str(std::string());
     }
 
-    // typedef 
+    // typedef
     struct variable : public TVarWrapper<TVar> {
 //        std::shared_ptr<TVar> solver_varp;
         // std::shared_ptr<SMTFactory<TVar, TExpr>> solver;
@@ -39,29 +39,21 @@ class R6Transformer {
         std::string name;
         std::string full_name;
         int idx;
+        bool force_bv;
 
         variable() :
             TVarWrapper<TVar>(nullptr),
-            bv_size(-1), name(""), full_name(""), idx(-1), solver(nullptr) { }
+            bv_size(-1), name(""), full_name(""), idx(-1), solver(nullptr), force_bv(false) { }
 
-        variable(const std::string _name, int _idx, int _bv_size, SMTFactory<TVar, TExpr>* _solver) :
+        variable(const std::string _name, int _idx, int _bv_size, SMTFactory<TVar, TExpr>* _solver, bool _force_bv = false) :
             TVarWrapper<TVar>(nullptr),
-            bv_size(_bv_size), name(_name), full_name(_name + "_" + std::to_string(_idx)), idx(_idx), solver(_solver) {
-                // printf("CN: %s\n", full_name.c_str());
-                this->solver_varp = std::make_shared<TVar>(solver->createVar2(full_name, bv_size));
-
-                // TVar var_val = solver->createVar2(full_name, bv_size);
-                // printf("%s: %d\n", name.c_str(), var_val);
-                // int res = yices_pp_term(stdout, var_val, 160, 40, 0);
-                // if (res < 0 || var_val == 0) {
-                //     printf("wtf??\n");
-                // }
-                // printf("%s: %d\n", name.c_str(), *solver_varp);
-                // res = yices_pp_term(stdout, *solver_varp, 160, 40, 0);
-                // if (res < 0 || *solver_varp == 0) {
-                //     printf("wtf??\n");
-                // }
-
+            bv_size(_bv_size), name(_name), full_name(_name + "_" + std::to_string(_idx)), idx(_idx), solver(_solver), force_bv(_force_bv)  {
+                if (force_bv) {
+                    this->solver_varp = std::make_shared<TVar>(solver->createBVVar(full_name, bv_size));
+                }
+                else {
+                    this->solver_varp = std::make_shared<TVar>(solver->createVar2(full_name, bv_size));
+                }
              }
 
         friend std::ostream& operator<< (std::ostream& stream, const variable& var) {
@@ -87,7 +79,7 @@ class R6Transformer {
 
         variable createFrom() {
             // printf("GF: %s\n", this->full_name.c_str());
-            auto res = variable(this->name, this->idx + 1, this->bv_size, this->solver);
+            auto res = variable(this->name, this->idx + 1, this->bv_size, this->solver, this->force_bv);
             return res;
         }
 
@@ -150,7 +142,23 @@ class R6Transformer {
         solver->assertLater(expr);
     }
 
-    void allocate_core_role_array() {
+    int get_pc_size(const std::set<atom>& atoms) const {
+        int count = 1;
+
+        for (auto &&atom : atoms) {
+            if (SMT::iterable_exists(policy->can_assign_rules().begin(), policy->can_assign_rules().end(),
+                                     [&](const rulep rule) { return rule->target == atom; } )) {
+                count++;
+            }
+            if (SMT::iterable_exists(policy->can_revoke_rules().begin(), policy->can_revoke_rules().end(),
+                                     [&](const rulep rule) { return rule->target == atom; } )) {
+                count++;
+            }
+        }
+        return numBits(count);
+    }
+
+    void allocate_core_role_array_set_pc_size() {
         auto cores = target_expr->literals();
         core_roles = new bool[policy->atom_count()];
         for (int i = 0; i < policy->atom_count(); i++) {
@@ -161,7 +169,17 @@ class R6Transformer {
             core_roles[(*ite)->role_array_index] = true;
             core_roles_size++;
         }
-        pc_size = numBits(core_roles_size + 1);
+
+        // let f(r) = 0 if not assignable nor revokable, 2 if both assignable and revokable, 1 otherwise  \sum_{r \in core_roles}(f(r))
+//        std::cout << "################################################################################################" << std::endl;
+//        std::cout << "Working on: " << *target_rule << std::endl;
+//        std::cout << "Expr:       " << *target_expr << std::endl;
+//        std::cout << "Minimal:    " << get_pc_size(cores) << std::endl;
+//        std::cout << "Overapprox: " << numBits((core_roles_size * 2) + 1) << std::endl;
+//        std::cout << "################################################################################################" << std::endl;
+
+        pc_size = get_pc_size(cores);
+
     }
 
     void free_core_role_array() {
@@ -219,7 +237,7 @@ class R6Transformer {
         delete[] per_role_cr_rules;
     }
 
-    int numBits(int pc) {
+    int numBits(int pc) const {
         int i = 1, bit = 0;
 
         if (pc < 2) return 1;
@@ -248,7 +266,7 @@ class R6Transformer {
         fprintf(stdout, "*\n");
         fprintf(stdout, "*  users: %d\n", (int)policy->users().size());
         fprintf(stdout, "*  roles: %d\n", policy->atom_count());
-        fprintf(stdout, "*  adminroles: %d\n", admin_role_array_index_size);
+//        fprintf(stdout, "*  adminroles: %d\n", admin_role_array_index_size);
         fprintf(stdout, "*  CA: %lu\n", policy->can_assign_rules().size());
         fprintf(stdout, "*  CR: %lu\n", policy->can_revoke_rules().size());
         fprintf(stdout, "*  CR: %lu\n", policy->can_revoke_rules().size());
@@ -278,7 +296,7 @@ class R6Transformer {
         core_value_true = std::vector<variable>((unsigned long) policy->atom_count());
         core_value_false = std::vector<variable>((unsigned long) policy->atom_count());
         // ext_vars = new std::shared_ptr<variable>[role_array_size];
-        program_counter = variable("pc", -1, pc_size, _solver_ptr);
+        program_counter = variable("pc", -1, pc_size, _solver_ptr, true);
 
         nondet_bool = variable("nondet_bool", -1, 1, _solver_ptr);
         // fprintf(outputFile, "\n/*---------- SKIP CHECKS ---------*/\n");
@@ -533,7 +551,7 @@ class R6Transformer {
         // fprintf(outputFile, "// assume(  \\/        ( /  \\          ((core_r_i != init_r_i) \\/ ((set_false_r_i /\\ init_r_i = 1) \\/ (set_true_r_i /\\ init_r_i = 0)) => set_r_i)))\n");
         // fprintf(outputFile, "//        u_i \\in U    r_i \\in \\phi\n");
         TExpr impl_assumption = zero;
-        for (auto &&user : policy->users()) {
+        for (auto &&user : policy->unique_configurations()) {
             TExpr inner_and = one;
             for (int i = 0; i < policy->atom_count(); i++) {
                 if (core_roles[i]) {
@@ -631,6 +649,10 @@ class R6Transformer {
         set_globals();
         generate_main();
 
+        if (Debug::experimental) {
+            std::cout << "pizza" << std::endl;
+        }
+
         SMTResult res = solver->solve();
 
         return res == UNSAT;
@@ -641,13 +663,14 @@ class R6Transformer {
     R6Transformer(const std::shared_ptr<SMTFactory<TVar, TExpr>> _solver,
                   const std::shared_ptr<arbac_policy>& _policy,
                   const std::shared_ptr<rule> _to_check, bool _check_adm) :
-        solver(_solver), pc_size(numBits((int) (check_adm ? _to_check->admin : _to_check->prec)->literals().size() + 1)),
+        solver(_solver),
         policy(_policy), target_rule(_to_check),
         target_expr(_check_adm ? target_rule->admin : target_rule->prec), check_adm(_check_adm),
         zero(solver->createFalse()), one(solver->createTrue()),
+        pc_size(get_pc_size(target_expr->literals())),
         log(false) {
         precompute_merge();
-        allocate_core_role_array();
+        allocate_core_role_array_set_pc_size();
         generate_variables();
     }
 
@@ -667,6 +690,10 @@ class R6Transformer {
                   const std::shared_ptr<arbac_policy>& policy,
                   const std::shared_ptr<rule>& to_check,
                   bool check_admin) {
+        if ((check_admin && is_constant_true(to_check->admin)) ||
+            (!check_admin && is_constant_true(to_check->prec))) {
+            return false;
+        }
         R6Transformer<TVar, TExpr> transf(solver, policy, to_check, check_admin);
         // std::shared_ptr<SMTFactory<expr, expr>> solver(new Z3Solver());
         // R6Transformer<expr, expr> transf(solver, rule_index, is_ca);
