@@ -195,7 +195,9 @@ main(int argc, char **argv)
             success_exit();
         }
         if (prune) {
-            SMT::perform_analysis(std::string(filename), backend);
+//            SMT::transform_2_lazycseq_r6(filename, out_file, 61, true);
+//            success_exit();
+            SMT::perform_analysis_old_style(SMT::PRUNE_ONLY, std::string(filename), backend);
             success_exit();
         }
 

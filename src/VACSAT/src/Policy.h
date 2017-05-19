@@ -40,9 +40,12 @@ namespace SMT {
 
     class user {
     public:
-        user(int original_idx);
-        user(int original_idx, std::set<atom> config);
+        user(int original_idx, bool _infinite = false);
+        user(std::string _name, int original_idx, bool _infinite = false);
+        user(std::string _name, int original_idx, std::set<atom> config, bool _infinite = false);
+        user(int original_idx, std::set<atom> config, bool _infinite = false);
 
+        void add_atom(const atom& atom1);
         void remove_atom(const atom& atom1);
 
         const std::string to_string() const;
@@ -54,6 +57,7 @@ namespace SMT {
 
         static user from_policy(std::vector<atom>& atoms, int original_idx);
 
+        const bool infinite;
         const int original_idx;
         const std::string name;
     private:
@@ -87,6 +91,7 @@ namespace SMT {
     class arbac_policy {
     public:
         arbac_policy();
+        arbac_policy(bool old_version);
 
         inline int atom_count() const {
             return (int) _atoms.size();
@@ -97,13 +102,18 @@ namespace SMT {
 
         Expr user_to_expr(int user_id) const;
 
+        void add_user(const userp& rule);
         void add_rule(const rulep& rule);
         void add_can_assign(const rulep& rule);
         void add_can_revoke(const rulep& rule);
+        void add_rules(const std::list<rulep>& _rules);
 
         void remove_rule(const rulep& rule);
+        void remove_rules(const std::list<rulep>& rule);
         void remove_can_assign(const rulep& rule);
+        void remove_can_assigns(const std::list<rulep>& rule);
         void remove_can_revoke(const rulep& rule);
+        void remove_can_revokes(const std::list<rulep>& rule);
         void remove_atom(const Literalp& atom);
 
         const std::string to_string() const;
@@ -127,6 +137,9 @@ namespace SMT {
         inline const std::vector<userp>& users() const {
             return _users;
         }
+        inline const std::set<userp, std::function<bool (const userp&, const userp&)>>& unique_configurations() {
+            return _unique_configurations;
+        };
         inline const int users_to_track() const {
             return _users_to_track;
         }
@@ -162,6 +175,8 @@ namespace SMT {
         std::vector<std::shared_ptr<rule>> _can_revoke_rules;
 
         std::vector<userp> _users;
+
+        std::set<userp, std::function<bool (const userp&, const userp&)>> _unique_configurations;
 
 //        arbac_cache cache;
 

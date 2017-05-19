@@ -94,10 +94,19 @@ namespace SMT {
 
     // ************  USER  ****************
 
-    user::user(int _original_idx) :
-            original_idx(_original_idx), name(std::string(user_array[_original_idx])) { }
-    user::user(int _original_idx, std::set<atom> config) :
-            original_idx(_original_idx), name(std::string(user_array[_original_idx])), _config(config) { }
+    user::user(int _original_idx, bool _infinite) :
+            original_idx(_original_idx), name(std::string(user_array[_original_idx])), infinite(_infinite) { }
+    user::user(std::string _name, int _original_idx, bool _infinite) :
+            original_idx(_original_idx), name(_name), _config(std::set<atom>()), infinite(_infinite) { }
+    user::user(std::string _name, int _original_idx, std::set<atom> config, bool _infinite) :
+            original_idx(_original_idx), name(_name), _config(config), infinite(_infinite) { }
+    user::user(int _original_idx, std::set<atom> config, bool _infinite) :
+            original_idx(_original_idx), name(std::string(user_array[_original_idx])), _config(config), infinite(_infinite) { }
+
+    void user::add_atom(const atom& atom1) {
+        //TODO: Truc: check this stub
+        _config.insert(atom1);
+    }
 
     void user::remove_atom(const atom& atom1) {
         _config.erase(atom1);
@@ -144,7 +153,7 @@ namespace SMT {
     }
 
     Expr getCAPNFormula(std::vector<Atom> &role_vars, int ca_index) {
-        Expr cond = createConstantExpr(true, 1);
+        Expr cond = createConstantTrue();
 
         if (ca_array[ca_index].type == 0) {     // Has precondition
             // P
@@ -156,7 +165,7 @@ namespace SMT {
                     rp_name = std::string(role_array[ca_array_p[j]]);
                     ca_cond = createAndExpr(ca_cond, role_vars[ca_array_p[j]]);
                 }
-                cond = createAndExpr(cond, ca_cond);
+                cond = ca_cond;
             }
             // N
             if (ca_array[ca_index].negative_role_array_size > 0) {
@@ -186,7 +195,26 @@ namespace SMT {
         return res;
     }
 
+    std::set<userp, std::function<bool (const userp&, const userp&)>> update_unique_confs(std::vector<userp> users) {
+        auto user_comp = [&](const userp user1, const userp user2){ return user1->config() < user2->config(); };
+        auto confs = std::set<userp, std::function<bool (const userp&, const userp&)>>( user_comp );
+
+        for (auto &&user : users) {
+            confs.insert(user);
+        }
+
+        return confs;
+    };
+
     arbac_policy::arbac_policy() :
+            _atoms(std::vector<Literalp>()),
+            _users(std::vector<std::shared_ptr<user>>()),
+            _rules(std::vector<std::shared_ptr<rule>>()),
+            _can_assign_rules(std::vector<std::shared_ptr<rule>>()),
+            _can_revoke_rules(std::vector<std::shared_ptr<rule>>()),
+            _users_to_track(std::numeric_limits<int>::max()) { }
+
+    arbac_policy::arbac_policy(bool old_version) :
             _atoms(std::vector<Literalp>()),
             _users(std::vector<std::shared_ptr<user>>()),
             _rules(std::vector<std::shared_ptr<rule>>()),
@@ -227,6 +255,7 @@ namespace SMT {
         for (i = 0; i < user_array_size; ++i) {
             _users.push_back(std::make_shared<user>(user::from_policy(this->_atoms, i)));
         }
+        this->update();
     }
 
     Expr arbac_policy::user_to_expr(int user_id) const {
@@ -339,6 +368,7 @@ namespace SMT {
             }
         }
         _users_to_track = std::numeric_limits<int>::max();
+        _unique_configurations = update_unique_confs(this->_users);
     }
 
     void arbac_policy::add_rule(const rulep& rule) {
@@ -357,6 +387,17 @@ namespace SMT {
         this->_can_revoke_rules.push_back(rule);
         this->update();
     }
+    void arbac_policy::add_rules(const std::list<rulep>& _rules) {
+        for (auto &&rule : _rules) {
+            if (rule->is_ca) {
+                this->_can_assign_rules.push_back(rule);
+            }
+            else {
+                this->_can_revoke_rules.push_back(rule);
+            }
+        }
+        this->update();
+    }
 
     void arbac_policy::remove_atom(const Literalp &atom) {
         this->unsafe_remove_atom(atom);
@@ -366,14 +407,32 @@ namespace SMT {
         this->unsafe_remove_rule(_rule);
         this->update();
     }
+    void arbac_policy::remove_rules(const std::list<rulep>& _rules) {
+        for (auto &&rule : _rules) {
+            this->unsafe_remove_rule(rule);
+        }
+        this->update();
+    }
 
     void arbac_policy::remove_can_assign(const rulep &_rule) {
         this->unsafe_remove_can_assign(_rule);
         this->update();
     }
+    void arbac_policy::remove_can_assigns(const std::list<rulep>& _rules) {
+        for (auto &&rule : _rules) {
+            this->unsafe_remove_can_assign(rule);
+        }
+        this->update();
+    }
 
     void arbac_policy::remove_can_revoke(const rulep &_rule) {
         this->unsafe_remove_can_revoke(_rule);
+        this->update();
+    }
+    void arbac_policy::remove_can_revokes(const std::list<rulep>& _rules) {
+        for (auto &&rule : _rules) {
+            this->unsafe_remove_can_revoke(rule);
+        }
         this->update();
     }
 
@@ -418,12 +477,5 @@ namespace SMT {
         stream << self.to_string();
         return stream;
     }
-
-//    void arbac_policy::remove_can_assign(int index) {
-//        this->can_assign_rules.erase(can_assign_rules.begin() + index);
-//    }
-//    void arbac_policy::remove_can_revoke(int index) {
-//        this->can_revoke_rules.erase(can_revoke_rules.begin() + index);
-//    }
 
 }

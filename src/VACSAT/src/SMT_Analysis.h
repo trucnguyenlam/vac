@@ -15,8 +15,17 @@
 #include "prelude.h"
 
 namespace SMT {
+    enum AnalysisType {
+        PRUNE_ONLY,
+        CHECK_ONLY,
+        FULL_ANALYSIS
+    };
 
-    void perform_analysis(const std::string& inputFile, const std::string& solver_name);
+    void perform_analysis_old_style(AnalysisType analysis_type, const std::string &inputFile,
+                                    const std::string &solver_name);
+
+    void perform_analysis(AnalysisType analysis_type, const std::string &inputFile,
+                                    const std::string &solver_name);
 }
 
 #endif //VACSAT_SMT_ANALYSIS_H
