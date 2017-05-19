@@ -64,6 +64,36 @@ namespace SMT {
             }
         }
 
+        /* PRELIMINARY BACKWARD SLICING */
+        bool backward_slicing() {
+            bool fixpoint = false;
+            std::set<rulep> to_save;
+            std::set<atom> necessary_atoms;
+            necessary_atoms.insert(policy->goal_role);
+            while (!fixpoint) {
+                fixpoint = true;
+                for (auto &&rule : policy->rules()) {
+                    if (!contains(to_save, rule) && contains(necessary_atoms, rule->target)) {
+                        necessary_atoms.insert(rule->admin->literals().begin(), rule->admin->literals().end());
+                        necessary_atoms.insert(rule->prec->literals().begin(), rule->prec->literals().end());
+                        to_save.insert(rule);
+                        fixpoint = false;
+                    }
+                }
+            }
+
+            std::list<rulep> to_remove;
+            for (auto &&rule : policy->rules()) {
+                if (!contains(to_save, rule)) {
+                    to_remove.push_back(rule);
+                }
+            }
+
+            policy->remove_rules(to_remove);
+
+            return to_remove.size() > 0;
+        }
+
         /* PRELIMINARY SIMPLE PRUNING (REMOVING ATOMS NOT USED IN ANY CONDITION,
          *                             CAN_ASSIGN OF NON POSITIVE ATOMS,
          *                             CAN_REVOKE OF NON NEGATIVE ATOMS AND OF GOAL ATOM) */
@@ -345,17 +375,31 @@ namespace SMT {
             return true;
         }
 
-        bool immaterial_k_plus_two(const std::set<atom>& conf) {
+        int admin_count() {
+            //FIXME: use semantics equivalence and not structural one
+            auto expr_comp = [&](const Expr e1, const Expr e2){ return e1->equals(e2); };
+            auto admin_exprs = std::set<Expr, decltype(expr_comp)>( expr_comp );
+
+            for (auto &&rule :policy->rules()) {
+                admin_exprs.insert(rule->admin);
+            }
+
+            return (int) admin_exprs.size();
+        }
+
+        bool immaterial_k_plus_two(const std::set<atom>& conf, int count) {
             int i = 0;
             for (auto &&user : policy->users()) {
                 if (user->config() == conf) {
                     i++;
                 }
             }
-            return i > policy->users_to_track();
+
+            return i > count;
+//            return i > policy->users_to_track();
         }
 
-        bool immaterial_adom_in_prec(const rulep& rule) {
+        bool immaterial_admin_in_prec(const rulep& rule) {
             // This rule checks if adm is implied in prec. If so we can remove the admin part and replace with TRUE since the check is done on
             solver->clean();
             std::vector<std::shared_ptr<TVar>> var_vect(policy->atom_count());
@@ -374,12 +418,11 @@ namespace SMT {
             return res == UNSAT;
         }
 
-        template <typename TComp>
-        bool immaterial_adm(const std::set<userp, TComp>& user_confs, const Expr& adm) {
+        bool immaterial_adm(const Expr& adm) {
             bool exists_user = false;
             userp satisfiant = nullptr;
             //exists a user that satisfies phi_adm
-            for (auto &&user : user_confs) {
+            for (auto &&user : policy->unique_configurations()) {
                 solver->clean();
 
                 Expr adm_expr = adm;
@@ -407,7 +450,8 @@ namespace SMT {
                 return false;
             }
             else {
-                return immaterial_k_plus_two(satisfiant->config()) || immaterial_not_interfere(adm);
+                int _admin_count = admin_count();
+                return immaterial_k_plus_two(satisfiant->config(), _admin_count) || immaterial_not_interfere(adm);
             }
         }
 
@@ -415,12 +459,12 @@ namespace SMT {
             std::map<Expr, std::list<rulep>> admins;
 //            std::set<userp>
 
-            auto user_comp = [&](const userp user1, const userp user2){ return user1->config() < user2->config(); };
-            auto confs = std::set<userp, decltype(user_comp)>( user_comp );
-
-            for (auto &&user : policy->users()) {
-                confs.insert(user);
-            }
+//            auto user_comp = [&](const userp user1, const userp user2){ return user1->config() < user2->config(); };
+//            auto confs = std::set<userp, decltype(user_comp)>( user_comp );
+//
+//            for (auto &&user : policy->users()) {
+//                confs.insert(user);
+//            }
 
             for (auto &&rule : policy->rules()) {
                 admins[rule->admin].push_back(rule);
@@ -431,7 +475,7 @@ namespace SMT {
                     // Do nothing if the administrative expression is the True constant
                     continue;
                 }
-                bool has_admin = immaterial_adm(confs, adm_pair.first);
+                bool has_admin = immaterial_adm(adm_pair.first);
                 if (has_admin) {
                     std::cout << "Administrative expression " << *adm_pair.first << " IS IMMATERIAL" << std::endl;
                     has_changed = true;
@@ -638,7 +682,7 @@ namespace SMT {
         }
 
         /* IMPLIED RULE FUNCTIONS */
-        int implied(std::shared_ptr<rule> ca1, std::shared_ptr<rule> ca2) {
+        int implied(const std::shared_ptr<rule>& ca1, const std::shared_ptr<rule>& ca2) {
             std::map<std::string, TVar> c_map;
             std::map<std::string, TVar> adm_map;
             std::string c_suff("C");
@@ -848,9 +892,12 @@ namespace SMT {
 
         /* RULE 6 FUNCTIONS (NOT FIREABLE RULES) */
         bool prune_rule_6() {
-            std::vector<std::shared_ptr<rule>> to_remove;
+            std::list<std::shared_ptr<rule>> to_remove;
 
             for (auto &&rule : policy->rules()) {
+//                if (rule->target->name.compare(0, 7, "anyfour") == 0) {
+//                    std::cout << *rule << std::endl;
+//                }
                 solver->clean();
                 bool rem_pn = apply_r6<TVar, TExpr>(this->solver, this->policy, rule, false);
                 solver->clean();
@@ -882,8 +929,11 @@ namespace SMT {
             }
 
             for (auto &&rule : to_remove) {
-                policy->remove_rule(rule);
+//                policy->remove_rule(rule);
+                std::cout << *rule << std::endl;
             }
+
+            policy->remove_rules(to_remove);
 
             std::cout << std::endl << "Removed " << to_remove.size() << " rules" << std::endl;
 
@@ -895,6 +945,75 @@ namespace SMT {
 //            auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 //            std::cout << "------------ Rule6 executed in " << milliseconds.count() << " ms ------------\n";
 
+        }
+
+        /* SIMPLIFY EXPRESSIONS */
+        std::list<atom> get_irrelevant(const Expr& expr) {
+            std::list<atom> to_remove;
+            for (auto &&atom :expr->literals()) {
+                std::vector<std::shared_ptr<TExpr>> var_vect((ulong) policy->atom_count());
+
+                //phi_a_true
+                var_vect[atom->role_array_index] = std::make_shared<TExpr>(solver->createTrue());
+                TExpr phi_a_true = generateSMTFunction2(solver, expr, var_vect, "C");
+
+                //phi_a_false
+                var_vect[atom->role_array_index] = std::make_shared<TExpr>(solver->createFalse());
+                TExpr phi_a_false = generateSMTFunction2(solver, expr, var_vect, "C");
+
+                // Phi_r_true(C) /\ not Phi_r_false(C)
+                TExpr pos = solver->createAndExpr(phi_a_true,
+                                                 solver->createNotExpr(phi_a_false));
+                // Phi_r_false(C) /\ not Phi_r_true(C)
+                TExpr neg = solver->createAndExpr(solver->createNotExpr(phi_a_true),
+                                                 phi_a_false);
+
+                TExpr to_check = solver->createOrExpr(pos, neg);
+
+                solver->assertNow(to_check);
+                SMTResult res = solver->solve();
+
+                if (res == UNSAT) {
+                    to_remove.push_back(atom);
+                }
+            }
+            return to_remove;
+        }
+
+        bool simplify_expressions() {
+            bool has_changed = false;
+            std::list<rulep> to_remove;
+            std::list<rulep> to_add;
+            for (auto &&rule :policy->rules()) {
+                std::list<atom> admin_to_remove = get_irrelevant(rule->admin);
+                std::list<atom> prec_to_remove = get_irrelevant(rule->prec);
+
+                if (admin_to_remove.size() > 0 || prec_to_remove.size() > 0) {
+
+                    Expr adm = rule->admin;
+                    for (auto &&atom : admin_to_remove) {
+                        has_changed = true;
+                        adm = delete_atom(adm, atom);
+                        std::cout << "Removing atom " << *atom << " from expression " << adm << " since is not used." << std::endl;
+                    }
+                    Expr prec = rule->prec;
+                    for (auto &&atom : prec_to_remove) {
+                        has_changed = true;
+                        prec = delete_atom(prec, atom);
+                        std::cout << "Removing atom " << *atom << " from expression " << prec << " since is not used." << std::endl;
+                    }
+
+                    to_remove.push_back(rule);
+                    to_add.push_back(std::shared_ptr<SMT::rule>(new SMT::rule(rule->is_ca, adm, prec, rule->target, -1)));
+                }
+            }
+
+
+            policy->remove_rules(to_remove);
+            policy->add_rules(to_add);
+
+
+            return has_changed;
         }
 
         /* NOT USED ANYMORE */
@@ -1188,6 +1307,10 @@ namespace SMT {
             while (!fixpoint) {
                 auto step_start = std::chrono::high_resolution_clock::now();
 
+                std::cout << "Applying backward_slicing on " << policy->rules().size() << std::endl;
+                bool backward_slicing_res = this->backward_slicing();
+                std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+
                 std::cout << "Applying easy_pruning on " << policy->rules().size() << std::endl;
                 bool easy_pruning_res = this->easy_pruning();
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
@@ -1200,25 +1323,32 @@ namespace SMT {
                 bool prune_irrelevant_roles_res = this->prune_irrelevant_roles();
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
 
-                std::cout << "Applying prune_implied_pairs on " << policy->rules().size() << std::endl;
-                bool prune_implied_pairs_res = this->prune_implied_pairs();
-                std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+//                std::cout << "Applying prune_implied_pairs on " << policy->rules().size() << std::endl;
+//                bool prune_implied_pairs_res = this->prune_implied_pairs();
+//                std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
 
                 std::cout << "Applying merge_rules on " << policy->rules().size() << std::endl;
                 bool merge_rules_res = this->merge_rules();
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+
+                if (fixpoint_iteration == 2) {
+                    Debug::experimental = true;
+                }
 
                 std::cout << "Applying prune_rule_6 on " << policy->rules().size() << std::endl;
                 bool prune_rule_6_res = this->prune_rule_6();
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
 
                 fixpoint =
-                        !(easy_pruning_res           ||
+                        !(
+                          backward_slicing_res       ||
+                          easy_pruning_res           ||
                           prune_immaterial_roles_res ||
-                          merge_rules_res            ||
                           prune_irrelevant_roles_res ||
-                          prune_implied_pairs_res    ||
-                          prune_rule_6_res);
+//                          prune_implied_pairs_res    ||
+                          merge_rules_res            ||
+                          prune_rule_6_res
+                          );
 
                 std::cout << "Iteration: " << fixpoint_iteration++;
                 auto step_end = std::chrono::high_resolution_clock::now();
@@ -1226,26 +1356,31 @@ namespace SMT {
                 std::cout << " done in " << step_milliseconds .count() << " ms." << std::endl;
             }
 
+//            std::cout << *policy;
+
+//            simplify_expressions();
+
+
             std::cout << *policy;
 
             auto global_end = std::chrono::high_resolution_clock::now();
             auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(global_end - global_start);
             std::cout << "------------ Pruning done in " << milliseconds.count() << " ms ------------" << std::endl;
 
-            auto map = partition_admins();
-            for (int i = 0; i < map.first.size(); ++i) {
-                std::cout << i << ": " << *map.first[i] << std::endl;
-            }
-            for (auto &&expr :map.second) {
-                std::cout << *expr << ";" << std::endl;
-            }
+//            auto map = partition_admins();
+//            for (int i = 0; i < map.first.size(); ++i) {
+//                std::cout << i << ": " << *map.first[i] << std::endl;
+//            }
+//            for (auto &&expr :map.second) {
+//                std::cout << *expr << ";" << std::endl;
+//            }
 
         }
 
         Pruning(const std::shared_ptr<SMTFactory<TVar, TExpr>>& _solver,
                 const std::shared_ptr<arbac_policy>& policy) :
             solver(_solver),
-            policy(new arbac_policy()) { }
+            policy(policy) { }
     };
 
     // void test_yices() {
