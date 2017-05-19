@@ -6,7 +6,7 @@
 
 #include "antlr4-runtime.h"
 #include "vacgrammarBaseListener.h"
-#include "model/Models.h"
+#include "Models.h"
 
 
 namespace Parser {

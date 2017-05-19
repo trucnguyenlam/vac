@@ -9,8 +9,8 @@
 // @changeLog:
 //    2017.04.28   Initial version
 
-#ifndef VACSAT_MODEL_H
-#define VACSAT_MODEL_H
+#ifndef PARSER_MODEL_H
+#define PARSER_MODEL_H
 
 #include "Logics.h"
 
@@ -45,33 +45,7 @@ class Attribute {
     int size;
     Expr value;  // value of this attribute
 };
-typedef std::shared_ptr<Attribute> AttributePtr;
-
-// AttributeRef in Expression
-class Entity: public Literal {
-  public:
-    Entity(std::string _name, std::string _user_name, int _local_id,
-           std::string _attr_name, int _attr_ID):
-        name(_name), user_name(_user_name), local_ID(_local_id),
-        attr_name(_attr_name), attr_ID(_attr_ID)
-    {}
-    ~Entity() {}
-
-    int getLocalID(void) const;
-    int getAttributeID(void) const;
-    std::string getAttributeName(void) const;
-    std::string getUserName(void) const;
-    std::string to_string(void) const;
-
-  private:
-    std::string name;  // full name
-    int local_ID; // local ID of user
-    std::string user_name; // Attribute name
-    int attr_ID; // Attribute ID
-    std::string attr_name; // Attribute name
-};
-
-typedef std::shared_ptr<Entity> Entityp;
+using AttributePtr = std::shared_ptr<Attribute>;
 
 class User {
   public:
@@ -79,7 +53,6 @@ class User {
         ID(ID), name(name), isNew(isNew)
     {}
     ~User() {}
-
 
     // Set attribute for user, if this user does not have
     // this attribute, insert new one, otherwise, update
@@ -101,7 +74,7 @@ class User {
     std::map<std::string, int> attr_map;
 };
 
-typedef std::shared_ptr<User> UserPtr;
+using UserPtr = std::shared_ptr<User>;
 
 class Rule {
   public:
@@ -119,18 +92,18 @@ class Rule {
 
 };
 
-typedef std::shared_ptr<Rule> RulePtr;
+using RulePtr = std::shared_ptr<Rule>;
 
 
 class Model {
   public:
     Model(): query(nullptr) {}
     ~Model() {
-        users.clear();
-        attrs.clear();
-        rules.clear();
-        user_map.clear();
-        attr_map.clear();
+        // users.clear();
+        // attrs.clear();
+        // rules.clear();
+        // user_map.clear();
+        // attr_map.clear();
     }
 
     void insertNewUser(UserPtr u, int id);
@@ -162,12 +135,8 @@ class Model {
     std::map<std::string, int> attr_map;
 };
 
+using ModelPtr = std::shared_ptr<Model>;
 
-typedef std::shared_ptr<Model> ModelPtr;
+}
 
-
-} // SMT
-
-
-
-#endif //VACSAT_MODEL_H
+#endif //PARSER_MODEL_H

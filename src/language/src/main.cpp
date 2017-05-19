@@ -10,7 +10,7 @@
 #include "parser/vacgrammarLexer.h"
 #include "parser/vacgrammarParser.h"
 #include "parser/MyListener.h"
-#include "model/Models.h"
+#include "parser/Models.h"
 
 using namespace Parser;
 

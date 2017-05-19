@@ -6,6 +6,8 @@ LIST( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 # compiler must be 11 or 14
 SET (CMAKE_CXX_STANDARD 11)
 
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
+
 # set variable pointing to the antlr tool that supports C++
 # set(ANTLR4CPP_JAR_LOCATION ${PROJECT_SOURCE_DIR}/thirdparty/antlr/antlr-4.7-complete.jar)
 # add external build for antlrcpp
@@ -25,7 +27,14 @@ message(STATUS "Found antlr4cpp libs: ${ANTLR4CPP_LIBS} and includes: ${ANTLR4CP
 include_directories(${PROJECT_SOURCE_DIR}/src)
 # include_directories(${PROJECT_SOURCE_DIR}/src/parser/)
 
-FILE(GLOB generated_files ${PROJECT_SOURCE_DIR}/src/parser/*.cpp)
+# FILE(GLOB generated_files ${PROJECT_SOURCE_DIR}/src/parser/*.cpp)
+set(generated_files
+    ${PROJECT_SOURCE_DIR}/src/parser/vacgrammarListener.cpp
+    ${PROJECT_SOURCE_DIR}/src/parser/vacgrammarBaseListener.cpp
+    ${PROJECT_SOURCE_DIR}/src/parser/vacgrammarParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/parser/vacgrammarLexer.cpp
+    ${PROJECT_SOURCE_DIR}/src/parser/MyListener.cpp
+    )
 
 # export generated cpp files into list
 foreach(generated_file ${generated_files})
@@ -39,8 +48,8 @@ endforeach(generated_file)
 
 set(SOURCES
     ${PROJECT_SOURCE_DIR}/src/main.cpp
-    ${PROJECT_SOURCE_DIR}/src/model/Logics.cpp
-    ${PROJECT_SOURCE_DIR}/src/model/Models.cpp
+    ${PROJECT_SOURCE_DIR}/src/parser/Logics.cpp
+    ${PROJECT_SOURCE_DIR}/src/parser/Models.cpp
 )
 
 # add generated grammar to demo binary target

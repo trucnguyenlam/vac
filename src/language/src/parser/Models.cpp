@@ -47,27 +47,6 @@ std::string Attribute::to_string(void) const {
     return ret;
 }
 
-// Entity class
-int Entity::getLocalID(void) const {
-    return local_ID;
-}
-
-int Entity::getAttributeID(void) const {
-    return attr_ID;
-}
-
-std::string Entity::getUserName(void) const {
-    return user_name;
-}
-
-std::string Entity::getAttributeName(void) const {
-    return attr_name;
-}
-
-std::string Entity::to_string(void) const {
-    return name;
-}
-
 // User class
 
 void User::setAttribute(AttributePtr attr) {
