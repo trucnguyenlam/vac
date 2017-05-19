@@ -63,7 +63,11 @@ set(SOURCE_FILES
         src/ARBACTransform.cpp
         src/Policy.h
         src/Policy.cpp
-        src/prelude.h src/SMT_Analysis.h src/SMT_Analysis.cpp)
+        src/prelude.h
+        src/SMT_Analysis.h
+        src/SMT_Analysis.cpp
+        src/SMT_Analysis_old_style.cpp
+        src/debug.h)
 
 
 
