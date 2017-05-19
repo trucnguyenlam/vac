@@ -49,7 +49,7 @@ namespace SMT {
         preprocess(false);
         build_config_array();
 
-        std::shared_ptr<arbac_policy> policy(new arbac_policy());
+        std::shared_ptr<arbac_policy> policy(new arbac_policy(true));
         set_solver_execute(analysis_type, policy, solver_name);
 
 
