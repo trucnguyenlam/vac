@@ -1,29 +1,29 @@
-//#include "ARBACExact.h"
-#include <time.h>
-#include <vector>
-#include <iostream>
-#include <string>
-#include <sstream> 
-#include <memory>
-
-#include "Logics.h"
-#include "SMT.h"
-#include "SMTSolvers/yices.h"
-#include "SMTSolvers/Z3.h"
-#include "Policy.h"
-
-#include <chrono>
-
-// #include "Templated.h"
-// #include "dummy_esbmc.h"
-
-namespace SMT {
-
+////#include "ARBACExact.h"
+//#include <time.h>
+//#include <vector>
+//#include <iostream>
+//#include <string>
+//#include <sstream>
+//#include <memory>
+//
+//#include "Logics.h"
+//#include "SMT.h"
+//#include "SMTSolvers/yices.h"
+//#include "SMTSolvers/Z3.h"
+//#include "Policy.h"
+//
+//#include <chrono>
+//
+//// #include "Templated.h"
+//// #include "dummy_esbmc.h"
+//
+//namespace SMT {
+//
 //using std::vector;
 //using std::shared_ptr;
 //using std::stringstream;
 //using std::string;
-
+//
 //template <typename TVar, typename TExpr>
 //class BMCTransformer {
 //    private:
@@ -154,7 +154,7 @@ namespace SMT {
 //        solver->assertLater(expr);
 //    }
 //
-//    inline void emitAssertion(TExpr assertion) {
+//    inline void emit_assertion(TExpr assertion) {
 //        final_assertions.push_back(assertion);
 //    }
 //
@@ -342,7 +342,7 @@ namespace SMT {
 //        fmt << "*" << std::endl;
 //        fmt << "*  users: " << policy->users().size() << std::endl;
 //        fmt << "*  roles: " << policy->atom_count() << std::endl;
-//        fmt << "*  adminroles: " << admin_role_array_index_size << std::endl;
+////        fmt << "*  adminroles: " << admin_role_array_index_size << std::endl;
 //        fmt << "*  CA: " << policy->can_assign_rules().size() << std::endl;
 //        fmt << "*  CR: " << policy->can_revoke_rules().size() << std::endl;
 //        fmt << "*  ThreadCount: " << threads_count << std::endl;
@@ -544,7 +544,7 @@ namespace SMT {
 //        int j;
 //        // TExpr cond = -1;
 //        // Admin role must be available
-//        TExpr admin_cond = globals[ca->admin].get_solver_var();
+//        TExpr admin_cond = globals[rule->admin].get_solver_var();
 //
 //        // Precondition must be satisfied
 //        TExpr prec_cond = generate_from_prec(thread_id, rule->prec);
@@ -566,40 +566,41 @@ namespace SMT {
 //        return cond;
 //    }
 //
-//    void simulate_can_assigns_by_role(int thread_id, int target_role_index, int rule_id) {
+//    void simulate_can_assigns_by_atom(int thread_id, atom target, int rule_id) {
 //        // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
 //        int i = 0;
 //        TExpr pc_cond, ca_cond, all_cond;
 //        // TExpr pc_cond = -1, ca_cond = -1, all_cond = -1;
 //        //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
 //        clean_fmt();
-//        fmt << "--- ASSIGNMENT RULES FOR ROLE " << policy->atoms(target_role_index) << " ---";
+//        fmt << "--- ASSIGNMENT RULES FOR ROLE " << *target << " ---";
 //        emitComment(fmt.str());
 //
-//        if (roles_ca_counts[target_role_index] < 1) {
+//        if (per_role_ca_rules[target->role_array_index].size() < 1) {
 //            clean_fmt();
-//            fmt << "--- ROLE " << role_array[target_role_index] << " IS NOT ASSIGNABLE... SHOULD CRASH ---";
-//            string msg = fmt.str();
-//            emitComment(msg);
-//            fprintf(stderr, "%s", msg.c_str());
+//            std::cerr << "--- ATOM " << *target << " IS NOT ASSIGNABLE... SHOULD CRASH ---";
+////            emitComment(msg);
 //            return;
 //        }
 //
 //        pc_cond = generate_PC_cond(rule_id);
 //
-//        emit_ca_comment(per_role_ca_indexes[target_role_index][0]);
-//        ca_cond = generate_CA_cond(thread_id, per_role_ca_indexes[target_role_index][0]);
+////        emit_ca_comment(per_role_ca_indexes[target_role_index][0]);
 //
-//        for (i = 1; i < roles_ca_counts[target_role_index]; ++i) {
-//            int ca_idx = per_role_ca_indexes[target_role_index][i];
-//            TExpr ith_cond = generate_CA_cond(thread_id, ca_idx);
-//            emit_ca_comment(ca_idx);
+//        auto rule_ite = per_role_ca_rules[target->role_array_index].begin();
+//
+//        ca_cond = generate_rule_cond(thread_id, *rule_ite);
+//        rule_ite++;
+//
+//        for ( ; rule_ite != per_role_ca_rules[target->role_array_index].end(); ++rule_ite) {
+//            TExpr ith_cond = generate_rule_cond(thread_id, *rule_ite);
+////            emit_ca_comment(ca_idx);
 //            ca_cond = solver->createOrExpr(ca_cond, ith_cond);
 //        }
 //
 //        all_cond = solver->createAndExpr(pc_cond, ca_cond);
-//        variable ca_guard = createFrom(guard, all_cond);
-//        emitAssignment(ca_guard);
+//        variable ca_guard = guard.createFrom();
+//        emit_assignment(ca_guard, all_cond);
 //        guard = ca_guard;
 //
 //        if (belong_to(admin_role_array_index, admin_role_array_index_size, target_role_index)) {
@@ -613,48 +614,48 @@ namespace SMT {
 //            locals[thread_id][target_role_index] = nloc;
 //        }
 //        else {
-//            TExpr nlval = solver->createCondExpr(ca_guard.get_solver_var(), one, locals[thread_id][target_role_index].get_solver_var());
-//            variable nloc = createFrom(locals[thread_id][target_role_index], nlval);
-//            emitAssignment(nloc);
-//            locals[thread_id][target_role_index] = nloc;
+//            TExpr nlval = solver->createCondExpr(ca_guard.get_solver_var(), one, locals[thread_id][target->role_array_index].get_solver_var());
+//            variable nloc = locals[thread_id][target->role_array_index].createFrom();
+//            emit_assignment(nloc, nlval);
+//            locals[thread_id][target->role_array_index] = nloc;
 //        }
 //    }
 //
-//    void
-//    simulate_can_revokes_by_role(int thread_id, int target_role_index, int rule_id) {
+//    void simulate_can_revokes_by_role(int thread_id, atom target, int rule_id) {
 //        // Precondition: exists always at least one CR that assign the role i.e.: roles_cr_counts[target_role_index] > 1
 //        int i = 0;
 //        TExpr pc_cond, cr_cond, all_cond;
 //        // TExpr pc_cond = -1, cr_cond = -1, all_cond = -1;
 //        //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
 //        clean_fmt();
-//        fmt << "--- REVOKE RULES FOR ROLE " << role_array[target_role_index] << " ---";
+//        fmt << "--- REVOKE RULES FOR ROLE " << *target << " ---";
 //        emitComment(fmt.str());
 //
-//        if (roles_cr_counts[target_role_index] < 1) {
-//            clean_fmt();
-//            fmt << "--- ROLE " << role_array[target_role_index] << " IS NOT REVOKABLE... SHOULD CRASH ---";
-//            string msg = fmt.str();
-//            emitComment(msg);
-//            fprintf(stderr, "%s", msg.c_str());
+//        if (per_role_cr_rules[target->role_array_index].size() < 1) {
+//            std::cerr << "--- ROLE " << *target << " IS NOT REVOKABLE... SHOULD CRASH ---";
+////            string msg = fmt.str();
+////            emitComment(msg);
+////            fprintf(stderr, "%s", msg.c_str());
 //            return;
 //        }
 //
 //        pc_cond = generate_PC_cond(rule_id);
 //
-//        emit_cr_comment(per_role_cr_indexes[target_role_index][0]);
-//        cr_cond = generate_CR_cond(thread_id, per_role_cr_indexes[target_role_index][0]);
+////        emit_cr_comment(per_role_cr_indexes[target_role_index][0]);
+//        auto rule_ite = per_role_cr_rules[target->role_array_index].begin();
 //
-//        for (i = 1; i < roles_cr_counts[target_role_index]; ++i) {
-//            int cr_idx = per_role_cr_indexes[target_role_index][i];
-//            TExpr ith_cond = generate_CR_cond(thread_id, cr_idx);
-//            emit_cr_comment(cr_idx);
+//        cr_cond = generate_rule_cond(thread_id, *rule_ite);
+//        rule_ite++;
+//
+//        for ( ; rule_ite != per_role_cr_rules[target->role_array_index].end(); ++rule_ite) {
+//            TExpr ith_cond = generate_rule_cond(thread_id, *rule_ite);
+////            emit_cr_comment(cr_idx);
 //            cr_cond = solver->createOrExpr(cr_cond, ith_cond);
 //        }
 //
 //        all_cond = solver->createAndExpr(pc_cond, cr_cond);
-//        variable cr_guard = createFrom(guard, all_cond);
-//        emitAssignment(cr_guard);
+//        variable cr_guard = guard.createFrom();
+//        emit_assignment(cr_guard, all_cond);
 //        guard = cr_guard;
 //
 //        if (belong_to(admin_role_array_index, admin_role_array_index_size, target_role_index)) {
@@ -668,32 +669,30 @@ namespace SMT {
 //            locals[thread_id][target_role_index] = nloc;
 //        }
 //        else {
-//            TExpr nlval = solver->createCondExpr(cr_guard.get_solver_var(), zero, locals[thread_id][target_role_index].get_solver_var());
-//            variable nloc = createFrom(locals[thread_id][target_role_index], nlval);
-//            emitAssignment(nloc);
-//            locals[thread_id][target_role_index] = nloc;
+//            TExpr nlval = solver->createCondExpr(cr_guard.get_solver_var(), zero, locals[thread_id][target->role_array_index].get_solver_var());
+//            variable nloc = locals[thread_id][target->role_array_index].createFrom();
+//            emit_assignment(nloc, nlval);
+//            locals[thread_id][target->role_array_index] = nloc;
 //        }
 //    }
 //
-//    void
-//    generate_check(int thread_id) {
+//    void generate_check(int thread_id) {
 //        //TODO: Could be optimized here
-//        clean_fmt();
-//        fmt << "---------------ERROR CHECK THREAD " << thread_id << " ROLE " << role_array[goal_role_index] << "------------";
-//        emitComment(fmt.str());
-//        TExpr term_cond = locals[thread_id][goal_role_index].get_solver_var();
-//        variable term_guard = createFrom(guard, term_cond);
-//        emitAssignment(term_guard);
+////        clean_fmt();
+////        fmt << "---------------ERROR CHECK THREAD " << thread_id << " ROLE " << role_array[goal_role_index] << "------------";
+////        emitComment(fmt.str());
+//        TExpr term_cond = locals[thread_id][policy->goal_role->role_array_index].get_solver_var();
+//        variable term_guard = guard.createFrom();
+//        emit_assignment(term_guard, term_cond);
 //        guard = term_guard;
 //        TExpr assertion_cond = solver->createCondExpr(term_guard.get_solver_var(), zero, one);
-//        emitAssertion(assertion_cond);
+//        emit_assertion(assertion_cond);
 //    }
 //
-//    void
-//    simulate_thread(int thread_id) {
-//        clean_fmt();
-//        fmt << "--------------- APPLICATION OF THREAD " << thread_id << " ------------";
-//        emitComment(fmt.str());
+//    void simulate_thread(int thread_id) {
+////        clean_fmt();
+////        fmt << "--------------- APPLICATION OF THREAD " << thread_id << " ------------";
+////        emitComment(fmt.str());
 //
 //        generate_updates(thread_id);
 //
@@ -703,50 +702,48 @@ namespace SMT {
 //        int i;
 //        emitComment("---------- CAN ASSIGN SIMULATION ---------");
 //        emitComment("---------- MERGED PER ROLE ---------");
-//        for (int i = 0; i < role_array_size; ++i) {
+//        for (auto &&atom : policy->atoms()) {
 //            // printf("CA idx: %d, role: %s: count: %d\n", i, role_array[i], roles_ca_counts[i]);
-//            if (roles_ca_counts[i] > 0) {
-//                simulate_can_assigns_by_role(thread_id, i, label_idx++);
+//            if (per_role_ca_rules[atom->role_array_index].size() > 0) {
+//                simulate_can_assigns_by_atom(thread_id, atom, label_idx++);
 //            }
 //        }
 //
 //        emitComment("---------- CAN REVOKE SIMULATION ---------");
 //        emitComment("---------- MERGED PER ROLE ---------");
-//        for (int i = 0; i < role_array_size; ++i) {
+//        for (auto &&atom : policy->atoms()) {
 //            // printf("CR idx: %d, role: %s: count: %d\n", i, role_array[i], roles_cr_counts[i]);
-//            if (roles_cr_counts[i] > 0) {
-//                simulate_can_revokes_by_role(thread_id, i, label_idx++);
+//            if (per_role_cr_rules[atom->role_array_index].size() > 0) {
+//                simulate_can_revokes_by_role(thread_id, atom, label_idx++);
 //            }
 //        }
 //
 //        generate_check(thread_id);
 //    }
 //
-//    void
-//    assign_PCs(int thread_id, int round) {
+//    void assign_PCs(int thread_id, int round) {
 //        clean_fmt();
 //        fmt << "---------- ASSIGNING PC FOR THREAD " << thread_id << " ROUND " << round << " ---------";
 //        emitComment(fmt.str());
 //        for (int step = 0; step < steps; step++) {
-//            variable nondet_res = createFrom(nondet_int);
-//            emitAssignment(nondet_res);
-//            nondet_int = nondet_res;
-//            variable npc_n = createFrom(program_counters[step], nondet_res.get_solver_var());
-//            emitAssignment(npc_n);
+////            variable nondet_res = createFrom(nondet_int);
+////            emitAssignment(nondet_res);
+////            nondet_int = nondet_res;
+//            // NONDET INT IS NOT REQUIRED SINCE ANY CREATED VARIABLE IS NONDET IF NOT CONSTRAINED
+//            variable npc_n = program_counters[step].createFrom();
+////            emitAssignment(npc_n);
 //            program_counters[step] = npc_n;
 //        }
 //    }
 //
-//    void
-//    simulate_threads(int round) {
+//    void simulate_threads(int round) {
 //        for (int i = 0; i < threads_count; i++) {
 //            assign_PCs(i, round);
 //            simulate_thread(i);
 //        }
 //    }
 //
-//    void
-//    generate_main(int rounds) {
+//    void generate_main(int rounds) {
 //        for (int r = 0; r < rounds; r++) {
 //            clean_fmt();
 //            fmt << "--------------- SIMULATION OF ROUND " << r << " ------------";
@@ -755,8 +752,7 @@ namespace SMT {
 //        }
 //    }
 //
-//    void
-//    create_final_assert() {
+//    void create_final_assert() {
 //        auto aite = final_assertions.begin();
 //        TExpr assert_body = solver->createNotExpr((*aite));
 //        for ( ; aite != final_assertions.end(); ++aite) {
@@ -834,7 +830,7 @@ namespace SMT {
 //    // }
 //
 //    public:
-//    Transformer(std::shared_ptr<SMTFactory<TVar, TExpr>> _solver) :
+//    BMCTransformer(std::shared_ptr<SMTFactory<TVar, TExpr>> _solver) :
 //        solver(_solver) { }
 //
 //    void transform_2_bounded_smt(std::shared_ptr<SMTFactory<TVar, TExpr>> _solver,
@@ -858,8 +854,11 @@ namespace SMT {
 //        }
 //        else {
 //            if (user_array_size <= wanted_threads_count) {
-//                fprintf(stderr, "Cannot spawn %d threads because are more than user count (%d)\n", wanted_threads_count, user_array_size);
-//                exit(EXIT_FAILURE);
+//                stringstream fmt;
+//                fmt << "Cannot spawn " << wanted_threads_count <<
+//                          " threads because are more than user count (" << user_array_size << ")";
+//                std::cerr << fmt.str() << std::endl;
+//                throw new std::runtime_error(fmt.str());
 //            }
 //            else {
 //                threads_count = admin_role_array_index_size + 1;
@@ -883,7 +882,7 @@ namespace SMT {
 //template <typename TVar, typename TExpr>
 //static void polymorphic_transform(std::shared_ptr<SMTFactory<TVar, TExpr>> solver,
 //                                 int rounds, int steps, int wanted_threads_count) {
-//            Transformer<TVar, TExpr> core(solver);
+//            BMCTransformer<TVar, TExpr> core(solver);
 //            core.transform_2_bounded_smt(solver, rounds, steps, wanted_threads_count);
 //}
 //
@@ -923,7 +922,7 @@ namespace SMT {
 //    free_data();
 //    free_precise_temp_data();
 //}
-
-
-
-}
+//
+//
+//
+//}
