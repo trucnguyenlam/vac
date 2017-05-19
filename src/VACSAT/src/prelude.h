@@ -8,6 +8,7 @@
 
 #include <set>
 #include <algorithm>
+#include "debug.h"
 
 namespace SMT {
 
@@ -32,6 +33,11 @@ namespace SMT {
         }
         return res;
     }
+
+    template<typename _InputIterator, typename _Predicate>
+    bool iterable_exists(_InputIterator first, _InputIterator last, _Predicate p) {
+        return std::find_if(first, last, p) != last;
+    };
 }
 
 #endif //VACSAT_PRELUDE_H
