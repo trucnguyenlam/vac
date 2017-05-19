@@ -8,7 +8,7 @@
 
 
 using namespace antlrcpp;
-using namespace SMT;
+using namespace Parser;
 using namespace antlr4;
 
 vacgrammarParser::vacgrammarParser(TokenStream *input) : Parser(input) {

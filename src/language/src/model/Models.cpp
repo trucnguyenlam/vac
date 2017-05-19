@@ -9,7 +9,7 @@
 
 #include "Models.h"
 
-using namespace SMT;
+using namespace Parser;
 
 // Attribute class
 int Attribute::getID(void) const {

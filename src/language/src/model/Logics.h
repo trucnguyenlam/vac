@@ -12,7 +12,7 @@
 
 #include "SMT.h"
 
-namespace SMT {
+namespace Parser {
     class Defs {
         public:
             static constexpr char line_end[] = ";";

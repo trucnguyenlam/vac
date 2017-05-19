@@ -4,6 +4,9 @@
     This grammar is defined in LANGUAGE_STANDARD.md file.
     Some rules are borrowed from
         https://raw.githubusercontent.com/antlr/grammars-v4/master/c/C.g4
+    Please use this command
+        antlr4 -Werror -Dlanguage=Cpp -package Parser vacgrammar.g4
+
  @changelog:
     2017.05.02   Initial version
  */

@@ -10,7 +10,7 @@
 #include <memory>
 #include <vector>
 
-namespace SMT {
+namespace Parser {
     enum SMTResult {
         SAT,
         UNSAT,
@@ -32,7 +32,7 @@ namespace SMT {
 
         // virtual TType createBoolType() = 0;
         // virtual TType createBVType(int size) = 0;
-        
+
         virtual TVar createVar2(const std::string name, int size) = 0;
         virtual TVar createBoolVar(const std::string name) = 0;
         virtual TVar createBVVar(const std::string name, int bv_size) = 0;

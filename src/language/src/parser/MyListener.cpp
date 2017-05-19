@@ -10,7 +10,7 @@
 
 #include "MyListener.h"
 
-using namespace SMT;
+using namespace Parser;
 
 void MyListener::enterFile(vacgrammarParser::FileContext * ctx) {}
 

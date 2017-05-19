@@ -8,7 +8,7 @@
 #include "vacgrammarListener.h"
 
 
-namespace SMT {
+namespace Parser {
 
 /**
  * This class provides an empty implementation of vacgrammarListener,
@@ -92,4 +92,4 @@ public:
 
 };
 
-}  // namespace SMT
+}  // namespace Parser

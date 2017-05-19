@@ -7,7 +7,7 @@ LIST( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 SET (CMAKE_CXX_STANDARD 11)
 
 # set variable pointing to the antlr tool that supports C++
-set(ANTLR4CPP_JAR_LOCATION ${PROJECT_SOURCE_DIR}/thirdparty/antlr/antlr-4.7-complete.jar)
+# set(ANTLR4CPP_JAR_LOCATION ${PROJECT_SOURCE_DIR}/thirdparty/antlr/antlr-4.7-complete.jar)
 # add external build for antlrcpp
 include( ExternalAntlr4Cpp )
 # add antrl4cpp artifacts to project environment
@@ -23,7 +23,7 @@ message(STATUS "Found antlr4cpp libs: ${ANTLR4CPP_LIBS} and includes: ${ANTLR4CP
 # include_directories(${antlr4cpp_include_dirs_antlrcpptest})
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
-include_directories(${PROJECT_SOURCE_DIR}/src/parser/)
+# include_directories(${PROJECT_SOURCE_DIR}/src/parser/)
 
 FILE(GLOB generated_files ${PROJECT_SOURCE_DIR}/src/parser/*.cpp)
 
@@ -38,9 +38,9 @@ set_source_files_properties(
 endforeach(generated_file)
 
 set(SOURCES
-    ${PROJECT_SOURCE_DIR}/src/Logics.cpp
-    ${PROJECT_SOURCE_DIR}/src/Models.cpp
     ${PROJECT_SOURCE_DIR}/src/main.cpp
+    ${PROJECT_SOURCE_DIR}/src/model/Logics.cpp
+    ${PROJECT_SOURCE_DIR}/src/model/Models.cpp
 )
 
 # add generated grammar to demo binary target
@@ -48,16 +48,16 @@ add_executable(vacparser ${SOURCES} ${antlr_generated_files})
 add_dependencies(vacparser antlr4cpp)
 target_link_libraries(vacparser antlr4-runtime)
 
-# Unit Test
-# Prepare "Catch" library for other executables
-set(CATCH_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/catch)
-add_library(Catch INTERFACE)
-target_include_directories(Catch INTERFACE ${CATCH_INCLUDE_DIR})
+# # Unit Test
+# # Prepare "Catch" library for other executables
+# set(CATCH_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/catch)
+# add_library(Catch INTERFACE)
+# target_include_directories(Catch INTERFACE ${CATCH_INCLUDE_DIR})
 
-# Make test executable
-set(TEST_SOURCES ${PROJECT_SOURCE_DIR}/tests/test.cpp)
-add_executable(tests ${TEST_SOURCES})
-target_link_libraries(tests Catch)
+# # Make test executable
+# set(TEST_SOURCES ${PROJECT_SOURCE_DIR}/tests/test.cpp)
+# add_executable(tests ${TEST_SOURCES})
+# target_link_libraries(tests Catch)
 
 
 

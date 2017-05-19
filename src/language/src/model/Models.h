@@ -22,7 +22,7 @@
 #include <csignal>
 
 
-namespace SMT {
+namespace Parser {
 
 class Attribute {
   public:

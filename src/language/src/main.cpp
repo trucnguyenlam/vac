@@ -7,12 +7,12 @@
 //    2017.05.01   Initial version
 
 #include <iostream>
-#include "vacgrammarLexer.h"
-#include "vacgrammarParser.h"
-#include "MyListener.h"
-#include "Models.h"
+#include "parser/vacgrammarLexer.h"
+#include "parser/vacgrammarParser.h"
+#include "parser/MyListener.h"
+#include "model/Models.h"
 
-using namespace SMT;
+using namespace Parser;
 
 int main(int argc, const char* argv[]) {
     std::ifstream stream;

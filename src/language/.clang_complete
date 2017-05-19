@@ -4,6 +4,8 @@
 -I/usr/include/x86_64-linux-gnu/c++/5
 -I/usr/include/x86_64-linux-gnu/5/include
 -I/usr/include/x86_64-linux-gnu/5/include-fixed
--I/home/trucnguyenlam/ides/antlr/antlr4-cpp-runtime-4.7-source/runtime/src
+
+-I./build/locals/antlr4cpp/include
 -I./src/parser
+-I./src/model
 -I./src

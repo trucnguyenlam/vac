@@ -7,7 +7,7 @@
 
 using namespace antlr4;
 
-using namespace SMT;
+using namespace Parser;
 
 vacgrammarLexer::vacgrammarLexer(CharStream *input) : Lexer(input) {
   _interpreter = new atn::LexerATNSimulator(this, _atn, _decisionToDFA, _sharedContextCache);

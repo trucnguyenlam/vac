@@ -5,5 +5,5 @@
 #include "vacgrammarListener.h"
 
 
-using namespace SMT;
+using namespace Parser;
 

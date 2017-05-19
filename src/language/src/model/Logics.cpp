@@ -10,7 +10,7 @@
 #include <utility>
 
 
-namespace SMT {
+namespace Parser {
 
     template <typename T>
     std::set<T> setUnion(const std::set<T>& a, const std::set<T>& b) {
@@ -61,10 +61,10 @@ namespace SMT {
 
 /*EXPR OPS*/
     Exprv::Exprv(ExprType ty, std::set<Literalp> literals) : type(ty), _literals(literals) { }
-    
+
     bool Exprv::containsLiteral(std::string full_name) {
         for (auto ite = _literals.begin(); ite != _literals.end(); ++ite) {
-            if ((*ite)->fullName() == full_name) 
+            if ((*ite)->fullName() == full_name)
                 return true;
         }
         return false;
@@ -122,10 +122,10 @@ namespace SMT {
     std::set<Literalp> Exprv::literals() {
         return this->_literals;
     }
-    
+
 /*LITERAL OPS*/
     Literal::Literal(const std::string _name, int _role_array_index, int _bv_size, Expr _value):
-        Exprv(Exprv::LITERAL, std::set<Literalp>()), 
+        Exprv(Exprv::LITERAL, std::set<Literalp>()),
         name(_name), role_array_index(_role_array_index), bv_size(_bv_size), value(_value) { }
 
     void Literal::setLiterals(Literalp &self) {
@@ -183,7 +183,7 @@ namespace SMT {
     Constant::Constant(int _value, int _bv_size) :
         Exprv(Exprv::CONSTANT, std::set<Literalp>()),
         value(_value), bv_size(_bv_size) { }
-    
+
     std::string Constant::to_string() const {
         if (this->bv_size == 1) {
             if (this->value) {
@@ -199,12 +199,12 @@ namespace SMT {
             return fmt.str();
         }
     }
-    
+
 /*OR OPS*/
     OrExpr::OrExpr(Expr _lhs, Expr _rhs) :
         Exprv(Exprv::OR_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
         lhs(_lhs), rhs(_rhs) { }
-    
+
     std::string OrExpr::to_string() const {
         std::stringstream fmt;
         std::string lhsv = this->lhs->to_string();
@@ -217,7 +217,7 @@ namespace SMT {
     AndExpr::AndExpr(Expr _lhs, Expr _rhs) :
         Exprv(Exprv::AND_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
         lhs(_lhs), rhs(_rhs) { }
-    
+
     std::string AndExpr::to_string() const {
         std::stringstream fmt;
         std::string lhsv = this->lhs->to_string();
@@ -230,7 +230,7 @@ namespace SMT {
     EqExpr::EqExpr(Expr _lhs, Expr _rhs) :
         Exprv(Exprv::EQ_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
         lhs(_lhs), rhs(_rhs) { }
-    
+
     std::string EqExpr::to_string() const {
         std::stringstream fmt;
         std::string lhsv = this->lhs->to_string();
@@ -243,7 +243,7 @@ namespace SMT {
     ImplExpr::ImplExpr(Expr _lhs, Expr _rhs) :
         Exprv(Exprv::IMPL_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
         lhs(_lhs), rhs(_rhs) { }
-    
+
     std::string ImplExpr::to_string() const {
         std::stringstream fmt;
         std::string lhsv = this->lhs->to_string();
@@ -256,7 +256,7 @@ namespace SMT {
     NotExpr::NotExpr(Expr _expr) :
         Exprv(Exprv::NOT_EXPR, _expr->literals()),
         expr(_expr) { }
-    
+
     std::string NotExpr::to_string() const {
         std::stringstream fmt;
         std::string exprv = this->expr->to_string();
@@ -266,10 +266,10 @@ namespace SMT {
 
 /*COND OPS*/
     CondExpr::CondExpr(Expr _cond, Expr _choice1, Expr _choice2) :
-        Exprv(Exprv::COND_EXPR, 
+        Exprv(Exprv::COND_EXPR,
               setUnion(_cond->literals(), setUnion(_choice1->literals(), _choice2->literals()))),
         cond(_cond), choice1(_choice1), choice2(_choice2) { }
-    
+
     std::string CondExpr::to_string() const {
         std::stringstream fmt;
         std::string cond = this->cond->to_string();
@@ -286,17 +286,17 @@ namespace SMT {
     //     switch (stmt->type) {
     //         case Stmtv::ASSERT:
     //             this->simplifyAssertion(std::dynamic_pointer_cast<Assertion>(stmt));
-    //             break; 
+    //             break;
     //         case Stmtv::ASSUME:
     //             this->simplifyAssumption(std::dynamic_pointer_cast<Assumption>(stmt));
     //             break;
     //         case Stmtv::ASSIGNMENT:
     //             this->simplifyAssignment(std::dynamic_pointer_cast<Assignment>(stmt));
     //             break;
-    //         case Stmtv::COMMENT: 
+    //         case Stmtv::COMMENT:
     //             break;
-    //         case Stmtv::OUTPUT: 
-    //             break;        
+    //         case Stmtv::OUTPUT:
+    //             break;
     //     }
     // }
 
@@ -403,7 +403,7 @@ namespace SMT {
     //             return std::dynamic_pointer_cast<Constant>(nrhs);
     //         }
     //         else {
-    //             return nlhs;            
+    //             return nlhs;
     //         }
     //     }
     //     return createOrExpr(nlhs, nrhs);
@@ -447,7 +447,7 @@ namespace SMT {
     //     }
 
     //     return createEqExpr(nlhs, nrhs);
-            
+
     // }
     // Expr Simplifier::simplifyNotExpr(shared_ptr<NotExpr> not_expr) {
     //     Expr nexpr = simplifyExpr(not_expr->expr);
@@ -622,7 +622,7 @@ namespace SMT {
     //     free(var_e);
     //     return res;
     // }
-    
+
     // Stmt createAssign(const char* var_name, int occ, Expr value) {
     //     Expr var_e = createVariable(var_name, occ, 0, NULL);
     //     Variable* var = (Variable*)var_e->value;
@@ -641,7 +641,7 @@ namespace SMT {
     //             }
     //             else {
     //                 return solver->createBVConst(c->value, c->bv_size);
-    //             } 
+    //             }
     //         }
     //         case Exprv::LITERAL: {
     //             Literalp lit = std::dynamic_pointer_cast<Literal>(expr);
@@ -660,7 +660,7 @@ namespace SMT {
     //             else {
     //                 return generateSMTFunction(solver, lit->value, var_map, suffix);
     //             }
-                
+
     //         }
     //         case Exprv::AND_EXPR: {
     //             std::shared_ptr<AndExpr> andExpr = std::dynamic_pointer_cast<AndExpr>(expr);

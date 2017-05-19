@@ -5,11 +5,11 @@
 
 
 #include "antlr4-runtime.h"
-#include "Models.h"
 #include "vacgrammarBaseListener.h"
+#include "model/Models.h"
 
 
-namespace SMT {
+namespace Parser {
 
 /**
  * This class provides an empty implementation of vacgrammarListener,
@@ -71,4 +71,4 @@ class  MyListener : public vacgrammarBaseListener {
 
 };
 
-}  // namespace SMT
+}  // namespace Parser

@@ -7,7 +7,7 @@
 #include "antlr4-runtime.h"
 
 
-namespace SMT {
+namespace Parser {
 
 
 class  vacgrammarLexer : public antlr4::Lexer {
@@ -60,4 +60,4 @@ private:
   static Initializer _init;
 };
 
-}  // namespace SMT
+}  // namespace Parser

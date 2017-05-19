@@ -8,7 +8,7 @@
 #include "vacgrammarParser.h"
 
 
-namespace SMT {
+namespace Parser {
 
 /**
  * This interface defines an abstract listener for a parse tree produced by vacgrammarParser.
@@ -85,4 +85,4 @@ public:
 
 };
 
-}  // namespace SMT
+}  // namespace Parser
