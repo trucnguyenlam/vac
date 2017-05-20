@@ -1,14 +1,19 @@
+/* lexer header section */
 
-// Generated from vacgrammar.g4 by ANTLR 4.7
+// Generated from vacgrammarLexer.g4 by ANTLR 4.7
 
 #pragma once
 
+/* lexer precinclude section */
 
 #include "antlr4-runtime.h"
 
 
+
+
 namespace Parser {
 
+/* lexer context section */
 
 class  vacgrammarLexer : public antlr4::Lexer {
 public:
@@ -23,6 +28,8 @@ public:
 
   vacgrammarLexer(antlr4::CharStream *input);
   ~vacgrammarLexer();
+
+  /* public lexer declarations section */
 
   virtual std::string getGrammarFileName() const override;
   virtual const std::vector<std::string>& getRuleNames() const override;
@@ -49,6 +56,7 @@ private:
   static antlr4::atn::ATN _atn;
   static std::vector<uint16_t> _serializedATN;
 
+  /* private lexer declarations/members section */
 
   // Individual action functions triggered by action() above.
 

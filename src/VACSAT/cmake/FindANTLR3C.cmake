@@ -2,7 +2,7 @@ set(ANTLR3C_PREFIX "${ANTLR3C_PREFIX}" CACHE PATH "path ")
 
 
 find_path(ANTLR3C_INCLUDE_DIR antlr3.h
-    PATHS ${ANTLR3C_PREFIX}/include /usr/include /usr/local/include )
+    PATHS ${ANTLR3C_PREFIX}/include /usr/include /usr/local/include)
 
 find_library(ANTLR3C_LIBRARY NAMES antlr3c
     PATHS ${ANTLR3C_PREFIX}/lib /usr/lib /usr/local/lib)

@@ -1,8 +1,12 @@
+/* lexer header section */
 
-// Generated from vacgrammar.g4 by ANTLR 4.7
+// Generated from vacgrammarLexer.g4 by ANTLR 4.7
 
+/* lexer precinclude section */
 
 #include "vacgrammarLexer.h"
+
+
 
 
 using namespace antlr4;
@@ -18,7 +22,7 @@ vacgrammarLexer::~vacgrammarLexer() {
 }
 
 std::string vacgrammarLexer::getGrammarFileName() const {
-  return "vacgrammar.g4";
+  return "vacgrammarLexer.g4";
 }
 
 const std::vector<std::string>& vacgrammarLexer::getRuleNames() const {
@@ -49,6 +53,7 @@ const atn::ATN& vacgrammarLexer::getATN() const {
   return _atn;
 }
 
+/* lexer definitions section */
 
 
 

@@ -5,7 +5,9 @@ LIST( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
 # compiler must be 11 or 14
 SET (CMAKE_CXX_STANDARD 11)
-
+# SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+# SET(BUILD_SHARED_LIBRARIES OFF)
+# SET(CMAKE_EXE_LINKER_FLAGS "-static")
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
 
 # set variable pointing to the antlr tool that supports C++
@@ -29,10 +31,10 @@ include_directories(${PROJECT_SOURCE_DIR}/src)
 
 # FILE(GLOB generated_files ${PROJECT_SOURCE_DIR}/src/parser/*.cpp)
 set(generated_files
-    ${PROJECT_SOURCE_DIR}/src/parser/vacgrammarListener.cpp
-    ${PROJECT_SOURCE_DIR}/src/parser/vacgrammarBaseListener.cpp
-    ${PROJECT_SOURCE_DIR}/src/parser/vacgrammarParser.cpp
     ${PROJECT_SOURCE_DIR}/src/parser/vacgrammarLexer.cpp
+    ${PROJECT_SOURCE_DIR}/src/parser/vacgrammarParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/parser/vacgrammarBaseListener.cpp
+    ${PROJECT_SOURCE_DIR}/src/parser/vacgrammarListener.cpp
     ${PROJECT_SOURCE_DIR}/src/parser/MyListener.cpp
     )
 
@@ -47,15 +49,16 @@ set_source_files_properties(
 endforeach(generated_file)
 
 set(SOURCES
-    ${PROJECT_SOURCE_DIR}/src/main.cpp
     ${PROJECT_SOURCE_DIR}/src/parser/Logics.cpp
     ${PROJECT_SOURCE_DIR}/src/parser/Models.cpp
+    ${PROJECT_SOURCE_DIR}/src/main.cpp
 )
 
 # add generated grammar to demo binary target
 add_executable(vacparser ${SOURCES} ${antlr_generated_files})
 add_dependencies(vacparser antlr4cpp)
 target_link_libraries(vacparser antlr4-runtime)
+
 
 # # Unit Test
 # # Prepare "Catch" library for other executables
@@ -67,6 +70,3 @@ target_link_libraries(vacparser antlr4-runtime)
 # set(TEST_SOURCES ${PROJECT_SOURCE_DIR}/tests/test.cpp)
 # add_executable(tests ${TEST_SOURCES})
 # target_link_libraries(tests Catch)
-
-
-
