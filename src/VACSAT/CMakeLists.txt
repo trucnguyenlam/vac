@@ -101,8 +101,44 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 link_directories(${YICES_LIBRARY_DIR} ${Z3_LIBRARY_DIR} ${CCL_LIBRARY_DIR})
 
 
-add_executable(vacsat ${SOURCE_FILES})
+
+
+
+# add external build for antlrcpp
+include( ExternalAntlr4Cpp )
+# add antrl4cpp artifacts to project environment
+include_directories( ${ANTLR4CPP_INCLUDE_DIRS} )
+link_directories( ${ANTLR4CPP_LIBS} )
+message(STATUS "Found antlr4cpp libs: ${ANTLR4CPP_LIBS} and includes: ${ANTLR4CPP_INCLUDE_DIRS} ")
+
+# include_directories(${PROJECT_SOURCE_DIR}/src)
+set(generated_files
+    ${PROJECT_SOURCE_DIR}/src/parser/vacgrammarLexer.cpp
+    ${PROJECT_SOURCE_DIR}/src/parser/vacgrammarParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/parser/vacgrammarBaseListener.cpp
+    ${PROJECT_SOURCE_DIR}/src/parser/vacgrammarListener.cpp
+    ${PROJECT_SOURCE_DIR}/src/parser/MyListener.cpp
+    )
+
+# export generated cpp files into list
+foreach(generated_file ${generated_files})
+    list(APPEND antlr_generated_files ${generated_file})
+    set_source_files_properties(
+      ${generated_file}
+      PROPERTIES
+      COMPILE_FLAGS -Wno-overloaded-virtual
+      )
+endforeach(generated_file)
+
+set(PARSER_SOURCES
+    ${PROJECT_SOURCE_DIR}/src/parser/Logics.cpp
+    ${PROJECT_SOURCE_DIR}/src/parser/Models.cpp
+    ${PROJECT_SOURCE_DIR}/src/parser/translator.cpp
+)
+
+add_executable(vacsat ${SOURCE_FILES} ${PARSER_SOURCES} ${antlr_generated_files})
+add_dependencies(vacsat antlr4cpp)
 # Set the link libraries (GMP MUST BE THE LAST)
-target_link_libraries(vacsat yices z3 ccl antlr3c gmp)
+target_link_libraries(vacsat antlr4-runtime yices z3 ccl antlr3c gmp)
 
 install (TARGETS vacsat DESTINATION bin)

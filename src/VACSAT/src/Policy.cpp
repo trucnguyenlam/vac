@@ -371,6 +371,16 @@ namespace SMT {
         _unique_configurations = update_unique_confs(this->_users);
     }
 
+    // TODO(truc): please check this
+    void arbac_policy::add_user(const userp& user){
+        _users.push_back(user);
+    }
+
+    void arbac_policy::add_atom(const atom& atom){
+        _atoms.push_back(atom);
+    }
+
+
     void arbac_policy::add_rule(const rulep& rule) {
         if (rule->is_ca) {
             this->add_can_assign(rule);

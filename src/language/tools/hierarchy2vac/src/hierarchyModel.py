@@ -125,35 +125,39 @@ class CARule:
     def toVACRule(self):
         ret = ""
         ret += "<"
-        ret += "x." + self.admin + "=1"
+        ret += "a." + self.admin + "=1"
         if not self.precondition.isTrue:
             for c in self.precondition.conjunct:
                 value = "0" if c.negative else "1"
-                ret += " & " + "y." + c.name + value
-        ret += ", y." + self.target + "=1"
+                ret += " & " + "t." + c.name + value
+        ret += ", t." + self.target + "=1"
         ret += ">"
         return ret
 
     def toVACRuleWithHierarchy(self, hier):
         ret = ""
         ret += "<"
-        ret += "(x.%s=1" % self.admin
+        ret += "(a.%s=1" % self.admin
         for sr in hier.getSuperiorRoles(self.admin):
-            ret += " | x.%s=1" % sr
+            ret += " | a.%s=1" % sr
         ret += ')'
         if not self.precondition.isTrue:
-            for c in self.precondition.conjunct:
-                if not c.negative:
-                    ret += " & (y.%s=0" % c.name
+            ret += " & ("
+            for index, c in enumerate(self.precondition.conjunct):
+                if index != 0:
+                    ret += " & "
+                if c.negative:   # Negative
+                    ret += "(t.%s=0" % c.name
                     for sr in hier.getSuperiorRoles(c.name):
-                        ret += " & y.%s=0" % sr
+                        ret += " & t.%s=0" % sr
                     ret += ")"
-                else:
-                    ret += " & (y.%s=1" % c.name
+                else:  # Positive
+                    ret += "(t.%s=1" % c.name
                     for sr in hier.getSuperiorRoles(c.name):
-                        ret += " | y.%s=1" % sr
+                        ret += " | t.%s=1" % sr
                     ret += ")"
-        ret += ", y." + self.target + "=1"
+            ret += ")"
+        ret += ", t." + self.target + "=1"
         ret += ">"
         return ret
 

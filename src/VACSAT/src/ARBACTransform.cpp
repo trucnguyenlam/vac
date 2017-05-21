@@ -12,7 +12,7 @@
 
 void
 wait_keypressed() {
-    std::cout << "Press enter to continue ..."; 
+    std::cout << "Press enter to continue ...";
     getchar();
 }
 
@@ -126,7 +126,7 @@ main(int argc, char **argv)
             break;
         case 'a':
             algo_arg = (char *) malloc(strlen(optarg) + 1);
-            strcpy(algo_arg, optarg); 
+            strcpy(algo_arg, optarg);
             break;
         case 'f':
             format_arg = (char *) malloc(strlen(optarg) + 1);
@@ -160,11 +160,11 @@ main(int argc, char **argv)
         }
         if (strcmp(format_arg, "interproc") == 0) {
             algo_arg = (char *) malloc(strlen("abstract") + 1);
-            strcpy(algo_arg, "abstract"); 
+            strcpy(algo_arg, "abstract");
         }
         else {
             algo_arg = (char *) malloc(strlen("precise") + 1);
-            strcpy(algo_arg, "precise"); 
+            strcpy(algo_arg, "precise");
         }
     }
 
@@ -197,7 +197,8 @@ main(int argc, char **argv)
         if (prune) {
 //            SMT::transform_2_lazycseq_r6(filename, out_file, 61, true);
 //            success_exit();
-            SMT::perform_analysis_old_style(SMT::PRUNE_ONLY, std::string(filename), backend);
+            //SMT::perform_analysis_old_style(SMT::PRUNE_ONLY, std::string(filename), backend);
+            SMT::perform_analysis(SMT::PRUNE_ONLY, std::string(filename), backend);
             success_exit();
         }
 
@@ -290,7 +291,7 @@ main(int argc, char **argv)
                 }
 
                 SMT::transform_2_bounded_smt(filename, out_file, rounds, steps, wanted_threads);
-            }            
+            }
             else if (strcmp(format_arg, "completeness_query") == 0)
             {
                 if (rounds == -1) {

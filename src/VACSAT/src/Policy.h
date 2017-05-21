@@ -102,7 +102,10 @@ namespace SMT {
 
         Expr user_to_expr(int user_id) const;
 
-        void add_user(const userp& rule);
+        // TODO(truc)L modify this
+        void add_user(const userp& user);
+        void add_atom(const atom& atom);
+
         void add_rule(const rulep& rule);
         void add_can_assign(const rulep& rule);
         void add_can_revoke(const rulep& rule);
