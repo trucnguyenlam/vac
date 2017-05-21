@@ -1,14 +1,10 @@
-/* parser/listener/visitor header section */
 
-// Generated from vacgrammarParser.g4 by ANTLR 4.7
+// Generated from vacgrammar.g4 by ANTLR 4.7
 
-/* parser precinclude section */
 
-#include "vacgrammarParserListener.h"
+#include "vacgrammarListener.h"
 
 #include "vacgrammarParser.h"
-
-
 
 
 using namespace antlrcpp;
@@ -24,7 +20,7 @@ vacgrammarParser::~vacgrammarParser() {
 }
 
 std::string vacgrammarParser::getGrammarFileName() const {
-  return "vacgrammarParser.g4";
+  return "vacgrammar.g4";
 }
 
 const std::vector<std::string>& vacgrammarParser::getRuleNames() const {
@@ -35,7 +31,6 @@ dfa::Vocabulary& vacgrammarParser::getVocabulary() const {
   return _vocabulary;
 }
 
-/* parser definitions section */
 
 //----------------- FileContext ------------------------------------------------------------------
 
@@ -57,13 +52,13 @@ size_t vacgrammarParser::FileContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::FileContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterFile(this);
 }
 
 void vacgrammarParser::FileContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitFile(this);
 }
@@ -136,13 +131,13 @@ size_t vacgrammarParser::R_startContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::R_startContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterR_start(this);
 }
 
 void vacgrammarParser::R_startContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitR_start(this);
 }
@@ -235,13 +230,13 @@ size_t vacgrammarParser::R_userContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::R_userContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterR_user(this);
 }
 
 void vacgrammarParser::R_userContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitR_user(this);
 }
@@ -301,13 +296,13 @@ size_t vacgrammarParser::User_elementContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::User_elementContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterUser_element(this);
 }
 
 void vacgrammarParser::User_elementContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitUser_element(this);
 }
@@ -371,13 +366,13 @@ size_t vacgrammarParser::R_attrContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::R_attrContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterR_attr(this);
 }
 
 void vacgrammarParser::R_attrContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitR_attr(this);
 }
@@ -445,13 +440,13 @@ size_t vacgrammarParser::Attr_elementContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::Attr_elementContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterAttr_element(this);
 }
 
 void vacgrammarParser::Attr_elementContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitAttr_element(this);
 }
@@ -512,13 +507,13 @@ size_t vacgrammarParser::R_initContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::R_initContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterR_init(this);
 }
 
 void vacgrammarParser::R_initContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitR_init(this);
 }
@@ -598,13 +593,13 @@ size_t vacgrammarParser::Init_elementContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::Init_elementContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterInit_element(this);
 }
 
 void vacgrammarParser::Init_elementContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitInit_element(this);
 }
@@ -672,13 +667,13 @@ size_t vacgrammarParser::Init_assignmentContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::Init_assignmentContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterInit_assignment(this);
 }
 
 void vacgrammarParser::Init_assignmentContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitInit_assignment(this);
 }
@@ -749,13 +744,13 @@ size_t vacgrammarParser::PrimaryExpressionContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::PrimaryExpressionContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterPrimaryExpression(this);
 }
 
 void vacgrammarParser::PrimaryExpressionContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitPrimaryExpression(this);
 }
@@ -838,13 +833,13 @@ size_t vacgrammarParser::UnaryExpressionContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::UnaryExpressionContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterUnaryExpression(this);
 }
 
 void vacgrammarParser::UnaryExpressionContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitUnaryExpression(this);
 }
@@ -916,13 +911,13 @@ size_t vacgrammarParser::EqualityExpressionContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::EqualityExpressionContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterEqualityExpression(this);
 }
 
 void vacgrammarParser::EqualityExpressionContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitEqualityExpression(this);
 }
@@ -1010,13 +1005,13 @@ size_t vacgrammarParser::AndExpressionContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::AndExpressionContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterAndExpression(this);
 }
 
 void vacgrammarParser::AndExpressionContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitAndExpression(this);
 }
@@ -1125,13 +1120,13 @@ size_t vacgrammarParser::OrExpressionContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::OrExpressionContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterOrExpression(this);
 }
 
 void vacgrammarParser::OrExpressionContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitOrExpression(this);
 }
@@ -1236,13 +1231,13 @@ size_t vacgrammarParser::ImplyExpressionContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::ImplyExpressionContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterImplyExpression(this);
 }
 
 void vacgrammarParser::ImplyExpressionContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitImplyExpression(this);
 }
@@ -1334,13 +1329,13 @@ size_t vacgrammarParser::ConditionalExpressionContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::ConditionalExpressionContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterConditionalExpression(this);
 }
 
 void vacgrammarParser::ConditionalExpressionContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitConditionalExpression(this);
 }
@@ -1398,13 +1393,13 @@ size_t vacgrammarParser::ExpressionContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::ExpressionContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterExpression(this);
 }
 
 void vacgrammarParser::ExpressionContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitExpression(this);
 }
@@ -1459,13 +1454,13 @@ size_t vacgrammarParser::R_rulesContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::R_rulesContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterR_rules(this);
 }
 
 void vacgrammarParser::R_rulesContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitR_rules(this);
 }
@@ -1545,13 +1540,13 @@ size_t vacgrammarParser::Rule_elementContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::Rule_elementContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterRule_element(this);
 }
 
 void vacgrammarParser::Rule_elementContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitRule_element(this);
 }
@@ -1627,13 +1622,13 @@ size_t vacgrammarParser::Normal_assignmentContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::Normal_assignmentContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterNormal_assignment(this);
 }
 
 void vacgrammarParser::Normal_assignmentContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitNormal_assignment(this);
 }
@@ -1688,13 +1683,13 @@ size_t vacgrammarParser::PreconditionContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::PreconditionContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterPrecondition(this);
 }
 
 void vacgrammarParser::PreconditionContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitPrecondition(this);
 }
@@ -1765,13 +1760,13 @@ size_t vacgrammarParser::R_queryContext::getRuleIndex() const {
 }
 
 void vacgrammarParser::R_queryContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->enterR_query(this);
 }
 
 void vacgrammarParser::R_queryContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<vacgrammarParserListener *>(listener);
+  auto parserListener = dynamic_cast<vacgrammarListener *>(listener);
   if (parserListener != nullptr)
     parserListener->exitR_query(this);
 }

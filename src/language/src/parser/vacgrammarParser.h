@@ -1,19 +1,14 @@
-/* parser/listener/visitor header section */
 
-// Generated from vacgrammarParser.g4 by ANTLR 4.7
+// Generated from vacgrammar.g4 by ANTLR 4.7
 
 #pragma once
 
-/* parser precinclude section */
 
 #include "antlr4-runtime.h"
 
 
-
-
 namespace Parser {
 
-/* parser context section */
 
 class  vacgrammarParser : public antlr4::Parser {
 public:
@@ -44,9 +39,6 @@ public:
   virtual const std::vector<std::string>& getTokenNames() const override { return _tokenNames; }; // deprecated: use vocabulary instead.
   virtual const std::vector<std::string>& getRuleNames() const override;
   virtual antlr4::dfa::Vocabulary& getVocabulary() const override;
-
-
-  /* public parser declarations/members section */
 
 
   class FileContext;
@@ -445,7 +437,6 @@ private:
   static antlr4::atn::ATN _atn;
   static std::vector<uint16_t> _serializedATN;
 
-  /* private parser declarations section */
 
   struct Initializer {
     Initializer();

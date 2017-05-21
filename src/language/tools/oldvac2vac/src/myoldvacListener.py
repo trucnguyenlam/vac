@@ -4,11 +4,10 @@ from oldvacListener import oldvacListener
 from oldvacModel import *
 
 # This class defines a complete listener for a parse tree produced by
-# TODO:
+# TODO(truc): finish this
 
 
 class myHierarchyListener(hierarchygrammarListener):
-
     def __init__(self):
         self.policy = Policy()
         self.roles = {}

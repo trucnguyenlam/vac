@@ -105,6 +105,9 @@ namespace SMT {
         // TODO(truc)L modify this
         void add_user(const userp& user);
         void add_atom(const atom& atom);
+        void add_can_assign_no_update(const rulep& rule);
+        void add_can_revoke_no_update(const rulep& rule);
+        void update_query(const Literalp& goal_role);
 
         void add_rule(const rulep& rule);
         void add_can_assign(const rulep& rule);

@@ -32,6 +32,7 @@ class Exprv {
     enum ExprType {
         CONSTANT,
         LITERAL,
+        ENTITY,
         EQ_EXPR,
         NOT_EXPR,
         OR_EXPR,
@@ -92,10 +93,11 @@ class Literal : public Exprv {
 
 
 // AttributeRef in Expression
-class Entity: public Literal {
+class Entity: public Exprv {
   public:
     Entity(std::string _name, std::string _user_name, int _local_id,
            std::string _attr_name, int _attr_ID):
+        Exprv(Exprv::ENTITY, std::set<Literalp>()),
         name(_name), user_name(_user_name), local_ID(_local_id),
         attr_name(_attr_name), attr_ID(_attr_ID)
     {}

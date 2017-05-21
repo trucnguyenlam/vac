@@ -195,15 +195,15 @@ class CRRule:
         return "can_revoke(" + self.admin + ',' + self.target + ')'
 
     def toVACRule(self):
-        ret = "<x.%s=1, y.%s=0>" % (self.admin, self.target)
+        ret = "<a.%s=1, t.%s=0>" % (self.admin, self.target)
         return ret
 
     def toVACRuleWithHierarchy(self, hier):
         ret = ""
-        ret += "<x.%s=1" % self.admin
+        ret += "<a.%s=1" % self.admin
         for sr in hier.getSuperiorRoles(self.admin):
-            ret += " | x.%s=1" % sr
-        ret += ', y.%s=0>' % self.target
+            ret += " | a.%s=1" % sr
+        ret += ', t.%s=0>' % self.target
         return ret
 
 

@@ -84,6 +84,10 @@ std::vector<AttributePtr> User::getCopyConfiguration(void) const {
     return attrs;
 }
 
+bool User::isInfinite(void) const {
+    return isNew;
+}
+
 std::string User::to_string(void) const {
     std::string ret = "{";
     ret += "name:" + name + ",";
@@ -165,7 +169,7 @@ int Model::getAttributeID(std::string _attributename) const {
 std::string Model::getAttributeName(int _id) const {
     if (_id < 0 || _id > attrs.size()) {
         std::cerr << "Out of bound attribute index: " << _id << std::endl;
-        std::_Exit(EXIT_FAILURE);
+        throw "Invalid attribute index: " + std::to_string(_id);
     } else {
         return attrs[_id]->getName();
     }

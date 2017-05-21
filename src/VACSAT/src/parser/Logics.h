@@ -93,11 +93,12 @@ class Literal : public Exprv {
 
 
 // AttributeRef in Expression
-class Entity: public Literal {
+class Entity: public Exprv {
   public:
     Entity(std::string _name, std::string _user_name, int _local_id,
            std::string _attr_name, int _attr_ID):
-        type(Exprv::ENTITY), name(_name), user_name(_user_name), local_ID(_local_id),
+        Exprv(Exprv::ENTITY, std::set<Literalp>()),
+        name(_name), user_name(_user_name), local_ID(_local_id),
         attr_name(_attr_name), attr_ID(_attr_ID)
     {}
     ~Entity() {}
@@ -107,8 +108,6 @@ class Entity: public Literal {
     std::string getAttributeName(void) const;
     std::string getUserName(void) const;
     std::string to_string(void) const;
-
-    ExprType type;
 
   private:
     std::string name;  // full name

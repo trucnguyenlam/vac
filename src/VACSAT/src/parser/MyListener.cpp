@@ -12,15 +12,6 @@
 
 using namespace Parser;
 
-void MyListener::enterFile(vacgrammarParser::FileContext * ctx) {}
-
-void MyListener::exitFile(vacgrammarParser::FileContext * ctx) {}
-
-
-
-void MyListener::enterR_user(vacgrammarParser::R_userContext * ctx) {}
-void MyListener::exitR_user(vacgrammarParser::R_userContext * ctx) {}
-
 void MyListener::enterUser_element(vacgrammarParser::User_elementContext * ctx) {
     bool isNew = ctx->STAR() ? true : false; // Check if this user is new user
     int user_id = this->vac_model->getCurrentUserSize();
@@ -28,34 +19,19 @@ void MyListener::enterUser_element(vacgrammarParser::User_elementContext * ctx) 
     this->vac_model->insertNewUser(newuser, user_id); // Insert user into model
 }
 
-void MyListener::exitUser_element(vacgrammarParser::User_elementContext * ctx) {}
-
-
-void MyListener::enterR_attr(vacgrammarParser::R_attrContext * ctx) {}
-
-void MyListener::exitR_attr(vacgrammarParser::R_attrContext * ctx) {}
-
 void MyListener::enterAttr_element(vacgrammarParser::Attr_elementContext * ctx) {
     int attr_id = this->vac_model->getCurrentAttributeSize();
     int attr_size = std::stoi(ctx->Constant()->getText(), nullptr);
     std::string attr_name = ctx->Identifier()->getText();
     if (attr_size <= 0) {
-        std::cerr << "Error in Attribute: " << attr_name << " with size negative" << std::endl;
-        std::_Exit(EXIT_FAILURE);
-
+        throw ParserException(
+            "Error at line " +
+            getTokenLocation(ctx->Identifier()->getSymbol())
+            + ": negative size attribute!");
     }
     AttributePtr newAttr  = std::make_shared<Attribute>(Attribute(attr_id, attr_name, attr_size ) );
-
     this->vac_model->insertNewAttribute(newAttr, attr_id);
 }
-
-
-void MyListener::exitAttr_element(vacgrammarParser::Attr_elementContext * ctx) {}
-
-
-void MyListener::enterR_init(vacgrammarParser::R_initContext * ctx) {}
-
-void MyListener::exitR_init(vacgrammarParser::R_initContext * ctx) {}
 
 void MyListener::enterInit_element(vacgrammarParser::Init_elementContext * ctx) {
     std::string user_name = ctx->Identifier()->getText();
@@ -63,13 +39,11 @@ void MyListener::enterInit_element(vacgrammarParser::Init_elementContext * ctx) 
     if (user) {
         for (const auto& e : ctx->init_assignment()) {
             std::string attr_name = e->Identifier()->getText();
-
             auto attrptr = this->vac_model->getAttribute(attr_name);
             if (attrptr) { // this attribute is available
                 // Create an attribute and attach to user
                 AttributePtr attr = std::make_shared<Attribute>(Attribute(
                                         attrptr->getID(), attr_name, attrptr->getSize()));
-
                 // Set value
                 int value = std::stoi(e->Constant()->getText(), nullptr);
                 Constantp valptr = std::make_shared<Constant>(Constant(value, attrptr->getSize()));
@@ -77,24 +51,19 @@ void MyListener::enterInit_element(vacgrammarParser::Init_elementContext * ctx) 
                 // Add to user
                 user->setAttribute(attr);
             } else {
-                std::cerr << "Error in Init: attribute " << attr_name << " is undefined!" << std::endl;
-                std::_Exit(EXIT_FAILURE);
-
+                throw ParserException(
+                    "Error in line " + getTokenLocation(e->Identifier()->getSymbol()) +
+                    ": attribute " + attr_name + " is undefined!"
+                );
             }
         }
     } else {
-        std::cerr << "Error in Init: user " << user_name << " is undefined!" << std::endl;
-        std::_Exit(EXIT_FAILURE);
-
+        throw ParserException(
+            "Error in line " + getTokenLocation(ctx->Identifier()->getSymbol()) +
+            ": user " + user_name + " is undefined!"
+        );
     }
 }
-
-
-void MyListener::exitInit_element(vacgrammarParser::Init_elementContext * ctx) {}
-
-void MyListener::enterInit_assignment(vacgrammarParser::Init_assignmentContext * ctx) {}
-
-void MyListener::exitInit_assignment(vacgrammarParser::Init_assignmentContext * ctx) {}
 
 void  MyListener::enterRule_element(vacgrammarParser::Rule_elementContext * ctx) {
     // Precondition
@@ -102,51 +71,54 @@ void  MyListener::enterRule_element(vacgrammarParser::Rule_elementContext * ctx)
     Expr precondition = buildPrecondition(ctx->precondition(), luser_map);
 
     RulePtr ruleptr = std::make_shared<Rule>(Rule(precondition));
-
     // Apply target
     std::string tmp_user = "";
     for (const auto & t : ctx->normal_assignment()) {
-        std::string target_user_name = t->u->getText();
+        std::string target_user_name = t->Identifier()[0]->getText();
         if (tmp_user == "") tmp_user = target_user_name;
         if (tmp_user != "" && target_user_name != tmp_user) {
-            std::cerr   << "Error in Rule: target user must be the same, "
-                        << tmp_user << " != " << target_user_name
-                        << std::endl;
-            std::_Exit(EXIT_FAILURE);
+            throw ParserException(
+                "Error in line " + getTokenLocation(t->Identifier()[0]->getSymbol()) +
+                ": target user must be the same!"
+            );
         }
-
         auto id_pos = luser_map.find(target_user_name);
         int luser_id = (id_pos != luser_map.end()) ? id_pos->second : luser_map.size();
-        std::string attr_name = t->a->getText();
+        std::string attr_name = t->Identifier()[1]->getText();
         AttributePtr attrptr = this->vac_model->getAttribute(attr_name);
-        Entityp e = std::make_shared<Entity>(
-                        Entity(target_user_name + "." + attr_name,
-                               target_user_name,
-                               luser_id,
-                               attr_name,
-                               attrptr->getID()));
-        int value = std::stoi(t->Constant()->getText(), nullptr);
-        Constantp valptr = std::make_shared<Constant>(Constant(value, attrptr->getSize()));
-        // add to rule
-        ruleptr->addTargetExpr(EqExpr(e, valptr));
+        if (attrptr) {
+            Entityp e = std::make_shared<Entity>(
+                            Entity(target_user_name + "." + attr_name,
+                                   target_user_name,
+                                   luser_id,
+                                   attr_name,
+                                   attrptr->getID()));
+            int value = std::stoi(t->Constant()->getText(), nullptr);
+            Constantp valptr = std::make_shared<Constant>(Constant(value, attrptr->getSize()));
+            // add to rule
+            ruleptr->addTargetExpr(EqExpr(e, valptr));
+        } else {
+            throw ParserException(
+                "Error in line " + getTokenLocation(t->Identifier()[1]->getSymbol()) +
+                ": attribute " + attr_name + " is undefined!"
+            );
+        }
     }
     // Add to model
     this->vac_model->insertNewRule(ruleptr);
-
-}
-void  MyListener::exitRule_element(vacgrammarParser::Rule_elementContext * ctx) {
 }
 
 void MyListener::enterR_query(vacgrammarParser::R_queryContext * ctx) {
     // Create lhs
-    std::string user_name = ctx->normal_assignment()->u->getText();
+    std::string user_name = ctx->normal_assignment()->Identifier()[0]->getText();
     int user_id = this->vac_model->getUserID(user_name);
-    std::string attr_name = ctx->normal_assignment()->a->getText();
+    std::string attr_name = ctx->normal_assignment()->Identifier()[1]->getText();
     AttributePtr attrptr = this->vac_model->getAttribute(attr_name);
-    if (attrptr == nullptr) {
-        std::cerr << "Error in Query: attribute " << attr_name << " is undefined!" << std::endl;
-        std::_Exit(EXIT_FAILURE);
-
+    if (!attrptr) {
+        throw ParserException(
+            "Error in line " + getTokenLocation(ctx->normal_assignment()->Identifier()[0]->getSymbol())
+            + ": attribute " + attr_name + " is undefined!"
+            );
     }
     Entityp e = std::make_shared<Entity>(
                     Entity(user_name + "." + attr_name, user_name, user_id, attr_name, attrptr->getID()));
@@ -156,14 +128,9 @@ void MyListener::enterR_query(vacgrammarParser::R_queryContext * ctx) {
     Constantp valptr = std::make_shared<Constant>(Constant(value, attrptr->getSize()));
 
     std::shared_ptr<EqExpr> query =  std::make_shared<EqExpr>(EqExpr(e, valptr));
-
     // add to model
     this->vac_model->setQuery(query);
 }
-
-
-void MyListener::exitR_query(vacgrammarParser::R_queryContext * ctx) {}
-
 
 ModelPtr MyListener::getPolicy(void) const {
     return vac_model;
@@ -310,3 +277,7 @@ Expr MyListener::buildPrecondition(
     }
 }
 
+
+std::string MyListener::getTokenLocation(antlr4::Token * t) const {
+    return std::to_string(t->getLine()) + ":" + std::to_string(t->getCharPositionInLine());
+}

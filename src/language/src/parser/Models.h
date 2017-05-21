@@ -65,6 +65,7 @@ class User {
     int getID(void) const;
     std::vector<AttributePtr> getCopyConfiguration(void) const;
     std::string to_string(void) const;
+    bool isInfinite(void) const;
 
   private:
     int ID; //
@@ -98,13 +99,7 @@ using RulePtr = std::shared_ptr<Rule>;
 class Model {
   public:
     Model(): query(nullptr) {}
-    ~Model() {
-        // users.clear();
-        // attrs.clear();
-        // rules.clear();
-        // user_map.clear();
-        // attr_map.clear();
-    }
+    ~Model() {}
 
     void insertNewUser(UserPtr u, int id);
     void insertNewAttribute(AttributePtr a, int id);

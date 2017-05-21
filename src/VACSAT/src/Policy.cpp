@@ -371,10 +371,25 @@ namespace SMT {
         _unique_configurations = update_unique_confs(this->_users);
     }
 
-    // TODO(truc): please check this
+    // TODO(truc): please check these following function
     void arbac_policy::add_user(const userp& user){
         _users.push_back(user);
     }
+    void arbac_policy::add_can_assign_no_update(const rulep& rule) {
+        this->_can_assign_rules.push_back(rule);
+        _rules.push_back(rule);
+    }
+    void arbac_policy::add_can_revoke_no_update(const rulep& rule) {
+        this->_can_revoke_rules.push_back(rule);
+        _rules.push_back(rule);
+    }
+    void arbac_policy::update_query(const Literalp& goal_role) {
+        this->goal_role = goal_role;
+        // Only call update when finishing adding every rules
+        // this->update();
+    }
+
+
 
     void arbac_policy::add_atom(const atom& atom){
         _atoms.push_back(atom);

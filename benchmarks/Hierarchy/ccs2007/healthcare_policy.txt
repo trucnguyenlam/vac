@@ -1,8 +1,10 @@
 [ROLES]
+Employee
 Agent
 Doctor
 Manager
 MedicalManager
+MedicalTeam
 Nurse
 Patient
 PrimaryDoctor
@@ -89,5 +91,5 @@ SMER(Receptionist, Doctor)
 
 [QUERY]
 // template: reach[role*]+(ref_id, role+), ref_id is the 0-index of [role]+
-reach[Doctor][](1, PatientWithTPC)
 reach[](0, Doctor Nurse)
+reach[Doctor][](1, PatientWithTPC)

@@ -1,0 +1,9 @@
+../build/vacsat -p regression/healthcare_policy.txt10u_0nu_query0_0.txt
+../build/vacsat -p regression/healthcare_policy.txt10u_0nu_query0_1.txt
+../build/vacsat -p regression/healthcare_policy.txt10u_0nu_query1_0.txt
+../build/vacsat -p regression/university_policy.txt10u_0nu_query1_0.txt
+../build/vacsat -p regression/university_policy.txt10u_0nu_query1_1.txt
+../build/vacsat -p regression/university_policy.txt10u_0nu_query2_0.txt
+../build/vacsat -p regression/university_policy_extend.txt10u_0nu_query1_0.txt
+../build/vacsat -p regression/university_policy_extend.txt10u_0nu_query1_1.txt
+../build/vacsat -p regression/university_policy_extend.txt10u_0nu_query2_0.txt

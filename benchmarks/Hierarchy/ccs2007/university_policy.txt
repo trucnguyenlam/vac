@@ -12,6 +12,7 @@ UndergradPermittedGradClass
 
 AdmissionsOfficer
 AssistantProf
+AssociateProf
 Dean
 DeanOfAdmissions
 DeptChair
@@ -152,7 +153,7 @@ SMER(AdmissionsOfficer, GradAdmissionsCommittee)
 [QUERY]
 reach[Faculty][Undergrad](1, HonorsStudent)
 reach[DeptChair][Undergrad](1, HonorsStudent)
-reach[DeptChair][Falcuty][Student](2, HonorsStudent)
+reach[DeptChair][Faculty][Student](2, HonorsStudent)
 reach[Provost][DeptChair](1, Dean)
 reach[Provost][Professor DeptChair](1, Dean)
 reach[President][Professor DeptChair](1, DeptChair Dean)

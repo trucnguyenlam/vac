@@ -67,8 +67,7 @@ def generatePolicy(args):
             pass
 
     prefix = args.path + "/" + \
-        os.path.basename(
-            args.input) if args.path != "" else os.path.basename(args.input)
+        os.path.basename(args.input) if args.path != "" else args.input
 
     # For roles, which means attribute here
     rolestr = "ATTRIBUTES\n"
@@ -103,8 +102,8 @@ def generatePolicy(args):
             initstr += '>\n'
 
         for i in range(0, args.nnewuser):
-            name = "new_user%s*" % i
-            userstr += name + "\n"
+            name = "new_user%s" % i
+            userstr += name + "*\n"
             # userlist.append(name)
             # For init
             initstr += "<" + name
@@ -128,11 +127,10 @@ def generatePolicy(args):
         querystr = "QUERY\n"
         querystr += "quser%s" % q.user_index
         for f, r in enumerate(q.goal):
-            querystr += ".%s=1\n" % r
-            userstr += ";\n\n"
-            initstr += ";\n\n"
-            querystr += ";\n\n"
-            ret = userstr + rolestr + initstr + rulestr + querystr
+            newquerystr = querystr + ".%s=1;\n\n" % r
+            newuserstr = userstr + ";\n\n"
+            newinitstr = initstr + ";\n\n"
+            ret = newuserstr + rolestr + newinitstr + rulestr + newquerystr
             saveFile(prefix + "%su_%snu_query%s_%s.txt" %
                      (args.nuser, args.nnewuser, index, f), ret)
 
