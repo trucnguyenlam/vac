@@ -6,20 +6,13 @@ UA  <u1, ra>
     <u1, rb>
 	;
 
-CR 	<ra,r0>
-    <ra,rc>;
+CR 	<ra, ra>;
 
 CA
-    <ra,ra&rc,rb>
-    <ra,ra&-rc,rb>
-    <ra,ra&-ra, rb>
-    <ra,-r0,ra>
-    <rb,ra,r0>
-    <ra,-ra,r0>
-	<ra,ra&rb,ra>
-	<ra,TRUE,rc>
-	<ra,ra&rb&rc,rd>
-	<ra,-ra&-rc&-rd,rt>
+    <ra, ra, rb>
+    <ra, ra, rc>
+    <ra, rb&rc, rt>
+    <ra, rb&-rc, rt>
 	;
 
 SPEC rt ;

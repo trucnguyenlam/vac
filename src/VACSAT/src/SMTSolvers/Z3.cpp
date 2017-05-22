@@ -96,7 +96,7 @@ namespace SMT {
         if (exprs.size() < 1) {
             return createTrue();
 //            fprintf(stderr, "Cannot join zero expressions...\n");
-//            throw new std::runtime_error("Cannot join zero expressions");
+//            throw std::runtime_error("Cannot join zero expressions");
         }
         auto ite = exprs.begin();
         expr ret = *ite;
@@ -109,7 +109,7 @@ namespace SMT {
         if (exprs.size() < 1) {
             return createTrue();
 //            fprintf(stderr, "Cannot join zero expressions...\n");
-//            throw new std::runtime_error("Cannot join zero expressions");
+//            throw std::runtime_error("Cannot join zero expressions");
         }
         auto ite = exprs.begin();
         expr ret = *ite;
@@ -222,7 +222,7 @@ namespace SMT {
     //     // int res = yices_push(context);
     //     // if (res != 0) {
     //     //     fprintf(stderr, "Failed to push yices context!\n");
-    //     //     throw new std::runtime_error("Failed to push yices context!\n");
+    //     //     throw std::runtime_error("Failed to push yices context!\n");
     //     // }
     //     // assertions.clear();
     // }
@@ -230,7 +230,7 @@ namespace SMT {
     //     // int res = yices_pop(context);
     //     // if (res != 0) {
     //     //     fprintf(stderr, "Failed to pop yices context!\n");
-    //     //     throw new std::runtime_error("Failed to pop yices context!\n");
+    //     //     throw std::runtime_error("Failed to pop yices context!\n");
     //     // }
     //     // printf("Popping: %p\t", context);
     //     auto tmp = this->context;
