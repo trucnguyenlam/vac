@@ -19,7 +19,7 @@
 ////
 ////        inline TVar get_solver_var() {
 ////            if (solver_varp == nullptr)
-////                throw new std::runtime_error("Null variable");
+////                throw std::runtime_error("Null variable");
 ////            else {
 ////                return *solver_varp;
 ////            }
@@ -47,7 +47,7 @@
 ////                                                      const std::vector<std::shared_ptr<TVar>>& new_lookup) {
 ////        if (base_lookup.size() != new_lookup.size()) {
 ////            std::cerr << "Cannot update vector of different size." << std::endl;
-////            throw new std::runtime_error("Cannot update vector of different size.");
+////            throw std::runtime_error("Cannot update vector of different size.");
 ////        }
 ////        std::vector<std::shared_ptr<TVar>> res(base_lookup);
 ////
@@ -125,7 +125,7 @@
 ////                fmt << "Error in literalToSMT with vector<TWrapper>." << std::endl;
 ////                fmt << "Lookup table does not contain item with index " << lit->role_array_index
 ////                    << " and could not be instantiated.";
-////                throw new std::runtime_error(fmt.str());
+////                throw std::runtime_error(fmt.str());
 ////            }
 ////        } else {
 ////            return generateSMTFunction(solver, lit->value, var_vector, suffix);
@@ -209,7 +209,7 @@
 ////            default:
 ////                break;
 ////        }
-////        throw new std::runtime_error("Cannot translate expression to SMT");
+////        throw std::runtime_error("Cannot translate expression to SMT");
 ////        fprintf(stderr, "Cannot translate expression to SMT:\n    %s\n", expr->to_string().c_str());
 ////    }
 //

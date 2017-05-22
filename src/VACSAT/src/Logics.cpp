@@ -690,10 +690,10 @@ namespace SMT {
             default:
                 fprintf(stderr, "Could not normalize an expression that is not an OR, AND, NOT, CONSTANT, LITERAL.\n\tExpr is %s",
                         expr->to_string().c_str());
-                throw new std::runtime_error("Could not normalize this expression");
+                throw std::runtime_error("Could not normalize this expression");
                 return expr;
         }
-        throw new std::runtime_error("Cannot translate expression to SMT");
+        throw std::runtime_error("Cannot translate expression to SMT");
         fprintf(stderr, "Cannot translate expression to SMT:\n    %s\n", expr->to_string().c_str());
     }
 
@@ -765,10 +765,10 @@ namespace SMT {
             default:
             std::cerr << "Could not simplify an expression that is not an OR, AND, NOT, CONSTANT, LITERAL." << std::endl;
             std::cerr << "\tExpr is " << *expr << std::endl;
-                throw new std::runtime_error("Could not normalize this expression");
+                throw std::runtime_error("Could not normalize this expression");
                 return expr;
         }
-        throw new std::runtime_error("Cannot translate expression to SMT");
+        throw std::runtime_error("Cannot translate expression to SMT");
         fprintf(stderr, "Cannot translate expression to SMT:\n    %s\n", expr->to_string().c_str());
     }
 
@@ -858,7 +858,7 @@ namespace SMT {
     //         default:
     //             break;
     //     }
-    //     throw new std::runtime_error("Cannot translate expression to SMT");
+    //     throw std::runtime_error("Cannot translate expression to SMT");
     //     fprintf(stderr, "Cannot translate expression to SMT:\n    %s\n", expr->to_string().c_str());
     // }
 

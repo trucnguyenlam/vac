@@ -118,7 +118,7 @@ namespace SMT {
 
                 if (wanted_status == UNUSED) {
                     std::cerr << "Cannot check the UNUSED status here..." << std::endl;
-                    throw new std::runtime_error("Cannot check the UNUSED status here...");
+                    throw std::runtime_error("Cannot check the UNUSED status here...");
                 }
                 else if (wanted_status == NON_POSITIVE) {
                     // Phi_r_true(C) /\ not Phi_r_false(C)
@@ -132,7 +132,7 @@ namespace SMT {
                 }
                 else if (wanted_status == BOTH_VALUED) {
                     std::cerr << "Cannot check the BOTH_VALUED status here..." << std::endl;
-                    throw new std::runtime_error("Cannot check the BOTH_VALUED status here...");
+                    throw std::runtime_error("Cannot check the BOTH_VALUED status here...");
                 }
 
                 solver->assertNow(to_check);
@@ -1098,7 +1098,7 @@ namespace SMT {
 
         TExpr irr_pos_cond(int roleId, std::vector<std::pair<Expr, Expr>> using_r, std::vector<std::pair<Expr, Expr>> assigning_r) {
             //FIXME: refactored. Fix here
-            throw new std::runtime_error("FIXME: refactored. Fix here");
+            throw std::runtime_error("FIXME: refactored. Fix here");
 //            // ASSERT that ca uses role r
 //            std::map<std::string, TVar> c_map;
 //            std::map<std::string, TVar> adm_map;
@@ -1177,7 +1177,7 @@ namespace SMT {
 
         TExpr irr_neg_cond(int roleId, std::vector<std::pair<Expr, Expr>> using_r, std::vector<std::pair<Expr, Expr>> removing_r) {
             //FIXME: refactored. Fix here
-            throw new std::runtime_error("FIXME: refactored. Fix here");
+            throw std::runtime_error("FIXME: refactored. Fix here");
 //            // ASSERT that ca uses role r
 //            std::map<std::string, TVar> c_map;
 //            std::map<std::string, TVar> adm_map;
@@ -1251,7 +1251,7 @@ namespace SMT {
                            std::vector<std::pair<Expr, Expr>> assigning_r,
                            std::vector<std::pair<Expr, Expr>> removing_r) {
             //FIXME: refactored. Fix here
-            throw new std::runtime_error("FIXME: refactored. Fix here");
+            throw std::runtime_error("FIXME: refactored. Fix here");
 //            TExpr pos_cond = irr_pos_cond(roleId, using_r, assigning_r);
 //            TExpr neg_cond = irr_neg_cond(roleId, using_r, removing_r);
 //            return solver->createOrExpr(pos_cond, neg_cond);
@@ -1323,17 +1323,13 @@ namespace SMT {
                 bool prune_irrelevant_roles_res = this->prune_irrelevant_roles();
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
 
-//                std::cout << "Applying prune_implied_pairs on " << policy->rules().size() << std::endl;
-//                bool prune_implied_pairs_res = this->prune_implied_pairs();
-//                std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
-
-                std::cout << "Applying merge_rules on " << policy->rules().size() << std::endl;
-                bool merge_rules_res = this->merge_rules();
+                std::cout << "Applying prune_implied_pairs on " << policy->rules().size() << std::endl;
+                bool prune_implied_pairs_res = this->prune_implied_pairs();
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
 
-                if (fixpoint_iteration == 2) {
-                    Debug::experimental = true;
-                }
+//                std::cout << "Applying merge_rules on " << policy->rules().size() << std::endl;
+//                bool merge_rules_res = this->merge_rules();
+//                std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
 
                 std::cout << "Applying prune_rule_6 on " << policy->rules().size() << std::endl;
                 bool prune_rule_6_res = this->prune_rule_6();
@@ -1345,8 +1341,8 @@ namespace SMT {
                           easy_pruning_res           ||
                           prune_immaterial_roles_res ||
                           prune_irrelevant_roles_res ||
-//                          prune_implied_pairs_res    ||
-                          merge_rules_res            ||
+                          prune_implied_pairs_res    ||
+//                          merge_rules_res            ||
                           prune_rule_6_res
                           );
 

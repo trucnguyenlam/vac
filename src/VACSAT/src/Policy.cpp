@@ -124,7 +124,7 @@ namespace SMT {
     user user::from_policy(std::vector<atom>& atoms, int original_idx) {
         if (original_idx >= user_array_size) {
             std::cerr << original_idx << " is not a valid user id..." << std::endl;
-            throw new std::runtime_error("Not a valid user id.");
+            throw std::runtime_error("Not a valid user id.");
         }
         std::set<atom> config;
         set init = user_config_array[original_idx];

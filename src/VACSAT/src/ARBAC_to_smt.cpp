@@ -47,7 +47,7 @@ class Transformer {
             int idx;
             inline TVar get_solver_var() {
                 if (solver_var == nullptr)
-                    throw new std::runtime_error("Null variable");
+                    throw std::runtime_error("Null variable");
                 else {
                     return *solver_var;
                 }

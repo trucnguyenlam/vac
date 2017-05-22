@@ -86,7 +86,7 @@
 //
 ////        inline TVar get_solver_var() {
 ////            if (solver_varp == nullptr)
-////                throw new std::runtime_error("Null variable");
+////                throw std::runtime_error("Null variable");
 ////            else {
 ////                return *solver_varp;
 ////            }
@@ -858,7 +858,7 @@
 //                fmt << "Cannot spawn " << wanted_threads_count <<
 //                          " threads because are more than user count (" << user_array_size << ")";
 //                std::cerr << fmt.str() << std::endl;
-//                throw new std::runtime_error(fmt.str());
+//                throw std::runtime_error(fmt.str());
 //            }
 //            else {
 //                threads_count = admin_role_array_index_size + 1;

@@ -12,7 +12,7 @@ namespace SMT {
                                     const std::string &solver_name) {
 
         std::cerr << "Not implemented yet" << std::endl;
-        throw new std::runtime_error("Not implemented yet");
+        throw std::runtime_error("Not implemented yet");
         //std::shared_ptr<arbac_policy> policy = parse_new_ac(inputFile);
 
 //        set_solver_execute(analysis_type, policy, solver_name);

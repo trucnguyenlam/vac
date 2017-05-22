@@ -19,7 +19,7 @@ namespace SMT {
                 prune_policy(solver, policy);
                 break;
             default:
-                throw new std::runtime_error("Uh?");
+                throw std::runtime_error("Uh?");
         }
         std::cerr << "Perform analysis!" << std::endl;
     };

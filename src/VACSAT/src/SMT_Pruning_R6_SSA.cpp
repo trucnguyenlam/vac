@@ -71,7 +71,7 @@ class R6Transformer {
 
 //        inline TVar get_solver_var() {
 //            if (solver_varp == nullptr)
-//                throw new std::runtime_error("Null variable");
+//                throw std::runtime_error("Null variable");
 //            else {
 //                return *solver_varp;
 //            }
@@ -370,7 +370,7 @@ class R6Transformer {
 //            std::shared_ptr<TVar> var = role_vars[role_lit->role_array_index].solver_varp;
 //            if (var == nullptr) {
 //                std::cerr << "Solver variable of role " << role_lit->name << " is null..." << std::endl;
-//                throw new std::runtime_error("Null variable");
+//                throw std::runtime_error("Null variable");
 //            }
 //            array[role_lit->role_array_index] = var;
 //        }
