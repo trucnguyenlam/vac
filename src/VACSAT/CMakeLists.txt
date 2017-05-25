@@ -51,7 +51,7 @@ set(SOURCE_FILES
         src/SMT_Pruning_R6_LazyCSeq.cpp
         src/SMT_Pruning_R6_SSA.cpp
         src/ARBAC_to_smt.cpp
-        src/ARBAC_to_smt_new_policy.cpp
+        src/ARBAC_to_SMT_BMC.cpp
 #        Moved to old_encodings and removed from project
 #        src/SSA_Structs.h
 #        src/SSA_Structs.cpp
@@ -67,7 +67,8 @@ set(SOURCE_FILES
         src/SMT_Analysis.h
         src/SMT_Analysis.cpp
         src/SMT_Analysis_old_style.cpp
-        src/debug.h)
+        src/debug.h
+        src/BMC_Struct.h src/ARBAC_to_SMT_BMC.h src/debug.cpp src/SMT_Configuration.h)
 
 
 
@@ -89,6 +90,9 @@ find_package(Z3 REQUIRED)
 find_package(CCL REQUIRED)
 find_package(ANTLR3C REQUIRED)
 
+FIND_PACKAGE( Boost COMPONENTS program_options REQUIRED )
+INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
+
 # Add include directories for local libraries
 include_directories( "${YICES_INCLUDE_DIR}" "${Z3_INCLUDE_DIR}" "${CCL_INCLUDE_DIR}" )
 
@@ -100,9 +104,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 # Add local libraries linking directories
 link_directories(${YICES_LIBRARY_DIR} ${Z3_LIBRARY_DIR} ${CCL_LIBRARY_DIR})
 
-
 add_executable(vacsat ${SOURCE_FILES})
 # Set the link libraries (GMP MUST BE THE LAST)
-target_link_libraries(vacsat yices z3 ccl antlr3c gmp)
+target_link_libraries(vacsat yices z3 ccl antlr3c gmp ${Boost_LIBRARIES})
 
 install (TARGETS vacsat DESTINATION bin)

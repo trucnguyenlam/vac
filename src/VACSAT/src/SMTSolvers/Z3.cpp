@@ -1,5 +1,7 @@
 #include "Z3.h"
 #include <z3++.h>
+#include <fstream>
+#include <ostream>
 
 namespace SMT {
     static unsigned int var_counter = 0;
@@ -215,6 +217,12 @@ namespace SMT {
     }
     void Z3Solver::printContext() {
         std::cout << this->solver << std::endl;
+    }
+    void Z3Solver::printContext(std::string filename) {
+        std::ofstream myfile;
+        myfile.open(filename);
+        myfile << this->solver << std::endl;
+        myfile.close();
     }
 
     // void Z3Solver::push() { 

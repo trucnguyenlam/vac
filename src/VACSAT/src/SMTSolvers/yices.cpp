@@ -332,6 +332,16 @@ namespace SMT {
             yices_pp_term(stdout, *ite, 160, 20, 0);
         }
     }
+    void YicesSolver::printContext(std::string filename) {
+        FILE* out = fopen(filename.c_str(), "w");
+        if (out == NULL) {
+            throw std::runtime_error("Cannot open file: " + filename);
+        }
+        for (auto ite = this->asserted.begin(); ite != this->asserted.end(); ++ite) {
+            yices_pp_term(out, *ite, 160, 20, 0);
+        }
+        fclose(out);
+    }
 
     // void YicesSolver::push() { 
     //     // loadToSolver();

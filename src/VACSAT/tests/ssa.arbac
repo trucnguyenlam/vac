@@ -1,22 +1,28 @@
-Roles r0 ra rb rc rd rt;
+Roles r0 r1 r2 r3 rt ;
 
-Users u1 u2  ;
+Users u1 u2
+	user0
+	user1
+	user2
+	user3
+	user4
+;
 
-UA  <u1, ra> 
-    <u1, rb>
+UA  <u1, r0>
+    <u1, r1>
 	;
 
-CR 	<ra, ra>;
+CR 	;
 
 CA
-    <ra, ra, rb>
-    <ra, ra, rc>
-    <ra, rb&rc, rt>
-    <ra, rb&-rc, rt>
+    <r0, TRUE, r0>
+
+    <r0, r1&r0, r2>
+
+    <r0, r1&r0, r2>
+
+    <r0, r2, rt>
+
 	;
 
 SPEC rt ;
-
-HIERARCHY
-    <ra, rb>
-;

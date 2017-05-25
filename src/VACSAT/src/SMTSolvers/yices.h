@@ -50,6 +50,7 @@ namespace SMT {
         void clean() override;
         void deep_clean() override;
         void printContext() override;
+        void printContext(std::string filename) override;
         
         // void push() override;
         // void pop() override;

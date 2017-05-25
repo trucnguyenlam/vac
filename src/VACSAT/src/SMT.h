@@ -65,6 +65,7 @@ namespace SMT {
         virtual void clean() = 0;
         virtual void deep_clean() = 0;
         virtual void printContext() = 0;
+        virtual void printContext(std::string filename) = 0;
 
         // virtual void push() = 0;
         // virtual void pop() = 0;

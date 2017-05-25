@@ -57,6 +57,8 @@ namespace SMT {
 
         void printExpr(expr e) override;
         void printContext() override;
+        void printContext(std::string filename) override;
+
         
         // void push() override;
         // void pop() override;
