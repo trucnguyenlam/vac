@@ -39,7 +39,7 @@ print_cr_comment_smt2(FILE *, int);
 
 // Policy statistics function
 void
-show_policy_statistics(char *, FILE *, int);
+show_policy_statistics(std::string filename, FILE *, int);
 
 
 // Precise translate functions
