@@ -86,6 +86,7 @@ namespace SMT {
             for (auto &&rule : policy->rules()) {
                 if (!contains(to_save, rule)) {
                     to_remove.push_back(rule);
+                    std::cout << *rule << std::endl;
                 }
             }
 
@@ -683,66 +684,133 @@ namespace SMT {
 
         /* IMPLIED RULE FUNCTIONS */
         int implied(const std::shared_ptr<rule>& ca1, const std::shared_ptr<rule>& ca2) {
-            std::map<std::string, TVar> c_map;
-            std::map<std::string, TVar> adm_map;
+            std::vector<std::shared_ptr<TVar>> c_vect((ulong) policy->atom_count());
+            std::vector<std::shared_ptr<TVar>> adm_vect((ulong) policy->atom_count());
             std::string c_suff("C");
             std::string adm_suff("admin");
 
-            TExpr phi1_adm = generateSMTFunction(solver, ca1->admin, adm_map, adm_suff);
-            TExpr phi1_pn = generateSMTFunction(solver, ca1->prec, c_map, c_suff);
-            TExpr phi2_adm = generateSMTFunction(solver, ca2->admin, adm_map, adm_suff);
-            TExpr phi2_pn = generateSMTFunction(solver, ca2->prec, c_map, c_suff);
-
-            // \phi'_a(adm) /\ \phi'(C)
-            TExpr lhs = solver->createAndExpr(phi2_adm, phi2_pn);
-
-            // (\not\phi_a(adm)) \/ (\not\phi(c))
-            // \not (\phi_a(adm) /\ \phi(C))
-            TExpr rhs = solver->createNotExpr(solver->createAndExpr(phi1_adm, phi1_pn));
-
-            // (\phi_a(adm) /\ \phi(C)) /\ ((\not\phi'_a(adm)) \/ (\not\phi'(c)))
-            TExpr final_cond = solver->createAndExpr(lhs, rhs);
-
-            solver->assertNow(final_cond);
-            SMTResult res = solver->solve();
             solver->clean();
-            return res == UNSAT;
+
+            TExpr phi1_adm = generateSMTFunction2(solver, ca1->admin, adm_vect, adm_suff);
+            TExpr phi2_adm = generateSMTFunction2(solver, ca2->admin, adm_vect, adm_suff);
+
+
+            // For performances improvement we test admin first and then the precondition
+            // // \phi_a(adm) /\ \not \phi'_a(adm)
+            TExpr adm_cond = solver->createAndExpr(phi2_adm,
+                                                   solver->createNotExpr(phi1_adm));
+
+            solver->assertNow(adm_cond);
+            SMTResult adm_res = solver->solve();
+
+            if (adm_res == SAT) {
+                return false;
+            }
+//            std::cout << "Admin, impl: " << *ca1->admin << " ==> " << *ca2->admin << std::endl;
+
+//            std::cout << *ca1 << std::endl;
+//            std::cout << *ca2 << std::endl;
+            solver->clean();
+
+            TExpr phi1_pn = generateSMTFunction2(solver, ca1->prec, c_vect, c_suff);
+            TExpr phi2_pn = generateSMTFunction2(solver, ca2->prec, c_vect, c_suff);
+            // \phi(C) /\ \not \phi'(C)
+            TExpr cond = solver->createAndExpr(phi2_pn,
+                                               solver->createNotExpr(phi1_pn));
+
+            solver->assertNow(cond);
+            SMTResult cond_res = solver->solve();
+
+//            std::cout << "Prec, impl: " << *ca1->prec << " ==> " << *ca2->prec << ": " << (cond_res == SAT ? "SAT" : "UNSAT") << std::endl;
+//            solver->printExpr(cond);
+            return cond_res != SAT;
+
+
+
+
+//            // \phi'_a(adm) /\ \phi'(C)
+//            TExpr lhs = solver->createAndExpr(phi2_adm, phi2_pn);
+//
+//            // (\not\phi_a(adm)) \/ (\not\phi(c))
+//            // \not (\phi_a(adm) /\ \phi(C))
+//            TExpr rhs = solver->createNotExpr(solver->createAndExpr(phi1_adm, phi1_pn));
+//
+//            // (\phi_a(adm) /\ \phi(C)) /\ ((\not\phi'_a(adm)) \/ (\not\phi'(c)))
+//            TExpr final_cond = solver->createAndExpr(lhs, rhs);
+
+//            solver->assertNow(final_cond);
+//            SMTResult res = solver->solve();
+//            solver->clean();
+//            return res == UNSAT;
         }
 
         bool prune_implied_pairs() {
             std::list<rulep> to_remove;
-            for (auto &&ca1 : policy->can_assign_rules()) {
-                //FIXME: cache ca1 expressions here
-                for (auto &&ca2 : policy->can_assign_rules()) {
-                    if (ca1 != ca2 &&
-                        ca1->target->role_array_index == ca2->target->role_array_index) {
+            for (auto &&atom :policy->atoms()) {
+                for (auto &&ca1 :policy->per_role_can_assign_rule(atom)) {
+                    for (auto &&ca2 : policy->per_role_can_assign_rule(atom)) {
+                        if (ca1 != ca2) {
+                            assert(ca1->target->role_array_index == ca2->target->role_array_index);
 
-                        int are_implied = implied(ca1, ca2);
-                        if (are_implied) {
-                            std::cout << *ca1 << std::endl;
-                            std::cout << *ca2 << std::endl;
-                            to_remove.push_back(ca2);
+                            int are_implied = implied(ca1, ca2);
+                            if (are_implied) {
+                                std::cout << "Implied: " << *ca1 << " ==>" << std::endl;
+                                std::cout << "         " << *ca2 << std::endl;
+                                to_remove.push_back(ca2);
+//                                std::cout << "" << std::endl;
+                            }
+                        }
+                    }
+                }
+
+                for (auto &&cr1 : policy->per_role_can_revoke_rule(atom)) {
+                    for (auto &&cr2 : policy->per_role_can_revoke_rule(atom)) {
+                        if (cr1 != cr2) {
+                            assert(cr1->target->role_array_index == cr2->target->role_array_index);
+
+                            int are_implied = implied(cr1, cr2);
+                            if (are_implied) {
+                                std::cout << "Implied: " << *cr1 << " ==>" << std::endl;
+                                std::cout << "         " << *cr2 << std::endl;
+                                to_remove.push_back(cr2);
+//                                std::cout << "" << std::endl;
+                            }
                         }
                     }
                 }
             }
-            for (auto &&cr1 : policy->can_revoke_rules()) {
-                for (auto &&cr2 : policy->can_revoke_rules()) {
-                    if (cr1 != cr2 &&
-                        cr1->target->role_array_index == cr2->target->role_array_index) {
 
-                        int are_implied = implied(cr1, cr2);
-                        if (are_implied) {
-                            std::cout << *cr1 << std::endl;
-                            std::cout << *cr2 << std::endl;
-                            to_remove.push_back(cr2);
-                        }
-                    }
-                }
-            }
-            for (auto &&rule : to_remove) {
-                policy->remove_rule(rule);
-            }
+//            std::list<rulep> to_remove;
+//            for (auto &&ca1 : policy->can_assign_rules()) {
+//                //FIXME: cache ca1 expressions here
+//                for (auto &&ca2 : policy->can_assign_rules()) {
+//                    if (ca1 != ca2 &&
+//                        ca1->target->role_array_index == ca2->target->role_array_index) {
+//
+//                        int are_implied = implied(ca1, ca2);
+//                        if (are_implied) {
+//                            std::cout << *ca1 << std::endl;
+//                            std::cout << *ca2 << std::endl;
+//                            to_remove.push_back(ca2);
+//                        }
+//                    }
+//                }
+//            }
+//            for (auto &&cr1 : policy->can_revoke_rules()) {
+//                for (auto &&cr2 : policy->can_revoke_rules()) {
+//                    if (cr1 != cr2 &&
+//                        cr1->target->role_array_index == cr2->target->role_array_index) {
+//
+//                        int are_implied = implied(cr1, cr2);
+//                        if (are_implied) {
+//                            std::cout << *cr1 << std::endl;
+//                            std::cout << *cr2 << std::endl;
+//                            to_remove.push_back(cr2);
+//                        }
+//                    }
+//                }
+//            }
+            policy->remove_rules(to_remove);
             return to_remove.size() > 0;
         }
 
@@ -928,7 +996,9 @@ namespace SMT {
                 }
             }
 
-            for (auto &&rule : to_remove) {
+            std::cout << std::endl;
+
+            for (auto &&rule :to_remove) {
 //                policy->remove_rule(rule);
                 std::cout << *rule << std::endl;
             }
@@ -1014,6 +1084,43 @@ namespace SMT {
 
 
             return has_changed;
+        }
+
+        /* USER REDUCTION */
+        void reduce_users() {
+            auto unique_conf = policy->unique_configurations();
+            std::list<std::pair<std::set<atom>, std::list<userp>>> partitions;
+
+            for (auto &&u_conf : unique_conf) {
+                partitions.push_back(std::pair<std::set<atom>, std::list<userp>>(u_conf->config(), std::list<userp>()));
+            }
+
+            int user_k = admin_count() + 1;
+
+            for (auto &&pair : partitions) {
+                if (pair.second.size() < user_k) {
+                    for (auto &&user : policy->users()) {
+                        if (user->config() == pair.first) {
+                            pair.second.push_back(user);
+
+                            if (pair.second.size() >= user_k) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            std::vector<userp> new_users;
+
+            for (auto &&pair : partitions) {
+                for (auto &&user : pair.second) {
+                    new_users.push_back(user);
+                }
+            }
+
+            policy->set_users(new_users);
+
         }
 
         /* NOT USED ANYMORE */
@@ -1281,23 +1388,6 @@ namespace SMT {
 
         }
 
-        std::pair<std::vector<Expr>, std::list<Expr>> partition_admins() {
-            std::list<rulep> rules(policy->rules().begin(), policy->rules().end());
-            std::list<std::list<rulep>> partitions = partition_equivalent(nullptr, rules);
-            std::vector<Expr> admin_map(policy->rules().size());
-            std::list<Expr> parts;
-
-            for (auto &&part : partitions) {
-                Expr adm = (*part.begin())->admin;
-                parts.push_back(adm);
-                for (auto &&rule : part) {
-                    admin_map[rule->original_idx] = adm;
-                }
-            }
-
-            return std::pair<std::vector<Expr>, std::list<Expr>>(admin_map, parts);
-        }
-
         void apply() {
             bool fixpoint = false;
             int fixpoint_iteration = 1;
@@ -1327,9 +1417,12 @@ namespace SMT {
                 bool prune_implied_pairs_res = this->prune_implied_pairs();
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
 
-//                std::cout << "Applying merge_rules on " << policy->rules().size() << std::endl;
-//                bool merge_rules_res = this->merge_rules();
-//                std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+                bool merge_rules_res = false;
+                if (Debug::merge) {
+                    std::cout << "Applying merge_rules on " << policy->rules().size() << std::endl;
+                    merge_rules_res = this->merge_rules();
+                    std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+                }
 
                 std::cout << "Applying prune_rule_6 on " << policy->rules().size() << std::endl;
                 bool prune_rule_6_res = this->prune_rule_6();
@@ -1342,7 +1435,7 @@ namespace SMT {
                           prune_immaterial_roles_res ||
                           prune_irrelevant_roles_res ||
                           prune_implied_pairs_res    ||
-//                          merge_rules_res            ||
+                          merge_rules_res            ||
                           prune_rule_6_res
                           );
 
@@ -1351,6 +1444,8 @@ namespace SMT {
                 auto step_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(step_end - step_start);
                 std::cout << " done in " << step_milliseconds .count() << " ms." << std::endl;
             }
+
+            reduce_users();
 
 //            std::cout << *policy;
 
@@ -1361,7 +1456,7 @@ namespace SMT {
 
             auto global_end = std::chrono::high_resolution_clock::now();
             auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(global_end - global_start);
-            std::cout << "------------ Pruning done in " << milliseconds.count() << " ms ------------" << std::endl;
+            std::cout << "------------ Pruning done in " << milliseconds.count() << " ms. ------------" << std::endl;
 
 //            auto map = partition_admins();
 //            for (int i = 0; i < map.first.size(); ++i) {
