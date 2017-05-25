@@ -296,7 +296,7 @@ namespace SMT {
     public:
         TVarWrapper(std::shared_ptr<TVar> _solver_varp) : solver_varp(_solver_varp) { }
 
-        inline TVar get_solver_var() {
+        inline TVar get_solver_var() const {
             if (solver_varp == nullptr)
                 throw std::runtime_error("Null variable");
             else {
