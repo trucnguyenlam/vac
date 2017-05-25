@@ -745,6 +745,8 @@ namespace SMT {
         }
 
         bool prune_implied_pairs() {
+            //FIXME: WARNING: if two rules have the same precondition (semantically) are removed together!!
+            std::cerr << "WARNING: if two rules have the same precondition (semantically) are removed together!" << std::endl;
             std::list<rulep> to_remove;
             for (auto &&atom :policy->atoms()) {
                 for (auto &&ca1 :policy->per_role_can_assign_rule(atom)) {
