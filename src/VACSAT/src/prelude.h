@@ -38,6 +38,19 @@ namespace SMT {
     bool iterable_exists(_InputIterator first, _InputIterator last, _Predicate p) {
         return std::find_if(first, last, p) != last;
     };
+
+    static int bits_count(int pc) {
+        int i = 1, bit = 0;
+
+        if (pc < 2 ) return 1;
+
+        while (pc >= i) {
+            i = i * 2;
+            bit++;
+        }
+
+        return (bit);
+    }
 }
 
 #endif //VACSAT_PRELUDE_H
