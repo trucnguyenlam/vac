@@ -2,9 +2,9 @@
 
 
 void
-show_policy_statistics(char *inputFile, FILE *outputFile, int wanted_threads_count) {
+show_policy_statistics(std::string inputFile, FILE *outputFile, int wanted_threads_count) {
 	int threads_count, use_tracks;
-    read_ARBAC(inputFile);
+    read_ARBAC(inputFile.c_str());
     // Preprocess the ARBAC Policies
     preprocess(0);
     build_config_array();
@@ -29,7 +29,7 @@ show_policy_statistics(char *inputFile, FILE *outputFile, int wanted_threads_cou
         }   
     }
 
-    fprintf(outputFile, "Policy name: %s\n", inputFile);
+    fprintf(outputFile, "Policy name: %s\n", inputFile.c_str());
    	fprintf(outputFile, "*  Users: %d\n", user_array_size);
     fprintf(outputFile, "*  Roles: %d\n", role_array_size);
     fprintf(outputFile, "*  AdminRoles: %d\n", admin_role_array_index_size);
