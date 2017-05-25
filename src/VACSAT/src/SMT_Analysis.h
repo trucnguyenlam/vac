@@ -17,15 +17,25 @@
 namespace SMT {
     enum AnalysisType {
         PRUNE_ONLY,
-        CHECK_ONLY,
+        BMC_ONLY,
         FULL_ANALYSIS
     };
 
+    struct bmc_config {
+    public:
+        bmc_config(int _steps, int _rounds, int _wanted_threads_count) :
+            steps(_steps), rounds(_rounds), wanted_threads_count(_wanted_threads_count) { }
+
+        const int steps;
+        const int rounds;
+        const int wanted_threads_count;
+    };
+
     void perform_analysis_old_style(AnalysisType analysis_type, const std::string &inputFile,
-                                    const std::string &solver_name);
+                                    const std::string &solver_name, bmc_config config);
 
     void perform_analysis(AnalysisType analysis_type, const std::string &inputFile,
-                                    const std::string &solver_name);
+                                    const std::string &solver_name, bmc_config config);
 }
 
 #endif //VACSAT_SMT_ANALYSIS_H
