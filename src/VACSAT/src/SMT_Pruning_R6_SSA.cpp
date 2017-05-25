@@ -11,6 +11,7 @@
 #include "SMTSolvers/yices.h"
 #include "SMTSolvers/Z3.h"
 #include "Logics.h"
+#include "BMC_Struct.h"
 #include "Policy.h"
 
 #include <chrono>
@@ -21,6 +22,8 @@ template <typename TVar, typename TExpr>
 class R6Transformer {
     private:
 
+    typedef generic_variable<TVar, TExpr> variable;
+
     std::shared_ptr<SMTFactory<TVar, TExpr>> solver;
     std::stringstream fmt;
 
@@ -29,81 +32,6 @@ class R6Transformer {
     void clean_fmt() {
         fmt.str(std::string());
     }
-
-    // typedef
-    struct variable : public TVarWrapper<TVar> {
-//        std::shared_ptr<TVar> solver_varp;
-        // std::shared_ptr<SMTFactory<TVar, TExpr>> solver;
-        SMTFactory<TVar, TExpr>* solver;
-        int bv_size;
-        std::string name;
-        std::string full_name;
-        int idx;
-        bool force_bv;
-
-        variable() :
-            TVarWrapper<TVar>(nullptr),
-            bv_size(-1), name(""), full_name(""), idx(-1), solver(nullptr), force_bv(false) { }
-
-        variable(const std::string _name, int _idx, int _bv_size, SMTFactory<TVar, TExpr>* _solver, bool _force_bv = false) :
-            TVarWrapper<TVar>(nullptr),
-            bv_size(_bv_size), name(_name), full_name(_name + "_" + std::to_string(_idx)), idx(_idx), solver(_solver), force_bv(_force_bv)  {
-                if (force_bv) {
-                    this->solver_varp = std::make_shared<TVar>(solver->createBVVar(full_name, bv_size));
-                }
-                else {
-                    this->solver_varp = std::make_shared<TVar>(solver->createVar2(full_name, bv_size));
-                }
-             }
-
-        friend std::ostream& operator<< (std::ostream& stream, const variable& var) {
-            stream << var.full_name;
-            return stream;
-        }
-
-        // ~variable() {
-        //     delete[] solver_varp;
-        // }
-
-        // variable(std::string _name, int _idx, int _bv_size, TExpr value) : 
-        //     bv_size(_bv_size), name(_name), idx(_idx),
-        //     solver_var(solver->createVar2(_name + "_" + std::to_string(_idx)), _bv_size)  { }
-
-//        inline TVar get_solver_var() {
-//            if (solver_varp == nullptr)
-//                throw std::runtime_error("Null variable");
-//            else {
-//                return *solver_varp;
-//            }
-//        }
-
-        variable createFrom() {
-            // printf("GF: %s\n", this->full_name.c_str());
-            auto res = variable(this->name, this->idx + 1, this->bv_size, this->solver, this->force_bv);
-            return res;
-        }
-
-        static variable dummy() {
-            variable res;
-            res.name = std::string("dummy");
-            res.idx = -1;
-            res.bv_size = -1;
-            return res;
-        }
-
-        // TExpr getAssignment() {
-        //     if (solver_val == nullptr) {
-        //         return solver->createTrue();
-        //     }
-        //     else {
-        //         return solver->createEqExpr(solver_var, *solver_val);
-        //     }
-        // }
-
-    }; 
-    // variable;
-
-    // variable dummy_var;
 
     /*--- SMT VARIABLE INDEXES ---*/
     /*--- VALUES ARE  ---*/
@@ -124,14 +52,12 @@ class R6Transformer {
     TExpr zero;
     TExpr one;
 
-    bool *core_roles = NULL;
+    bool *core_roles = nullptr;
     int core_roles_size = 0;
     int pc_size;
 
     //int *roles_ca_counts = NULL;
     //int *roles_cr_counts = NULL;
-    std::vector<std::shared_ptr<rule>>* per_role_ca_rules = nullptr;
-    std::vector<std::shared_ptr<rule>>* per_role_cr_rules = nullptr;
 
     inline void emit_assignment(variable& variable, TExpr value) {
         TExpr assign = solver->createEqExpr(variable.get_solver_var(), value);
@@ -155,7 +81,7 @@ class R6Transformer {
                 count++;
             }
         }
-        return numBits(count);
+        return bits_count(count);
     }
 
     void allocate_core_role_array_set_pc_size() {
@@ -186,56 +112,43 @@ class R6Transformer {
         delete[] core_roles;
     }
 
-    void precompute_merge() {
-
-        float assignable_roles_count = 0;
-        float removable_roles_count = 0;
-
-//        roles_ca_counts = new int[role_array_size];
-//        roles_cr_counts = new int[role_array_size];
-        per_role_ca_rules = new std::vector<std::shared_ptr<rule>>[policy->atom_count()];
-        per_role_cr_rules = new std::vector<std::shared_ptr<rule>>[policy->atom_count()];
-
-        for (int i = 0; i < policy->atom_count(); ++i) {
-            //INSTANTIATING per_role_ca_indexes
-//            per_role_ca_indexes[i];
-
-            //INSTANTIATING per_role_ca_indexes CONTENT
-            for (auto ite = policy->can_assign_rules().begin(); ite != policy->can_assign_rules().end(); ++ite) {
-                if ((*ite)->target->role_array_index == i) {
-                    per_role_ca_rules[i].push_back(*ite);
-                }
-            }
-            if (per_role_ca_rules[i].size() > 0) {
-                assignable_roles_count++;
-            }
-
-
-            //INSTANTIATING per_role_cr_indexes
-            for (auto ite = policy->can_revoke_rules().begin(); ite != policy->can_revoke_rules().end(); ++ite) {
-                if ((*ite)->target->role_array_index == i) {
-                    per_role_cr_rules[i].push_back(*ite);
-                }
-            }
-            if (per_role_cr_rules[i].size() > 0) {
-                assignable_roles_count++;
-            }
-        }
-        return;
-    }
-
-    void deallocate_precomputated_values() {
-//        for (int i = 0; i < role_array_size; ++i) {
-//            if (per_role_ca_indexes[i] != NULL)
-//                delete[] per_role_ca_indexes[i];
-//            if (per_role_cr_indexes[i] != NULL)
-//                delete[] per_role_cr_indexes[i];
+//    void precompute_merge() {
+//
+//        float assignable_roles_count = 0;
+//        float removable_roles_count = 0;
+//
+////        roles_ca_counts = new int[role_array_size];
+////        roles_cr_counts = new int[role_array_size];
+//        per_role_ca_rules = new std::vector<std::shared_ptr<rule>>[policy->atom_count()];
+//        per_role_cr_rules = new std::vector<std::shared_ptr<rule>>[policy->atom_count()];
+//
+//        for (int i = 0; i < policy->atom_count(); ++i) {
+//            //INSTANTIATING per_role_ca_indexes
+////            per_role_ca_indexes[i];
+//
+//            //INSTANTIATING per_role_ca_indexes CONTENT
+//            for (auto ite = policy->can_assign_rules().begin(); ite != policy->can_assign_rules().end(); ++ite) {
+//                if ((*ite)->target->role_array_index == i) {
+//                    per_role_ca_rules[i].push_back(*ite);
+//                }
+//            }
+//            if (per_role_ca_rules[i].size() > 0) {
+//                assignable_roles_count++;
+//            }
+//
+//
+//            //INSTANTIATING per_role_cr_indexes
+//            for (auto ite = policy->can_revoke_rules().begin(); ite != policy->can_revoke_rules().end(); ++ite) {
+//                if ((*ite)->target->role_array_index == i) {
+//                    per_role_cr_rules[i].push_back(*ite);
+//                }
+//            }
+//            if (per_role_cr_rules[i].size() > 0) {
+//                assignable_roles_count++;
+//            }
 //        }
-//        delete[] roles_ca_counts;
-//        delete[] roles_cr_counts;
-        delete[] per_role_ca_rules;
-        delete[] per_role_cr_rules;
-    }
+//        return;
+//    }
 
     int numBits(int pc) const {
         int i = 1, bit = 0;
@@ -296,35 +209,35 @@ class R6Transformer {
         core_value_true = std::vector<variable>((unsigned long) policy->atom_count());
         core_value_false = std::vector<variable>((unsigned long) policy->atom_count());
         // ext_vars = new std::shared_ptr<variable>[role_array_size];
-        program_counter = variable("pc", -1, pc_size, _solver_ptr, true);
+        program_counter = variable("pc", -1, pc_size, _solver_ptr, BIT_VECTOR);
 
-        nondet_bool = variable("nondet_bool", -1, 1, _solver_ptr);
+        nondet_bool = variable("nondet_bool", -1, 1, _solver_ptr, BOOLEAN);
         // fprintf(outputFile, "\n/*---------- SKIP CHECKS ---------*/\n");
-        skip = variable("skip", 0, 1, _solver_ptr);
+        skip = variable("skip", 0, 1, _solver_ptr, BOOLEAN);
 
         for (int i = 0; i < policy->atom_count(); i++) {
             if (core_roles[i]) {
                 // fprintf(outputFile, "/*---------- CORE ROLES ---------*/\n");
                 fmt << "core_" << policy->atoms()[i]->name;
-                role_vars[i] = variable(fmt.str().c_str(), 0, 1, _solver_ptr);
+                role_vars[i] = variable(fmt.str().c_str(), 0, 1, _solver_ptr, BOOLEAN);
                 clean_fmt();
                 // fprintf(outputFile, "/*---------- SET CHECKS ---------*/\n");
                 fmt << "set_" << policy->atoms()[i]->name;
-                core_sets[i] = variable(fmt.str().c_str(), 0, 1, _solver_ptr);
+                core_sets[i] = variable(fmt.str().c_str(), 0, 1, _solver_ptr, BOOLEAN);
                 clean_fmt();
                 // fprintf(outputFile, "/*---------- VALUE TRUE CHECKS ---------*/\n");
                 fmt << "value_true_" << policy->atoms()[i]->name;
-                core_value_true[i] = variable(fmt.str().c_str(), 0, 1, _solver_ptr);
+                core_value_true[i] = variable(fmt.str().c_str(), 0, 1, _solver_ptr, BOOLEAN);
                 clean_fmt();
                 // fprintf(outputFile, "/*---------- VALUE FALSE CHECKS ---------*/\n");
                 fmt << "value_false_" << policy->atoms()[i]->name;
-                core_value_false[i] = variable(fmt.str().c_str(), 0, 1, _solver_ptr);
+                core_value_false[i] = variable(fmt.str().c_str(), 0, 1, _solver_ptr, BOOLEAN);
                 clean_fmt();
             }
             else {
                 // fprintf(outputFile, "/*---------- EXTERNAL ROLES ---------*/\n");
                 fmt << "ext_" << policy->atoms()[i]->name;
-                role_vars[i] = variable(fmt.str().c_str(), 0, 1, _solver_ptr);
+                role_vars[i] = variable(fmt.str().c_str(), 0, 1, _solver_ptr, BOOLEAN);
                 clean_fmt();
                 core_sets[i] = variable::dummy();
                 core_value_true[i] = variable::dummy();
@@ -406,14 +319,13 @@ class R6Transformer {
         return generate_from_prec(cr_precond);
     }
 
-    TExpr get_assignment_cond_by_role(int target_role_index, int label_index) {
+    TExpr get_assignment_cond_by_role(const atom& target_role, int label_index) {
         // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
         // fprintf(outputFile, "    /* --- ASSIGNMENT RULES FOR ROLE %s --- */\n", role_array[target_role_index]);
         TExpr if_prelude = generate_if_SKIP_PC(label_index);
         TExpr ca_guards = solver->createFalse();
 
-        for (auto ite = per_role_ca_rules[target_role_index].begin(); ite != per_role_ca_rules[target_role_index].end(); ++ite) {
-            std::shared_ptr<rule> rule = *ite;
+        for (auto &&rule :policy->per_role_can_assign_rule(target_role)) {
             if ((rule->is_ca == target_rule->is_ca) && (rule == target_rule)) {
                 // EXCLUDE THE TARGET RULE FROM ASSIGNMENT
                 continue;
@@ -425,19 +337,18 @@ class R6Transformer {
 
         // This user is not in this target role yet
         // fprintf(outputFile, "        /* Role not SET yet */\n");
-        TExpr not_set = solver->createNotExpr(core_sets[target_role_index].get_solver_var());
+        TExpr not_set = solver->createNotExpr(core_sets[target_role->role_array_index].get_solver_var());
         TExpr cond = solver->createAndExpr(solver->createAndExpr(if_prelude, ca_guards), not_set);
         return cond;
     }
 
-    TExpr get_revoke_cond_by_role(int target_role_index, int label_index) {
+    TExpr get_revoke_cond_by_role(const atom& target_role, int label_index) {
         // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
         // fprintf(outputFile, "    /* --- REVOKE RULES FOR ROLE %s --- */\n", role_array[target_role_index]);
         TExpr if_prelude = generate_if_SKIP_PC(label_index);
         TExpr cr_guards = solver->createFalse();
         
-        for (auto ite = per_role_cr_rules[target_role_index].begin(); ite != per_role_cr_rules[target_role_index].end(); ++ite) {
-            std::shared_ptr<rule> rule = *ite;
+        for (auto &&rule :policy->per_role_can_revoke_rule(target_role)) {
             if ((rule->is_ca == target_rule->is_ca) && (rule == target_rule)) {
                 // EXCLUDE THE TARGET RULE FROM ASSIGNMENT
                 continue;
@@ -447,14 +358,16 @@ class R6Transformer {
 
         // This user is not in this target role yet
         // fprintf(outputFile, "        /* Role not SET yet */\n");
-        TExpr not_set = solver->createNotExpr(core_sets[target_role_index].get_solver_var());
+        TExpr not_set = solver->createNotExpr(core_sets[target_role->role_array_index].get_solver_var());
         TExpr cond = solver->createAndExpr(solver->createAndExpr(if_prelude, cr_guards), not_set);
         return cond;
     }
 
-    void simulate_can_assigns_by_role(int target_role_index, int label_index) {
+    void simulate_can_assigns_by_role(const atom& target_role, int label_index) {
         //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
-        TExpr cond = get_assignment_cond_by_role(target_role_index, label_index);
+        TExpr cond = get_assignment_cond_by_role(target_role, label_index);
+
+        int target_role_index = target_role->role_array_index;
 
         TExpr new_role_val = solver->createCondExpr(cond, one, role_vars[target_role_index].get_solver_var());
         TExpr new_set_val = solver->createCondExpr(cond, one, core_sets[target_role_index].get_solver_var());
@@ -472,9 +385,11 @@ class R6Transformer {
         core_sets[target_role_index] = new_set_var;
     }
 
-    void simulate_can_revokes_by_role(int target_role_index, int label_index) {
+    void simulate_can_revokes_by_role(const atom& target_role, int label_index) {
         //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
-        TExpr cond = get_revoke_cond_by_role(target_role_index, label_index);
+        TExpr cond = get_revoke_cond_by_role(target_role, label_index);
+
+        int target_role_index = target_role->role_array_index;
 
         TExpr new_role_val = solver->createCondExpr(cond, zero, role_vars[target_role_index].get_solver_var());
         TExpr new_set_val = solver->createCondExpr(cond, one, core_sets[target_role_index].get_solver_var());
@@ -611,21 +526,21 @@ class R6Transformer {
 
 
         // fprintf(outputFile, "    /*---------- CAN ASSIGN SIMULATION ---------*/\n");
-        for (int i = 0; i < policy->atom_count(); ++i) {
-            if (core_roles[i] && per_role_ca_rules[i].size() > 0) {
+        for (auto &&atom :policy->atoms()) {
+            if (core_roles[atom->role_array_index] && policy->per_role_can_assign_rule(atom).size() > 0) {
 //                int exclude = target_rule->is_ca ? exclude_idx : -1;
-                simulate_can_assigns_by_role(i, label_idx++);
+                simulate_can_assigns_by_role(atom, label_idx++);
             }
         }
 
         // fprintf(outputFile, "\n\n");
 
         // fprintf(outputFile, "    /*---------- CAN REVOKE SIMULATION ---------*/\n");
-        for (int i = 0; i < policy->atom_count(); ++i) {
+        for (auto &&atom :policy->atoms()) {
             // printf("CR idx: %d, role: %s: count: %d\n", i, role_array[i], roles_cr_counts[i]);
-            if (core_roles[i] && per_role_cr_rules[i].size() > 0) {
+            if (core_roles[atom->role_array_index] && policy->per_role_can_revoke_rule(atom).size() > 0) {
 //                int exclude = !excluded_is_ca ? exclude_idx : -1;
-                simulate_can_revokes_by_role(i, label_idx++);
+                simulate_can_revokes_by_role(atom, label_idx++);
             }
         }
 
@@ -649,10 +564,6 @@ class R6Transformer {
         set_globals();
         generate_main();
 
-        if (Debug::experimental) {
-            std::cout << "pizza" << std::endl;
-        }
-
         SMTResult res = solver->solve();
 
         return res == UNSAT;
@@ -669,13 +580,12 @@ class R6Transformer {
         zero(solver->createFalse()), one(solver->createTrue()),
         pc_size(get_pc_size(target_expr->literals())),
         log(false) {
-        precompute_merge();
         allocate_core_role_array_set_pc_size();
         generate_variables();
     }
 
     ~R6Transformer() {
-        deallocate_precomputated_values();
+//        deallocate_precomputated_values();
         free_core_role_array();
         free_globals();
     }
