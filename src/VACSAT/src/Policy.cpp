@@ -214,6 +214,51 @@ namespace SMT {
             _can_revoke_rules(std::vector<std::shared_ptr<rule>>()),
             _users_to_track(std::numeric_limits<int>::max()) { }
 
+    policy_cache::policy_cache(const arbac_policy* policy) :
+            _per_role_ca_rules(std::vector<std::list<rulep>>((ulong) policy->atom_count())),
+            _per_role_cr_rules(std::vector<std::list<rulep>>((ulong) policy->atom_count())),
+            _policy(policy) {
+        for (auto &&rule : policy->can_assign_rules()) {
+            _per_role_ca_rules[rule->target->role_array_index].push_back(rule);
+        }
+        for (auto &&rule : policy->can_revoke_rules()) {
+            _per_role_cr_rules[rule->target->role_array_index].push_back(rule);
+        }
+        _unique_configurations = update_unique_confs(policy->users());
+    }
+
+    const std::string policy_cache::to_string() const {
+        std::stringstream fmt;
+
+        fmt << "CA: " << std::endl;
+        for (auto &&atom : _policy->atoms()) {
+            fmt << "\t" << *atom << std::endl;
+            for (auto &&ca_rule : _per_role_ca_rules[atom->role_array_index]) {
+                fmt << "\t\t" << *ca_rule<< std::endl;
+            }
+        }
+
+        fmt << "CR: " << std::endl;
+        for (auto &&atom : _policy->atoms()) {
+            fmt << "\t" << *atom << std::endl;
+            for (auto &&cr_rule : _per_role_cr_rules[atom->role_array_index]) {
+                fmt << "\t\t" << *cr_rule<< std::endl;
+            }
+        }
+
+        fmt << "CONF: " << std::endl;
+        for (auto &&conf : _unique_configurations) {
+            fmt << "\t" << *conf << std::endl;
+        }
+
+        return fmt.str();
+    }
+
+    std::ostream& operator<< (std::ostream& stream, const policy_cache& self) {
+        stream << self.to_string();
+        return stream;
+    }
+
     arbac_policy::arbac_policy(bool old_version) :
             _atoms(std::vector<Literalp>()),
             _users(std::vector<std::shared_ptr<user>>()),
@@ -272,6 +317,10 @@ namespace SMT {
         return conf;
     }
 
+    void arbac_policy::print_cache() const {
+        std::cout << _cache->to_string() << std::endl;
+    }
+
 
 
     void arbac_policy::unsafe_remove_atom(const Literalp& atom) {
@@ -312,6 +361,15 @@ namespace SMT {
         }
     }
 
+    void arbac_policy::unsafe_remove_user(const userp& user) {
+        std::vector<userp> res;
+        auto filtered =
+                std::copy_if(this->_users.begin(),
+                             this->_users.end(),
+                             std::back_inserter(res),
+                             [&](const userp &u) { return u != user; });
+        this->_users = res;
+    }
     void arbac_policy::unsafe_remove_rule(const rulep& rule) {
         if (rule->is_ca) {
             this->unsafe_remove_can_assign(rule);
@@ -368,7 +426,13 @@ namespace SMT {
             }
         }
         _users_to_track = std::numeric_limits<int>::max();
-        _unique_configurations = update_unique_confs(this->_users);
+
+        _cache = std::shared_ptr<policy_cache>(new policy_cache(this));
+    }
+
+    void arbac_policy::set_users(const std::vector<userp> &users) {
+        _users = users;
+        update();
     }
 
     void arbac_policy::add_rule(const rulep& rule) {
@@ -434,6 +498,10 @@ namespace SMT {
             this->unsafe_remove_can_revoke(rule);
         }
         this->update();
+    }
+
+    void arbac_policy::remove_user(const userp& user) {
+        unsafe_remove_user(user);
     }
 
     const std::string arbac_policy::to_string() const {

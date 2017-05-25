@@ -68,28 +68,35 @@ namespace SMT {
 
     class arbac_policy;
 
-//    class arbac_cache {
-//    public:
-//        arbac_cache(arbac_policy policy);
-//        arbac_cache(std::vector<Literalp> atoms,
-//                    std::vector<std::shared_ptr<rule>> can_assign_rules,
-//                    std::vector<std::shared_ptr<rule>> can_revoke_rules);
-//        std::list<rulep> get_assigning_r(Literalp atom);
-//        std::list<rulep> get_revoking_r(Literalp atom);
-//        std::list<rulep> get_ca_using_r(Literalp atom);
-//        std::list<rulep> get_cr_using_r(Literalp atom);
-//
-//        void update(arbac_policy policy);
-//
-//    private:
-//        std::vector<std::list<rulep>> assigning_rs;
-//        std::vector<std::list<rulep>> revoking_rs;
-//        std::vector<std::list<rulep>> ca_using_rs;
-//        std::vector<std::list<rulep>> cr_using_rs;
-//    };
+    class policy_cache {
+    public:
+        policy_cache(const arbac_policy* policy);
+
+        const std::string to_string() const;
+
+        friend std::ostream& operator<< (std::ostream& stream, const policy_cache& self);
+
+        inline const std::vector<std::list<rulep>>& per_role_ca_rules() const {
+            return _per_role_ca_rules;
+        }
+        inline const std::vector<std::list<rulep>>& per_role_cr_rules() const {
+            return _per_role_cr_rules;
+        }
+        inline const std::set<userp, std::function<bool (const userp&, const userp&)>>& unique_configurations() const {
+            return _unique_configurations;
+        };
+
+    private:
+        std::vector<std::list<rulep>> _per_role_ca_rules;
+        std::vector<std::list<rulep>> _per_role_cr_rules;
+        std::set<userp, std::function<bool (const userp&, const userp&)>> _unique_configurations;
+
+        const arbac_policy* _policy;
+    };
 
     class arbac_policy {
     public:
+
         arbac_policy();
         arbac_policy(bool old_version);
 
@@ -102,7 +109,8 @@ namespace SMT {
 
         Expr user_to_expr(int user_id) const;
 
-        void add_user(const userp& rule);
+        void add_user(const userp& user);
+        void set_users(const std::vector<userp>& users);
         void add_rule(const rulep& rule);
         void add_can_assign(const rulep& rule);
         void add_can_revoke(const rulep& rule);
@@ -115,8 +123,11 @@ namespace SMT {
         void remove_can_revoke(const rulep& rule);
         void remove_can_revokes(const std::list<rulep>& rule);
         void remove_atom(const Literalp& atom);
+        void remove_user(const userp& user);
 
         const std::string to_string() const;
+
+        void print_cache() const;
 
         friend std::ostream& operator<< (std::ostream& stream, const arbac_policy& self);
 
@@ -138,10 +149,39 @@ namespace SMT {
             return _users;
         }
         inline const std::set<userp, std::function<bool (const userp&, const userp&)>>& unique_configurations() {
-            return _unique_configurations;
+            return _cache->unique_configurations();
         };
         inline const int users_to_track() const {
             return _users_to_track;
+        }
+
+        inline const std::vector<std::list<rulep>> per_role_can_assign_rule() {
+            if (_cache == nullptr) {
+                std::cerr << "Cache is not valid." << std::endl;
+                throw std::runtime_error("Cache is not valid.");
+            }
+            return this->_cache->per_role_ca_rules();
+        }
+        inline const std::list<rulep> per_role_can_assign_rule(atom _atom) {
+            if (_cache == nullptr) {
+                std::cerr << "Cache is not valid." << std::endl;
+                throw std::runtime_error("Cache is not valid.");
+            }
+            return this->_cache->per_role_ca_rules()[_atom->role_array_index];
+        }
+        inline const std::vector<std::list<rulep>> per_role_can_revoke_rule() {
+            if (_cache == nullptr) {
+                std::cerr << "Cache is not valid." << std::endl;
+                throw std::runtime_error("Cache is not valid.");
+            }
+            return this->_cache->per_role_cr_rules();
+        }
+        inline const std::list<rulep> per_role_can_revoke_rule(atom _atom) {
+            if (_cache == nullptr) {
+                std::cerr << "Cache is not valid." << std::endl;
+                throw std::runtime_error("Cache is not valid.");
+            }
+            return this->_cache->per_role_cr_rules()[_atom->role_array_index];
         }
 
         inline const rulep& rules(int i) {
@@ -161,8 +201,10 @@ namespace SMT {
         }
 
         private:
+
         void update();
         void unsafe_remove_atom(const Literalp& atom);
+        void unsafe_remove_user(const userp& user);
         void unsafe_remove_rule(const rulep& rule);
         void unsafe_remove_can_assign(const rulep& rule);
         void unsafe_remove_can_revoke(const rulep& rule);
@@ -176,9 +218,7 @@ namespace SMT {
 
         std::vector<userp> _users;
 
-        std::set<userp, std::function<bool (const userp&, const userp&)>> _unique_configurations;
-
-//        arbac_cache cache;
+        std::shared_ptr<policy_cache> _cache = nullptr;
 
     };
 
