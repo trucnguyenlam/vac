@@ -6,12 +6,13 @@
 #define VACSAT_DEBUG_H
 
 namespace SMT {
-    namespace Debug {
-        static bool experimental = false;
+    class Debug {
+    public:
+        static bool experimental;
+        static bool log;
+        static bool merge;
 
-        static bool log = true;
-
-    }
+    };
 
 }
 
