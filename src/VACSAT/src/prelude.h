@@ -6,6 +6,8 @@
 #ifndef VACSAT_PRELUDE_H
 #define VACSAT_PRELUDE_H
 
+#include <vector>
+#include <list>
 #include <set>
 #include <algorithm>
 #include "debug.h"
@@ -37,6 +39,32 @@ namespace SMT {
     template<typename _InputIterator, typename _Predicate>
     bool iterable_exists(_InputIterator first, _InputIterator last, _Predicate p) {
         return std::find_if(first, last, p) != last;
+    };
+
+    template <typename TVal, typename TComparer>
+    void print_collection(const std::set<std::shared_ptr<TVal>, TComparer>& set, std::string prefix = "") {
+//        typedef std::shared_ptr<TVal> TValp;
+//        static_assert(std::is_base_of<std::vector<TValp>, TCollection<TValp, TComparer>>::value ||
+//                      std::is_base_of<std::list<TValp>, TCollection<TValp, TComparer>>::value   ||
+//                      std::is_base_of<std::set<TValp, TComparer>, TCollection<TValp, TComparer>>::value,
+//                      "TCollection<TVar> is not derived from either vector, list and set");
+
+        for (auto &&valuep :set) {
+            std::cout << prefix << *valuep << std::endl;
+        }
+    };
+
+    template <template <typename> typename TCollection, typename TVal>
+    void print_collection(const TCollection<std::shared_ptr<TVal>>& collection, std::string prefix = "") {
+        typedef std::shared_ptr<TVal> TValp;
+        static_assert(std::is_base_of<std::vector<TValp>, TCollection<TValp>>::value ||
+                      std::is_base_of<std::list<TValp>, TCollection<TValp>>::value   ||
+                      std::is_base_of<std::set<TValp>, TCollection<TValp>>::value,
+                      "TCollection<TVar> is not derived from either vector, list and set");
+
+        for (auto &&valuep :collection) {
+            std::cout << prefix << *valuep << std::endl;
+        }
     };
 
     static int bits_count(int pc) {
