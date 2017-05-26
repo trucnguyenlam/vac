@@ -12,14 +12,14 @@ UA  <u1, r0>
     <u1, r1>
 	;
 
-CR 	;
+CR 	<r0, r0>;
 
 CA
     <r0, TRUE, r0>
 
     <r0, r1&r0, r2>
 
-    <r0, r1&r0, r2>
+    <r0, r1&-r0, r2>
 
     <r0, r2, rt>
 

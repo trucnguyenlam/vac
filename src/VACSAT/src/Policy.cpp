@@ -112,6 +112,24 @@ namespace SMT {
         _config.erase(atom1);
     }
 
+    const std::string user::to_full_string() const {
+        std::stringstream fmt;
+        fmt << "name: " << this->name << ", id: " << original_idx << std::endl;
+        fmt << "\t{";
+
+        if (this->_config.size() > 0) {
+            auto ite = this->_config.begin();
+            fmt << **ite;
+            ++ite;
+            for (; ite != this->_config.end(); ++ite) {
+                fmt << "; " << **ite;
+            }
+        }
+        fmt << "}" << std::endl;
+
+        return fmt.str();
+    }
+
     const std::string user::to_string() const {
         return this->name;
     }
@@ -139,7 +157,13 @@ namespace SMT {
     // ************ POLICY ****************
 
     Expr getCRAdmFormula(std::vector<Atom> &role_vars, int ruleId) {
-        Expr ret = role_vars[cr_array[ruleId].admin_role_index];
+        Expr ret;
+        if (cr_array[ruleId].admin_role_index == -1) {
+            ret = createConstantTrue();
+        }
+        else {
+            ret = role_vars[cr_array[ruleId].admin_role_index];
+        }
         return ret;
     }
 
@@ -148,7 +172,13 @@ namespace SMT {
     }
 
     Expr getCAAdmFormula(std::vector<Atom> &role_vars, int ca_index) {
-        Expr ret = role_vars[ca_array[ca_index].admin_role_index];
+        Expr ret;
+        if (ca_array[ca_index].type == 1) {
+            ret = createConstantTrue();
+        }
+        else {
+            ret = role_vars[ca_array[ca_index].admin_role_index];
+        }
         return ret;
     }
 
@@ -402,29 +432,23 @@ namespace SMT {
         result.insert(result.end(), _can_revoke_rules.begin(), _can_revoke_rules.end());
         _rules = result;
 
-        std::set<Literalp> new_atoms;
-        new_atoms.insert(goal_role);
         for (int i = 0; i < this->_rules.size(); ++i) {
             rulep rule = _rules[i];
             rule->original_idx = i;
-            new_atoms.insert(rule->admin->literals().begin(), rule->admin->literals().end());
-            new_atoms.insert(rule->prec->literals().begin(), rule->prec->literals().end());
-            new_atoms.insert(rule->target);
         }
-        std::vector<Literalp> _old_atoms = _atoms;
-        _atoms = std::vector<Literalp>(new_atoms.begin(), new_atoms.end());
 
         for (int i = 0; i < _atoms.size(); ++i) {
             _atoms[i]->role_array_index = i;
         }
 
-        for (auto &&oldAtom : _old_atoms) {
-            if (!contains(_atoms.begin(), _atoms.end(), oldAtom)) {
-                for (auto &&user : _users) {
-                    user->remove_atom(oldAtom);
+        for (auto &&user : _users) {
+            for (auto &&atom : user->config()) {
+                if (!contains(_atoms.begin(), _atoms.end(), atom)) {
+                    user->remove_atom(atom);
                 }
             }
         }
+
         _users_to_track = std::numeric_limits<int>::max();
 
         _cache = std::shared_ptr<policy_cache>(new policy_cache(this));
@@ -432,6 +456,11 @@ namespace SMT {
 
     void arbac_policy::set_users(const std::vector<userp> &users) {
         _users = users;
+        update();
+    }
+
+    void arbac_policy::set_atoms(const std::vector<atom> &atoms) {
+        _atoms = atoms;
         update();
     }
 

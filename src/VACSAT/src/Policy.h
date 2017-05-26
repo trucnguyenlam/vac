@@ -48,6 +48,8 @@ namespace SMT {
         void add_atom(const atom& atom1);
         void remove_atom(const atom& atom1);
 
+        const std::string to_full_string() const;
+
         const std::string to_string() const;
         friend std::ostream& operator<< (std::ostream& stream, const user& self);
 
@@ -111,6 +113,7 @@ namespace SMT {
 
         void add_user(const userp& user);
         void set_users(const std::vector<userp>& users);
+        void set_atoms(const std::vector<atom>& atoms);
         void add_rule(const rulep& rule);
         void add_can_assign(const rulep& rule);
         void add_can_revoke(const rulep& rule);
