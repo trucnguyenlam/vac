@@ -667,7 +667,7 @@ class BMCTransformer {
 
         SMTResult res = solver->solve();
 
-        solver->printContext("out_z3.lisp");
+//        solver->printContext("out_z3.lisp");
 
         auto end = std::chrono::high_resolution_clock::now();
         auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
