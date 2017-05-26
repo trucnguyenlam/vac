@@ -217,12 +217,15 @@ namespace SMT {
                                 break;
                             }
                             std::cout << "Atom: " << *atom << " is NON_NEGATIVE. Removing can_revoke_rules targeting it!" << std::endl;
-                            for (auto &&cr : policy->can_revoke_rules()) {
-                                if (cr->target == atom) {
-                                    rules_to_remove.push_back(cr);
-                                    std::cout << "\t" << *cr << std::endl;
-                                }
-                            }
+//                            FIXME: why the naive (non cached version) is so slow???
+//                            for (auto &&cr : policy->can_revoke_rules()) {
+//                                if (cr->target == atom) {
+//                                    rules_to_remove.push_back(cr);
+//                                    std::cout << "\t" << *cr << std::endl;
+//                                }
+//                            }
+                            auto to_remove = policy->per_role_can_revoke_rule(atom);
+                            rules_to_remove.insert(rules_to_remove.end(), to_remove.begin(), to_remove.end());
                             break;
                         }
                         case NON_POSITIVE: {
@@ -233,12 +236,15 @@ namespace SMT {
                                 break;
                             }
                             std::cout << "Atom: " << *atom << " is NON_POSITIVE. Removing can_assign_rules targeting it!" << std::endl;
-                            for (auto &&ca : policy->can_assign_rules()) {
-                                if (ca->target == atom) {
-                                    rules_to_remove.push_back(ca);
-                                    std::cout << "\t" << *ca << std::endl;
-                                }
-                            }
+//                            FIXME: why the naive (non cached version) is so slow???
+//                            for (auto &&ca : policy->can_assign_rules()) {
+//                                if (ca->target == atom) {
+//                                    rules_to_remove.push_back(ca);
+//                                    std::cout << "\t" << *ca << std::endl;
+//                                }
+//                            }
+                            auto to_remove = policy->per_role_can_assign_rule(atom);
+                            rules_to_remove.insert(rules_to_remove.end(), to_remove.begin(), to_remove.end());
                             break;
                         }
                         default:
@@ -251,9 +257,7 @@ namespace SMT {
                 policy->remove_atom(atom);
             }
 
-            for (auto &&rule : rules_to_remove) {
-                policy->remove_rule(rule);
-            }
+            policy->remove_rules(rules_to_remove);
 
             return (not_used_atoms.size() > 0) ||
                    (rules_to_remove.size() > 0);
@@ -378,12 +382,21 @@ namespace SMT {
 
         int admin_count() {
             //FIXME: use semantics equivalence and not structural one
-            auto expr_comp = [&](const Expr e1, const Expr e2){ return e1->equals(e2); };
+            auto expr_comp = [&](const Expr e1, const Expr e2){
+                int res = e1->equals(e2) ? 0 : (e1 < e2);
+//                std::cout << *e1 << " == " << *e2 << " ==> " << res << std::endl;
+                return res; };
             auto admin_exprs = std::set<Expr, decltype(expr_comp)>( expr_comp );
 
+            Expr true_expr = createConstantTrue();
             for (auto &&rule :policy->rules()) {
-                admin_exprs.insert(rule->admin);
+                if (!rule->admin->equals(true_expr)) {
+                    admin_exprs.insert(rule->admin);
+//                    std::cout << "ADM: " << *rule->admin << std::endl;
+                }
             }
+
+//            print_collection(admin_exprs, "set: ");
 
             return (int) admin_exprs.size();
         }
@@ -403,14 +416,14 @@ namespace SMT {
         bool immaterial_admin_in_prec(const rulep& rule) {
             // This rule checks if adm is implied in prec. If so we can remove the admin part and replace with TRUE since the check is done on
             solver->clean();
-            std::vector<std::shared_ptr<TVar>> var_vect(policy->atom_count());
+            std::vector<std::shared_ptr<TVar>> var_vect((ulong) policy->atom_count());
 
             TExpr s_adm = generateSMTFunction2(solver, rule->admin, var_vect, "C");
 
             TExpr s_prec = generateSMTFunction2(solver, rule->prec, var_vect, "C");
 
             TExpr to_check = solver->createAndExpr(solver->createNotExpr(s_adm),
-                                                s_prec);
+                                                   s_prec);
 
             solver->assertNow(to_check);
 
@@ -745,13 +758,21 @@ namespace SMT {
         }
 
         bool prune_implied_pairs() {
-            //FIXME: WARNING: if two rules have the same precondition (semantically) are removed together!!
-            std::cerr << "WARNING: if two rules have the same precondition (semantically) are removed together!" << std::endl;
             std::list<rulep> to_remove;
+            // Support array used to keep track of can assign rules marked for removal
+            std::vector<bool> ca_removed_mark(policy->can_assign_rules().size());
+            // Support array used to keep track of can revoke rules marked for removal
+            std::vector<bool> cr_removed_mark(policy->can_revoke_rules().size());
             for (auto &&atom :policy->atoms()) {
-                for (auto &&ca1 :policy->per_role_can_assign_rule(atom)) {
-                    for (auto &&ca2 : policy->per_role_can_assign_rule(atom)) {
-                        if (ca1 != ca2) {
+                std::list<rulep> assigning_rules = policy->per_role_can_assign_rule(atom);
+                for (auto &&ca1 : assigning_rules) {
+                    // If ca1 is marked for removal skip it (it avoids the duplicate rule removal)
+                    if (ca_removed_mark[ca1->original_idx]) {
+                        continue;
+                    }
+                    for (auto &&ca2 : assigning_rules) {
+                        // If ca2 is marked for removal skip it
+                        if (!ca_removed_mark[ca2->original_idx] && ca1 != ca2) {
                             assert(ca1->target->role_array_index == ca2->target->role_array_index);
 
                             int are_implied = implied(ca1, ca2);
@@ -759,15 +780,21 @@ namespace SMT {
                                 std::cout << "Implied: " << *ca1 << " ==>" << std::endl;
                                 std::cout << "         " << *ca2 << std::endl;
                                 to_remove.push_back(ca2);
+                                ca_removed_mark[ca2->original_idx] = true;
 //                                std::cout << "" << std::endl;
                             }
                         }
                     }
                 }
-
-                for (auto &&cr1 : policy->per_role_can_revoke_rule(atom)) {
-                    for (auto &&cr2 : policy->per_role_can_revoke_rule(atom)) {
-                        if (cr1 != cr2) {
+                std::list<rulep> revoking_rules = policy->per_role_can_revoke_rule(atom);
+                for (auto &&cr1 : revoking_rules) {
+                    // If cr1 is marked for removal skip it (it avoids the duplicate rule removal)
+                    if (cr_removed_mark[cr1->original_idx]) {
+                        continue;
+                    }
+                    for (auto &&cr2 : revoking_rules) {
+                        // If cr2 is marked for removal skip it
+                        if (!cr_removed_mark[cr2->original_idx] && cr1 != cr2) {
                             assert(cr1->target->role_array_index == cr2->target->role_array_index);
 
                             int are_implied = implied(cr1, cr2);
@@ -950,9 +977,7 @@ namespace SMT {
                 }
             }
 
-            for (auto &&old_rule : old_to_remove) {
-                policy->remove_rule(old_rule);
-            }
+            policy->remove_rules(old_to_remove);
 
             for (auto &&to_add : new_to_add) {
                 policy->add_rule(to_add);
@@ -1022,7 +1047,9 @@ namespace SMT {
         /* SIMPLIFY EXPRESSIONS */
         std::list<atom> get_irrelevant(const Expr& expr) {
             std::list<atom> to_remove;
-            for (auto &&atom :expr->literals()) {
+            for (auto &&atom : expr->literals()) {
+                solver->clean();
+
                 std::vector<std::shared_ptr<TExpr>> var_vect((ulong) policy->atom_count());
 
                 //phi_a_true
@@ -1057,6 +1084,8 @@ namespace SMT {
             std::list<rulep> to_remove;
             std::list<rulep> to_add;
             for (auto &&rule :policy->rules()) {
+//                std::cout << *rule << std::endl;
+
                 std::list<atom> admin_to_remove = get_irrelevant(rule->admin);
                 std::list<atom> prec_to_remove = get_irrelevant(rule->prec);
 
@@ -1065,14 +1094,16 @@ namespace SMT {
                     Expr adm = rule->admin;
                     for (auto &&atom : admin_to_remove) {
                         has_changed = true;
+                        std::cout << "Removing atom " << *atom << " from expression " << *adm << " since is not used:" << std::endl;
                         adm = delete_atom(adm, atom);
-                        std::cout << "Removing atom " << *atom << " from expression " << adm << " since is not used." << std::endl;
+                        std::cout << "\t==>" << *adm << "" << std::endl;
                     }
                     Expr prec = rule->prec;
                     for (auto &&atom : prec_to_remove) {
                         has_changed = true;
+                        std::cout << "Removing atom " << *atom << " from expression " << *prec << " since is not used:" << std::endl;
                         prec = delete_atom(prec, atom);
-                        std::cout << "Removing atom " << *atom << " from expression " << prec << " since is not used." << std::endl;
+                        std::cout << "\t==>" << *prec << "" << std::endl;
                     }
 
                     to_remove.push_back(rule);
@@ -1123,6 +1154,23 @@ namespace SMT {
 
             policy->set_users(new_users);
 
+        }
+
+        /* ROLES REDUCTION */
+        bool reduce_roles() {
+            std::set<Literalp> new_atoms;
+            new_atoms.insert(policy->goal_role);
+            for (auto &&rule : policy->rules()) {
+                new_atoms.insert(rule->admin->literals().begin(), rule->admin->literals().end());
+                new_atoms.insert(rule->prec->literals().begin(), rule->prec->literals().end());
+                new_atoms.insert(rule->target);
+            }
+            if (new_atoms.size() != policy->atoms().size()) {
+                std::vector<atom> nform(new_atoms.begin(), new_atoms.end());
+                policy->set_atoms(nform);
+                return true;
+            }
+            return false;
         }
 
         /* NOT USED ANYMORE */
@@ -1399,36 +1447,57 @@ namespace SMT {
             while (!fixpoint) {
                 auto step_start = std::chrono::high_resolution_clock::now();
 
+//                for (auto &&user :policy->unique_configurations()) {
+//                    std::cout << "###  " << user->to_full_string() << std::endl;
+//                }
+
                 std::cout << "Applying backward_slicing on " << policy->rules().size() << std::endl;
                 bool backward_slicing_res = this->backward_slicing();
+                backward_slicing_res = reduce_roles() || backward_slicing_res;
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+
 
                 std::cout << "Applying easy_pruning on " << policy->rules().size() << std::endl;
                 bool easy_pruning_res = this->easy_pruning();
+                easy_pruning_res = reduce_roles() && easy_pruning_res;
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+
 
                 std::cout << "Applying prune_immaterial_roles on " << policy->rules().size() << std::endl;
                 bool prune_immaterial_roles_res = this->prune_immaterial_roles();
+                prune_immaterial_roles_res = reduce_roles() || prune_immaterial_roles_res;
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+
 
                 std::cout << "Applying prune_irrelevant_roles on " << policy->rules().size() << std::endl;
                 bool prune_irrelevant_roles_res = this->prune_irrelevant_roles();
+                prune_irrelevant_roles_res = reduce_roles() || prune_immaterial_roles_res;
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+
 
                 std::cout << "Applying prune_implied_pairs on " << policy->rules().size() << std::endl;
                 bool prune_implied_pairs_res = this->prune_implied_pairs();
+                prune_implied_pairs_res = reduce_roles() || prune_implied_pairs_res;
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+
 
                 bool merge_rules_res = false;
                 if (Debug::merge) {
                     std::cout << "Applying merge_rules on " << policy->rules().size() << std::endl;
                     merge_rules_res = this->merge_rules();
+                    merge_rules_res = reduce_roles() || merge_rules_res;
                     std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+
+
+                    bool simplify_expression_res = simplify_expressions();
+                    merge_rules_res = merge_rules_res || simplify_expression_res;
                 }
 
                 std::cout << "Applying prune_rule_6 on " << policy->rules().size() << std::endl;
                 bool prune_rule_6_res = this->prune_rule_6();
+                prune_rule_6_res = reduce_roles() || prune_rule_6_res;
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+
 
                 fixpoint =
                         !(
