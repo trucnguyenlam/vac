@@ -320,10 +320,8 @@ namespace SMT {
     }
     void YicesSolver::deep_clean() {
         yices_free_context(this->context);
-        //FIXME: not sure it is a good idea to restart, but necessary to avoid out of memory
-        yices_exit();
-        yices_init();
         this->context = yices_new_context(NULL);
+        yices_garbage_collect(NULL, 0, NULL, 0, 0);
         this->to_be_asserted.clear();
         this->asserted.clear();
     }
@@ -338,7 +336,7 @@ namespace SMT {
             throw std::runtime_error("Cannot open file: " + filename);
         }
         for (auto ite = this->asserted.begin(); ite != this->asserted.end(); ++ite) {
-            yices_pp_term(out, *ite, 160, 20, 0);
+            yices_pp_term(out, *ite, 1600, 20000, 0);
         }
         fclose(out);
     }
