@@ -55,6 +55,9 @@ public:
     const bool show_help;
     const std::string input_file;
 
+    //DEBUGGING OPTIONS
+    const std::string dump_smt_formula;
+
     options(std::string _output_file,
             std::string _old_analysis,
             std::string _old_mucke_formula,
@@ -68,7 +71,8 @@ public:
             int _bmc_thread_count,
             bool _show_statistics,
             bool _show_help,
-            std::string _input_file
+            std::string _input_file,
+            std::string _dump_smt_formula
     ) : output_file(_output_file),
         old_analysis(_old_analysis),
         old_mucke_formula(_old_mucke_formula),
@@ -82,7 +86,8 @@ public:
         bmc_thread_count(_bmc_thread_count),
         show_statistics(_show_statistics),
         show_help(_show_help),
-        input_file(_input_file) { }
+        input_file(_input_file),
+        dump_smt_formula(_dump_smt_formula) { }
 
 };
 
@@ -180,6 +185,7 @@ static options parse_args(int ac, const char* const* av) {
     arg_obj<bool> show_statistics = create_arg_obj_bool("show-statistics,S", "Print policy stetistics");
     arg_obj<bool> show_help = create_arg_obj_bool("help,h", "Show this message");
     arg_obj<std::string> input_file = create_arg_obj_string("input-file", "FILE is the input ARBAC file format");
+    arg_obj<std::string> dump_smt_formula = create_arg_obj_string("dump-smt,d", "Dump the SMT formula to file");
 
     add_option_description(desc, output_file);
     add_option_description(desc, old_backend);
@@ -194,6 +200,8 @@ static options parse_args(int ac, const char* const* av) {
     add_option_description(desc, bmc_thread_count);
     add_option_description(desc, show_statistics);
     add_option_description(desc, input_file);
+
+    add_option_description(desc, dump_smt_formula);
 
     add_option_description(generic, show_help);
 
@@ -223,7 +231,8 @@ static options parse_args(int ac, const char* const* av) {
                     bmc_thread_count.result,
                     show_statistics.result,
                     show_help.result,
-                    input_file.result);
+                    input_file.result,
+                    dump_smt_formula.result);
 
     if (result.show_help) {
         std::cout << desc << std::endl;
@@ -278,6 +287,11 @@ int main(int argc, const char * const *argv) {
     if (config.experimental_use_merge) {
         SMT::Debug::merge = true;
     }
+
+    if (config.dump_smt_formula != "") {
+        SMT::Debug::dump_smt_formula = config.dump_smt_formula;
+    }
+
 
     SMT::perform_analysis_old_style(an_ty, config.input_file, config.new_backend, bmc_conf);
     success_exit();

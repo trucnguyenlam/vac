@@ -10,4 +10,5 @@ namespace SMT {
     bool Debug::log = true;
     bool Debug::merge = false;
 
+    std::string Debug::dump_smt_formula = "";
 }
