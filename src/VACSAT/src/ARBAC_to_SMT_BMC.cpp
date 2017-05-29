@@ -355,6 +355,10 @@ class BMCTransformer {
     }
 
     void assign_threads() {
+        if (!use_tracks) {
+            std::cout << "Cannot assign threads if no tracks are used." << std::endl;
+            throw std::runtime_error("Cannot assign threads if no tracks are used.");
+        }
         for (int i = 0; i < policy->users().size(); i++) {
             assign_thread_to_user(i);
         }
@@ -366,8 +370,7 @@ class BMCTransformer {
         emit_assumption(assume_body);
     }
 
-    void
-    generate_updates(int thread_id) {
+    void generate_updates(int thread_id) {
         emitComment("---- GLOBAL ROLE CONSISTENCY UPDATE ----");
         for (auto &&global_pair :globals_map) {
             Expr global_expr = global_pair.first;
@@ -616,7 +619,8 @@ class BMCTransformer {
 
     void create_final_assert() {
         auto aite = final_assertions.begin();
-        TExpr assert_body = solver->createNotExpr((*aite));
+        TExpr assert_body = solver->createNotExpr(*aite);
+        ++aite;
         for ( ; aite != final_assertions.end(); ++aite) {
             assert_body = solver->createOrExpr(assert_body, solver->createNotExpr((*aite)));
         }
@@ -639,8 +643,10 @@ class BMCTransformer {
         generate_globals();
         generate_locals();
 
-        generate_thread_assigned_locals();
-        assign_threads();
+        if (use_tracks) {
+            generate_thread_assigned_locals();
+            assign_threads();
+        }
 
 
         generate_main(rounds);
@@ -667,7 +673,10 @@ class BMCTransformer {
 
         SMTResult res = solver->solve();
 
-//        solver->printContext("out_z3.lisp");
+        if (Debug::dump_smt_formula != "") {
+            solver->printContext(Debug::dump_smt_formula);
+            std::cout << "BMC SMT formula dumped at: " << Debug::dump_smt_formula << std::endl;
+        }
 
         auto end = std::chrono::high_resolution_clock::now();
         auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -704,6 +713,7 @@ class BMCTransformer {
         solver(_solver), policy(_policy) { }
 
     bool transform_2_bounded_smt(int rounds, int _steps, int wanted_threads_count) {
+//        solver->deep_clean();
         // solver = _solver;
         steps = _steps;
 
