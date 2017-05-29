@@ -217,7 +217,6 @@ namespace SMT {
                                 break;
                             }
                             std::cout << "Atom: " << *atom << " is NON_NEGATIVE. Removing can_revoke_rules targeting it!" << std::endl;
-//                            FIXME: why the naive (non cached version) is so slow???
 //                            for (auto &&cr : policy->can_revoke_rules()) {
 //                                if (cr->target == atom) {
 //                                    rules_to_remove.push_back(cr);
@@ -236,7 +235,6 @@ namespace SMT {
                                 break;
                             }
                             std::cout << "Atom: " << *atom << " is NON_POSITIVE. Removing can_assign_rules targeting it!" << std::endl;
-//                            FIXME: why the naive (non cached version) is so slow???
 //                            for (auto &&ca : policy->can_assign_rules()) {
 //                                if (ca->target == atom) {
 //                                    rules_to_remove.push_back(ca);
@@ -384,7 +382,6 @@ namespace SMT {
             //FIXME: use semantics equivalence and not structural one
             auto expr_comp = [&](const Expr e1, const Expr e2){
                 int res = e1->equals(e2) ? 0 : (e1 < e2);
-//                std::cout << *e1 << " == " << *e2 << " ==> " << res << std::endl;
                 return res; };
             auto admin_exprs = std::set<Expr, decltype(expr_comp)>( expr_comp );
 
@@ -1444,8 +1441,10 @@ namespace SMT {
 
             auto global_start = std::chrono::high_resolution_clock::now();
 
+
             while (!fixpoint) {
                 auto step_start = std::chrono::high_resolution_clock::now();
+//                solver->deep_clean();
 
 //                for (auto &&user :policy->unique_configurations()) {
 //                    std::cout << "###  " << user->to_full_string() << std::endl;
@@ -1471,7 +1470,7 @@ namespace SMT {
 
                 std::cout << "Applying prune_irrelevant_roles on " << policy->rules().size() << std::endl;
                 bool prune_irrelevant_roles_res = this->prune_irrelevant_roles();
-                prune_irrelevant_roles_res = reduce_roles() || prune_immaterial_roles_res;
+                prune_irrelevant_roles_res = reduce_roles() || prune_irrelevant_roles_res;
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
 
 
