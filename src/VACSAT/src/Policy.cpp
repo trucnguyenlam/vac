@@ -459,7 +459,7 @@ namespace SMT {
         update();
     }
 
-    void arbac_policy::set_atoms(const std::vector<atom> &atoms) {
+    void arbac_policy::set_atoms(const std::vector<Literalp> &atoms) {
         _atoms = atoms;
         update();
     }
@@ -563,7 +563,7 @@ namespace SMT {
         }
 
         stream << "\t;" << std::endl << std::endl;
-        stream << "TARGET:" << std::endl;
+        stream << "SPEC:" << std::endl;
         stream << "\t" << *this->goal_role << std::endl;
         stream << "\t;" << std::endl << std::endl;
 
