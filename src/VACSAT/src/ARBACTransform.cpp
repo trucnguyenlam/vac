@@ -285,11 +285,11 @@ int main(int argc, const char * const *argv) {
     }
 
     if (config.experimental_use_merge) {
-        SMT::Debug::merge = true;
+        SMT::Config::merge = true;
     }
 
     if (config.dump_smt_formula != "") {
-        SMT::Debug::dump_smt_formula = config.dump_smt_formula;
+        SMT::Config::dump_smt_formula = config.dump_smt_formula;
     }
 
 
