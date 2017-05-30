@@ -673,9 +673,9 @@ class BMCTransformer {
 
         SMTResult res = solver->solve();
 
-        if (Debug::dump_smt_formula != "") {
-            solver->printContext(Debug::dump_smt_formula);
-            std::cout << "BMC SMT formula dumped at: " << Debug::dump_smt_formula << std::endl;
+        if (Config::dump_smt_formula != "") {
+            solver->printContext(Config::dump_smt_formula);
+            std::cout << "BMC SMT formula dumped at: " << Config::dump_smt_formula << std::endl;
         }
 
         auto end = std::chrono::high_resolution_clock::now();
@@ -715,6 +715,8 @@ class BMCTransformer {
     bool transform_2_bounded_smt(int rounds, int _steps, int wanted_threads_count) {
 //        solver->deep_clean();
         // solver = _solver;
+         solver->deep_clean();
+
         steps = _steps;
 
         generate_admin_partitions();
