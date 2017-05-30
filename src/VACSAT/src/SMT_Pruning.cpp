@@ -1454,38 +1454,44 @@ namespace SMT {
                 bool backward_slicing_res = this->backward_slicing();
                 backward_slicing_res = reduce_roles() || backward_slicing_res;
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+                solver->deep_clean();
 
 
                 std::cout << "Applying easy_pruning on " << policy->rules().size() << std::endl;
                 bool easy_pruning_res = this->easy_pruning();
                 easy_pruning_res = reduce_roles() && easy_pruning_res;
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+                solver->deep_clean();
 
 
                 std::cout << "Applying prune_immaterial_roles on " << policy->rules().size() << std::endl;
                 bool prune_immaterial_roles_res = this->prune_immaterial_roles();
                 prune_immaterial_roles_res = reduce_roles() || prune_immaterial_roles_res;
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+                solver->deep_clean();
 
 
                 std::cout << "Applying prune_irrelevant_roles on " << policy->rules().size() << std::endl;
                 bool prune_irrelevant_roles_res = this->prune_irrelevant_roles();
                 prune_irrelevant_roles_res = reduce_roles() || prune_irrelevant_roles_res;
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+                solver->deep_clean();
 
 
                 std::cout << "Applying prune_implied_pairs on " << policy->rules().size() << std::endl;
                 bool prune_implied_pairs_res = this->prune_implied_pairs();
                 prune_implied_pairs_res = reduce_roles() || prune_implied_pairs_res;
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+                solver->deep_clean();
 
 
                 bool merge_rules_res = false;
-                if (Debug::merge) {
+                if (Config::merge) {
                     std::cout << "Applying merge_rules on " << policy->rules().size() << std::endl;
                     merge_rules_res = this->merge_rules();
                     merge_rules_res = reduce_roles() || merge_rules_res;
                     std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+                    solver->deep_clean();
 
 
                     bool simplify_expression_res = simplify_expressions();
@@ -1496,6 +1502,7 @@ namespace SMT {
                 bool prune_rule_6_res = this->prune_rule_6();
                 prune_rule_6_res = reduce_roles() || prune_rule_6_res;
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
+                solver->deep_clean();
 
 
                 fixpoint =
@@ -1516,6 +1523,7 @@ namespace SMT {
             }
 
             reduce_users();
+            solver->deep_clean();
 
 //            std::cout << *policy;
 
