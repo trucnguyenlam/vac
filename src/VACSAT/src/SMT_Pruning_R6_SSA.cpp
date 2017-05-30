@@ -528,6 +528,7 @@ class R6Transformer {
         zero(solver->createFalse()), one(solver->createTrue()),
         pc_size(get_pc_size(target_expr->literals())),
         log(false) {
+        solver->deep_clean();
         allocate_core_role_array_set_pc_size();
         generate_variables();
     }
