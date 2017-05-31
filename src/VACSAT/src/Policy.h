@@ -122,9 +122,17 @@ namespace SMT {
             return _cache->user_expr(user_id);
         }
 
-        void add_user(const userp& user);
         void set_users(const std::vector<userp>& users);
         void set_atoms(const std::vector<atom>& atoms);
+
+        // TODO(truc) modify this
+        void add_user(const userp& user);
+        void add_atom(const atom& atom);
+        void add_can_assign_no_update(const rulep& rule);
+        void add_can_revoke_no_update(const rulep& rule);
+        void update_query(const Literalp& goal_role);
+        // END(truc)
+
         void add_rule(const rulep& rule);
         void add_can_assign(const rulep& rule);
         void add_can_revoke(const rulep& rule);

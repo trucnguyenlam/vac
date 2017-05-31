@@ -2,7 +2,7 @@ set(GMP_PREFIX "${GMP_PREFIX}" CACHE PATH "path ")
 
 
 find_path(GMP_INCLUDE_DIR gmp.h gmpxx.h
-    PATHS ${GMP_PREFIX}/include /usr/include /usr/local/include )
+    PATHS ${GMP_PREFIX}/include /usr/include /usr/local/include)
 
 find_library(GMP_LIBRARY NAMES gmp libgmp
     PATHS ${GMP_PREFIX}/lib /usr/lib /usr/local/lib)

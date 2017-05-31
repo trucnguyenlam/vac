@@ -13,7 +13,7 @@
 
 void
 wait_keypressed() {
-    std::cout << "Press enter to continue ..."; 
+    std::cout << "Press enter to continue ...";
     getchar();
 }
 
@@ -33,7 +33,6 @@ success_exit() {
     #endif
     exit(EXIT_SUCCESS);
 }
-
 
 namespace po = boost::program_options;
 
@@ -283,6 +282,9 @@ int main(int argc, const char * const *argv) {
     } else {
         an_ty = SMT::FULL_ANALYSIS;
     }
+    // TODO(truc)
+    SMT::perform_analysis(SMT::PRUNE_ONLY, std::string(filename), backend);
+    // END(truc)
 
     if (config.experimental_use_merge) {
         SMT::Config::merge = true;
