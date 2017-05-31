@@ -3,14 +3,14 @@
 //
 
 #include <iostream>
-#include <boost/log/trivial.hpp>
+//#include <boost/log/trivial.hpp>
 #include "debug.h"
 
 namespace SMT {
 
     bool Config::experimental = false;
 
-    Config::Verbosity Config::verbosity = Config::LOG;
+    Config::Verbosity Config::verbosity = Config::TRACE;
     bool Config::merge = false;
 
 

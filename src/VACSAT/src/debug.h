@@ -7,33 +7,71 @@
 
 #include <string>
 #include <ostream>
+//#include <boost/log/trivial.hpp>
+//#include <boost/log/core.hpp>
+//#include <boost/log/expressions.hpp>
 
 namespace SMT {
     class Config {
     public:
         enum Verbosity {
-            LOG,
-            OUT,
-            ERROR
+            TRACE,
+            DEBUG,
+            INFO,
+            WARNING,
+            ERROR,
+            FATAL
         };
         static bool experimental;
         static Verbosity verbosity;
         static bool merge;
+        static std::string dump_smt_formula;
 
         static std::string input_file;
 
-
-        static std::string dump_smt_formula;
-
     };
 
-//    class log {
-//        static std::ostream log;
-//        static FILE* flog;
-//        static std::ostream out;
-//        static FILE* fout;
-//        static std::ostream err;
-//        static FILE* ferr;
+//    class logger {
+//    public:
+////        std::ostream _trace;
+////        std::ostream _debug;
+////        std::ostream _info;
+////        std::ostream _warning;
+////        std::ostream _error;
+////        std::ostream _fatal;
+////
+////        FILE* flog;
+////        std::ostream out;
+////        FILE* fout;
+////        std::ostream err;
+////        FILE* ferr;
+//
+////        void init()
+////        {
+////            logging::core::get()->set_filter
+////                    (
+////                            logging::trivial::severity >= logging::trivial::info
+////                    );
+////        }
+////
+////        int main(int, char*[])
+////        {
+////            init();
+////
+////            BOOST_LOG_TRIVIAL(trace) << "A trace severity message";
+////            BOOST_LOG_TRIVIAL(debug) << "A debug severity message";
+////            BOOST_LOG_TRIVIAL(info) << "An informational severity message";
+////            BOOST_LOG_TRIVIAL(warning) << "A warning severity message";
+////            BOOST_LOG_TRIVIAL(error) << "An error severity message";
+////            BOOST_LOG_TRIVIAL(fatal) << "A fatal severity message";
+////
+////            return 0;
+////        }
+//
+//        logger() {
+//            BOOST_LOG_TRIVIAL(trace) << "asd";
+//        }
+//
 //    };
 
 }
