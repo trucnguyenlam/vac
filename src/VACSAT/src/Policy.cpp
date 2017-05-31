@@ -245,6 +245,7 @@ namespace SMT {
             _users_to_track(std::numeric_limits<int>::max()) { }
 
     policy_cache::policy_cache(const arbac_policy* policy) :
+            _per_user_exprs(std::vector<Expr>((ulong) policy->atom_count())),
             _per_role_ca_rules(std::vector<std::list<rulep>>((ulong) policy->atom_count())),
             _per_role_cr_rules(std::vector<std::list<rulep>>((ulong) policy->atom_count())),
             _policy(policy) {
@@ -255,6 +256,20 @@ namespace SMT {
             _per_role_cr_rules[rule->target->role_array_index].push_back(rule);
         }
         _unique_configurations = update_unique_confs(policy->users());
+    }
+
+    Expr policy_cache::_user_to_expr(int user_id) const {
+        Expr conf = createConstantTrue();
+        std::set<atom> user_atoms = _policy->_users[user_id]->config();
+        for (auto &&atom : _policy->_atoms) {
+            Expr node =
+                    (contains(user_atoms.begin(), user_atoms.end(), atom)) ?
+                    atom :
+                    createNotExpr(atom);
+
+            conf = createAndExpr(conf, node);
+        }
+        return conf;
     }
 
     const std::string policy_cache::to_string() const {
@@ -331,20 +346,6 @@ namespace SMT {
             _users.push_back(std::make_shared<user>(user::from_policy(this->_atoms, i)));
         }
         this->update();
-    }
-
-    Expr arbac_policy::user_to_expr(int user_id) const {
-        Expr conf = createConstantTrue();
-        std::set<atom> user_atoms = _users[user_id]->config();
-        for (auto &&atom : _atoms) {
-            Expr node =
-                    (contains(user_atoms.begin(), user_atoms.end(), atom)) ?
-                    atom :
-                    createNotExpr(atom);
-
-            conf = createAndExpr(conf, node);
-        }
-        return conf;
     }
 
     void arbac_policy::print_cache() const {

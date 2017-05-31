@@ -72,12 +72,21 @@ namespace SMT {
 
     class policy_cache {
     public:
+        friend class arbac_policy;
         policy_cache(const arbac_policy* policy);
 
         const std::string to_string() const;
 
         friend std::ostream& operator<< (std::ostream& stream, const policy_cache& self);
 
+        inline const Expr& user_expr(int user_id) const {
+            Expr res = nullptr;
+            if (_per_user_exprs[user_id] == nullptr) {
+                res = _user_to_expr(user_id);
+                _per_user_exprs[user_id] = res;
+            }
+            return _per_user_exprs[user_id];
+        }
         inline const std::vector<std::list<rulep>>& per_role_ca_rules() const {
             return _per_role_ca_rules;
         }
@@ -89,6 +98,8 @@ namespace SMT {
         };
 
     private:
+        Expr _user_to_expr(int user_id) const;
+        std::vector<Expr> _per_user_exprs;
         std::vector<std::list<rulep>> _per_role_ca_rules;
         std::vector<std::list<rulep>> _per_role_cr_rules;
         std::set<userp, std::function<bool (const userp&, const userp&)>> _unique_configurations;
@@ -109,7 +120,9 @@ namespace SMT {
 //        void remove_can_assign(rule to_remove);
 //        void remove_can_revoke(rule to_remove);
 
-        Expr user_to_expr(int user_id) const;
+        inline const Expr user_to_expr(int user_id) const {
+            return _cache->user_expr(user_id);
+        }
 
         void add_user(const userp& user);
         void set_users(const std::vector<userp>& users);
@@ -204,6 +217,8 @@ namespace SMT {
         }
 
         private:
+
+        friend class policy_cache;
 
         void update();
         void unsafe_remove_atom(const Literalp& atom);
