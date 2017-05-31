@@ -439,10 +439,10 @@ namespace SMT {
                 Expr adm_expr = adm;
                 Expr user_expr = policy->user_to_expr(user->original_idx);
 
-                std::map<std::string, TVar> map;
+                std::vector<std::shared_ptr<TVar>> var_vect(policy->atom_count());
 
-                TExpr solver_adm_expr = generateSMTFunction(solver, adm_expr, map, user->name);
-                TExpr solver_user_expr = generateSMTFunction(solver, user_expr, map, user->name);
+                TExpr solver_adm_expr = generateSMTFunction2(solver, adm_expr, var_vect, user->name);
+                TExpr solver_user_expr = generateSMTFunction2(solver, user_expr, var_vect, user->name);
 
                 solver->assertNow(solver_user_expr);
                 solver->assertNow(solver_adm_expr);
@@ -503,27 +503,28 @@ namespace SMT {
                                std::shared_ptr<rule> using_r,
                                std::vector<std::shared_ptr<rule>> assigning_r,
                                std::vector<std::shared_ptr<rule>> removing_r) {
+            //TODO: ADD IRRELEVANT FOR ADMIN HERE
 
-            std::map<std::string, TVar> c_map;
-            std::map<std::string, TVar> adm_map;
+            std::vector<std::shared_ptr<TVar>> c_vect(policy->atom_count());
+            std::vector<std::shared_ptr<TVar>> adm_vect(policy->atom_count());
 
             // C_r
-            TExpr not_c_r = generateSMTFunction(solver, role, c_map, "C");
+            TExpr not_c_r = generateSMTFunction2(solver, role, c_vect, "C");
             // not C_r
-            TExpr c_r = solver->createNotExpr(generateSMTFunction(solver, role, c_map, "C"));
+            TExpr c_r = solver->createNotExpr(generateSMTFunction2(solver, role, c_vect, "C"));
 
             // phi_r^TRUE(C)
             role->setValue(createConstantTrue());
-            TExpr phi_r_true_c = generateSMTFunction(solver, using_r->prec, c_map, "C");
+            TExpr phi_r_true_c = generateSMTFunction2(solver, using_r->prec, c_vect, "C");
 
             // phi_r^FALSE(C)
             role->setValue(createConstantFalse());
-            TExpr phi_r_false_c = generateSMTFunction(solver, using_r->prec, c_map, "C");
+            TExpr phi_r_false_c = generateSMTFunction2(solver, using_r->prec, c_vect, "C");
 
             role->resetValue();
 
             //phi_a_(adm)
-            TExpr phi_a_adm = generateSMTFunction(solver, using_r->admin, adm_map, "ADM");
+            TExpr phi_a_adm = generateSMTFunction2(solver, using_r->admin, adm_vect, "ADM");
 
             // phi_r^TRUE(C) /\ not phi_r^FALSE(C) /\ phi_a_(adm)
             TExpr pos_lhs = solver->createAndExpr(solver->createAndExpr(phi_r_true_c,
@@ -535,27 +536,26 @@ namespace SMT {
                                                                         phi_r_false_c),
                                                   phi_a_adm);
 
-            //FIXME: not working with Z3 since it is unifying the literals not in C;
-
             std::vector<TExpr> assign_and_rhs;
 
             for (auto ite = assigning_r.begin(); ite != assigning_r.end(); ++ite) {
                 std::shared_ptr<rule> ca = *ite;
-                std::map<std::string, TVar> c1_map = c_map;
-                std::map<std::string, TVar> adm1_map = adm_map;
+                std::vector<std::shared_ptr<TVar>> c1_vect = c_vect;
+                std::vector<std::shared_ptr<TVar>> adm1_vect = adm_vect;
 
                 //phi'(C)
-                TExpr phi1_c = generateSMTFunction(solver, ca->prec, c1_map, "C");
+                TExpr phi1_c = generateSMTFunction2(solver, ca->prec, c1_vect, "C");
 
                 //phi'_a(adm)
-                TExpr phi1_a_adm = generateSMTFunction(solver, ca->admin, adm1_map, "ADM");
+                TExpr phi1_a_adm = generateSMTFunction2(solver, ca->admin, adm1_vect, "ADM");
 
-//                //phi'_a(C)
-//                TExpr phi1_a_c = generateSMTFunction(solver, ca->admin, c1_map, "C");
+                //phi'_a(C)
+                TExpr phi1_a_c = generateSMTFunction2(solver, ca->admin, c1_vect, "C");
 
-                // not phi'(C) \/ not phi'_a(adm)
+                // not (phi'(C)) \/ not (phi'_a(adm) \/ phi'_a(C))
                 TExpr disj = solver->createOrExpr(solver->createNotExpr(phi1_c),
-                                                  solver->createNotExpr(phi1_a_adm));
+                                                  solver->createNotExpr(solver->createOrExpr(phi1_a_adm,
+                                                                                             phi1_a_c)));
 
                 assign_and_rhs.push_back(disj);
             }
@@ -567,17 +567,17 @@ namespace SMT {
 
             for (auto ite = removing_r.begin(); ite != removing_r.end(); ++ite) {
                 std::shared_ptr<rule> cr = *ite;
-                std::map<std::string, TVar> c1_map = c_map;
-                std::map<std::string, TVar> adm1_map = adm_map;
+                std::vector<std::shared_ptr<TVar>> c1_vect = c_vect;
+                std::vector<std::shared_ptr<TVar>> adm1_vect = adm_vect;
 
                 //phi'(C)
-                TExpr phi1_c = generateSMTFunction(solver, cr->prec, c1_map, "C");
+                TExpr phi1_c = generateSMTFunction2(solver, cr->prec, c1_vect, "C");
 
                 //phi'_a(adm)
-                TExpr phi1_a_adm = generateSMTFunction(solver, cr->admin, adm1_map, "ADM");
+                TExpr phi1_a_adm = generateSMTFunction2(solver, cr->admin, adm1_vect, "ADM");
 
                 //phi'_a(C)
-                TExpr phi1_a_c = generateSMTFunction(solver, cr->admin, c1_map, "C");
+                TExpr phi1_a_c = generateSMTFunction2(solver, cr->admin, c1_vect, "C");
 
                 // not (phi'(C)) \/ not (phi'_a(adm) \/ phi'_a(C))
                 TExpr disj = solver->createOrExpr(solver->createNotExpr(phi1_c),
@@ -1214,11 +1214,11 @@ namespace SMT {
                     Expr expr = *ite;
                     // phi_a^TRUE
                     role->setValue(createConstantTrue());
-                    TExpr phi_a_true = generateSMTFunction(solver, expr, tmap, "C");
+                    TExpr phi_a_true = generateSMTFunction2(solver, expr, tmap, "C");
 
                     // phi_a^FALSE
                     role->setValue(createConstantFalse());
-                    TExpr phi_a_false = generateSMTFunction(solver, expr, tmap, "C");
+                    TExpr phi_a_false = generateSMTFunction2(solver, expr, tmap, "C");
 
                     role->resetValue();
 
