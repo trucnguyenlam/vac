@@ -251,10 +251,8 @@ namespace SMT {
                 }
             }
 
-            for (auto &&atom : not_used_atoms) {
-                policy->remove_atom(atom);
-            }
 
+            policy->remove_atoms(not_used_atoms);
             policy->remove_rules(rules_to_remove);
 
             return (not_used_atoms.size() > 0) ||
@@ -674,7 +672,7 @@ namespace SMT {
         }
 
         bool prune_irrelevant_roles() {
-            std::vector<Literalp> irrelevant;
+            std::list<Literalp> irrelevant;
 
             for (auto iterator = policy->atoms().begin(); iterator != policy->atoms().end(); ++iterator) {
                 Literalp r = *iterator;
@@ -686,9 +684,7 @@ namespace SMT {
             }
 
             // REMOVAL:
-            for (auto &&i_role : irrelevant) {
-                policy->remove_atom(i_role);
-            }
+            policy->remove_atoms(irrelevant);
             return irrelevant.size() > 0;
         }
 
@@ -1525,24 +1521,11 @@ namespace SMT {
             reduce_users();
             solver->deep_clean();
 
-//            std::cout << *policy;
-
-//            simplify_expressions();
-
-
             std::cout << *policy;
 
             auto global_end = std::chrono::high_resolution_clock::now();
             auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(global_end - global_start);
             std::cout << "------------ Pruning done in " << milliseconds.count() << " ms. ------------" << std::endl;
-
-//            auto map = partition_admins();
-//            for (int i = 0; i < map.first.size(); ++i) {
-//                std::cout << i << ": " << *map.first[i] << std::endl;
-//            }
-//            for (auto &&expr :map.second) {
-//                std::cout << *expr << ";" << std::endl;
-//            }
 
         }
 
@@ -1551,30 +1534,6 @@ namespace SMT {
             solver(_solver),
             policy(policy) { }
     };
-
-    // void test_yices() {
-    //     context_t* context = yices_new_context(NULL);
-
-    //     term_t type = yices_bool_type();
-
-    //     term_t var1 = yices_new_uninterpreted_term(type);
-    //     yices_set_term_name(var1, "x");
-    //     term_t var2 = yices_new_uninterpreted_term(type);
-    //     yices_set_term_name(var2, "x");
-    //     yices_assert_formula(context, var1);
-    //     yices_assert_formula(context, yices_not(var2));
-        
-    //     if (yices_check_context(context, NULL) == STATUS_SAT) {
-    //         printf("SAT\n");
-    //         model_t* model = yices_get_model(context, false);
-    //         yices_pp_model(stdout, model, 120, 40, 0);
-    //     }
-    //     else {
-    //         printf("UNSAT\n");
-    //     }
-
-    //     return;
-    // }
 
     template <typename TVar, typename TExpr>
     void prune_policy(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,

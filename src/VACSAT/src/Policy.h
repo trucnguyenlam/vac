@@ -79,11 +79,9 @@ namespace SMT {
 
         friend std::ostream& operator<< (std::ostream& stream, const policy_cache& self);
 
-        inline const Expr& user_expr(int user_id) const {
-            Expr res = nullptr;
+        inline const Expr& user_expr(int user_id) {
             if (_per_user_exprs[user_id] == nullptr) {
-                res = _user_to_expr(user_id);
-                _per_user_exprs[user_id] = res;
+                _per_user_exprs[user_id] = _user_to_expr(user_id);
             }
             return _per_user_exprs[user_id];
         }
@@ -138,6 +136,7 @@ namespace SMT {
         void remove_can_assigns(const std::list<rulep>& rule);
         void remove_can_revoke(const rulep& rule);
         void remove_can_revokes(const std::list<rulep>& rule);
+        void remove_atoms(const std::list<Literalp>& atoms);
         void remove_atom(const Literalp& atom);
         void remove_user(const userp& user);
 

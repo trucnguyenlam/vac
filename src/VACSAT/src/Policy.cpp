@@ -236,14 +236,6 @@ namespace SMT {
         return confs;
     };
 
-    arbac_policy::arbac_policy() :
-            _atoms(std::vector<Literalp>()),
-            _users(std::vector<std::shared_ptr<user>>()),
-            _rules(std::vector<std::shared_ptr<rule>>()),
-            _can_assign_rules(std::vector<std::shared_ptr<rule>>()),
-            _can_revoke_rules(std::vector<std::shared_ptr<rule>>()),
-            _users_to_track(std::numeric_limits<int>::max()) { }
-
     policy_cache::policy_cache(const arbac_policy* policy) :
             _per_user_exprs(std::vector<Expr>((ulong) policy->atom_count())),
             _per_role_ca_rules(std::vector<std::list<rulep>>((ulong) policy->atom_count())),
@@ -303,6 +295,15 @@ namespace SMT {
         stream << self.to_string();
         return stream;
     }
+
+
+    arbac_policy::arbac_policy() :
+            _atoms(std::vector<Literalp>()),
+            _users(std::vector<std::shared_ptr<user>>()),
+            _rules(std::vector<std::shared_ptr<rule>>()),
+            _can_assign_rules(std::vector<std::shared_ptr<rule>>()),
+            _can_revoke_rules(std::vector<std::shared_ptr<rule>>()),
+            _users_to_track(std::numeric_limits<int>::max()) { }
 
     arbac_policy::arbac_policy(bool old_version) :
             _atoms(std::vector<Literalp>()),
@@ -493,6 +494,12 @@ namespace SMT {
         this->update();
     }
 
+    void arbac_policy::remove_atoms(const std::list<Literalp> &atoms) {
+        for (auto &&atom : atoms) {
+            this->unsafe_remove_atom(atom);
+        }
+        this->update();
+    }
     void arbac_policy::remove_atom(const Literalp &atom) {
         this->unsafe_remove_atom(atom);
         this->update();
