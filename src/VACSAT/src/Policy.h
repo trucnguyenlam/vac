@@ -114,6 +114,9 @@ namespace SMT {
         inline int atom_count() const {
             return (int) _atoms.size();
         }
+        inline int user_count() const {
+            return (int) _users.size();
+        }
 
 //        void remove_can_assign(rule to_remove);
 //        void remove_can_revoke(rule to_remove);

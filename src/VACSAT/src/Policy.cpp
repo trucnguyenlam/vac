@@ -237,7 +237,7 @@ namespace SMT {
     };
 
     policy_cache::policy_cache(const arbac_policy* policy) :
-            _per_user_exprs(std::vector<Expr>((ulong) policy->atom_count())),
+            _per_user_exprs(std::vector<Expr>((ulong) policy->user_count())),
             _per_role_ca_rules(std::vector<std::list<rulep>>((ulong) policy->atom_count())),
             _per_role_cr_rules(std::vector<std::list<rulep>>((ulong) policy->atom_count())),
             _policy(policy) {
