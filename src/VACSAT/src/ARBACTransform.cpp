@@ -282,9 +282,6 @@ int main(int argc, const char * const *argv) {
     } else {
         an_ty = SMT::FULL_ANALYSIS;
     }
-    // TODO(truc)
-    SMT::perform_analysis(SMT::PRUNE_ONLY, std::string(filename), backend);
-    // END(truc)
 
     if (config.experimental_use_merge) {
         SMT::Config::merge = true;
@@ -295,7 +292,12 @@ int main(int argc, const char * const *argv) {
     }
 
 
-    SMT::perform_analysis_old_style(an_ty, config.input_file, config.new_backend, bmc_conf);
+    // TODO(truc)
+    SMT::perform_analysis(an_ty, config.input_file, config.new_backend, bmc_conf);
+    // END(truc)
+//    SMT::perform_analysis_old_style(an_ty, config.input_file, config.new_backend, bmc_conf);
+    std::cout << "############################ ADD THE OLD ANALYSIS AS A ARGUMENT ##############################" << std::endl;
+//    std::cerr << "############################ ADD THE OLD ANALYSIS AS A ARGUMENT ##############################" << std::endl;
     success_exit();
 
 

@@ -171,7 +171,7 @@ Expr MyListener::buildPrimaryExpression(
     } else {
         if (ctx->Constant()) {
             int value = std::stoi(ctx->Constant()->getText(), nullptr);
-            Constantp valptr = std::make_shared<Constant>(Constant(value, 0));
+            Constantp valptr = std::make_shared<Constant>(Constant(value, 1));
             return valptr;
         }
     }

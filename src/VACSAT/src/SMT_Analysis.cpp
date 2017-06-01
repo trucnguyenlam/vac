@@ -6,6 +6,7 @@
 #include "Policy.h"
 #include "SMT_Pruning.h"
 #include "parser/translator.h"
+#include "ARBAC_to_SMT_BMC.h"
 
 namespace SMT {
 
@@ -50,6 +51,9 @@ namespace SMT {
     void perform_analysis(AnalysisType analysis_type, const std::string &inputFile,
                                     const std::string &solver_name, bmc_config config) {
         std::shared_ptr<arbac_policy> policy = Parser::parse_new_ac(inputFile);
+//        std::string pol = policy->to_string();
+//        std::cout << pol << std::endl;
+//        std::cout << policy->atom_count() << std::endl;
         set_solver_execute(analysis_type, policy, solver_name, config);
 
     }
