@@ -19,6 +19,20 @@ namespace SMT {
         return set.find(elem) != set.end();
     }
 
+    template <template <typename> typename TCollection, typename TVal>
+    static inline bool contains(const TCollection<TVal>& collection, const TVal &elem) {
+        static_assert(std::is_base_of<std::vector<TVal>, TCollection<TVal>>::value ||
+                      std::is_base_of<std::list<TVal>, TCollection<TVal>>::value,
+                      "TCollection<TVar> is not derived from either vector and list");
+
+        for (auto &&value :collection) {
+            if (value == elem) {
+                return true;
+            }
+        }
+        return false;
+    };
+
     template <class InputIterator, class T>
     static inline bool contains(InputIterator first, InputIterator last, const T &val) {
         return std::find(first, last, val) != last;
