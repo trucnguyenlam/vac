@@ -302,7 +302,7 @@ namespace SMT {
             auto ite = to_be_asserted.begin();
             term_t body = *ite;
             asserted.push_back(body);
-            for ( ; ite != to_be_asserted.end(); ++ite) {
+            for (++ite; ite != to_be_asserted.end(); ++ite) {
                 body = yices_and2(body, *ite);
                 asserted.push_back(body);
             }
@@ -326,8 +326,8 @@ namespace SMT {
         this->asserted.clear();
     }
     void YicesSolver::printContext() {
-        for (auto ite = this->asserted.begin(); ite != this->asserted.end(); ++ite) {
-            yices_pp_term(stdout, *ite, 160, 20, 0);
+        for (auto &&term : this->asserted) {
+            yices_pp_term(stdout, term, 160, 20, 0);
         }
     }
     void YicesSolver::printContext(std::string filename) {
@@ -335,8 +335,8 @@ namespace SMT {
         if (out == NULL) {
             throw std::runtime_error("Cannot open file: " + filename);
         }
-        for (auto ite = this->asserted.begin(); ite != this->asserted.end(); ++ite) {
-            yices_pp_term(out, *ite, 1600, 20000, 0);
+        for (auto &&term : this->asserted) {
+            yices_pp_term(out, term, 1600, 20000, 0);
         }
         fclose(out);
     }
