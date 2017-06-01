@@ -44,6 +44,7 @@ public:
     const std::string old_mucke_formula;
     const bool old_inline;
     const std::string new_backend;
+    const bool old_parser;
     const bool new_prune_only;
     const bool new_reachability_only;
     const bool experimental_use_merge;
@@ -62,6 +63,7 @@ public:
             std::string _old_mucke_formula,
             bool _old_inline,
             std::string _new_backend,
+            bool _old_parser,
             bool _new_prune_only,
             bool _new_reachability_only,
             bool _experimental_use_merge,
@@ -77,6 +79,7 @@ public:
         old_mucke_formula(_old_mucke_formula),
         old_inline(_old_inline),
         new_backend(_new_backend),
+        old_parser(_old_parser),
         new_prune_only(_new_prune_only),
         new_reachability_only(_new_reachability_only),
         experimental_use_merge(_experimental_use_merge),
@@ -175,6 +178,7 @@ static options parse_args(int ac, const char* const* av) {
     arg_obj<std::string> old_mucke_formula = create_arg_obj_string("formula", "Formula for mucke");
     arg_obj<bool> old_inline = create_arg_obj_bool("inline", "Inline the program (lazycseq only)");
     arg_obj<std::string> new_backend = create_arg_obj_string("backend,b", "yices", "SMT backend (Z3, YICES)");
+    arg_obj<bool> old_parser = create_arg_obj_bool("old-parser,O", "Prune the policy using sat based approaches only");
     arg_obj<bool> new_prune_only = create_arg_obj_bool("prune-only,p", "Prune the policy using sat based approaches only");
     arg_obj<bool> new_reachability_only = create_arg_obj_bool("reachability-only,q", "Check reachability with bmc only");
     arg_obj<bool> experimental_use_merge = create_arg_obj_bool("merge,m", "Use the pruning merge rule");
@@ -191,6 +195,7 @@ static options parse_args(int ac, const char* const* av) {
     add_option_description(desc, old_mucke_formula);
     add_option_description(desc, old_inline);
     add_option_description(desc, new_backend);
+    add_option_description(desc, old_parser);
     add_option_description(desc, new_prune_only);
     add_option_description(desc, new_reachability_only);
     add_option_description(desc, experimental_use_merge);
@@ -222,6 +227,7 @@ static options parse_args(int ac, const char* const* av) {
                     old_mucke_formula.result,
                     old_inline.result,
                     new_backend.result,
+                    old_parser.result,
                     new_prune_only.result,
                     new_reachability_only.result,
                     experimental_use_merge.result,
@@ -292,12 +298,13 @@ int main(int argc, const char * const *argv) {
     }
 
 
-    // TODO(truc)
-    SMT::perform_analysis(an_ty, config.input_file, config.new_backend, bmc_conf);
-    // END(truc)
-//    SMT::perform_analysis_old_style(an_ty, config.input_file, config.new_backend, bmc_conf);
-    std::cout << "############################ ADD THE OLD ANALYSIS AS A ARGUMENT ##############################" << std::endl;
-//    std::cerr << "############################ ADD THE OLD ANALYSIS AS A ARGUMENT ##############################" << std::endl;
+    if (config.old_parser) {
+        SMT::perform_analysis_old_style(an_ty, config.input_file, config.new_backend, bmc_conf);
+    }
+    else {
+        SMT::perform_analysis(an_ty, config.input_file, config.new_backend, bmc_conf);
+    }
+
     success_exit();
 
 
