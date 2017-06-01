@@ -51,6 +51,7 @@ public:
     const int bmc_rounds_count;
     const int bmc_steps_count;
     const int bmc_thread_count;
+    const std::string mem_limit;
     const bool show_statistics;
     const bool show_help;
     const std::string input_file;
@@ -70,6 +71,7 @@ public:
             int _bmc_rounds_count,
             int _bmc_steps_count,
             int _bmc_thread_count,
+            std::string _mem_limit,
             bool _show_statistics,
             bool _show_help,
             std::string _input_file,
@@ -86,6 +88,7 @@ public:
         bmc_rounds_count(_bmc_rounds_count),
         bmc_steps_count(_bmc_steps_count),
         bmc_thread_count(_bmc_thread_count),
+        mem_limit(_mem_limit),
         show_statistics(_show_statistics),
         show_help(_show_help),
         input_file(_input_file),
@@ -186,6 +189,7 @@ static options parse_args(int ac, const char* const* av) {
     arg_obj<int> bmc_steps_count = create_arg_obj_int("steps,s", "Number of steps per round for the bmc");
     arg_obj<int> bmc_thread_count = create_arg_obj_int("threads,t", "Number of threads (tracked users) for the bmc");
     arg_obj<bool> show_statistics = create_arg_obj_bool("show-statistics,S", "Print policy stetistics");
+    arg_obj<std::string> memory_limit = create_arg_obj_string("memlimit,M", "10G", "Set a specific memory limit for the process");
     arg_obj<bool> show_help = create_arg_obj_bool("help,h", "Show this message");
     arg_obj<std::string> input_file = create_arg_obj_string("input-file", "FILE is the input ARBAC file format");
     arg_obj<std::string> dump_smt_formula = create_arg_obj_string("dump-smt,d", "Dump the SMT formula to file");
@@ -202,6 +206,7 @@ static options parse_args(int ac, const char* const* av) {
     add_option_description(desc, bmc_rounds_count);
     add_option_description(desc, bmc_steps_count);
     add_option_description(desc, bmc_thread_count);
+    add_option_description(desc, memory_limit);
     add_option_description(desc, show_statistics);
     add_option_description(desc, input_file);
 
@@ -234,6 +239,7 @@ static options parse_args(int ac, const char* const* av) {
                     bmc_rounds_count.result,
                     bmc_steps_count.result,
                     bmc_thread_count.result,
+                    memory_limit.result,
                     show_statistics.result,
                     show_help.result,
                     input_file.result,
@@ -247,9 +253,60 @@ static options parse_args(int ac, const char* const* av) {
     return result;
 }
 
+uint64_t read_mem_spec(const char *str) {
+    uint64_t mult;
+    int len = strlen(str);
+    if (!isdigit(str[len-1])) {
+        switch (str[len-1]) {
+            case 'b':
+            case 'B':
+                mult = 1;
+                break;
+            case 'k':
+            case 'K':
+                mult = 1024;
+                break;
+            case 'm':
+            case 'M':
+                mult = 1024*1024;
+                break;
+            case 'g':
+            case 'G':
+                mult = 1024*1024*1024;
+                break;
+            default:
+                std::cerr << "Unrecognized memlimit suffix" << std::endl;
+                abort();
+        }
+    } else {
+        mult = 1024*1024;
+    }
+
+    uint64_t size = strtoul(str, NULL, 10);
+    size *= mult;
+    return size;
+}
+
+#include <sys/resource.h>
+
+static void set_mem_limit(std::string memlimit) {
+    uint64_t size = read_mem_spec(memlimit.c_str());
+
+    struct rlimit lim;
+    lim.rlim_cur = size;
+    lim.rlim_max = size;
+    if(setrlimit(RLIMIT_DATA, &lim) != 0)
+    {
+        perror("Couldn't set memory limit");
+        abort();
+    }
+
+}
+
 int main(int argc, const char * const *argv) {
-    options config = parse_args(argc, argv);
     std::string filename;
+    options config = parse_args(argc, argv);
+    set_mem_limit(config.mem_limit);
 
     FILE * out_file = nullptr;
     filename = config.input_file;
