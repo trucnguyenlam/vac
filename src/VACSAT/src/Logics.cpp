@@ -202,15 +202,16 @@ namespace SMT {
     std::string Constant::to_string() const {
         if (this->bv_size == 1) {
             if (this->value) {
-                return Defs::true_str;
+                return Defs::true_str + std::string(":Bool");
             }
             else {
-                return Defs::false_str;
+                return Defs::false_str + std::string(":Bool");
             }
         }
         else {
             std::stringstream fmt;
             fmt << this->value;
+            fmt << ":BV[" << this->bv_size << "]";
             return fmt.str();
         }
     }
@@ -561,7 +562,6 @@ namespace SMT {
     // // }
 
 
-
 /*OTHER OPS*/
     Literalp createLiteralp(const std::string name, int role_array_index, int bv_size, Expr value) {
         std::shared_ptr<Literal> res(new Literal(name, role_array_index, bv_size, value));
@@ -569,9 +569,9 @@ namespace SMT {
         return res;
     }
 
-    Expr createLiteralExpr(const std::string name, int role_array_index, int bv_size, Expr value) {
-        return std::shared_ptr<Exprv>(new Literal(name, role_array_index, bv_size, value));
-    }
+//    Expr createLiteralExpr(const std::string name, int role_array_index, int bv_size, Expr value) {
+//        return std::shared_ptr<Exprv>(new Literal(name, role_array_index, bv_size, value));
+//    }
     Expr createConstantExpr(int value, int bv_size) {
         return std::shared_ptr<Exprv>(new Constant(value, bv_size));
     }
@@ -723,7 +723,7 @@ namespace SMT {
                 Expr nrhs = delete_atom(orExpr->rhs, lit);
                 return createOrExpr(nlhs, nrhs);
             }
-            case Exprv::NOT_EXPR:{
+            case Exprv::NOT_EXPR: {
                 std::shared_ptr<NotExpr> notExpr = std::dynamic_pointer_cast<NotExpr>(expr);
                 Expr inner = notExpr->expr;
                 switch (inner->type) {
@@ -737,8 +737,8 @@ namespace SMT {
                             return expr;
                         }
                     default:
-                    std::cerr << "NOT expression MUST be located close to atoms (LITERAL or CONSTANT)" << std::endl;
-                    std::cerr << "\tExpr is " << *expr << std::endl;
+                        std::cerr << "NOT expression MUST be located close to atoms (LITERAL or CONSTANT)" << std::endl;
+                        std::cerr << "\tExpr is " << *expr << std::endl;
                         throw std::runtime_error("NOT expression MUST be located close to atoms (LITERAL or CONSTANT)");
                         return nullptr;
                 }
@@ -756,12 +756,33 @@ namespace SMT {
 //                TExpr schoice2 = generateSMTFunction(solver, condExpr->choice2, var_array, suffix);
 //                return solver->createCondExpr(scond, schoice1, schoice2);
 //            }
-//            case Exprv::EQ_EXPR: {
-//                std::shared_ptr<EqExpr> eqExpr = std::dynamic_pointer_cast<EqExpr>(expr);
-//                TExpr slhs = generateSMTFunction(solver, eqExpr->lhs, var_array, suffix);
-//                TExpr srhs = generateSMTFunction(solver, eqExpr->rhs, var_array, suffix);
-//                return solver->createEqExpr(slhs, srhs);
-//            }
+            case Exprv::EQ_EXPR: {
+                std::shared_ptr<EqExpr> eq_expr = std::dynamic_pointer_cast<EqExpr>(expr);
+                Expr lhs = eq_expr->lhs;
+                Expr rhs = eq_expr->rhs;
+                if (lhs->type == Exprv::LITERAL && rhs->type == Exprv::CONSTANT) {
+                    if (lhs == lit) {
+                        return createConstantTrue();
+                    }
+                    else {
+                        return expr;
+                    }
+                }
+                else if (lhs->type == Exprv::CONSTANT && rhs->type == Exprv::LITERAL) {
+                    if (rhs == lit) {
+                        return createConstantTrue();
+                    }
+                    else {
+                        return expr;
+                    }
+                }
+                else {
+                    std::cerr << "EQ expression MUST be between an ATOM (LITERAL) and a CONSTANT" << std::endl;
+                    std::cerr << "\tExpr is " << *expr << std::endl;
+                    throw std::runtime_error("EQ expression MUST be between an ATOM (LITERAL) and a CONSTANT");
+                    return nullptr;
+                }
+            }
             default:
             std::cerr << "Could not simplify an expression that is not an OR, AND, NOT, CONSTANT, LITERAL." << std::endl;
             std::cerr << "\tExpr is " << *expr << std::endl;
