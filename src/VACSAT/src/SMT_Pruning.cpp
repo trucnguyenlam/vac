@@ -73,7 +73,14 @@ namespace SMT {
             while (!fixpoint) {
                 fixpoint = true;
                 for (auto &&rule : policy->rules()) {
+//                    print_collection(necessary_atoms);
+//                    print_collection(to_save);
+//                    std::cout << *rule << ": "_atoms);
+//                    print_collection(to_save);
+//                    std::cout << *rule << ": " << (!contains(to_save, rule) && contains(necessary_atoms, rule->target)) << std::endl;
                     if (!contains(to_save, rule) && contains(necessary_atoms, rule->target)) {
+//                        print_collection(rule->admin->literals());
+//                        print_collection(rule->prec->literals());
                         necessary_atoms.insert(rule->admin->literals().begin(), rule->admin->literals().end());
                         necessary_atoms.insert(rule->prec->literals().begin(), rule->prec->literals().end());
                         to_save.insert(rule);
@@ -332,8 +339,7 @@ namespace SMT {
             // Check if the administrative expression interfere (cause false) in other expressions
             // TODO: consider changing with set to reduce equals checks
             std::list<Expr> other_exprs;
-            for (auto iterator = policy->rules().begin();
-                 iterator != policy->rules().end(); ++iterator) {
+            for (auto iterator = policy->rules().begin(); iterator != policy->rules().end(); ++iterator) {
                 rulep r = *iterator;
                 other_exprs.push_back(r->prec);
                 if (adm != r->admin) {
@@ -359,6 +365,12 @@ namespace SMT {
                 TExpr solver_exp = generateSMTFunction2(solver, expr, free_var_vec, std::string("adm"));
 
                 std::vector<std::shared_ptr<TVar>> updated_vec = update_tlookup(free_var_vec, adm_var_vec);
+//                std::cout << "adm_var_vec" << std::endl;
+//                printLookup(adm_var_vec);
+//                std::cout << "free_var_vec" << std::endl;
+//                printLookup(free_var_vec);
+//                std::cout << "updated_vec" << std::endl;
+//                printLookup(updated_vec);
                 TExpr not_solver_exp = solver->createNotExpr(generateSMTFunction2(solver, expr, updated_vec, std::string("adm")));
 
                 solver->assertNow(solver_adm);
@@ -368,6 +380,7 @@ namespace SMT {
                 bool res = solver->solve() == UNSAT;
 
                 if (!res) {
+//                    solver->printModel();
                     std::cout << *adm << " administrative part interfere with " << *expr << std::endl;
                     return false;
                 }
@@ -1451,6 +1464,8 @@ namespace SMT {
                 backward_slicing_res = reduce_roles() || backward_slicing_res;
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
                 solver->deep_clean();
+
+//                std::cout << *policy << std::endl;
 
 
                 std::cout << "Applying easy_pruning on " << policy->rules().size() << std::endl;
