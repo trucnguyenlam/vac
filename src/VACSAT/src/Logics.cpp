@@ -62,56 +62,60 @@ namespace SMT {
 /*EXPR OPS*/
     Exprv::Exprv(ExprType ty, std::set<Literalp> literals) : type(ty), _literals(literals) { }
     
-    bool Exprv::containsLiteral(std::string full_name) {
-        for (auto ite = _literals.begin(); ite != _literals.end(); ++ite) {
-            if ((*ite)->fullName() == full_name) 
-                return true;
-        }
-        return false;
-    }
-    bool Exprv::containsLiteral(Literalp lit) {
-        return this->_literals.count(lit) > 0;
-    }
-    void Exprv::setSuffix(std::string suffix) {
-        auto lits = this->literals();
-        for (std::set<Literalp>::iterator ite = lits.begin(); ite != lits.end(); ++ite) {
-            Literalp lit = *ite;
-            lit->setSuffix(suffix);
-        }
-    }
-    void Exprv::setSuffix(int idx) {
-        this->setSuffix(std::to_string(idx));
-    }
-    void Exprv::resetSuffix() {
-        auto lits = this->literals();
-        for (std::set<Literalp>::iterator ite = lits.begin(); ite != lits.end(); ++ite) {
-            Literalp lit = *ite;
-            lit->resetSuffix();
-        }
-    }
+//    bool Exprv::containsLiteral(std::string full_name) {
+//        for (auto ite = _literals.begin(); ite != _literals.end(); ++ite) {
+//            if ((*ite)->fullName() == full_name)
+//                return true;
+//        }
+//        return false;
+//    }
+//    bool Exprv::containsLiteral(Literalp lit) {
+//        return this->_literals.count(lit) > 0;
+//    }
+//    void Exprv::setSuffix(std::string suffix) {
+//        auto lits = this->literals();
+//        for (std::set<Literalp>::iterator ite = lits.begin(); ite != lits.end(); ++ite) {
+//            Literalp lit = *ite;
+//            lit->setSuffix(suffix);
+//        }
+//    }
+//    void Exprv::setSuffix(int idx) {
+//        this->setSuffix(std::to_string(idx));
+//    }
+//    void Exprv::resetSuffix() {
+//        auto lits = this->literals();
+//        for (std::set<Literalp>::iterator ite = lits.begin(); ite != lits.end(); ++ite) {
+//            Literalp lit = *ite;
+//            lit->resetSuffix();
+//        }
+//    }
+//
+//    void Exprv::setLiteralValue(Literalp lit, Expr value) {
+//        lit->setValue(value);
+//    }
+//
+//    void Exprv::setLiteralValue(std::string lit_name, Expr value) {
+//        auto lits = this->literals();
+//        for (std::set<Literalp>::iterator ite = lits.begin(); ite != lits.end(); ++ite) {
+//            Literalp lit = *ite;
+//            if (lit->name == lit_name) {
+//                lit->setValue(value);
+//            }
+//        }
+//    }
+//    void Exprv::resetValue(std::string lit_name) {
+//        auto lits = this->literals();
+//        for (std::set<Literalp>::iterator ite = lits.begin(); ite != lits.end(); ++ite) {
+//            Literalp lit = *ite;
+//            if (lit_name == "" || lit_name == lit->name) {
+//                lit->resetValue();
+//            }
+//        }
+//    }
 
-    void Exprv::setLiteralValue(Literalp lit, Expr value) {
-        lit->setValue(value);
-    }
-
-    void Exprv::setLiteralValue(std::string lit_name, Expr value) {
-        auto lits = this->literals();
-        for (std::set<Literalp>::iterator ite = lits.begin(); ite != lits.end(); ++ite) {
-            Literalp lit = *ite;
-            if (lit->name == lit_name) {
-                lit->setValue(value);
-            }
-        }
-    }
-    void Exprv::resetValue(std::string lit_name) {
-        auto lits = this->literals();
-        for (std::set<Literalp>::iterator ite = lits.begin(); ite != lits.end(); ++ite) {
-            Literalp lit = *ite;
-            if (lit_name == "" || lit_name == lit->name) {
-                lit->resetValue();
-            }
-        }
-    }
+    const std::set<Literalp> Exprv::literals() {
+        return this->_literals;
+     }
 
     std::ostream & operator<<(std::ostream & out, Exprv const & expr) {
         out << expr.to_string();
@@ -134,29 +138,35 @@ namespace SMT {
                 this->bv_size == other_lit->bv_size;
     }
 
-    void Literal::setLiterals(Literalp &self) {
-        this->_literals.insert(self);
-    }
-    void Literal::setSuffix(std::string suffix) {
-        this->suffix = suffix;
-    }
-    void Literal::setSuffix(int index) {
-        this->setSuffix(std::to_string(index));
-    }
-    void Literal::resetSuffix() {
-        this->suffix = "";
-    }
+//    void Literal::setLiterals(Literalp &self) {
+//        this->_literals.insert(self);
+//    }
+//    void Literal::setSuffix(std::string suffix) {
+//        this->suffix = suffix;
+//    }
+//    void Literal::setSuffix(int index) {
+//        this->setSuffix(std::to_string(index));
+//    }
+//    void Literal::resetSuffix() {
+//        this->suffix = "";
+//    }
     void Literal::setValue(Expr value) {
         this->value = value;
     }
     void Literal::resetValue() {
         this->value = nullptr;
     }
-    std::string Literal::getSMTName() const {
+    const std::set<Literalp> Literal::literals() {
+        std::set<Literalp> res;
+        res.insert(get_ptr());
+        return res;
+    }
+
+    const std::string Literal::getSMTName() const {
         return this->fullName();
     }
 
-    std::string Literal::fullName() const {
+    const std::string Literal::fullName() const {
         if (this->suffix == "") {
             return this->name;
         }
@@ -167,15 +177,19 @@ namespace SMT {
         }
     }
 
-    std::string Literal::nameWithSuffix(std::string suffix) const {
-        if (this->suffix == "") {
+    std::shared_ptr<Literal> Literal::get_ptr() {
+        return shared_from_this();
+    }
+
+    const std::string Literal::nameWithSuffix(std::string suffix) const {
+//        if (this->suffix == "") {
             return this->fullName() + "_" + suffix;
-        }
-        else {
-            std::stringstream fmt;
-            fmt << this->name + "_" + this->suffix;
-            return fmt.str();
-        }
+//        }
+//        else {
+//            std::stringstream fmt;
+//            fmt << this->name + "_" + this->suffix;
+//            return fmt.str();
+//        }
     }
 
     std::string Literal::to_string() const {
@@ -565,7 +579,6 @@ namespace SMT {
 /*OTHER OPS*/
     Literalp createLiteralp(const std::string name, int role_array_index, int bv_size, Expr value) {
         std::shared_ptr<Literal> res(new Literal(name, role_array_index, bv_size, value));
-        res->setLiterals(res);
         return res;
     }
 

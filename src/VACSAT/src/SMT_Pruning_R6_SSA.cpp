@@ -91,8 +91,8 @@ class R6Transformer {
             core_roles[i] = false;
         }
 
-        for (auto ite = cores.begin(); ite != cores.end(); ++ite) {
-            core_roles[(*ite)->role_array_index] = true;
+        for (auto &&core : cores) {
+            core_roles[core->role_array_index] = true;
             core_roles_size++;
         }
 
@@ -246,7 +246,7 @@ class R6Transformer {
 //            std::cout << std::endl << std::endl;
 //        }
 
-        TExpr res = generateSMTFunction(solver, precond, role_vars, "");
+        TExpr res = generateSMTFunction2(solver, precond, role_vars, "");
 
 //        delete[] array;
 //        std::cout << "\t" << res << std::endl;

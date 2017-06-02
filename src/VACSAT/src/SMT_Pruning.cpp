@@ -33,21 +33,23 @@ namespace SMT {
 
         std::shared_ptr<arbac_policy> policy;
 
-        bool set_contains(const Expr& expr, const std::string& name) {
-            std::set<Literalp> literals = expr->literals();
-            for (auto ite = literals.begin(); ite != literals.end(); ++ite) {
-                Literalp e = *ite;
-                if (e->name == name) {
-                    return true;
-                }
-            }
-            return false;
-        }
+//        bool set_contains(const Expr& expr, const std::string& name) {
+//            std::set<Literalp> literals = expr->literals();
+//            for (auto ite = literals.begin(); ite != literals.end(); ++ite) {
+//                Literalp e = *ite;
+//                if (e->name == name) {
+//                    return true;
+//                }
+//            }
+//            return false;
+//        }
 
         bool have_common_atoms(const Expr& e1, const Expr& e2) {
             std::list<Literalp> intersection;
-            std::set_intersection(e1->literals().begin(), e1->literals().end(),
-                                  e2->literals().begin(), e2->literals().end(),
+            auto e1l = e1->literals();
+            auto e2l = e2->literals();
+            std::set_intersection(e1l.begin(), e1l.end(),
+                                  e2l.begin(), e2l.end(),
                                   std::back_inserter(intersection));
             return intersection.size() > 0;
 
@@ -81,8 +83,11 @@ namespace SMT {
                     if (!contains(to_save, rule) && contains(necessary_atoms, rule->target)) {
 //                        print_collection(rule->admin->literals());
 //                        print_collection(rule->prec->literals());
-                        necessary_atoms.insert(rule->admin->literals().begin(), rule->admin->literals().end());
-                        necessary_atoms.insert(rule->prec->literals().begin(), rule->prec->literals().end());
+                        auto adml = rule->admin->literals();
+                        auto precl = rule->prec->literals();
+
+                        necessary_atoms.insert(adml.begin(), adml.end());
+                        necessary_atoms.insert(precl.begin(), precl.end());
                         to_save.insert(rule);
                         fixpoint = false;
                     }
@@ -155,10 +160,10 @@ namespace SMT {
         AtomStatus get_atom_status(const atom& atom) {
             std::list<Expr> using_a;
             for (auto &&rule : policy->rules()) {
-                if (contains(rule->admin->literals().begin(), rule->admin->literals().end(), atom)) {
+                if (contains(rule->admin->literals(), atom)) {
                     using_a.push_back(rule->admin);
                 }
-                if (contains(rule->prec->literals().begin(), rule->prec->literals().end(), atom)) {
+                if (contains(rule->prec->literals(), atom)) {
                     using_a.push_back(rule->prec);
                 }
             }
@@ -191,8 +196,8 @@ namespace SMT {
             for (auto &&atom : policy->atoms()) {
                 bool used = false;
                 for (auto &&rule : policy->rules()) {
-                    if (contains(rule->admin->literals().begin(), rule->admin->literals().end(), atom) ||
-                        contains(rule->prec->literals().begin(), rule->prec->literals().end(), atom)) {
+                    if (contains(rule->admin->literals(), atom) ||
+                        contains(rule->prec->literals(), atom)) {
                         used = true;
                         break;
                     }
@@ -211,49 +216,55 @@ namespace SMT {
                     std::cout << "Atom: " << *atom << " is the GOAL_ROLE. Removing can_revoke_rules targeting it!" << std::endl;
                 }
                 else {
-                    AtomStatus status = get_atom_status(atom);
-                    switch (status) {
-                        case UNUSED:
-                            // done before
-                            break;
-                        case NON_NEGATIVE: {
-                            // IF ALL USER DOES HAVE IT REMOVE IT SINCE NO NEED OF CHANGE
-                            if (forall_user([&](const userp& user) { return contains(user->config(), atom); })) {
-                                std::cout << "Atom: " << *atom << " is NON_NEGATIVE and all users have it. Remove it!" << std::endl;
-                                not_used_atoms.push_back(atom);
+                    if (policy->per_role_can_assign_rule(atom).size() > 0 ||
+                            policy->per_role_can_revoke_rule(atom).size() > 0) {
+                        AtomStatus status = get_atom_status(atom);
+                        switch (status) {
+                            case UNUSED:
+                                // done before
+                                break;
+                            case NON_NEGATIVE: {
+                                // IF ALL USER DOES HAVE IT REMOVE IT SINCE NO NEED OF CHANGE
+                                if (forall_user([&](const userp& user) { return contains(user->config(), atom); })) {
+                                    std::cout << "Atom: " << *atom << " is NON_NEGATIVE and all users have it. Remove it!" << std::endl;
+                                    not_used_atoms.push_back(atom);
+                                    break;
+                                }
+                                std::cout << "Atom: " << *atom << " is NON_NEGATIVE. Removing can_revoke_rules targeting it!" << std::endl;
+    //                            for (auto &&cr : policy->can_revoke_rules()) {
+    //                                if (cr->target == atom) {
+    //                                    rules_to_remove.push_back(cr);
+    //                                    std::cout << "\t" << *cr << std::endl;
+    //                                }
+    //                            }
+                                auto to_remove = policy->per_role_can_revoke_rule(atom);
+                                rules_to_remove.insert(rules_to_remove.end(), to_remove.begin(), to_remove.end());
                                 break;
                             }
-                            std::cout << "Atom: " << *atom << " is NON_NEGATIVE. Removing can_revoke_rules targeting it!" << std::endl;
-//                            for (auto &&cr : policy->can_revoke_rules()) {
-//                                if (cr->target == atom) {
-//                                    rules_to_remove.push_back(cr);
-//                                    std::cout << "\t" << *cr << std::endl;
-//                                }
-//                            }
-                            auto to_remove = policy->per_role_can_revoke_rule(atom);
-                            rules_to_remove.insert(rules_to_remove.end(), to_remove.begin(), to_remove.end());
-                            break;
-                        }
-                        case NON_POSITIVE: {
-                            // IF ALL USER DOES NOT HAVE IT REMOVE IT SINCE NO NEED OF CHANGE
-                            if (forall_user([&](const userp& user) { return !contains(user->config(), atom); })) {
-                                std::cout << "Atom: " << *atom << " is NON_POSITIVE and no users have it. Remove it!" << std::endl;
-                                not_used_atoms.push_back(atom);
+                            case NON_POSITIVE: {
+                                // IF ALL USER DOES NOT HAVE IT REMOVE IT SINCE NO NEED OF CHANGE
+                                if (forall_user([&](const userp& user) { return !contains(user->config(), atom); })) {
+                                    std::cout << "Atom: " << *atom << " is NON_POSITIVE and no users have it. Remove it!" << std::endl;
+                                    not_used_atoms.push_back(atom);
+                                    break;
+                                }
+                                std::cout << "Atom: " << *atom << " is NON_POSITIVE. Removing can_assign_rules targeting it!" << std::endl;
+    //                            for (auto &&ca : policy->can_assign_rules()) {
+    //                                if (ca->target == atom) {
+    //                                    rules_to_remove.push_back(ca);
+    //                                    std::cout << "\t" << *ca << std::endl;
+    //                                }
+    //                            }
+                                auto to_remove = policy->per_role_can_assign_rule(atom);
+                                rules_to_remove.insert(rules_to_remove.end(), to_remove.begin(), to_remove.end());
                                 break;
                             }
-                            std::cout << "Atom: " << *atom << " is NON_POSITIVE. Removing can_assign_rules targeting it!" << std::endl;
-//                            for (auto &&ca : policy->can_assign_rules()) {
-//                                if (ca->target == atom) {
-//                                    rules_to_remove.push_back(ca);
-//                                    std::cout << "\t" << *ca << std::endl;
-//                                }
-//                            }
-                            auto to_remove = policy->per_role_can_assign_rule(atom);
-                            rules_to_remove.insert(rules_to_remove.end(), to_remove.begin(), to_remove.end());
-                            break;
+                            default:
+                                break;
                         }
-                        default:
-                            break;
+                    }
+                    else {
+                        std::cout << "Atom: " << *atom << " is NEVER ASSIGNED/REVOKED. Do not compute status!" << std::endl;
                     }
                 }
             }
@@ -339,8 +350,7 @@ namespace SMT {
             // Check if the administrative expression interfere (cause false) in other expressions
             // TODO: consider changing with set to reduce equals checks
             std::list<Expr> other_exprs;
-            for (auto iterator = policy->rules().begin(); iterator != policy->rules().end(); ++iterator) {
-                rulep r = *iterator;
+            for (auto &&r : policy->rules()) {
                 other_exprs.push_back(r->prec);
                 if (adm != r->admin) {
                     other_exprs.push_back(r->admin);
@@ -350,8 +360,7 @@ namespace SMT {
             std::vector<std::shared_ptr<TVar>> adm_var_vec((unsigned long) policy->atom_count());
             TExpr solver_adm = generateSMTFunction2(solver, adm, adm_var_vec, std::string("adm"));
 
-            for (auto ite = other_exprs.begin(); ite != other_exprs.end(); ++ite) {
-                Expr expr = *ite;
+            for (auto &&expr : other_exprs) {
 
                 if (!have_common_atoms(adm, expr)) {
                     //FIXME: to decide if leave like this (could remove too fiew e.g. (true || !ra))
@@ -512,8 +521,8 @@ namespace SMT {
         /* IRRELEVANT ROLES FUNCTIONS */
         TExpr irr_mix_cond_one(Literalp role,
                                std::shared_ptr<rule> using_r,
-                               std::vector<std::shared_ptr<rule>> assigning_r,
-                               std::vector<std::shared_ptr<rule>> removing_r) {
+                               std::vector<std::shared_ptr<rule>>& assigning_r,
+                               std::vector<std::shared_ptr<rule>>& removing_r) {
             //TODO: ADD IRRELEVANT FOR ADMIN HERE
 
             std::vector<std::shared_ptr<TVar>> c_vect(policy->atom_count());
@@ -549,8 +558,7 @@ namespace SMT {
 
             std::vector<TExpr> assign_and_rhs;
 
-            for (auto ite = assigning_r.begin(); ite != assigning_r.end(); ++ite) {
-                std::shared_ptr<rule> ca = *ite;
+            for (auto &&ca : assigning_r) {
                 std::vector<std::shared_ptr<TVar>> c1_vect = c_vect;
                 std::vector<std::shared_ptr<TVar>> adm1_vect = adm_vect;
 
@@ -576,8 +584,7 @@ namespace SMT {
 
             std::vector<TExpr> revoke_and_rhs;
 
-            for (auto ite = removing_r.begin(); ite != removing_r.end(); ++ite) {
-                std::shared_ptr<rule> cr = *ite;
+            for (auto &&cr  : removing_r) {
                 std::vector<std::shared_ptr<TVar>> c1_vect = c_vect;
                 std::vector<std::shared_ptr<TVar>> adm1_vect = adm_vect;
 
@@ -623,26 +630,24 @@ namespace SMT {
             std::vector<std::shared_ptr<rule>> using_r;
             std::vector<std::shared_ptr<rule>> assigning_r;
             std::vector<std::shared_ptr<rule>> removing_r;
-            for (auto ite = policy->can_assign_rules().begin(); ite != policy->can_assign_rules().end(); ++ite) {
-                std::shared_ptr<rule> ca = *ite;
+            for (auto &&ca : policy->can_assign_rules()) {
                 if (ca->admin->literals().count(role) > 0) {
 //                    std::cout << "Role " << role->fullName() << " is administrative in " << *ca << std::endl;
                     return false;
                 }
-                if (ca->prec->containsLiteral(role)) {
+                if (contains(ca->prec->literals(), role)) {
                     using_r.push_back(ca);
                 }
                 if (ca->target == role) {
                     assigning_r.push_back(ca);
                 }
             }
-            for (auto ite = policy->can_revoke_rules().begin(); ite != policy->can_revoke_rules().end(); ++ite) {
-                std::shared_ptr<rule> cr = *ite;
+            for (auto &&cr : policy->can_revoke_rules()) {
                 if (cr->admin->literals().count(role) > 0) {
 //                    std::cout << "Role " << role->fullName() << " is administrative in " << *cr << std::endl;
                     return false;
                 }
-                if (cr->prec->containsLiteral(role)) {
+                if (contains(cr->prec->literals(), role)) {
                     using_r.push_back(cr);
                 }
                 if (cr->target == role) {
@@ -656,8 +661,7 @@ namespace SMT {
             }
             else {
                 bool can_remove = true;
-                for (auto iterator = using_r.begin(); iterator != using_r.end(); ++iterator) {
-                    std::shared_ptr<rule> r_using_r = *iterator;
+                for (auto &&r_using_r : using_r) {
                     solver->clean();
                     TExpr cond = irr_mix_cond_one(role,
                                                   r_using_r,
@@ -687,8 +691,7 @@ namespace SMT {
         bool prune_irrelevant_roles() {
             std::list<Literalp> irrelevant;
 
-            for (auto iterator = policy->atoms().begin(); iterator != policy->atoms().end(); ++iterator) {
-                Literalp r = *iterator;
+            for (auto &&r : policy->atoms()) {
                 bool can_remove = irrelevantRole(r);
                 if (can_remove) {
                     std::cout << *r << " is irrelevant." << std::endl;
@@ -1167,8 +1170,10 @@ namespace SMT {
             std::set<Literalp> new_atoms;
             new_atoms.insert(policy->goal_role);
             for (auto &&rule : policy->rules()) {
-                new_atoms.insert(rule->admin->literals().begin(), rule->admin->literals().end());
-                new_atoms.insert(rule->prec->literals().begin(), rule->prec->literals().end());
+                auto adminl = rule->admin->literals();
+                auto precl = rule->prec->literals();
+                new_atoms.insert(adminl.begin(), adminl.end());
+                new_atoms.insert(precl.begin(), precl.end());
                 new_atoms.insert(rule->target);
             }
             if (new_atoms.size() != policy->atoms().size()) {
@@ -1184,8 +1189,7 @@ namespace SMT {
             Literalp role = policy->atoms(roleId);
             std::vector<Expr> to_check;
 
-            for (auto ite = policy->can_assign_rules().begin(); ite != policy->can_assign_rules().end(); ++ite) {
-                std::shared_ptr<rule> rule = (*ite);
+            for (auto &&rule : policy->can_assign_rules()) {
                 if (rule->admin->literals().count(role) > 0) {
 //                    std::cout << "Role: " << role->fullName() << " is administrative thus NOT non-positive" << std::endl;
                     return false;
@@ -1196,8 +1200,7 @@ namespace SMT {
                 }
             }
 
-            for (auto ite = policy->can_revoke_rules().begin(); ite != policy->can_revoke_rules().end(); ++ite) {
-                std::shared_ptr<rule> rule = *ite;
+            for (auto &&rule : policy->can_revoke_rules()) {
                 if (rule->admin->literals().count(role)) {
 //                    std::cout << "Role: " << role->fullName() << " is administrative thus NOT non-positive" << std::endl;
                     return false;
@@ -1216,11 +1219,10 @@ namespace SMT {
 
                 bool exists = false;
 
-                for (auto ite = to_check.begin(); ite != to_check.end(); ++ite) {
+                for (auto &&expr : to_check) {
                     //TODO: eventually create a big dinsjunction on all formulae
 
                     std::map<std::string, TVar> tmap;
-                    Expr expr = *ite;
                     // phi_a^TRUE
                     role->setValue(createConstantTrue());
                     TExpr phi_a_true = generateSMTFunction2(solver, expr, tmap, "C");
