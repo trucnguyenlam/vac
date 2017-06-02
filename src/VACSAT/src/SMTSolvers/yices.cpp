@@ -16,8 +16,7 @@ namespace SMT {
         fmt << "Error in " << function_name << "! Term is less than 0!";
         if (parts.size() > 0) {
             fmt << " (parts: " << *ite;
-            ite++;
-            for (; ite != parts.end(); ++ite) {
+            for (ite++; ite != parts.end(); ++ite) {
                 fmt << ", " << *ite;
             }
             fmt << ")";
