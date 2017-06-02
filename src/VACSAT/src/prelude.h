@@ -33,6 +33,23 @@ namespace SMT {
         return false;
     };
 
+    template <typename T>
+    static inline bool contains_ptr(const std::set<std::weak_ptr<T>> &set, const std::shared_ptr<T> &elem) {
+        //TODO: could be slow
+        for (auto &&weak_v : set) {
+            if (weak_v.lock() == elem) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    template <typename T>
+    static inline bool contains_ptr(const std::set<std::shared_ptr<T>> &set, const std::weak_ptr<T> &elem) {
+        return set.find(elem.lock()) != set.end();
+    }
+
+
     template <class InputIterator, class T>
     static inline bool contains(InputIterator first, InputIterator last, const T &val) {
         return std::find(first, last, val) != last;
@@ -93,6 +110,27 @@ namespace SMT {
 
         return (bit);
     }
+
+    template <template <typename> typename TCollection, typename TVal>
+    static inline TCollection<std::shared_ptr<TVal>> lock_collection(const TCollection<std::weak_ptr<TVal>>& collection) {
+        static_assert(std::is_base_of<std::vector<TVal>, TCollection<TVal>>::value ||
+                      std::is_base_of<std::list<TVal>, TCollection<TVal>>::value,
+                      "TCollection<TVar> is not derived from either vector and list");
+        TCollection<std::shared_ptr<TVal>> res;
+        for (auto &&item :collection) {
+            res.push_back(item.lock());
+        }
+        return res;
+    };
+
+    template <typename TVal>
+    static inline std::set<std::shared_ptr<TVal>> lock_collection(const std::set<std::weak_ptr<TVal>>& collection) {
+        std::set<std::shared_ptr<TVal>> res;
+        for (auto &&item :collection) {
+            res.insert(item.lock());
+        }
+        return res;
+    };
 }
 
 #endif //VACSAT_PRELUDE_H
