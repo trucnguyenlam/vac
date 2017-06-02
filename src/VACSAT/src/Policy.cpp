@@ -120,8 +120,7 @@ namespace SMT {
         if (this->_config.size() > 0) {
             auto ite = this->_config.begin();
             fmt << **ite;
-            ++ite;
-            for (; ite != this->_config.end(); ++ite) {
+            for (++ite; ite != this->_config.end(); ++ite) {
                 fmt << "; " << **ite;
             }
         }
@@ -478,10 +477,39 @@ namespace SMT {
         this->_can_revoke_rules.push_back(rule);
         _rules.push_back(rule);
     }
-    void arbac_policy::update_query(const Literalp& goal_role) {
-        this->goal_role = goal_role;
-        // Only call update when finishing adding every rules
-        // this->update();
+//    void arbac_policy::update_query(const Literalp& goal_role) {
+//        this->goal_role = goal_role;
+//        // Only call update when finishing adding every rules
+//        // this->update();
+//    }
+
+    void arbac_policy::update_query(const std::string username, const Literalp &goal_role) {
+        userp user;
+        for (auto &&tuser : _users) {
+            if (tuser->name == username) {
+                user = tuser;
+                break;
+            }
+        }
+        if (user == nullptr) {
+            std::cout << username << " does not match any existing user. Considering all..." << std::endl;
+            this->goal_role = goal_role;
+            return;
+        }
+
+        Literalp toCheckRole = createLiteralp("ToCheckRole", (int) _atoms.size(), 1);
+        Literalp targetPrime = createLiteralp("TargetPrime", (int) _atoms.size() + 1, 1);
+
+        add_atom(toCheckRole);
+        add_atom(targetPrime);
+
+        user->add_atom(toCheckRole);
+
+        rulep target_ca(new rule(true, createConstantTrue(), createAndExpr(toCheckRole, goal_role), targetPrime, (int) _rules.size()));
+
+        add_can_assign(target_ca);
+
+        this->goal_role = targetPrime;
     }
 
 
