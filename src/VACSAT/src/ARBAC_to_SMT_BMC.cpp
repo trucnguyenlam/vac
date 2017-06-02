@@ -160,9 +160,8 @@ class BMCTransformer {
         std::list<std::list<rulep>> partitions;
         partitions.push_back(std::list<rulep>());
         partitions.begin()->push_back(*ite);
-        ++ite;
 
-        for ( ; ite != targetings.end(); ++ite) {
+        for (++ite; ite != targetings.end(); ++ite) {
             rulep r1 = *ite;
             bool inserted = false;
             for (auto &&_class : partitions) {
@@ -620,8 +619,7 @@ class BMCTransformer {
     void create_final_assert() {
         auto aite = final_assertions.begin();
         TExpr assert_body = solver->createNotExpr(*aite);
-        ++aite;
-        for ( ; aite != final_assertions.end(); ++aite) {
+        for (++aite; aite != final_assertions.end(); ++aite) {
             assert_body = solver->createOrExpr(assert_body, solver->createNotExpr((*aite)));
         }
         solver->assertLater(assert_body);
