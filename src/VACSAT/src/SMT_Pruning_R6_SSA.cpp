@@ -68,10 +68,12 @@ class R6Transformer {
         solver->assertLater(expr);
     }
 
-    int get_pc_size(const std::set<atom>& atoms) const {
+    template <typename TCmp = std::less<atom>>
+    int get_pc_size(const std::set<Literalw, TCmp>& atoms) const {
         int count = 1;
 
-        for (auto &&atom : atoms) {
+        for (auto &&watom : atoms) {
+            auto atom = watom.lock();
             if (SMT::iterable_exists(policy->can_assign_rules().begin(), policy->can_assign_rules().end(),
                                      [&](const rulep rule) { return rule->target == atom; } )) {
                 count++;
@@ -85,14 +87,14 @@ class R6Transformer {
     }
 
     void allocate_core_role_array_set_pc_size() {
-        auto cores = target_expr->literals();
+//        auto cores = ;
         core_roles = new bool[policy->atom_count()];
         for (int i = 0; i < policy->atom_count(); i++) {
             core_roles[i] = false;
         }
 
-        for (auto &&core : cores) {
-            core_roles[core->role_array_index] = true;
+        for (auto &&core : target_expr->literals()) {
+            core_roles[core.lock()->role_array_index] = true;
             core_roles_size++;
         }
 
@@ -104,7 +106,7 @@ class R6Transformer {
 //        std::cout << "Overapprox: " << numBits((core_roles_size * 2) + 1) << std::endl;
 //        std::cout << "################################################################################################" << std::endl;
 
-        pc_size = get_pc_size(cores);
+        pc_size = get_pc_size(target_expr->literals());
 
     }
 

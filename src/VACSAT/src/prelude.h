@@ -33,18 +33,12 @@ namespace SMT {
         return false;
     };
 
-    template <typename T>
-    static inline bool contains_ptr(const std::set<std::weak_ptr<T>> &set, const std::shared_ptr<T> &elem) {
-        //TODO: could be slow
-        for (auto &&weak_v : set) {
-            if (weak_v.lock() == elem) {
-                return true;
-            }
-        }
-        return false;
+    template <typename T, typename TCmp>
+    static inline bool contains_ptr(const std::set<std::weak_ptr<T>, TCmp> &set, const std::shared_ptr<T> &elem) {
+        return set.find(elem) != set.end();
     }
 
-    template <typename T>
+    template <typename T, typename TCmp>
     static inline bool contains_ptr(const std::set<std::shared_ptr<T>> &set, const std::weak_ptr<T> &elem) {
         return set.find(elem.lock()) != set.end();
     }

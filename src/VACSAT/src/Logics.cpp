@@ -12,9 +12,9 @@
 
 namespace SMT {
 
-    template <typename T>
-    std::set<T> setUnion(const std::set<T>& a, const std::set<T>& b) {
-        std::set<T> result = a;
+    template <typename T, typename TCmp>
+    std::set<T, TCmp> setUnion(const std::set<T, TCmp>& a, const std::set<T, TCmp>& b) {
+        std::set<T, TCmp> result = a;
         result.insert(b.begin(), b.end());
         return result;
     }
@@ -60,7 +60,7 @@ namespace SMT {
     }
 
 /*EXPR OPS*/
-    Exprv::Exprv(ExprType ty, std::set<Literalp> literals) : type(ty), _literals(literals) { }
+    Exprv::Exprv(ExprType ty, std::set<Literalw, std::owner_less<Literalw>> literals) : type(ty), _literals(literals) { }
     
 //    bool Exprv::containsLiteral(std::string full_name) {
 //        for (auto ite = _literals.begin(); ite != _literals.end(); ++ite) {
@@ -113,7 +113,7 @@ namespace SMT {
 //        }
 //    }
 
-    const std::set<Literalp> Exprv::literals() {
+    const std::set<Literalw, std::owner_less<Literalw>>& Exprv::literals() {
         return this->_literals;
      }
 
@@ -125,7 +125,7 @@ namespace SMT {
     
 /*LITERAL OPS*/
     Literal::Literal(const std::string _name, int _role_array_index, int _bv_size, Expr _value):
-        Exprv(Exprv::LITERAL, std::set<Literalp>()), 
+        Exprv(Exprv::LITERAL, std::set<Literalw, std::owner_less<Literalw>>()),
         name(_name), role_array_index(_role_array_index), bv_size(_bv_size), value(_value) { }
 
     bool Literal::equals(const Expr &other) const {
@@ -156,10 +156,11 @@ namespace SMT {
     void Literal::resetValue() {
         this->value = nullptr;
     }
-    const std::set<Literalp> Literal::literals() {
-        std::set<Literalp> res;
-        res.insert(get_ptr());
-        return res;
+    const std::set<Literalw, std::owner_less<Literalw>>& Literal::literals() {
+        if (this->_literals.size() < 1) {
+            _literals.insert(get_ptr());
+        }
+        return _literals;
     }
 
     const std::string Literal::getSMTName() const {
@@ -201,7 +202,7 @@ namespace SMT {
 
 /*CONSTANT OPS*/
     Constant::Constant(int _value, int _bv_size) :
-        Exprv(Exprv::CONSTANT, std::set<Literalp>()),
+        Exprv(Exprv::CONSTANT, std::set<Literalw, std::owner_less<Literalw>>()),
         value(_value), bv_size(_bv_size) { }
 
     bool Constant::equals(const Expr &other) const {

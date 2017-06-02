@@ -362,8 +362,8 @@ namespace SMT {
             if (rule->target == atom) {
                 targeting_atom.push_back(rule);
             } else {
-                if (contains(rule->admin->literals(), atom) ||
-                    contains(rule->prec->literals(), atom)) {
+                if (contains_ptr(rule->admin->literals(), atom) ||
+                    contains_ptr(rule->prec->literals(), atom)) {
                     using_atom.push_back(rule);
                 }
             }
@@ -375,10 +375,10 @@ namespace SMT {
         for (auto &&u_r : using_atom) {
             Expr adm = u_r->admin;
             Expr prec = u_r->prec;
-            if (contains(u_r->admin->literals(), atom)) {
+            if (contains_ptr(u_r->admin->literals(), atom)) {
                 adm = delete_atom(adm, atom);
             }
-            if (contains(u_r->prec->literals(), atom)) {
+            if (contains_ptr(u_r->prec->literals(), atom)) {
                 prec = delete_atom(prec, atom);
             }
 //            std::cout << *u_r << std::endl;

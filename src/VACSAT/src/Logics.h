@@ -62,6 +62,7 @@ namespace SMT {
 
     class Literal;
     typedef std::shared_ptr<Literal> Literalp;
+    typedef std::weak_ptr<Literal> Literalw;
     typedef Literalp Atom;
     
     class Constant;
@@ -84,7 +85,7 @@ namespace SMT {
                 IMPL_EXPR,
             };
 
-        Exprv(ExprType ty, std::set<Literalp> literals);
+        Exprv(ExprType ty, std::set<Literalw, std::owner_less<Literalw>> literals);
 
         virtual bool equals(const Expr& other) const = 0;
 
@@ -103,7 +104,7 @@ namespace SMT {
         // virtual void toFile(FILE* outputFile) = 0;
         // virtual void toSMT(FILE* outputFile) = 0;
 
-        virtual const std::set<Literalp> literals();
+        virtual const std::set<Literalw, std::owner_less<Literalw>>& literals();
 
         // template <typename TType, typename TVar, typename TExpr>
         // virtual TExpr generateSMTFormula(SMTFactory<TType, TVar, TExpr>) = 0;
@@ -111,7 +112,7 @@ namespace SMT {
         ExprType type;
 
     protected:
-        std::set<Literalp> _literals;
+        std::set<Literalw, std::owner_less<Literalw>> _literals;
     };
 
     class Literal : public Exprv, public std::enable_shared_from_this<Literal> {
@@ -137,7 +138,7 @@ namespace SMT {
 
         // std::set<std::shared_ptr<Literal>> literals() override;
 
-        const std::set<Literalp> literals() override;
+        const std::set<Literalw, std::owner_less<Literalw>>& literals() override;
 
         inline Expr get_value() const {
             return value;
