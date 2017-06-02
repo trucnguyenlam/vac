@@ -149,8 +149,9 @@ std::shared_ptr<SMT::arbac_policy> toSMT_arbac_policy(Parser::ModelPtr policy) {
     // Query
     std::shared_ptr<Parser::EqExpr> query =
         std::dynamic_pointer_cast<Parser::EqExpr>(policy->getQuery());
+    std::string uname = std::dynamic_pointer_cast<Parser::Entity>(query->lhs)->getUserName();
     newpolicy->update_query (
-        atoms[std::dynamic_pointer_cast<Parser::Entity>(query->lhs)->getAttributeID()]);
+            uname, atoms[std::dynamic_pointer_cast<Parser::Entity>(query->lhs)->getAttributeID()]);
     return newpolicy;
 }
 

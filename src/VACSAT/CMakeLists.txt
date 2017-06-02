@@ -69,7 +69,10 @@ set(SOURCE_FILES
         src/SMT_Analysis.cpp
         src/SMT_Analysis_old_style.cpp
         src/debug.h
-        src/BMC_Struct.h src/ARBAC_to_SMT_BMC.h src/debug.cpp src/SMT_Configuration.h)
+        src/BMC_Struct.h
+        src/ARBAC_to_SMT_BMC.h
+        src/debug.cpp
+        src/SMT_Configuration.h)
 
 
 
