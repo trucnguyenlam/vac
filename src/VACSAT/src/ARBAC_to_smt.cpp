@@ -843,7 +843,7 @@ class Transformer {
     create_final_assert() {
         auto aite = final_assertions.begin();
         TExpr assert_body = solver->createNotExpr((*aite));
-        for ( ; aite != final_assertions.end(); ++aite) {
+        for (++aite; aite != final_assertions.end(); ++aite) {
             assert_body = solver->createOrExpr(assert_body, solver->createNotExpr((*aite)));
         }
         solver->assertLater(assert_body);
