@@ -455,6 +455,19 @@ namespace SMT {
         _cache = std::shared_ptr<policy_cache>(new policy_cache(this));
     }
 
+    const Expr arbac_policy::user_to_expr(int user_id, const std::set<Literalw, std::owner_less<Literalw>>& literals) const {
+        userp user = _users[user_id];
+        Expr conf = createConstantTrue();
+        for (auto &&atom : literals) {
+            Expr node =
+                    (contains_ptr(user->config(), atom)) ?
+                    atom.lock() :
+                    createNotExpr(atom.lock());
+            conf = createAndExpr(conf, node);
+        }
+        return conf;
+    }
+
     void arbac_policy::set_users(const std::vector<userp> &users) {
         _users = users;
         update();

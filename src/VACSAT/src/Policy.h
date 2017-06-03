@@ -125,6 +125,8 @@ namespace SMT {
             return _cache->user_expr(user_id);
         }
 
+        const Expr user_to_expr(int user_id, const std::set<Literalw, std::owner_less<Literalw>>& literals) const;
+
         void set_users(const std::vector<userp>& users);
         void set_atoms(const std::vector<atom>& atoms);
 
@@ -182,33 +184,33 @@ namespace SMT {
             return _users_to_track;
         }
 
-        inline const std::vector<std::list<rulep>> per_role_can_assign_rule() {
+        inline const std::vector<std::list<rulep>>& per_role_can_assign_rule() {
             if (_cache == nullptr) {
                 std::cerr << "Cache is not valid." << std::endl;
                 throw std::runtime_error("Cache is not valid.");
             }
-            return this->_cache->per_role_ca_rules();
+            return this->_cache->_per_role_ca_rules;
         }
-        inline const std::list<rulep> per_role_can_assign_rule(atom _atom) {
+        inline const std::list<rulep>& per_role_can_assign_rule(atom _atom) {
             if (_cache == nullptr) {
                 std::cerr << "Cache is not valid." << std::endl;
                 throw std::runtime_error("Cache is not valid.");
             }
-            return this->_cache->per_role_ca_rules()[_atom->role_array_index];
+            return this->_cache->_per_role_ca_rules[_atom->role_array_index];
         }
-        inline const std::vector<std::list<rulep>> per_role_can_revoke_rule() {
+        inline const std::vector<std::list<rulep>>& per_role_can_revoke_rule() {
             if (_cache == nullptr) {
                 std::cerr << "Cache is not valid." << std::endl;
                 throw std::runtime_error("Cache is not valid.");
             }
-            return this->_cache->per_role_cr_rules();
+            return this->_cache->_per_role_cr_rules;
         }
-        inline const std::list<rulep> per_role_can_revoke_rule(atom _atom) {
+        inline const std::list<rulep>& per_role_can_revoke_rule(atom _atom) {
             if (_cache == nullptr) {
                 std::cerr << "Cache is not valid." << std::endl;
                 throw std::runtime_error("Cache is not valid.");
             }
-            return this->_cache->per_role_cr_rules()[_atom->role_array_index];
+            return this->_cache->_per_role_cr_rules[_atom->role_array_index];
         }
 
         inline const rulep& rules(int i) {

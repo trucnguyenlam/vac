@@ -72,7 +72,7 @@ set(SOURCE_FILES
         src/BMC_Struct.h
         src/ARBAC_to_SMT_BMC.h
         src/debug.cpp
-        src/SMT_Configuration.h)
+        src/SMT_Configuration.h src/Logger/Logger.h)
 
 
 
