@@ -204,7 +204,7 @@ namespace SMT {
             return true;
         }
 
-        bool easy_pruning_user() {
+        bool easy_pruning_positive_negative() {
             std::list<atom> not_used_atoms;
             std::list<rulep> rules_to_remove;
             for (auto &&atom : policy->atoms()) {
@@ -230,7 +230,7 @@ namespace SMT {
                     std::cout << "Atom: " << *atom << " is the GOAL_ROLE. Removing can_revoke_rules targeting it!" << std::endl;
                 }
                 else {
-                    if (policy->per_role_can_assign_rule(atom).size() == 0 ||
+                    if (policy->per_role_can_assign_rule(atom).size() == 0 &&
                             policy->per_role_can_revoke_rule(atom).size() == 0) {
 //                        std::cout << "Atom: " << *atom << " is NEVER ASSIGNED/REVOKED. Do not compute status!" << std::endl;
                         continue;
@@ -390,7 +390,7 @@ namespace SMT {
         }
 
         bool easy_pruning() {
-            bool easy_pruning_user = this->easy_pruning_user();
+            bool easy_pruning_user = this->easy_pruning_positive_negative();
             bool easy_pruning_rule_condition = this->easy_pruning_rule_condition();
 
             return easy_pruning_user ||
@@ -509,9 +509,9 @@ namespace SMT {
                 solver->clean();
 
                 Expr adm_expr = adm;
-                Expr user_expr = policy->user_to_expr(user->original_idx);
+                Expr user_expr = policy->user_to_expr(user->original_idx, adm->literals());
 
-                std::vector<std::shared_ptr<TVar>> var_vect(policy->atom_count());
+                std::vector<std::shared_ptr<TVar>> var_vect((int) policy->atom_count());
 
                 TExpr solver_adm_expr = generateSMTFunction2(solver, adm_expr, var_vect, user->name);
                 TExpr solver_user_expr = generateSMTFunction2(solver, user_expr, var_vect, user->name);
@@ -538,21 +538,20 @@ namespace SMT {
             }
         }
 
-        bool prune_immaterial_roles() {
+        bool prune_immaterial_roles_opt() {
             std::map<Expr, std::list<rulep>> admins;
-//            std::set<userp>
-
-//            auto user_comp = [&](const userp user1, const userp user2){ return user1->config() < user2->config(); };
-//            auto confs = std::set<userp, decltype(user_comp)>( user_comp );
-//
-//            for (auto &&user : policy->users()) {
-//                confs.insert(user);
-//            }
+            bool has_changed = false;
 
             for (auto &&rule : policy->rules()) {
+//                if (!is_constant_true(rule->admin) && immaterial_admin_in_prec(rule)) {
+//                    std::cout << "Admin is already checked in the precondition: " << *rule << std::endl;
+//                    rule->admin = createConstantTrue();
+//                    has_changed = true;
+//                    continue;
+//                }
                 admins[rule->admin].push_back(rule);
             }
-            bool has_changed = false;
+//            std::cout << admins.size() << std::endl;
             for (auto &&adm_pair : admins) {
                 if (is_constant_true(adm_pair.first)) {
                     // Do nothing if the administrative expression is the True constant
@@ -566,6 +565,30 @@ namespace SMT {
                         rule->admin = createConstantTrue();
                     }
                 }
+            }
+            return has_changed;
+        }
+
+        bool prune_immaterial_roles() {
+//            std::map<Expr, std::list<rulep>> admins;
+            bool has_changed = false;
+
+            for (auto &&rule : policy->rules()) {
+                if (is_constant_true(rule->admin))
+                    continue;
+                if (!is_constant_true(rule->admin) && immaterial_admin_in_prec(rule)) {
+                    std::cout << "Admin is already checked in the precondition: " << *rule << std::endl;
+                    rule->admin = createConstantTrue();
+                    has_changed = true;
+                    continue;
+                }
+                bool has_admin = immaterial_adm(rule->admin);
+                if (has_admin) {
+                    std::cout << "Administrative expression " << *rule->admin << " IS IMMATERIAL" << std::endl;
+                    has_changed = true;
+                    rule->admin = createConstantTrue();
+                }
+//                admins[rule->admin].push_back(rule);
             }
             return has_changed;
         }
@@ -1532,7 +1555,7 @@ namespace SMT {
 
 
                 std::cout << "Applying prune_immaterial_roles on " << policy->rules().size() << std::endl;
-                bool prune_immaterial_roles_res = this->prune_immaterial_roles();
+                bool prune_immaterial_roles_res = this->prune_immaterial_roles_opt(); // this->prune_immaterial_roles();
                 prune_immaterial_roles_res = reduce_roles() || prune_immaterial_roles_res;
                 std::cout << " ==> " << policy->rules().size() << " rules..." << std::endl;
                 if (prune_immaterial_roles_res) {
