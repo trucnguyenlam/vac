@@ -72,7 +72,7 @@ set(SOURCE_FILES
         src/BMC_Struct.h
         src/ARBAC_to_SMT_BMC.h
         src/debug.cpp
-        src/SMT_Configuration.h src/Logger/Logger.h)
+        src/SMT_Configuration.h)
 
 
 
@@ -93,6 +93,12 @@ find_package(YICES REQUIRED)
 find_package(Z3 REQUIRED)
 find_package(CCL REQUIRED)
 find_package(ANTLR3C REQUIRED)
+
+# Add spdlog library for logging
+set(CMAKE_PREFIX_PATH "./deps")
+find_package(spdlog CONFIG REQUIRED)
+find_package(Threads)
+
 
 FIND_PACKAGE( Boost COMPONENTS program_options REQUIRED )
 INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
@@ -143,7 +149,7 @@ set(PARSER_SOURCES
 add_executable(vacsat ${SOURCE_FILES} ${PARSER_SOURCES} ${antlr_generated_files})
 add_dependencies(vacsat antlr4cpp)
 # Set the link libraries (GMP MUST BE THE LAST)
-target_link_libraries(vacsat antlr4-runtime yices z3 ccl antlr3c gmp ${Boost_LIBRARIES})
+target_link_libraries(vacsat antlr4-runtime yices z3 ccl antlr3c gmp ${Boost_LIBRARIES} spdlog::spdlog ${CMAKE_THREAD_LIBS_INIT})
 
 
 install (TARGETS vacsat DESTINATION bin)

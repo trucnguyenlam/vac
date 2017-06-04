@@ -8,6 +8,7 @@
 #include "SMT_Analysis.h"
 #include <iostream>
 #include <boost/program_options.hpp>
+#include "spdlog/spdlog.h"
 
 // using namespace Abstract;
 
@@ -306,6 +307,11 @@ static void set_mem_limit(std::string memlimit) {
 int main(int argc, const char * const *argv) {
     std::string filename;
     options config = parse_args(argc, argv);
+
+    auto console = spdlog::stdout_color_st("console");
+//        console->set_level(spd::level::err);
+    console->set_pattern("[%L] %v");
+
     set_mem_limit(config.mem_limit);
 
     FILE * out_file = nullptr;
