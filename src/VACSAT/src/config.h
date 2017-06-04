@@ -2,11 +2,12 @@
 // Created by esteffin on 18/05/17.
 //
 
-#ifndef VACSAT_DEBUG_H
-#define VACSAT_DEBUG_H
+#ifndef VACSAT_CONFIG_H
+#define VACSAT_CONFIG_H
 
 #include <string>
 #include <ostream>
+#include <spdlog/logger.h>
 //#include <boost/log/trivial.hpp>
 //#include <boost/log/core.hpp>
 //#include <boost/log/expressions.hpp>
@@ -30,6 +31,8 @@ namespace SMT {
         static std::string input_file;
 
     };
+
+    extern std::shared_ptr<spdlog::logger> log;
 
 //    class logger {
 //    public:
@@ -76,4 +79,4 @@ namespace SMT {
 
 }
 
-#endif //VACSAT_DEBUG_H
+#endif //VACSAT_CONFIG_H

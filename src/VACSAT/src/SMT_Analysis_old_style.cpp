@@ -32,17 +32,18 @@ namespace SMT {
     void set_solver_execute_old(AnalysisType analysis_type, const std::shared_ptr<arbac_policy>& policy, const std::string& solver_name, bmc_config config) {
 
         if (str_to_lower(solver_name) == str_to_lower(YicesSolver::solver_name())) {
-            std::cout << "Using " << solver_name << " as backend" << std::endl;
+            log->info("Using {} as backend", solver_name);
             std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());
             execute_old(analysis_type,solver, policy, config);
         }
         else if (str_to_lower(solver_name) == str_to_lower(Z3Solver::solver_name())) {
-            std::cout << "Using " << solver_name << " as backend" << std::endl;
+            log->info("Using {} as backend", solver_name);
             std::shared_ptr<SMTFactory<expr, expr>> solver(new Z3Solver());
             execute_old(analysis_type,solver, policy, config);
         }
         else {
-            std::cout << "Backend " << solver_name << " is not supported" << std::endl;
+            log->error("Backend {} is not supported.", solver_name);
+            throw std::runtime_error("Backend " + solver_name + " is not supported.");
         }
 
     };

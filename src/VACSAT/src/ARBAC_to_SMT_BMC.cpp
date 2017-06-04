@@ -355,7 +355,7 @@ class BMCTransformer {
 
     void assign_threads() {
         if (!use_tracks) {
-            std::cout << "Cannot assign threads if no tracks are used." << std::endl;
+            log->info("Cannot assign threads if no tracks are used.");
             throw std::runtime_error("Cannot assign threads if no tracks are used.");
         }
         for (int i = 0; i < policy->users().size(); i++) {
@@ -652,7 +652,7 @@ class BMCTransformer {
 
         auto end = std::chrono::high_resolution_clock::now();
         auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-        std::cout << "------------ SMT GENERATED IN " << milliseconds.count() << " ms ------------\n";
+        log->debug("------------ SMT GENERATED IN {} ms ------------", milliseconds.count());
         start = std::chrono::high_resolution_clock::now();
 
         // add_all_assignments();
@@ -662,7 +662,7 @@ class BMCTransformer {
 
         end = std::chrono::high_resolution_clock::now();
         milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-        std::cout << "------------ SMT LOADED IN " << milliseconds.count() << " ms ------------\n";
+        log->debug("------------ SMT LOADED IN {} ms ------------", milliseconds.count());
 
     }
 
@@ -673,27 +673,27 @@ class BMCTransformer {
 
         if (Config::dump_smt_formula != "") {
             solver->printContext(Config::dump_smt_formula);
-            std::cout << "BMC SMT formula dumped at: " << Config::dump_smt_formula << std::endl;
+            log->info("BMC SMT formula dumped at: {}", Config::dump_smt_formula);
         }
 
         auto end = std::chrono::high_resolution_clock::now();
         auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-        std::cout << "------------ SMT SOLVED IN " << milliseconds.count() << " ms ------------\n";
+        log->debug("------------ SMT SOLVED IN {} ms ------------", milliseconds.count());
 
         switch (res) {
             case SAT:
-                std::cout << "SAT" << std::endl << std::endl;
+                log->debug("SAT\n");
                 return true;
                 break;
             case UNSAT:
-                std::cout << "UNSAT" << std::endl << std::endl;
+                log->debug("UNSAT\n");
                 return false;
                 break;
             case UNKNOWN:
-                std::cout << "The status is unknown" << std::endl;
+                log->warn("The status is unknown\n");
                 break;
             case ERROR:
-                std::cerr << "Error in check_context" << std::endl;
+                log->error("Error in check_context");
                 throw std::runtime_error("BMC: Error in check_context");
                 break;
         }
@@ -761,32 +761,30 @@ bool arbac_to_smt_bmc(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
                       int rounds,
                       int wanted_threads_count) {
 
-    std::cout << std::endl << std::endl;
-    std::cout << "PERFORMING BMC ON POLICY..." << std::endl;
-    std::cout << std::endl;
+    log->debug("\n\nPERFORMING BMC ON POLICY...\n");
 
     // Checking if target is already assigned at the beginning
     for (auto &&conf : policy->unique_configurations()) {
         if (contains(conf->config(), policy->goal_role)) {
-            std::cout << "Target role is assignable assigned to user: " << conf->name << " in the initial configuration!" << std::endl;
-            std::cout << "Target role is reachable" << std::endl;
+            log->info("Target role is assignable assigned to user: {} in the initial configuration!", conf->name);
+            log->info("Target role is reachable");
             return true;
         }
     }
 
     // Checking if target is not assignable
     if (policy->per_role_can_assign_rule(policy->goal_role).size() < 1) {
-        std::cout << "Target role is not assignable!" << std::endl;
-        std::cout << "Target role is not reachable" << std::endl;
+        log->info("Target role is not assignable!");
+        log->info("Target role is not reachable");
         return false;
     }
 
     if (rounds < 1) {
-        std::cerr << "Cannot simulate a number of rounds < 1" << std::endl;
+        log->error("Cannot simulate a number of rounds < 1");
         throw std::runtime_error("Cannot simulate a number of rounds < 1");
     }
     if (steps < 1) {
-        std::cerr << "Cannot simulate a number of steps < 1" << std::endl;
+        log->error("Cannot simulate a number of steps < 1");
         throw std::runtime_error("Cannot simulate a number of steps < 1");
     }
 
@@ -794,10 +792,10 @@ bool arbac_to_smt_bmc(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
     bool ret = core.transform_2_bounded_smt(rounds, steps, wanted_threads_count);
 
     if (ret) {
-        std::cout << "Target role is reachable" << std::endl;
+        log->info("Target role is reachable");
     }
     else {
-        std::cout << "Target role is not reachable" << std::endl;
+        log->info("Target role is not reachable");
     }
 
     return ret;

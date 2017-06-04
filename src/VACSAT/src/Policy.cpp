@@ -343,7 +343,7 @@ namespace SMT {
     }
 
     void arbac_policy::print_cache() const {
-        std::cout << _cache->to_string() << std::endl;
+        log->info(_cache->to_string());
     }
 
 
@@ -363,7 +363,7 @@ namespace SMT {
             }
         }
         for (auto &&t_r : targeting_atom) {
-            std::cout << *t_r << std::endl;
+            log->trace(t_r->to_string());
             this->unsafe_remove_rule(t_r);
         }
         for (auto &&u_r : using_atom) {
@@ -499,7 +499,7 @@ namespace SMT {
             }
         }
         if (user == nullptr) {
-            std::cout << username << " does not match any existing user. Considering all..." << std::endl;
+            log->warn("{} does not match any existing user. Considering all...", username);
             this->goal_role = goal_role;
             return;
         }

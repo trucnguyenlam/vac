@@ -10,7 +10,7 @@
 #include <list>
 #include <set>
 #include <algorithm>
-#include "debug.h"
+#include "config.h"
 
 namespace SMT {
 
@@ -67,7 +67,7 @@ namespace SMT {
     };
 
     template <typename TVal, typename TComparer>
-    void print_collection(const std::set<std::shared_ptr<TVal>, TComparer>& set, std::string prefix = "") {
+    void print_collection(const std::set<std::shared_ptr<TVal>, TComparer>& set, std::string prefix = "", spdlog::level::level_enum lvl = spdlog::level::info) {
 //        typedef std::shared_ptr<TVal> TValp;
 //        static_assert(std::is_base_of<std::vector<TValp>, TCollection<TValp, TComparer>>::value ||
 //                      std::is_base_of<std::list<TValp>, TCollection<TValp, TComparer>>::value   ||
@@ -75,12 +75,12 @@ namespace SMT {
 //                      "TCollection<TVar> is not derived from either vector, list and set");
 
         for (auto &&valuep :set) {
-            std::cout << prefix << *valuep << std::endl;
+            log->log(lvl, "{}{}", prefix, *valuep);
         }
     };
 
     template <template <typename> typename TCollection, typename TVal>
-    void print_collection(const TCollection<std::shared_ptr<TVal>>& collection, std::string prefix = "") {
+    void print_collection(const TCollection<std::shared_ptr<TVal>>& collection, std::string prefix = "", spdlog::level::level_enum lvl = spdlog::level::info) {
         typedef std::shared_ptr<TVal> TValp;
         static_assert(std::is_base_of<std::vector<TValp>, TCollection<TValp>>::value ||
                       std::is_base_of<std::list<TValp>, TCollection<TValp>>::value   ||
@@ -88,7 +88,7 @@ namespace SMT {
                       "TCollection<TVar> is not derived from either vector, list and set");
 
         for (auto &&valuep :collection) {
-            std::cout << prefix << *valuep << std::endl;
+            log->log(lvl, "{}{}", prefix, *valuep);
         }
     };
 

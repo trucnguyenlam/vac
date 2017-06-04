@@ -4,7 +4,7 @@
 
 #include <iostream>
 //#include <boost/log/trivial.hpp>
-#include "debug.h"
+#include "config.h"
 
 namespace SMT {
 
@@ -17,6 +17,8 @@ namespace SMT {
     std::string Config::dump_smt_formula = "";
 
     std::string Config::input_file = "";
+
+    std::shared_ptr<spdlog::logger> log = nullptr;
 
 //    std::ostream log::log = std::cout;
 //    FILE* log::flog = stdout;

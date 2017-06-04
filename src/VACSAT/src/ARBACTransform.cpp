@@ -53,6 +53,7 @@ public:
     const int bmc_steps_count;
     const int bmc_thread_count;
     const std::string mem_limit;
+    const int verbosity;
     const bool show_statistics;
     const bool show_help;
     const std::string input_file;
@@ -73,6 +74,7 @@ public:
             int _bmc_steps_count,
             int _bmc_thread_count,
             std::string _mem_limit,
+            int _verbosity,
             bool _show_statistics,
             bool _show_help,
             std::string _input_file,
@@ -90,6 +92,7 @@ public:
         bmc_steps_count(_bmc_steps_count),
         bmc_thread_count(_bmc_thread_count),
         mem_limit(_mem_limit),
+        verbosity(_verbosity),
         show_statistics(_show_statistics),
         show_help(_show_help),
         input_file(_input_file),
@@ -126,6 +129,9 @@ static arg_obj<std::string> create_arg_obj_string(std::string name, std::string 
 }
 static arg_obj<std::string> create_arg_obj_string(std::string name, std::string description) {
     return arg_obj<std::string>(name, "", description);
+}
+static arg_obj<int> create_arg_obj_int(std::string name, int def, std::string description) {
+    return arg_obj<int>(name, def, description);
 }
 static arg_obj<int> create_arg_obj_int(std::string name, std::string description) {
     return arg_obj<int>(name, -1, description);
@@ -189,6 +195,7 @@ static options parse_args(int ac, const char* const* av) {
     arg_obj<int> bmc_rounds_count = create_arg_obj_int("rounds,r", "Number of rounds for the bmc");
     arg_obj<int> bmc_steps_count = create_arg_obj_int("steps,s", "Number of steps per round for the bmc");
     arg_obj<int> bmc_thread_count = create_arg_obj_int("threads,t", "Number of threads (tracked users) for the bmc");
+    arg_obj<int> verbosity = create_arg_obj_int("verbose,v", 2, "Verbosity level(1=info, 2=debug, 3=trace)");
     arg_obj<bool> show_statistics = create_arg_obj_bool("show-statistics,S", "Print policy stetistics");
     arg_obj<std::string> memory_limit = create_arg_obj_string("memlimit,M", "10G", "Set a specific memory limit for the process");
     arg_obj<bool> show_help = create_arg_obj_bool("help,h", "Show this message");
@@ -207,6 +214,7 @@ static options parse_args(int ac, const char* const* av) {
     add_option_description(desc, bmc_rounds_count);
     add_option_description(desc, bmc_steps_count);
     add_option_description(desc, bmc_thread_count);
+    add_option_description(desc, verbosity);
     add_option_description(desc, memory_limit);
     add_option_description(desc, show_statistics);
     add_option_description(desc, input_file);
@@ -241,6 +249,7 @@ static options parse_args(int ac, const char* const* av) {
                     bmc_steps_count.result,
                     bmc_thread_count.result,
                     memory_limit.result,
+                    verbosity.result,
                     show_statistics.result,
                     show_help.result,
                     input_file.result,
@@ -304,13 +313,26 @@ static void set_mem_limit(std::string memlimit) {
 
 }
 
+spdlog::level::level_enum int_to_level(int i) {
+    switch (i) {
+        case 1:
+            return spdlog::level::info;
+        case 2:
+            return spdlog::level::debug;
+        case 3:
+            return spdlog::level::trace;
+        default:
+            return spdlog::level::err;
+    }
+}
+
 int main(int argc, const char * const *argv) {
     std::string filename;
     options config = parse_args(argc, argv);
 
-    auto console = spdlog::stdout_color_st("console");
-//        console->set_level(spd::level::err);
-    console->set_pattern("[%L] %v");
+    SMT::log = spdlog::stdout_color_mt("log");
+    SMT::log->set_level(int_to_level(config.verbosity));
+    SMT::log->set_pattern("[%L] %v");
 
     set_mem_limit(config.mem_limit);
 
@@ -560,7 +582,7 @@ int main(int argc, const char * const *argv) {
 //        switch (c)
 //        {
 //        case 'h':
-///*                    \n-a,--algorithm {precise, abstract} :Specify the algorithm\*/
+//
 //            printf("ARBAC Translation Tool\
 //                    \nTransform ABRAC policies to analysable program.\
 //                    \nUsage: translate [OPTION] FILE\
