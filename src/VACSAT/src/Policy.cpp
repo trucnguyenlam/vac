@@ -171,13 +171,7 @@ namespace SMT {
     }
 
     Expr getCAAdmFormula(std::vector<Atom> &role_vars, int ca_index) {
-        Expr ret;
-        if (ca_array[ca_index].type == 1) {
-            ret = createConstantTrue();
-        }
-        else {
-            ret = role_vars[ca_array[ca_index].admin_role_index];
-        }
+        Expr ret = role_vars[ca_array[ca_index].admin_role_index];
         return ret;
     }
 

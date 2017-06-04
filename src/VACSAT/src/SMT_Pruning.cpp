@@ -745,10 +745,6 @@ namespace SMT {
 
                     SMTResult res = solver->solve();
 
-//                    solver->printContext();
-//
-//                    solver->printModel();
-
                     if (res == SAT) {
                         can_remove = false;
                         break;
@@ -1553,7 +1549,6 @@ namespace SMT {
                 }
                 solver->deep_clean();
 
-
                 std::cout << "Applying prune_immaterial_roles on " << policy->rules().size() << std::endl;
                 bool prune_immaterial_roles_res = this->prune_immaterial_roles_opt(); // this->prune_immaterial_roles();
                 prune_immaterial_roles_res = reduce_roles() || prune_immaterial_roles_res;
@@ -1563,7 +1558,6 @@ namespace SMT {
                     backward_slicing();
                 }
                 solver->deep_clean();
-
 
                 std::cout << "Applying prune_irrelevant_roles on " << policy->rules().size() << std::endl;
                 bool prune_irrelevant_roles_res = this->prune_irrelevant_roles();
