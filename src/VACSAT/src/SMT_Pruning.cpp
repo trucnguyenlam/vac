@@ -594,10 +594,10 @@ namespace SMT {
         }
 
         /* IRRELEVANT ROLES FUNCTIONS */
-        TExpr irr_mix_cond_one(Literalp role,
-                               std::shared_ptr<rule> using_r,
-                               std::vector<std::shared_ptr<rule>>& assigning_r,
-                               std::vector<std::shared_ptr<rule>>& removing_r) {
+        TExpr irr_mix_cond_one(const Literalp& role,
+                               const std::shared_ptr<rule>& using_r,
+                               const std::list<std::shared_ptr<rule>>& assigning_r,
+                               const std::list<std::shared_ptr<rule>>& removing_r) {
             //TODO: ADD IRRELEVANT FOR ADMIN HERE
 
             std::vector<std::shared_ptr<TVar>> c_vect(policy->atom_count());
@@ -631,7 +631,7 @@ namespace SMT {
                                                                         phi_r_false_c),
                                                   phi_a_adm);
 
-            std::vector<TExpr> assign_and_rhs;
+            std::list<TExpr> assign_and_rhs;
 
             for (auto &&ca : assigning_r) {
                 std::vector<std::shared_ptr<TVar>> c1_vect = c_vect;
@@ -657,7 +657,7 @@ namespace SMT {
             TExpr assign_bigand = solver->joinExprsWithAnd(assign_and_rhs);
 
 
-            std::vector<TExpr> revoke_and_rhs;
+            std::list<TExpr> revoke_and_rhs;
 
             for (auto &&cr  : removing_r) {
                 std::vector<std::shared_ptr<TVar>> c1_vect = c_vect;
@@ -695,19 +695,104 @@ namespace SMT {
             return res;
         }
 
-        bool irrelevantRole(Literalp role) {
+        TExpr irr_mix_adm_one(const Literalp& role,
+                               const std::shared_ptr<rule>& using_r,
+                               const std::list<std::shared_ptr<rule>>& assigning_r,
+                               const std::list<std::shared_ptr<rule>>& removing_r) {
+            //TODO: ADD IRRELEVANT FOR ADMIN HERE
+
+            std::vector<std::shared_ptr<TVar>> adm_vect(policy->atom_count());
+
+            // Adm_r
+            TExpr not_adm_r = generateSMTFunction2(solver, role, adm_vect, "Adm");
+            // not Adm_r
+            TExpr adm_r = solver->createNotExpr(generateSMTFunction2(solver, role, adm_vect, "Adm"));
+
+            // phi_a_r^TRUE(Adm)
+            role->setValue(createConstantTrue());
+            TExpr phi_a_r_true_adm = generateSMTFunction2(solver, using_r->admin, adm_vect, "C");
+
+            // phi_a_r^FALSE(Adm)
+            role->setValue(createConstantFalse());
+            TExpr phi_a_r_false_adm = generateSMTFunction2(solver, using_r->admin, adm_vect, "C");
+
+            role->resetValue();
+
+            // phi_a_r^TRUE(Adm) /\ not phi_a_r^FALSE(Adm)
+            TExpr pos_lhs = solver->createAndExpr(phi_a_r_true_adm,
+                                                  solver->createNotExpr(phi_a_r_false_adm));
+
+            // not phi_a_r^TRUE(Adm) /\ phi_a_r^FALSE(Adm)
+            TExpr neg_lhs = solver->createAndExpr(solver->createNotExpr(phi_a_r_true_adm),
+                                                  phi_a_r_false_adm);
+
+            std::list<TExpr> assign_and_rhs;
+
+            for (auto &&ca : assigning_r) {
+                std::vector<std::shared_ptr<TVar>> adm1_vect = adm_vect;
+
+                //phi'(C)
+                TExpr phi1_adm = generateSMTFunction2(solver, ca->prec, adm1_vect, "ADM");
+
+                //phi'_a(adm)
+                TExpr phi1_a_adm = generateSMTFunction2(solver, ca->admin, adm1_vect, "ADM");
+
+                // not (phi'(adm)) \/ not phi'_a(adm))
+                TExpr disj = solver->createOrExpr(solver->createNotExpr(phi1_adm),
+                                                  solver->createNotExpr(phi1_a_adm));
+
+                assign_and_rhs.push_back(disj);
+            }
+
+            TExpr assign_bigand = solver->joinExprsWithAnd(assign_and_rhs);
+
+
+            std::list<TExpr> revoke_and_rhs;
+
+            for (auto &&cr  : removing_r) {
+                std::vector<std::shared_ptr<TVar>> adm1_vect = adm_vect;
+
+                //phi'(adm)
+                TExpr phi1_adm = generateSMTFunction2(solver, cr->prec, adm1_vect, "C");
+
+                //phi'_a(adm)
+                TExpr phi1_a_adm = generateSMTFunction2(solver, cr->admin, adm1_vect, "ADM");
+
+                // not (phi'(C)) \/ not phi'_a(adm))
+                TExpr disj = solver->createOrExpr(solver->createNotExpr(phi1_adm),
+                                                  solver->createNotExpr(phi1_a_adm));
+
+                revoke_and_rhs.push_back(disj);
+            }
+
+            TExpr revoke_bigand = solver->joinExprsWithAnd(revoke_and_rhs);
+
+            TExpr pos_ca = solver->createAndExpr(not_adm_r,
+                                                 solver->createAndExpr(pos_lhs,
+                                                                       assign_bigand));
+
+            TExpr neg_ca = solver->createAndExpr(adm_r,
+                                                 solver->createAndExpr(neg_lhs,
+                                                                       revoke_bigand));
+
+            TExpr res = solver->createOrExpr(pos_ca, neg_ca);
+
+            return res;
+        }
+
+        bool irrelevantRole(const Literalp& role) {
             if (role == policy->goal_role) {
 //                std::cout << "Role " << role->fullName() << " is TARGET" << std::endl;
                 return false;
             }
 
-            std::vector<std::shared_ptr<rule>> using_r;
-            std::vector<std::shared_ptr<rule>> assigning_r;
-            std::vector<std::shared_ptr<rule>> removing_r;
+            std::list<rulep> admin_using_r;
+            std::list<rulep> using_r;
+            std::list<rulep> assigning_r;
+            std::list<rulep> removing_r;
             for (auto &&ca : policy->can_assign_rules()) {
-                if (ca->admin->literals().count(role) > 0) {
-//                    std::cout << "Role " << role->fullName() << " is administrative in " << *ca << std::endl;
-                    return false;
+                if (contains_ptr(ca->admin->literals(), role)) {
+                    admin_using_r.push_back(ca);
                 }
                 if (contains_ptr(ca->prec->literals(), role)) {
                     using_r.push_back(ca);
@@ -717,9 +802,8 @@ namespace SMT {
                 }
             }
             for (auto &&cr : policy->can_revoke_rules()) {
-                if (cr->admin->literals().count(role) > 0) {
-//                    std::cout << "Role " << role->fullName() << " is administrative in " << *cr << std::endl;
-                    return false;
+                if (contains_ptr(cr->admin->literals(), role)) {
+                    admin_using_r.push_back(cr);
                 }
                 if (contains_ptr(cr->prec->literals(), role)) {
                     using_r.push_back(cr);
@@ -741,6 +825,23 @@ namespace SMT {
                                                   r_using_r,
                                                   assigning_r,
                                                   removing_r);
+                    solver->assertNow(cond);
+
+                    SMTResult res = solver->solve();
+
+                    if (res == SAT) {
+                        can_remove = false;
+                        break;
+                    }
+
+                }
+
+                for (auto &&adm_using_r : admin_using_r) {
+                    solver->clean();
+                    TExpr cond = irr_mix_adm_one(role,
+                                                 adm_using_r,
+                                                 assigning_r,
+                                                 removing_r);
                     solver->assertNow(cond);
 
                     SMTResult res = solver->solve();
