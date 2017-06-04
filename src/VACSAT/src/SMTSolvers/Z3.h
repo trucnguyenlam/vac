@@ -43,8 +43,8 @@ namespace SMT {
         expr createLEqExpr(expr lhs, expr rhs) override;
         expr createImplExpr(expr lhs, expr rhs) override;
 
-        expr joinExprsWithAnd(std::vector<expr> exprs) override;
-        expr joinExprsWithOr(std::vector<expr> exprs) override;
+        expr joinExprsWithAnd(std::list<expr>& exprs) override;
+        expr joinExprsWithOr(std::list<expr>& exprs) override;
 
         void assertLater(expr e) override;
         void assertNow(expr e) override;

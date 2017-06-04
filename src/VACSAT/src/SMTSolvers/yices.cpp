@@ -199,7 +199,7 @@ namespace SMT {
         return res;
     }
 
-    term_t YicesSolver::joinExprsWithAnd(std::vector<term_t> exprs) {
+    term_t YicesSolver::joinExprsWithAnd(std::list<term_t>& exprs) {
         if (exprs.size() < 1) {
             return createTrue();
 //            fprintf(stderr, "Cannot join zero expressions...\n");
@@ -212,7 +212,7 @@ namespace SMT {
         }
         return ret;
     }
-    term_t YicesSolver::joinExprsWithOr(std::vector<term_t> exprs) {
+    term_t YicesSolver::joinExprsWithOr(std::list<term_t>& exprs) {
         if (exprs.size() < 1) {
             return createTrue();
 //            fprintf(stderr, "Cannot join zero expressions...\n");

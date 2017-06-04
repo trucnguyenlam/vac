@@ -37,8 +37,8 @@ namespace SMT {
         term_t createLEqExpr(term_t lhs, term_t rhs) override;
         term_t createImplExpr(term_t lhs, term_t rhs) override;
 
-        term_t joinExprsWithAnd(std::vector<term_t> exprs) override;
-        term_t joinExprsWithOr(std::vector<term_t> exprs) override;
+        term_t joinExprsWithAnd(std::list<term_t>& exprs) override;
+        term_t joinExprsWithOr(std::list<term_t>& exprs) override;
 
         void assertLater(term_t expr) override;
         void assertNow(term_t expr) override;

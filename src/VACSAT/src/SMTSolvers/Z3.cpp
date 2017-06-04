@@ -94,7 +94,7 @@ namespace SMT {
         return res;
     }
 
-    expr Z3Solver::joinExprsWithAnd(std::vector<expr> exprs) {
+    expr Z3Solver::joinExprsWithAnd(std::list<expr>& exprs) {
         if (exprs.size() < 1) {
             return createTrue();
 //            fprintf(stderr, "Cannot join zero expressions...\n");
@@ -107,7 +107,7 @@ namespace SMT {
         }
         return ret;
     }
-    expr Z3Solver::joinExprsWithOr(std::vector<expr> exprs) {
+    expr Z3Solver::joinExprsWithOr(std::list<expr>& exprs) {
         if (exprs.size() < 1) {
             return createTrue();
 //            fprintf(stderr, "Cannot join zero expressions...\n");

@@ -9,6 +9,7 @@
 #include <set>
 #include <memory>
 #include <vector>
+#include <list>
 
 namespace SMT {
     enum SMTResult {
@@ -52,8 +53,8 @@ namespace SMT {
         virtual TExpr createLEqExpr(TExpr lhs, TExpr rhs) = 0;
         virtual TExpr createImplExpr(TExpr lhs, TExpr rhs) = 0;
 
-        virtual TExpr joinExprsWithAnd(std::vector<TExpr> exprs) = 0;
-        virtual TExpr joinExprsWithOr(std::vector<TExpr> exprs) = 0;
+        virtual TExpr joinExprsWithAnd(std::list<TExpr>& exprs) = 0;
+        virtual TExpr joinExprsWithOr(std::list<TExpr>& exprs) = 0;
 
         virtual void assertLater(TExpr expr) = 0;
         virtual void assertNow(TExpr expr) = 0;
