@@ -818,7 +818,7 @@ namespace SMT {
                 }
             }
 
-            if (using_r.size() == 0) {
+            if (using_r.size() == 0 && admin_using_r.size() == 0) {
 //                printf("Role %s is never used. Remove it\n", role->to_string().c_str());
                 return true;
             }
@@ -1673,6 +1673,7 @@ namespace SMT {
                     backward_slicing();
                 }
                 solver->deep_clean();
+
 
                 log->debug("Applying prune_irrelevant_roles on {}", policy->rules().size());
                 bool prune_irrelevant_roles_res = this->prune_irrelevant_roles();
