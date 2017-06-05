@@ -12,6 +12,7 @@
 #include <sstream>
 #include <iostream>
 
+#include "config.h"
 #include "SMT.h"
 
 namespace SMT {
@@ -333,7 +334,7 @@ namespace SMT {
     std::vector<std::shared_ptr<TVar>> update_tlookup(const std::vector<std::shared_ptr<TVar>>& base_lookup,
                                                       const std::vector<std::shared_ptr<TVar>>& new_lookup) {
         if (base_lookup.size() != new_lookup.size()) {
-            std::cerr << "Cannot update vector of different size." << std::endl;
+            log->error("Cannot update vector of different size.");
             throw std::runtime_error("Cannot update vector of different size.");
         }
         std::vector<std::shared_ptr<TVar>> res(base_lookup);

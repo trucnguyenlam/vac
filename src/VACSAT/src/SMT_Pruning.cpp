@@ -136,7 +136,7 @@ namespace SMT {
                 TExpr to_check = solver->createTrue();
 
                 if (wanted_status == UNUSED) {
-                    std::cerr << "Cannot check the UNUSED status here..." << std::endl;
+                    log->error("Cannot check the UNUSED status here...");
                     throw std::runtime_error("Cannot check the UNUSED status here...");
                 }
                 else if (wanted_status == NON_POSITIVE) {
@@ -150,7 +150,7 @@ namespace SMT {
                                                      phi_a_false);
                 }
                 else if (wanted_status == BOTH_VALUED) {
-                    std::cerr << "Cannot check the BOTH_VALUED status here..." << std::endl;
+                    log->error("Cannot check the BOTH_VALUED status here...");
                     throw std::runtime_error("Cannot check the BOTH_VALUED status here...");
                 }
 
@@ -1192,23 +1192,32 @@ namespace SMT {
                 //                    solver->printContext();
                 //                }
 
+
                 if (rem_pn) {
                     //                    print_ca_comment(stdout, i);
                     //                    fprintf(stdout, "rule %d %s be removed since not fireable\n\n", i, res ? "CAN" : "CANNOT");
-                    std::cout << "X";
-                    std::flush(std::cout);
                     to_remove.push_back(rule);
+                    if (can_write(spdlog::level::trace)) {
+                        std::cout << "X";
+                        std::flush(std::cout);
+                    }
                 } else if (rem_adm) {
-                    std::cout << "O";
-                    std::flush(std::cout);
                     to_remove.push_back(rule);
+                    if (can_write(spdlog::level::trace)) {
+                        std::cout << "O";
+                        std::flush(std::cout);
+                    }
                 } else {
-                    std::cout << "-";
-                    std::flush(std::cout);
+                    if (can_write(spdlog::level::trace)) {
+                        std::cout << "-";
+                        std::flush(std::cout);
+                    }
                 }
             }
 
-            std::cout << std::endl;
+            if (can_write(spdlog::level::trace)) {
+                std::cout << std::endl;
+            }
 
             for (auto &&rule :to_remove) {
 //                policy->remove_rule(rule);
@@ -1732,7 +1741,7 @@ namespace SMT {
             reduce_users();
             solver->deep_clean();
 
-            std::cout << *policy;
+            log->debug(policy->to_string());
 
             auto global_end = std::chrono::high_resolution_clock::now();
             auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(global_end - global_start);

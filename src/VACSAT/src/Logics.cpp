@@ -751,8 +751,8 @@ namespace SMT {
                             return expr;
                         }
                     default:
-                        std::cerr << "NOT expression MUST be located close to atoms (LITERAL or CONSTANT)" << std::endl;
-                        std::cerr << "\tExpr is " << *expr << std::endl;
+                        log->error("NOT expression MUST be located close to atoms (LITERAL or CONSTANT)");
+                        log->error("\tExpr is {}", expr->to_string());
                         throw std::runtime_error("NOT expression MUST be located close to atoms (LITERAL or CONSTANT)");
                         return nullptr;
                 }
@@ -791,15 +791,15 @@ namespace SMT {
                     }
                 }
                 else {
-                    std::cerr << "EQ expression MUST be between an ATOM (LITERAL) and a CONSTANT" << std::endl;
-                    std::cerr << "\tExpr is " << *expr << std::endl;
+                    log->error("EQ expression MUST be between an ATOM (LITERAL) and a CONSTANT");
+                    log->error("\tExpr is {}", expr->to_string());
                     throw std::runtime_error("EQ expression MUST be between an ATOM (LITERAL) and a CONSTANT");
                     return nullptr;
                 }
             }
             default:
-            std::cerr << "Could not simplify an expression that is not an OR, AND, NOT, CONSTANT, LITERAL." << std::endl;
-            std::cerr << "\tExpr is " << *expr << std::endl;
+            log->error("Could not simplify an expression that is not an OR, AND, NOT, CONSTANT, LITERAL.");
+            log->error("\tExpr is {}", expr->to_string());
                 throw std::runtime_error("Could not normalize this expression");
                 return expr;
         }

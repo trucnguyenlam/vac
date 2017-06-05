@@ -330,9 +330,15 @@ int main(int argc, const char * const *argv) {
     std::string filename;
     options config = parse_args(argc, argv);
 
-    SMT::log = spdlog::stdout_color_mt("log");
+    if (config.output_file != "") {
+        SMT::log = spdlog::basic_logger_mt("log", config.output_file);
+    }
+    else {
+        SMT::log = spdlog::stdout_color_mt("log");
+    }
     SMT::log->set_level(int_to_level(config.verbosity));
-    SMT::log->set_pattern("[%L] %v");
+//    SMT::log->set_pattern("[%L] %v");
+    SMT::log->set_pattern("%v");
 
     set_mem_limit(config.mem_limit);
 

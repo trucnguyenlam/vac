@@ -186,14 +186,14 @@ namespace SMT {
 
         inline const std::vector<std::list<rulep>>& per_role_can_assign_rule() {
             if (_cache == nullptr) {
-                std::cerr << "Cache is not valid." << std::endl;
+                log->error("Cache is not valid.");
                 throw std::runtime_error("Cache is not valid.");
             }
             return this->_cache->_per_role_ca_rules;
         }
         inline const std::list<rulep>& per_role_can_assign_rule(atom _atom) {
             if (_cache == nullptr) {
-                std::cerr << "Cache is not valid." << std::endl;
+                log->error("Cache is not valid.");
                 throw std::runtime_error("Cache is not valid.");
             }
             return this->_cache->_per_role_ca_rules[_atom->role_array_index];
@@ -207,7 +207,7 @@ namespace SMT {
         }
         inline const std::list<rulep>& per_role_can_revoke_rule(atom _atom) {
             if (_cache == nullptr) {
-                std::cerr << "Cache is not valid." << std::endl;
+                log->error("Cache is not valid.");
                 throw std::runtime_error("Cache is not valid.");
             }
             return this->_cache->_per_role_cr_rules[_atom->role_array_index];

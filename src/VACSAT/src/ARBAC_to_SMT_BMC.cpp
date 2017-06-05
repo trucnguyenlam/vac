@@ -440,7 +440,7 @@ class BMCTransformer {
 
         if (policy->per_role_can_assign_rule(target).size() < 1) {
             clean_fmt();
-            std::cerr << "--- ATOM " << *target << " IS NOT ASSIGNABLE... SHOULD CRASH ---";
+            log->warn("--- ATOM {} IS NOT ASSIGNABLE... SHOULD CRASH ---", target->to_string());
 //            emitComment(msg);
             return;
         }
@@ -494,7 +494,7 @@ class BMCTransformer {
         emitComment(fmt.str());
 
         if (policy->per_role_can_revoke_rule(target).size() < 1) {
-            std::cerr << "--- ROLE " << *target << " IS NOT REVOKABLE... SHOULD CRASH ---";
+            log->warn("--- ROLE {} IS NOT REVOKABLE... SHOULD CRASH ---", target->to_string());
 //            string msg = fmt.str();
 //            emitComment(msg);
 //            fprintf(stderr, "%s", msg.c_str());
@@ -735,7 +735,7 @@ class BMCTransformer {
                 stringstream fmt;
                 fmt << "Cannot spawn " << wanted_threads_count <<
                           " threads because are more than user count (" << policy->users().size() << ")";
-                std::cerr << fmt.str() << std::endl;
+                log->error(fmt.str());
                 throw std::runtime_error(fmt.str());
             }
             else {
@@ -795,7 +795,7 @@ bool arbac_to_smt_bmc(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
         log->info("Target role is reachable");
     }
     else {
-        log->info("Target role is not reachable");
+        log->info("Target role may not be reachable");
     }
 
     return ret;

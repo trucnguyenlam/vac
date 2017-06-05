@@ -33,6 +33,9 @@ namespace SMT {
     };
 
     extern std::shared_ptr<spdlog::logger> log;
+    inline bool can_write(spdlog::level::level_enum lvl) {
+        return log->level() <= lvl;
+    }
 
 //    class logger {
 //    public:
