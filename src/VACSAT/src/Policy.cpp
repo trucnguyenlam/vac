@@ -290,7 +290,8 @@ namespace SMT {
     }
 
 
-    arbac_policy::arbac_policy() :
+    arbac_policy::arbac_policy(std::string _filename) :
+            filename(_filename),
             _atoms(std::vector<Literalp>()),
             _users(std::vector<std::shared_ptr<user>>()),
             _rules(std::vector<std::shared_ptr<rule>>()),
@@ -298,7 +299,8 @@ namespace SMT {
             _can_revoke_rules(std::vector<std::shared_ptr<rule>>()),
             _users_to_track(std::numeric_limits<int>::max()) { }
 
-    arbac_policy::arbac_policy(bool old_version) :
+    arbac_policy::arbac_policy(std::string _filename, bool old_version) :
+            filename(_filename),
             _atoms(std::vector<Literalp>()),
             _users(std::vector<std::shared_ptr<user>>()),
             _rules(std::vector<std::shared_ptr<rule>>()),
@@ -346,7 +348,40 @@ namespace SMT {
         log->info(_cache->to_string());
     }
 
+    void arbac_policy::show_policy_statistics(int wanted_threads_count) const {
+        int threads_count = this->users_to_track();
+        bool use_tracks = true;
 
+        if (wanted_threads_count < 1) {
+            if (this->users().size() <= this->users_to_track()) {
+                threads_count = (int) this->users().size();
+                use_tracks = false;
+            }
+            else {
+                threads_count = this->users_to_track();
+                use_tracks = true;
+            }
+        }
+        else {
+            if (this->users().size() <= wanted_threads_count) {
+                log->error("Cannot spawn {} threads because are more than user count {}", wanted_threads_count, this->atom_count());
+            }
+            else {
+                threads_count = this->users_to_track() + 1;
+                use_tracks = true;
+            }
+        }
+
+        log->info("Policy name: {}", this->filename);
+        log->info("*  Users: {}", this->users().size());
+        log->info("*  Atoms: {}", this->atom_count());
+        log->info("*  Users to track: {}", this->users_to_track());
+        log->info("*  CA: {}", this->can_assign_rules().size());
+        log->info("*  CR: {}", this->can_revoke_rules().size());
+        log->info("*  ThreadCount: {}", threads_count);
+        log->info("*  Require tracks: {}", use_tracks ? "True" : "False");
+
+    }
 
     void arbac_policy::unsafe_remove_atom(const Literalp& atom) {
         std::list<rulep> targeting_atom;

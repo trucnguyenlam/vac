@@ -3,14 +3,16 @@
 #include <getopt.h>
 #include <unistd.h>
 #include "ARBACTransform.h"
-#include "ARBACAbstract.h"
 #include "SMT_Pruning.h"
 #include "SMT_Analysis.h"
 #include <iostream>
 #include <boost/program_options.hpp>
 #include "spdlog/spdlog.h"
 
-// using namespace Abstract;
+#define EXIT_UNREACHABLE EXIT_SUCCESS
+#define EXIT_REACHABLE 1
+#define EXIT_ERROR 2
+
 
 void
 wait_keypressed() {
@@ -20,11 +22,10 @@ wait_keypressed() {
 
 void
 error_exit(){
-    fprintf(stderr, "Please set correct arguments for the translation.\nTry translate -h for help.\n");
     #ifdef WAIT_ON_EXIT
     wait_keypressed();
     #endif
-    exit(EXIT_FAILURE);
+    exit(EXIT_ERROR);
 }
 
 void
@@ -33,6 +34,14 @@ success_exit() {
     wait_keypressed();
     #endif
     exit(EXIT_SUCCESS);
+}
+
+void exit_with_result(bool res) {
+    if (res) {
+        exit(EXIT_REACHABLE);
+    } else {
+        exit(EXIT_UNREACHABLE);
+    }
 }
 
 namespace po = boost::program_options;
@@ -326,77 +335,107 @@ spdlog::level::level_enum int_to_level(int i) {
     }
 }
 
+void set_logger_err_handler() {
+    spdlog::set_error_handler([](const std::string& msg) {
+        std::cerr << "Error setting up the logger: " << msg << std::endl;
+        throw std::runtime_error(msg);
+    });
+    // (or logger->set_error_handler(..) to set for specific logger)
+}
+
 int main(int argc, const char * const *argv) {
     std::string filename;
-    options config = parse_args(argc, argv);
+    bool logging_on_console = true;
+    try {
+        set_logger_err_handler();
+        options config = parse_args(argc, argv);
 
-    if (config.output_file != "") {
-        SMT::log = spdlog::basic_logger_mt("log", config.output_file);
-    }
-    else {
-        SMT::log = spdlog::stdout_color_mt("log");
-    }
-    SMT::log->set_level(int_to_level(config.verbosity));
+        if (config.output_file != "") {
+            SMT::log = spdlog::basic_logger_mt("log", config.output_file);
+            logging_on_console = false;
+        } else {
+            SMT::log = spdlog::stdout_color_mt("log");
+        }
+        SMT::log->set_level(int_to_level(config.verbosity));
 //    SMT::log->set_pattern("[%L] %v");
-    SMT::log->set_pattern("%v");
+        SMT::log->set_pattern("%v");
 
-    set_mem_limit(config.mem_limit);
+        set_mem_limit(config.mem_limit);
 
-    FILE * out_file = nullptr;
-    filename = config.input_file;
+        FILE* out_file = nullptr;
 
-    if (access(filename.c_str(), R_OK ) == -1) {
-        fprintf(stderr, "%s: No such file.\n", filename.c_str());
+        if (access(config.input_file.c_str(), R_OK) == -1) {
+            throw std::runtime_error("Input file does not exists: " + filename);
+        }
+
+//        if (config.show_statistics) {
+//            show_policy_statistics(filename, out_file, config.bmc_thread_count);
+//        }
+
+        SMT::bmc_config bmc_conf(config.bmc_rounds_count, config.bmc_steps_count, config.bmc_thread_count);
+        SMT::AnalysisType an_ty;
+        if (config.new_prune_only && config.new_reachability_only) {
+            throw std::runtime_error("Cannot perform prune-only and reachability-only at the same time.");
+        } else if (config.new_reachability_only && config.show_statistics) {
+            throw std::runtime_error("show-statistics option is incompatible with reachability-only.");
+        } else if (config.new_prune_only) {
+            an_ty = SMT::PRUNE_ONLY;
+        } else if (config.new_reachability_only) {
+            an_ty = SMT::BMC_ONLY;
+        } else if (config.new_prune_only && config.show_statistics) {
+            an_ty = SMT::SHOW_AFTERPRUNE_STATISTICS;
+        } else if (config.show_statistics) {
+            an_ty = SMT::SHOW_INITIAL_STATISTICS;
+        } else {
+            an_ty = SMT::FULL_ANALYSIS;
+        }
+
+        if (config.experimental_use_merge) {
+            SMT::Config::merge = true;
+        }
+
+        if (config.dump_smt_formula != "") {
+            SMT::Config::dump_smt_formula = config.dump_smt_formula;
+        }
+
+        bool analysis_result;
+        if (config.old_parser) {
+            analysis_result = SMT::perform_analysis_old_style(config.input_file, an_ty, config.input_file, config.new_backend, bmc_conf);
+        } else {
+            analysis_result = SMT::perform_analysis(config.input_file, an_ty, config.input_file, config.new_backend, bmc_conf);
+        }
+
+        exit_with_result(analysis_result);
+    }
+    catch (const std::runtime_error& err) {
+        if (logging_on_console) {
+            SMT::log->error("Unexpected exception raised: {}", err.what());
+        } else {
+            std::cerr << "Unexpected exception raised: {}" << err.what() << std::endl;
+        }
+        error_exit();
+    }
+    catch (const spdlog::spdlog_ex& ex) {
+        std::cerr << "Log init failed: " << ex.what() << std::endl;
+        error_exit();
+    }
+    catch (const std::exception& ex) {
+        if (logging_on_console) {
+            SMT::log->error("Unexpected exception raised: {}", ex.what());
+        } else {
+            std::cerr << "Unexpected exception raised: {}" << ex.what() << std::endl;
+        }
+        error_exit();
+    }
+    catch (...) {
+        if (logging_on_console) {
+            SMT::log->critical("Unknown unexpected exception raised");
+        } else {
+            std::cerr << "Unknown unexpected exception raised" << std::endl;
+        }
         error_exit();
     }
 
-    if (config.output_file == "") {
-        out_file = stdout;
-    }
-    else {
-        out_file = fopen(config.output_file.c_str(), "w");
-        if (out_file == nullptr){
-            fprintf(stderr, "Cannot save in %s.\n", config.output_file.c_str());
-            error_exit();
-        }
-    }
-
-    if (config.show_statistics) {
-        show_policy_statistics(filename, out_file, config.bmc_thread_count);
-        success_exit();
-    }
-//            SMT::transform_2_lazycseq_r6(filename, out_file, 61, true);
-//            success_exit();
-    SMT::bmc_config bmc_conf(config.bmc_rounds_count, config.bmc_steps_count, config.bmc_thread_count);
-    SMT::AnalysisType an_ty;
-    if (config.new_prune_only && config.new_reachability_only) {
-        std::cerr << "Cannot perform prune-only and reachability-only at the same time." << std::endl;
-        throw std::runtime_error("Cannot perform prune-only and reachability-only at the same time.");
-    } else if (config.new_prune_only) {
-        an_ty = SMT::PRUNE_ONLY;
-    } else if (config.new_reachability_only) {
-        an_ty = SMT::BMC_ONLY;
-    } else {
-        an_ty = SMT::FULL_ANALYSIS;
-    }
-
-    if (config.experimental_use_merge) {
-        SMT::Config::merge = true;
-    }
-
-    if (config.dump_smt_formula != "") {
-        SMT::Config::dump_smt_formula = config.dump_smt_formula;
-    }
-
-
-    if (config.old_parser) {
-        SMT::perform_analysis_old_style(an_ty, config.input_file, config.new_backend, bmc_conf);
-    }
-    else {
-        SMT::perform_analysis(an_ty, config.input_file, config.new_backend, bmc_conf);
-    }
-
-    success_exit();
 
 
 //        if (algo_arg == 0 || format_arg == 0)
