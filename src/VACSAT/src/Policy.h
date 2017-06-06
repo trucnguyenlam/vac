@@ -108,8 +108,8 @@ namespace SMT {
     class arbac_policy {
     public:
 
-        arbac_policy();
-        arbac_policy(bool old_version);
+        arbac_policy(std::string filename);
+        arbac_policy(std::string filename, bool old_version);
 
         inline int atom_count() const {
             return (int) _atoms.size();
@@ -126,6 +126,8 @@ namespace SMT {
         }
 
         const Expr user_to_expr(int user_id, const std::set<Literalw, std::owner_less<Literalw>>& literals) const;
+
+        void show_policy_statistics(int wanted_threads_count) const;
 
         void set_users(const std::vector<userp>& users);
         void set_atoms(const std::vector<atom>& atoms);
@@ -161,6 +163,8 @@ namespace SMT {
         friend std::ostream& operator<< (std::ostream& stream, const arbac_policy& self);
 
         Literalp goal_role;
+
+        const std::string filename;
 
         inline const std::vector<rulep>& rules() const {
             return _rules;

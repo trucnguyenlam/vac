@@ -43,8 +43,8 @@ SMT::Expr buildExpression(Parser::Expr e, const Parser::ModelPtr policy, const s
     }
 }
 
-std::shared_ptr<SMT::arbac_policy> toSMT_arbac_policy(Parser::ModelPtr policy) {
-    std::shared_ptr<SMT::arbac_policy> newpolicy = std::make_shared<SMT::arbac_policy>(SMT::arbac_policy());
+std::shared_ptr<SMT::arbac_policy> toSMT_arbac_policy(std::string inputFile, Parser::ModelPtr policy) {
+    std::shared_ptr<SMT::arbac_policy> newpolicy = std::make_shared<SMT::arbac_policy>(SMT::arbac_policy(inputFile));
 
     // std::cout << "DEBUG: process atoms" << std::endl;
     std::vector<SMT::atom> atoms;
@@ -181,7 +181,7 @@ std::shared_ptr<SMT::arbac_policy> Parser::parse_new_ac(std::string inputfile) {
 
     // Print policy
     // std::cout << policy->to_string();
-    std::shared_ptr<SMT::arbac_policy> newpolicy = toSMT_arbac_policy(policy);
+    std::shared_ptr<SMT::arbac_policy> newpolicy = toSMT_arbac_policy(inputfile, policy);
     // std::cout << newpolicy->to_string();
     return newpolicy;
 }

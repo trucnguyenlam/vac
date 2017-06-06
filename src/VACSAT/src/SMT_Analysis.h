@@ -16,6 +16,8 @@
 
 namespace SMT {
     enum AnalysisType {
+        SHOW_INITIAL_STATISTICS,
+        SHOW_AFTERPRUNE_STATISTICS,
         PRUNE_ONLY,
         BMC_ONLY,
         FULL_ANALYSIS
@@ -31,11 +33,17 @@ namespace SMT {
         const int wanted_threads_count;
     };
 
-    void perform_analysis_old_style(AnalysisType analysis_type, const std::string &inputFile,
-                                    const std::string &solver_name, bmc_config config);
+    bool perform_analysis_old_style(const std::string& filename,
+                                    AnalysisType analysis_type,
+                                    const std::string &inputFile,
+                                    const std::string &solver_name,
+                                    bmc_config config);
 
-    void perform_analysis(AnalysisType analysis_type, const std::string &inputFile,
-                                    const std::string &solver_name, bmc_config config);
+    bool perform_analysis(const std::string& filename,
+                          AnalysisType analysis_type,
+                          const std::string &inputFile,
+                          const std::string &solver_name,
+                          bmc_config config);
 }
 
 #endif //VACSAT_SMT_ANALYSIS_H
