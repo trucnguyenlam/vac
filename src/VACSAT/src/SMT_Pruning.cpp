@@ -33,16 +33,16 @@ namespace SMT {
 
         std::shared_ptr<arbac_policy> policy;
 
-//        bool set_contains(const Expr& expr, const std::string& name) {
-//            std::set<Literalp> literals = expr->literals();
-//            for (auto ite = literals.begin(); ite != literals.end(); ++ite) {
-//                Literalp e = *ite;
-//                if (e->name == name) {
-//                    return true;
-//                }
-//            }
-//            return false;
-//        }
+        /*bool set_contains(const Expr& expr, const std::string& name) {
+            std::set<Literalp> literals = expr->literals();
+            for (auto ite = literals.begin(); ite != literals.end(); ++ite) {
+                Literalp e = *ite;
+                if (e->name == name) {
+                    return true;
+                }
+            }
+            return false;
+        }*/
 
         bool have_common_atoms(const Expr& e1, const Expr& e2) {
             std::list<Literalw> intersection;
@@ -456,6 +456,74 @@ namespace SMT {
             return true;
         }
 
+        bool satisfies_using_set(const Expr& adm, const userp& user, const std::vector<std::shared_ptr<AtomStatus>>& atom_status) {
+            auto lits = adm->literals();
+            for (auto &&litw : lits) {
+                Literalp lit = litw.lock();
+                std::vector<std::shared_ptr<TExpr>> var_vect(policy->atom_count());
+                switch (*atom_status[lit->role_array_index]) {
+                    case BOTH_VALUED:
+                        // Atom is used in both forms
+                        continue;
+                        break;
+                    case NON_NEGATIVE: {
+                        if (contains(user->config(), lit)) {
+                            var_vect[lit->role_array_index] = std::make_shared<TExpr>(solver->createTrue());
+                        }
+                        break;
+                    }
+                    case NON_POSITIVE: {
+                        if (!contains(user->config(), lit)) {
+                            var_vect[lit->role_array_index] = std::make_shared<TExpr>(solver->createFalse());
+                        }
+                        break;
+                    }
+                    case UNUSED: {
+                        var_vect[lit->role_array_index] = contains(user->config(), lit) ?
+                                                          std::make_shared<TExpr>(solver->createTrue()) :
+                                                          std::make_shared<TExpr>(solver->createFalse());
+                        break;
+                    }
+                    default:
+                        log->critical("Should not be here!");
+                        throw std::runtime_error("Should not be here!");
+                        break;
+                }
+
+                solver->clean();
+                TExpr inner_expr = generateSMTFunction2(solver, adm, var_vect, "C");
+                TExpr solver_expr = solver->createNotExpr(inner_expr);
+                solver->assertNow(solver_expr);
+
+                SMTResult res = solver->solve();
+
+                if (res == UNSAT) {
+                    log->trace("User {} satisfies formula {} without interference", user->to_full_string(), adm->to_string());
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        bool immaterial_not_interfere_new(const Expr& adm, std::vector<std::shared_ptr<AtomStatus>>& atom_status) {
+            //FIXME: put comments and logging
+            for (auto &&litw : adm->literals()) {
+                atom lit = litw.lock();
+                if (atom_status[lit->role_array_index] != nullptr) {
+                    continue;
+                }
+                AtomStatus status = get_atom_status(lit);
+                atom_status[lit->role_array_index] = std::make_shared<AtomStatus>(status);
+            }
+
+            for (auto &&conf : policy->unique_configurations()) {
+                bool sat = satisfies_using_set(adm, conf, atom_status);
+                if (sat)
+                    return true;
+            }
+            return false;
+        }
+
         int admin_count() {
             //FIXME: use semantics equivalence and not structural one
             auto expr_comp = [&](const Expr e1, const Expr e2){
@@ -476,7 +544,8 @@ namespace SMT {
             return (int) admin_exprs.size();
         }
 
-        bool immaterial_k_plus_two(const std::set<atom>& conf, int count) {
+        bool immaterial_get_k_plus_two(const userp& user, const Expr& adm, int k) {
+            std::set<atom> conf = user->config();
             int i = 0;
             for (auto &&user : policy->users()) {
                 if (user->config() == conf) {
@@ -484,7 +553,16 @@ namespace SMT {
                 }
             }
 
-            return i > count;
+            bool res = i >= (k + 2);
+
+            if (res) {
+//                log->warn(policy->to_string());
+                log->trace("User {} satisfies administrative formula {} and there are {} copy of her!",
+                            user->to_full_string(), adm->to_string(), i);
+                log->trace("\tRequired were {} (k = {}). (Remove  k + 2)", k + 2, k);
+            }
+
+            return res;
 //            return i > policy->users_to_track();
         }
 
@@ -507,9 +585,8 @@ namespace SMT {
             return res == UNSAT;
         }
 
-        bool immaterial_adm(const Expr& adm) {
+        bool immaterial_adm_k_plus_two(const Expr& adm) {
             bool exists_user = false;
-            userp satisfiant = nullptr;
             //exists a user that satisfies phi_adm
             for (auto &&user : policy->unique_configurations()) {
                 solver->clean();
@@ -517,7 +594,7 @@ namespace SMT {
                 Expr adm_expr = adm;
                 Expr user_expr = policy->user_to_expr(user->original_idx, adm->literals());
 
-                std::vector<std::shared_ptr<TVar>> var_vect((int) policy->atom_count());
+                std::vector<std::shared_ptr<TVar>> var_vect((ulong) policy->atom_count());
 
                 TExpr solver_adm_expr = generateSMTFunction2(solver, adm_expr, var_vect, user->name);
                 TExpr solver_user_expr = generateSMTFunction2(solver, user_expr, var_vect, user->name);
@@ -528,19 +605,15 @@ namespace SMT {
                 bool satisfies = solver->solve() == SAT;
 
                 if (satisfies) {
-                    satisfiant = user;
-                    log->trace("User {} satisfies administrative formula {}", user->to_string(), adm->to_string());
-                    break;
+                    int _admin_count = admin_count();
+                    bool cover_it = immaterial_get_k_plus_two(user, adm, _admin_count);
+                    if (cover_it) {
+                        return true;
+                    }
                 }
             }
 
-            if (satisfiant == nullptr) {
-                return false;
-            }
-            else {
-                int _admin_count = admin_count();
-                return immaterial_k_plus_two(satisfiant->config(), _admin_count) || immaterial_not_interfere(adm);
-            }
+            return false;
         }
 
         bool prune_immaterial_roles_opt() {
@@ -557,12 +630,13 @@ namespace SMT {
                 admins[rule->admin].push_back(rule);
             }
 //            std::cout << admins.size() << std::endl;
+            std::vector<std::shared_ptr<AtomStatus>> statuses((ulong) policy->atom_count());
             for (auto &&adm_pair : admins) {
                 if (is_constant_true(adm_pair.first)) {
                     // Do nothing if the administrative expression is the True constant
                     continue;
                 }
-                bool has_admin = immaterial_adm(adm_pair.first);
+                bool has_admin = immaterial_adm_k_plus_two(adm_pair.first) || immaterial_not_interfere_new(adm_pair.first, statuses);
                 if (has_admin) {
                     log->trace("Administrative expression {} IS IMMATERIAL", adm_pair.first->to_string());
                     has_changed = true;
@@ -574,29 +648,29 @@ namespace SMT {
             return has_changed;
         }
 
-        bool prune_immaterial_roles() {
-//            std::map<Expr, std::list<rulep>> admins;
-            bool has_changed = false;
-
-            for (auto &&rule : policy->rules()) {
-                if (is_constant_true(rule->admin))
-                    continue;
-                if (!is_constant_true(rule->admin) && immaterial_admin_in_prec(rule)) {
-                    log->trace("Admin is already checked in the precondition: {}", rule->to_string());
-                    rule->admin = createConstantTrue();
-                    has_changed = true;
-                    continue;
-                }
-                bool has_admin = immaterial_adm(rule->admin);
-                if (has_admin) {
-                    log->trace("Administrative expression {} IS IMMATERIAL", rule->admin->to_string());
-                    has_changed = true;
-                    rule->admin = createConstantTrue();
-                }
-//                admins[rule->admin].push_back(rule);
-            }
-            return has_changed;
-        }
+//        bool prune_immaterial_roles() {
+////            std::map<Expr, std::list<rulep>> admins;
+//            bool has_changed = false;
+//
+//            for (auto &&rule : policy->rules()) {
+//                if (is_constant_true(rule->admin))
+//                    continue;
+//                if (!is_constant_true(rule->admin) && immaterial_admin_in_prec(rule)) {
+//                    log->trace("Admin is already checked in the precondition: {}", rule->to_string());
+//                    rule->admin = createConstantTrue();
+//                    has_changed = true;
+//                    continue;
+//                }
+//                bool has_admin = immaterial_adm(rule->admin);
+//                if (has_admin) {
+//                    log->trace("Administrative expression {} IS IMMATERIAL", rule->admin->to_string());
+//                    has_changed = true;
+//                    rule->admin = createConstantTrue();
+//                }
+////                admins[rule->admin].push_back(rule);
+//            }
+//            return has_changed;
+//        }
 
         /* IRRELEVANT ROLES FUNCTIONS */
         TExpr irr_mix_cond_one(const Literalp& role,
@@ -1609,26 +1683,26 @@ namespace SMT {
 
         public:
 
-//        void test() {
-//            TVar v = solver->createBoolVar("polok");
-//            TExpr e1 = v;
-//
-//            solver->assertNow(e1);
-//            std::string r1 = solver->solve() == SAT ? "SAT" : "UNSAT";
-//
-//            std::cout << r1 << std::endl;
-//            solver->printModel();
-//
-//            solver->clean();
-//
-//            TExpr e2 = solver->createNotExpr(v);
-//            solver->assertNow(e2);
-//            std::string r2 = solver->solve() == SAT ? "SAT" : "UNSAT";
-//
-//            std::cout << r2 << std::endl;
-//            solver->printModel();
-//
-//        }
+        /*void test() {
+            TVar v = solver->createBoolVar("polok");
+            TExpr e1 = v;
+
+            solver->assertNow(e1);
+            std::string r1 = solver->solve() == SAT ? "SAT" : "UNSAT";
+
+            std::cout << r1 << std::endl;
+            solver->printModel();
+
+            solver->clean();
+
+            TExpr e2 = solver->createNotExpr(v);
+            solver->assertNow(e2);
+            std::string r2 = solver->solve() == SAT ? "SAT" : "UNSAT";
+
+            std::cout << r2 << std::endl;
+            solver->printModel();
+
+        }*/
 
         void apply() {
             bool fixpoint = false;
