@@ -24,12 +24,9 @@ set(SOURCE_FILES
         src/ARBACExact.h
         src/ARBACExact.cpp
         #wanted by Interproc
-        src/ARBACAbstract.h
-        src/ARBACAbstract.cpp
         #wanted by Mucke
         src/varOrd.h
         src/varOrd.cpp
-        src/ARBACInfo.cpp
         src/SMT.h
         src/SMTSolvers/yices.h
         src/SMTSolvers/yices.cpp
@@ -39,26 +36,13 @@ set(SOURCE_FILES
         src/Logics.cpp
         src/SMT_Pruning.h
         src/SMT_Pruning.cpp
-        src/ARBAC_to_INTERPROC_OverApr.cpp
-        src/ARBAC_to_CBMC_ExactAlg.cpp
-        src/ARBAC_to_GETAFIX_ExactAlg.cpp
-        src/ARBAC_to_NuSMV_ExactAlg.cpp
-        src/ARBAC_to_MUCKE_CAV.cpp
-        src/ARBAC_to_MUCKE_ExactAlg.cpp
         src/ARBAC_to_ConcurC.cpp
         src/ARBAC_to_LazyCSeq.cpp
-        src/ARBAC_to_LazyCSeqInlined.cpp
         src/ARBAC_to_CompletenessLazyCSeq.cpp
         src/SMT_Pruning_R6_LazyCSeq.cpp
         src/SMT_Pruning_R6_SSA.cpp
         src/ARBAC_to_smt.cpp
         src/ARBAC_to_SMT_BMC.cpp
-#        Moved to old_encodings and removed from project
-#        src/SSA_Structs.h
-#        src/SSA_Structs.cpp
-#        src/Solvers.h
-#        src/Yices.cpp
-#        src/ARBAC_to_SSA.cpp
         src/ExprToSmt.h
         src/ARBACTransform.h
         src/ARBACTransform.cpp
