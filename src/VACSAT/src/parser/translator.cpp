@@ -2,10 +2,10 @@
 
 namespace { // Use unnamed namespace for private functions
 
-bool hasSameUser(Parser::Expr e) {
-    // TODO
-    return true;
-}
+// bool hasSameUser(Parser::Expr e) {
+//     // TODO
+//     return true;
+// }
 
 SMT::Expr buildExpression(Parser::Expr e, const Parser::ModelPtr policy, const std::vector<SMT::atom> & atoms) {
     // std::cout << "DEBUG: " << e->to_string() << ":" << std::to_string(e->type) << std::endl;
@@ -20,22 +20,22 @@ SMT::Expr buildExpression(Parser::Expr e, const Parser::ModelPtr policy, const s
         break;
     case Parser::Exprv::EQ_EXPR:
         return SMT::createEqExpr(
-                buildExpression(std::dynamic_pointer_cast<Parser::EqExpr>(e)->lhs, policy, atoms),
-                buildExpression(std::dynamic_pointer_cast<Parser::EqExpr>(e)->rhs, policy, atoms));
+                   buildExpression(std::dynamic_pointer_cast<Parser::EqExpr>(e)->lhs, policy, atoms),
+                   buildExpression(std::dynamic_pointer_cast<Parser::EqExpr>(e)->rhs, policy, atoms));
     case Parser::Exprv::NOT_EXPR:
         return SMT::createNotExpr(
-                buildExpression(std::dynamic_pointer_cast<Parser::NotExpr>(e)->expr, policy, atoms)
-                                              );
+                   buildExpression(std::dynamic_pointer_cast<Parser::NotExpr>(e)->expr, policy, atoms)
+               );
     case Parser::Exprv::OR_EXPR:
         return SMT::createOrExpr(
-                buildExpression(std::dynamic_pointer_cast<Parser::OrExpr>(e)->lhs, policy, atoms),
-                buildExpression(std::dynamic_pointer_cast<Parser::OrExpr>(e)->rhs, policy, atoms)
-                                             );
+                   buildExpression(std::dynamic_pointer_cast<Parser::OrExpr>(e)->lhs, policy, atoms),
+                   buildExpression(std::dynamic_pointer_cast<Parser::OrExpr>(e)->rhs, policy, atoms)
+               );
     case Parser::Exprv::AND_EXPR:
         return SMT::createAndExpr(
-                buildExpression(std::dynamic_pointer_cast<Parser::AndExpr>(e)->lhs, policy, atoms),
-                buildExpression(std::dynamic_pointer_cast<Parser::AndExpr>(e)->rhs, policy, atoms)
-                                              );
+                   buildExpression(std::dynamic_pointer_cast<Parser::AndExpr>(e)->lhs, policy, atoms),
+                   buildExpression(std::dynamic_pointer_cast<Parser::AndExpr>(e)->rhs, policy, atoms)
+               );
     case Parser::Exprv::COND_EXPR:
     case Parser::Exprv::IMPL_EXPR:
     default:
@@ -90,43 +90,48 @@ std::shared_ptr<SMT::arbac_policy> toSMT_arbac_policy(std::string inputFile, Par
             SMT::Expr admin;
             SMT::Expr prec;
             SMT::atom tar;
-            if (std::dynamic_pointer_cast<Parser::AndExpr>(r->getPrecondition())) {
-                // std::cout << "DEBUG:    type 1 rule\n";
-                // Extract admin
-                if (hasSameUser(std::dynamic_pointer_cast<Parser::AndExpr>(r->getPrecondition())->lhs)) {
-                    admin = buildExpression(std::dynamic_pointer_cast<Parser::AndExpr>(r->getPrecondition())->lhs, policy, atoms);
-                    // std::cout << "DEBUG:    admin:" << admin->to_string() << std::endl;
-                } else {
-                    throw Parser::TranslatorException("Rule:" + r->to_string() + " is not supported!");
-                }
-                // Extract precondition
-                if (hasSameUser(std::dynamic_pointer_cast<Parser::AndExpr>(r->getPrecondition())->rhs)) {
-                    prec = buildExpression(std::dynamic_pointer_cast<Parser::AndExpr>(r->getPrecondition())->rhs, policy, atoms);
-                    // std::cout << "DEBUG:    prec:" << prec->to_string() << std::endl;
-                } else {
-                    throw Parser::TranslatorException("Rule:" + r->to_string() + " is not supported!");
-                }
-            } else { // There is no precondition (limitation)
-                // std::cout << "DEBUG:     type 2 rule\n";
-                if (hasSameUser(r->getPrecondition())) {
-                    admin = buildExpression(r->getPrecondition(), policy, atoms);
-                    // std::cout << "DEBUG:    admin:" << admin->to_string() << std::endl;
-                    prec = std::make_shared<SMT::Constant>(SMT::Constant(1, 1));
-                    // std::cout << "DEBUG:    prec:" << prec->to_string() << std::endl;
-                } else {
-                    throw Parser::TranslatorException("Rule:" + r->to_string() + " is not supported!");
-                }
-            }
+
+            admin = buildExpression(r->getAdmin(), policy, atoms);
+            prec = buildExpression(r->getPrecondition(), policy, atoms);
+
+            // if (std::dynamic_pointer_cast<Parser::AndExpr>(r->getPrecondition())) {
+            //     // std::cout << "DEBUG:    type 1 rule\n";
+            //     // Extract admin
+            //     if (hasSameUser(std::dynamic_pointer_cast<Parser::AndExpr>(r->getPrecondition())->lhs)) {
+            //         admin = buildExpression(std::dynamic_pointer_cast<Parser::AndExpr>(r->getPrecondition())->lhs, policy, atoms);
+            //         // std::cout << "DEBUG:    admin:" << admin->to_string() << std::endl;
+            //     } else {
+            //         throw Parser::TranslatorException("Rule:" + r->to_string() + " is not supported!");
+            //     }
+            //     // Extract precondition
+            //     if (hasSameUser(std::dynamic_pointer_cast<Parser::AndExpr>(r->getPrecondition())->rhs)) {
+            //         prec = buildExpression(std::dynamic_pointer_cast<Parser::AndExpr>(r->getPrecondition())->rhs, policy, atoms);
+            //         // std::cout << "DEBUG:    prec:" << prec->to_string() << std::endl;
+            //     } else {
+            //         throw Parser::TranslatorException("Rule:" + r->to_string() + " is not supported!");
+            //     }
+            // } else { // There is no precondition (limitation)
+            //     // std::cout << "DEBUG:     type 2 rule\n";
+            //     if (hasSameUser(r->getPrecondition())) {
+            //         admin = buildExpression(r->getPrecondition(), policy, atoms);
+            //         // std::cout << "DEBUG:    admin:" << admin->to_string() << std::endl;
+            //         prec = std::make_shared<SMT::Constant>(SMT::Constant(1, 1));
+            //         // std::cout << "DEBUG:    prec:" << prec->to_string() << std::endl;
+            //     } else {
+            //         throw Parser::TranslatorException("Rule:" + r->to_string() + " is not supported!");
+            //     }
+            // }
+
             // Extract target
             std::shared_ptr<Parser::EqExpr> target = r->getCopyApplyTarget()[0];
             if (std::dynamic_pointer_cast<Parser::Entity>(target->lhs)) {
                 tar = atoms[std::dynamic_pointer_cast<Parser::Entity>(target->lhs)->getAttributeID()];
             } else {
-                throw Parser::TranslatorException("Rule:" + r->to_string() + " is not supported, invalid target!");
+                throw Parser::TranslatorException(
+                    "Rule:" + r->to_string() + " is not supported, invalid target!");
             }
 
             // std::cout << "DEBUG:    target:" << tar->to_string() << std::endl;
-
             if (target->rhs->to_string() == "0") { // Can revoke rule
                 // std::cout << "DEBUG: cr rule\n";
                 SMT::rulep cr = std::make_shared<SMT::rule>(SMT::rule(false, admin, prec, tar, cr_counter));
@@ -151,7 +156,7 @@ std::shared_ptr<SMT::arbac_policy> toSMT_arbac_policy(std::string inputFile, Par
         std::dynamic_pointer_cast<Parser::EqExpr>(policy->getQuery());
     std::string uname = std::dynamic_pointer_cast<Parser::Entity>(query->lhs)->getUserName();
     newpolicy->update_query (
-            uname, atoms[std::dynamic_pointer_cast<Parser::Entity>(query->lhs)->getAttributeID()]);
+        uname, atoms[std::dynamic_pointer_cast<Parser::Entity>(query->lhs)->getAttributeID()]);
     return newpolicy;
 }
 

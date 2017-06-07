@@ -68,9 +68,11 @@ void MyListener::enterInit_element(vacgrammarParser::Init_elementContext * ctx) 
 void  MyListener::enterRule_element(vacgrammarParser::Rule_elementContext * ctx) {
     // Precondition
     std::map<std::string, int> luser_map;
-    Expr precondition = buildPrecondition(ctx->precondition(), luser_map);
+    int const_size = 1;
+    Expr admin = buildAdmincondition(ctx->admincondition(), luser_map, const_size);
+    Expr precondition = buildPrecondition(ctx->precondition(), luser_map, const_size);
 
-    RulePtr ruleptr = std::make_shared<Rule>(Rule(precondition));
+    RulePtr ruleptr = std::make_shared<Rule>(Rule(admin, precondition));
     // Apply target
     std::string tmp_user = "";
     for (const auto & t : ctx->normal_assignment()) {
@@ -118,7 +120,7 @@ void MyListener::enterR_query(vacgrammarParser::R_queryContext * ctx) {
         throw ParserException(
             "Error in line " + getTokenLocation(ctx->normal_assignment()->Identifier()[0]->getSymbol())
             + ": attribute " + attr_name + " is undefined!"
-            );
+        );
     }
     Entityp e = std::make_shared<Entity>(
                     Entity(user_name + "." + attr_name, user_name, user_id, attr_name, attrptr->getID()));
@@ -139,7 +141,7 @@ ModelPtr MyListener::getPolicy(void) const {
 // Private helper methods
 Expr MyListener::buildPrimaryExpression(
     vacgrammarParser::PrimaryExpressionContext * ctx,
-    std::map<std::string, int> & luser_map) const {
+    std::map<std::string, int> & luser_map, int & const_size) const {
     if (ctx->children.size() > 1) {
         if (ctx->DOT()) {
             std::string u_name = ctx->u->getText();
@@ -160,18 +162,19 @@ Expr MyListener::buildPrimaryExpression(
                                        luser_id,
                                        attr_name,
                                        attrptr->getID()));
+                const_size = attrptr->getSize();
                 return e;
             }            else {
                 std::cerr << "Error in Rule: attribute " << attr_name << " is undefined!" << std::endl;
                 std::_Exit(EXIT_FAILURE);
             }
         } else {
-            return buildExpression(ctx->expression(), luser_map);
+            return buildExpression(ctx->expression(), luser_map, const_size);
         }
     } else {
         if (ctx->Constant()) {
             int value = std::stoi(ctx->Constant()->getText(), nullptr);
-            Constantp valptr = std::make_shared<Constant>(Constant(value, 1));
+            Constantp valptr = std::make_shared<Constant>(Constant(value, const_size));
             return valptr;
         }
     }
@@ -179,99 +182,112 @@ Expr MyListener::buildPrimaryExpression(
 
 Expr MyListener::buildUnaryExpression(
     vacgrammarParser::UnaryExpressionContext * ctx,
-    std::map<std::string, int> & luser_map) const {
+    std::map<std::string, int> & luser_map, int& const_size) const {
     if (ctx->children.size() > 1) { // Primary expression
-        return std::make_shared<NotExpr>(NotExpr(buildUnaryExpression(ctx->unaryExpression(), luser_map)));
+        return std::make_shared<NotExpr>(NotExpr(buildUnaryExpression(ctx->unaryExpression(), luser_map, const_size)));
     } else {
-        return buildPrimaryExpression(ctx->primaryExpression(), luser_map);
+        return buildPrimaryExpression(ctx->primaryExpression(), luser_map, const_size);
     }
 }
 
 Expr MyListener::buildEqualityExpression(
     vacgrammarParser::EqualityExpressionContext * ctx,
-    std::map<std::string, int> & luser_map) const {
+    std::map<std::string, int> & luser_map, int& const_size) const {
     if (ctx->children.size() > 1) {
-        Expr _lhs = buildEqualityExpression(ctx->equalityExpression(), luser_map);
-        Expr _rhs = buildUnaryExpression(ctx->unaryExpression(), luser_map);
+        Expr _lhs = buildEqualityExpression(ctx->equalityExpression(), luser_map, const_size);
+        Expr _rhs = buildUnaryExpression(ctx->unaryExpression(), luser_map, const_size);
         return std::make_shared<EqExpr>(EqExpr(_lhs, _rhs));
     } else {
-        return buildUnaryExpression(ctx->unaryExpression(), luser_map);
+        return buildUnaryExpression(ctx->unaryExpression(), luser_map, const_size);
     }
 
 }
 
 Expr MyListener::buildAndExpression(
     vacgrammarParser::AndExpressionContext * ctx,
-    std::map<std::string, int> & luser_map) const {
+    std::map<std::string, int> & luser_map, int& const_size) const {
     if (ctx->children.size() > 1) {
-        Expr  _lhs = buildAndExpression(ctx->andExpression(), luser_map);
-        Expr  _rhs = buildEqualityExpression(ctx->equalityExpression(), luser_map);
+        Expr  _lhs = buildAndExpression(ctx->andExpression(), luser_map, const_size);
+        Expr  _rhs = buildEqualityExpression(ctx->equalityExpression(), luser_map, const_size);
         return std::make_shared<AndExpr>(AndExpr(_lhs, _rhs));
     } else {
-        return buildEqualityExpression(ctx->equalityExpression(), luser_map);
+        return buildEqualityExpression(ctx->equalityExpression(), luser_map, const_size);
     }
 }
 
 
 Expr MyListener::buildOrExpression(
     vacgrammarParser::OrExpressionContext * ctx,
-    std::map<std::string, int> & luser_map) const {
+    std::map<std::string, int> & luser_map, int& const_size) const {
     if (ctx->children.size() > 1) {
-        Expr _lhs = buildOrExpression(ctx->orExpression(), luser_map);
-        Expr _rhs = buildAndExpression(ctx->andExpression(), luser_map);
+        Expr _lhs = buildOrExpression(ctx->orExpression(), luser_map, const_size);
+        Expr _rhs = buildAndExpression(ctx->andExpression(), luser_map, const_size);
         return std::make_shared<OrExpr>(OrExpr(_lhs, _rhs));
     } else {
-        return buildAndExpression(ctx->andExpression(), luser_map);
+        return buildAndExpression(ctx->andExpression(), luser_map, const_size);
     }
 
 }
 
 Expr MyListener::buildImplyExpression(
     vacgrammarParser::ImplyExpressionContext * ctx,
-    std::map<std::string, int> & luser_map) const {
+    std::map<std::string, int> & luser_map, int& const_size) const {
     if (ctx->children.size() > 1) {
-        Expr _lhs = buildImplyExpression(ctx->implyExpression(), luser_map);
-        Expr _rhs = buildOrExpression(ctx->orExpression(), luser_map);
+        Expr _lhs = buildImplyExpression(ctx->implyExpression(), luser_map, const_size);
+        Expr _rhs = buildOrExpression(ctx->orExpression(), luser_map, const_size);
         return std::make_shared<ImplExpr>(ImplExpr(_lhs, _rhs));
     } else {
-        return buildOrExpression(ctx->orExpression(), luser_map);
+        return buildOrExpression(ctx->orExpression(), luser_map, const_size);
     }
 
 }
 
 Expr MyListener::buildConditionalExpression(
     vacgrammarParser::ConditionalExpressionContext * ctx,
-    std::map<std::string, int> & luser_map
-) const {
+    std::map<std::string, int> & luser_map, int& const_size) const {
     if (ctx->QUESTION()) {
-        Expr _cond = buildImplyExpression(ctx->implyExpression(), luser_map);
-        Expr _choice1 = buildExpression(ctx->expression(), luser_map);
-        Expr _choice2 = buildConditionalExpression(ctx->conditionalExpression(), luser_map);
+        Expr _cond = buildImplyExpression(ctx->implyExpression(), luser_map, const_size);
+        Expr _choice1 = buildExpression(ctx->expression(), luser_map, const_size);
+        Expr _choice2 = buildConditionalExpression(ctx->conditionalExpression(), luser_map, const_size);
         return std::make_shared<CondExpr>(CondExpr(_cond, _choice1, _choice2));
     } else {
-        return buildImplyExpression(ctx->implyExpression(), luser_map);
+        return buildImplyExpression(ctx->implyExpression(), luser_map, const_size);
     }
 }
 
 Expr MyListener::buildExpression(
     vacgrammarParser::ExpressionContext * ctx,
-    std::map<std::string, int> & luser_map
-) const {
-    return buildConditionalExpression(ctx->conditionalExpression(), luser_map);
+    std::map<std::string, int> & luser_map, int& const_size) const {
+    return buildConditionalExpression(ctx->conditionalExpression(), luser_map, const_size);
 }
 
 Expr MyListener::buildPrecondition(
     vacgrammarParser::PreconditionContext * ctx,
-    std::map<std::string, int> & luser_map
-) const {
+    std::map<std::string, int> & luser_map, int& const_size) const {
     if (ctx->TRUE()) {
         Constantp valptr = std::make_shared<Constant>(Constant(1, 1));
         return valptr;
     } else {
         if (dynamic_cast<vacgrammarParser::ExpressionContext*>(ctx->expression())) {
-            return buildExpression(ctx->expression(), luser_map);
+            return buildExpression(ctx->expression(), luser_map, const_size);
         } else {
             std::cerr << "Error in Rule: precondition " << ctx->getText() << " is not valid!" << std::endl;
+            std::_Exit(EXIT_FAILURE);
+        }
+    }
+}
+
+Expr MyListener::buildAdmincondition(
+    vacgrammarParser::AdminconditionContext * ctx,
+    std::map<std::string, int> & luser_map, int& const_size ) const {
+    if (ctx->TRUE()) {
+        Constantp valptr = std::make_shared<Constant>(Constant(1, 1));
+        return valptr;
+    } else {
+        if (dynamic_cast<vacgrammarParser::ExpressionContext*>(ctx->expression())) {
+            return buildExpression(ctx->expression(), luser_map, const_size);
+        } else {
+            std::cerr << "Error in Rule: admin " << ctx->getText() << " is not valid!" << std::endl;
             std::_Exit(EXIT_FAILURE);
         }
     }

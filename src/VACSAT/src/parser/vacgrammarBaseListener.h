@@ -81,6 +81,9 @@ public:
   virtual void enterPrecondition(vacgrammarParser::PreconditionContext * /*ctx*/) override { }
   virtual void exitPrecondition(vacgrammarParser::PreconditionContext * /*ctx*/) override { }
 
+  virtual void enterAdmincondition(vacgrammarParser::AdminconditionContext * /*ctx*/) override { }
+  virtual void exitAdmincondition(vacgrammarParser::AdminconditionContext * /*ctx*/) override { }
+
   virtual void enterR_query(vacgrammarParser::R_queryContext * /*ctx*/) override { }
   virtual void exitR_query(vacgrammarParser::R_queryContext * /*ctx*/) override { }
 

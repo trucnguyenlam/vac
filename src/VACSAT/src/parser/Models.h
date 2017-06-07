@@ -79,15 +79,19 @@ using UserPtr = std::shared_ptr<User>;
 
 class Rule {
   public:
-    Rule(Expr _precondition): precondition(_precondition) {}
+    Rule(Expr _admin, Expr _precondition):
+        admin(_admin),
+        precondition(_precondition) {}
     ~Rule() {}
 
     void addTargetExpr(EqExpr expr);
+    Expr getAdmin(void) const;
     Expr getPrecondition(void) const;
     std::vector<std::shared_ptr<EqExpr>> getCopyApplyTarget(void) const;
     std::string to_string(void) const;
 
   private:
+    Expr admin;
     Expr precondition;
     std::vector<std::shared_ptr<EqExpr>> apply_target;
 

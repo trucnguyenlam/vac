@@ -79,6 +79,9 @@ public:
   virtual void enterPrecondition(vacgrammarParser::PreconditionContext *ctx) = 0;
   virtual void exitPrecondition(vacgrammarParser::PreconditionContext *ctx) = 0;
 
+  virtual void enterAdmincondition(vacgrammarParser::AdminconditionContext *ctx) = 0;
+  virtual void exitAdmincondition(vacgrammarParser::AdminconditionContext *ctx) = 0;
+
   virtual void enterR_query(vacgrammarParser::R_queryContext *ctx) = 0;
   virtual void exitR_query(vacgrammarParser::R_queryContext *ctx) = 0;
 

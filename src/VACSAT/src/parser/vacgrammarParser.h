@@ -28,7 +28,7 @@ public:
     RuleEqualityExpression = 11, RuleAndExpression = 12, RuleOrExpression = 13, 
     RuleImplyExpression = 14, RuleConditionalExpression = 15, RuleExpression = 16, 
     RuleR_rules = 17, RuleRule_element = 18, RuleNormal_assignment = 19, 
-    RulePrecondition = 20, RuleR_query = 21
+    RulePrecondition = 20, RuleAdmincondition = 21, RuleR_query = 22
   };
 
   vacgrammarParser(antlr4::TokenStream *input);
@@ -62,6 +62,7 @@ public:
   class Rule_elementContext;
   class Normal_assignmentContext;
   class PreconditionContext;
+  class AdminconditionContext;
   class R_queryContext; 
 
   class  FileContext : public antlr4::ParserRuleContext {
@@ -179,11 +180,12 @@ public:
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *LEFTTUPLE();
     antlr4::tree::TerminalNode *Identifier();
+    antlr4::tree::TerminalNode *COLON();
+    std::vector<Init_assignmentContext *> init_assignment();
+    Init_assignmentContext* init_assignment(size_t i);
     antlr4::tree::TerminalNode *RIGHTTUPLE();
     std::vector<antlr4::tree::TerminalNode *> COMMA();
     antlr4::tree::TerminalNode* COMMA(size_t i);
-    std::vector<Init_assignmentContext *> init_assignment();
-    Init_assignmentContext* init_assignment(size_t i);
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -356,12 +358,14 @@ public:
     Rule_elementContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *LEFTTUPLE();
-    PreconditionContext *precondition();
-    antlr4::tree::TerminalNode *RIGHTTUPLE();
+    AdminconditionContext *admincondition();
     std::vector<antlr4::tree::TerminalNode *> COMMA();
     antlr4::tree::TerminalNode* COMMA(size_t i);
+    PreconditionContext *precondition();
+    antlr4::tree::TerminalNode *COLON();
     std::vector<Normal_assignmentContext *> normal_assignment();
     Normal_assignmentContext* normal_assignment(size_t i);
+    antlr4::tree::TerminalNode *RIGHTTUPLE();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -402,6 +406,20 @@ public:
   };
 
   PreconditionContext* precondition();
+
+  class  AdminconditionContext : public antlr4::ParserRuleContext {
+  public:
+    AdminconditionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *TRUE();
+    ExpressionContext *expression();
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+   
+  };
+
+  AdminconditionContext* admincondition();
 
   class  R_queryContext : public antlr4::ParserRuleContext {
   public:

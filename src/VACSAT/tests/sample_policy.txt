@@ -20,15 +20,15 @@ salary[10]
 ;
 
 INIT
-<u0, rule0=1, age = 3>
-<u1, salary=30, rule2 = 1 >
+<u0: rule0=1, age = 3>
+<u1: salary=30, rule2 = 1 >
 ;
 
 RULES
-<TRUE, x.age=3, x.salary=10>
-<x.rule0=1, x.age=1, x.salary=20>
-<x.rule0=1 && y.age=10, x.age=1, x.salary=20>
-<x.rule0=1 || y.age=10, x.age=0, x.salary=20>
+<TRUE, TRUE: x.age=3, x.salary=10>
+<x.rule0=1, x.age=1: x.salary=20>
+<1, x.rule0=1 && y.age=10: x.age=1, x.salary=20>
+<x.rule0=1 || y.age=10, x.age=0: x.rule0=1, x.salary=20>
 
 ;
 QUERY

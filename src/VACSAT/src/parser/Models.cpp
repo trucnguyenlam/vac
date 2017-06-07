@@ -109,15 +109,27 @@ void Rule::addTargetExpr(EqExpr expr) {
 Expr Rule::getPrecondition(void) const {
     return precondition;
 }
+Expr Rule::getAdmin(void) const {
+    return admin;
+}
 std::vector<std::shared_ptr<EqExpr>> Rule::getCopyApplyTarget(void) const {
     return apply_target;
 }
 
 std::string Rule::to_string(void) const {
     std::string ret = "<";
+    ret +=  admin->to_string() + ",";
     ret +=  precondition->to_string();
+    int i = 0;
     for (const auto & t : apply_target) {
-        ret += "," + t->to_string();
+        if (i == 0) {
+            ret += ":";
+        }
+        else {
+            ret += ",";
+        }
+        ret += t->to_string();
+        i++;
     }
     ret += ">";
     return ret;

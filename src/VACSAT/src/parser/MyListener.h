@@ -28,7 +28,7 @@ class ParserException: public antlr4::RuntimeException {
  */
 class  MyListener : public vacgrammarBaseListener {
  public:
-  MyListener(){ vac_model = std::make_shared<Model>(Model());}
+  MyListener() { vac_model = std::make_shared<Model>(Model());}
   ~MyListener() {}
 
   virtual void enterUser_element(vacgrammarParser::User_elementContext * /*ctx*/) override;
@@ -39,15 +39,16 @@ class  MyListener : public vacgrammarBaseListener {
   ModelPtr getPolicy(void) const;
 
  private:
-  Expr buildPrimaryExpression(vacgrammarParser::PrimaryExpressionContext *, std::map<std::string, int> &) const;
-  Expr buildUnaryExpression(vacgrammarParser::UnaryExpressionContext *, std::map<std::string, int> &) const;
-  Expr buildEqualityExpression(vacgrammarParser::EqualityExpressionContext *, std::map<std::string, int> &) const;
-  Expr buildAndExpression(vacgrammarParser::AndExpressionContext *, std::map<std::string, int> &) const;
-  Expr buildOrExpression(vacgrammarParser::OrExpressionContext *, std::map<std::string, int> &) const;
-  Expr buildImplyExpression(vacgrammarParser::ImplyExpressionContext *, std::map<std::string, int> &) const;
-  Expr buildConditionalExpression(vacgrammarParser::ConditionalExpressionContext *, std::map<std::string, int> &) const;
-  Expr buildExpression(vacgrammarParser::ExpressionContext *, std::map<std::string, int> &) const;
-  Expr buildPrecondition(vacgrammarParser::PreconditionContext *, std::map<std::string, int> &) const;
+  Expr buildPrimaryExpression(vacgrammarParser::PrimaryExpressionContext *, std::map<std::string, int> &, int &) const;
+  Expr buildUnaryExpression(vacgrammarParser::UnaryExpressionContext *, std::map<std::string, int> &, int &) const;
+  Expr buildEqualityExpression(vacgrammarParser::EqualityExpressionContext *, std::map<std::string, int> &, int &) const;
+  Expr buildAndExpression(vacgrammarParser::AndExpressionContext *, std::map<std::string, int> &, int &) const;
+  Expr buildOrExpression(vacgrammarParser::OrExpressionContext *, std::map<std::string, int> &, int &) const;
+  Expr buildImplyExpression(vacgrammarParser::ImplyExpressionContext *, std::map<std::string, int> &, int &) const;
+  Expr buildConditionalExpression(vacgrammarParser::ConditionalExpressionContext *, std::map<std::string, int> &, int &) const;
+  Expr buildExpression(vacgrammarParser::ExpressionContext *, std::map<std::string, int> &, int &) const;
+  Expr buildPrecondition(vacgrammarParser::PreconditionContext *, std::map<std::string, int> &, int &) const;
+  Expr buildAdmincondition(vacgrammarParser::AdminconditionContext *, std::map<std::string, int> &, int &) const;
 
   std::string getTokenLocation(antlr4::Token * ) const;
 

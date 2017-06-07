@@ -49,7 +49,7 @@ r_init
     ;
 
 init_element
-    :   LEFTTUPLE Identifier (COMMA  init_assignment)+ RIGHTTUPLE
+    :   LEFTTUPLE Identifier COLON init_assignment (COMMA init_assignment)* RIGHTTUPLE
     ;
 
 init_assignment
@@ -102,7 +102,7 @@ r_rules
     ;
 
 rule_element
-    :   LEFTTUPLE precondition (COMMA normal_assignment)+ RIGHTTUPLE
+    :   LEFTTUPLE admincondition COMMA precondition COLON normal_assignment (COMMA normal_assignment)* RIGHTTUPLE
     ;
 
 normal_assignment
@@ -110,6 +110,11 @@ normal_assignment
     ;
 
 precondition
+    :   TRUE
+    |   expression
+    ;
+
+admincondition
     :   TRUE
     |   expression
     ;

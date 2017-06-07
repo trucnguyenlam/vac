@@ -79,7 +79,7 @@ find_package(CCL REQUIRED)
 find_package(ANTLR3C REQUIRED)
 
 # Add spdlog library for logging
-set(CMAKE_PREFIX_PATH "./deps")
+set(CMAKE_PREFIX_PATH ${DEPS_DIR}/spdlog)
 find_package(spdlog CONFIG REQUIRED)
 find_package(Threads)
 

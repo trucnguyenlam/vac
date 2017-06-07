@@ -151,6 +151,7 @@ std::string Constant::to_string() const {
         }
     } else {
         std::stringstream fmt;
+        // fmt << this->value << "[" << this->bv_size << "]";
         fmt << this->value;
         return fmt.str();
     }
