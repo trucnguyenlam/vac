@@ -731,7 +731,7 @@ class BMCTransformer {
             }
         }
         else {
-            if (policy->users().size() <= wanted_threads_count) {
+            if ((int) policy->users().size() <= wanted_threads_count) {
                 stringstream fmt;
                 fmt << "Cannot spawn " << wanted_threads_count <<
                           " threads because are more than user count (" << policy->users().size() << ")";
