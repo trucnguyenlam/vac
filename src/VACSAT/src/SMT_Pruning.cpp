@@ -14,7 +14,6 @@
 #include "Policy.h"
 #include "SMTSolvers/yices.h"
 #include "SMTSolvers/Z3.h"
-#include "ExprToSmt.h"
 
 namespace SMT {
 
@@ -1525,40 +1524,52 @@ namespace SMT {
             return std::pair<int, std::list<atom>>((int) lits.size(), lits);
         }
 
-        std::pair<bool, Expr> smart_join(std::list<Expr> exprs) {
-            bool changed = false;
+        std::pair<int, Expr> smart_join(std::list<Expr> exprs) {
+            int atoms_removed = false;
             while (exprs.size() > 1) {
                 auto ite = exprs.begin();
                 Expr first = *ite;
                 auto best_match = ++ite;
                 std::pair<int, std::list<atom>> best_match_weight = weight_union(first, *best_match);
-                log->trace("First candidate! Redundant {}", best_match_weight.first);
-                for (auto &&lit : best_match_weight.second) {
-                    log->trace("{}", *lit);
-                }
-                log->trace("\t{}", **ite);
+//                log->trace("First candidate! Redundant {}", best_match_weight.first);
+//                for (auto &&lit : best_match_weight.second) {
+//                    log->trace("{}", *lit);
+//                }
+//                log->trace("\t{}", **ite);
                 for (++ite; ite != exprs.end(); ++ite) {
                     auto pair = weight_union(first, *ite);
                     if (pair.first > best_match_weight.first) {
-                        log->trace("Found a better candidate! Redundant {}", pair.first);
-                        for (auto &&lit : pair.second) {
-                            log->trace("{}", *lit);
-                        }
-                        log->trace("\t{}", **ite);
+//                        log->trace("Found a better candidate! Redundant {}", pair.first);
+//                        for (auto &&lit : pair.second) {
+//                            log->trace("{}", *lit);
+//                        }
+//                        log->trace("\t{}", **ite);
                         best_match_weight = pair;
                         best_match = ite;
                     }
                 }
                 Expr joined = createOrExpr(first, *best_match);
+                if (log->level() == spdlog::level::trace && best_match_weight.first > 0) {
+                    auto lite = best_match_weight.second.begin();
+                    std::stringstream fmt;
+                    fmt << "{" << **lite;
+                    for (++lite; lite != best_match_weight.second.end(); ++lite) {
+                        fmt << ", " << **lite;
+                    }
+                    fmt << "}";
+                    log->trace("SAVED {} atoms: {} merging", best_match_weight.first, fmt.str());
+                    log->trace("\t{}", *first);
+                    log->trace("\t{}", **best_match);
+                }
                 for (auto &&red_lit : best_match_weight.second) {
-                    changed = true;
+                    atoms_removed++;
                     joined = delete_atom(joined, red_lit);
                 }
                 exprs.erase(exprs.begin());
                 exprs.erase(best_match);
                 exprs.push_back(joined);
             }
-            return std::pair<bool, Expr>(changed, *exprs.begin());
+            return std::pair<int, Expr>(atoms_removed, *exprs.begin());
         }
 
         bool simplify_or_expressions() {
@@ -1569,10 +1580,10 @@ namespace SMT {
                 for (auto &&item : sep) {
                     log->warn("\t{}", *item);
                 }
-                std::pair<bool, Expr> new_cond = smart_join(sep);
+                std::pair<int, Expr> new_cond = smart_join(sep);
                 if (new_cond.first) {
-                    changed = new_cond.first;
-                    log->warn("now done: {}", *new_cond.second);
+                    changed = new_cond.first > 0;
+//                    log->warn("now done: {}", *new_cond.second);
                     rule->prec = new_cond.second;
                 }
             }
@@ -1926,7 +1937,22 @@ namespace SMT {
 
                 }
 
-//                simplify_or_expressions();
+                bool simplify_toplevel_or_res = false;
+                if (Config::simplify_toplevel_or) {
+
+                    log->debug("Applying simplify_or_expressions on {}", policy->rules().size());
+                    simplify_toplevel_or_res = simplify_or_expressions();
+                    log->debug(" ==> {} rules...", policy->rules().size());
+                    if (merge_rules_res) {
+                        // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
+                        backward_slicing();
+                    }
+                    solver->deep_clean();
+
+
+                    bool simplify_expression_res = simplify_expressions();
+                    simplify_toplevel_or_res = simplify_toplevel_or_res || simplify_expression_res;
+                }
 
                 log->debug("Applying prune_rule_6 on {}", policy->rules().size());
                 bool prune_rule_6_res = this->prune_rule_6();
@@ -1943,6 +1969,7 @@ namespace SMT {
                           prune_irrelevant_roles_res ||
                           prune_implied_pairs_res    ||
                           merge_rules_res            ||
+                          simplify_toplevel_or_res   ||
                           prune_rule_6_res
                           );
 

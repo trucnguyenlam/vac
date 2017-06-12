@@ -12,6 +12,7 @@ namespace SMT {
 
     Config::Verbosity Config::verbosity = Config::TRACE;
     bool Config::merge = false;
+    bool Config::simplify_toplevel_or = false;
 
 
     std::string Config::dump_smt_formula = "";
