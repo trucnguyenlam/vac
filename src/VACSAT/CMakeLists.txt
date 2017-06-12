@@ -56,7 +56,6 @@ set(SOURCE_FILES
         src/SMT_Pruning_R6_SSA.cpp
         src/ARBAC_to_smt.cpp
         src/ARBAC_to_SMT_BMC.cpp
-        src/ExprToSmt.h
         src/ARBACTransform.h
         src/ARBACTransform.cpp
         src/Policy.h
