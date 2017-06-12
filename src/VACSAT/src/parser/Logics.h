@@ -111,10 +111,10 @@ class Entity: public Exprv {
 
   private:
     std::string name;  // full name
-    int local_ID; // local ID of user
     std::string user_name; // Attribute name
-    int attr_ID; // Attribute ID
+    int local_ID; // local ID of user
     std::string attr_name; // Attribute name
+    int attr_ID; // Attribute ID
 };
 
 typedef std::shared_ptr<Entity> Entityp;

@@ -178,6 +178,7 @@ Expr MyListener::buildPrimaryExpression(
             return valptr;
         }
     }
+    throw std::runtime_error("Control reaches end of non-void function: MyListener::buildPrimaryExpression");
 }
 
 Expr MyListener::buildUnaryExpression(
