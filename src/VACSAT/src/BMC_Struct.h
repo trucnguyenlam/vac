@@ -16,11 +16,11 @@ namespace SMT {
     template <typename TVar, typename TExpr>
     struct generic_variable : public TVarWrapper<TVar> {
 
-        SMTFactory<TVar, TExpr>* solver;
         int bv_size;
         std::string name;
         std::string full_name;
         int idx;
+        SMTFactory<TVar, TExpr>* solver;
         var_type type;
 
         generic_variable() :
