@@ -4,9 +4,26 @@ project(vacsat)
 
 set(CMAKE_CXX_STANDARD 11)  # enable C++11 standard
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive -Wwrite-strings")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -fpermissive -Wwrite-strings")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused -Wno-comment -Wno-sign-compare")
+
+find_program(GOLD_FOUND gold)
+if (GOLD_FOUND)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
+    message(STATUS "gold found! Faster linking!")
+else (GOLD_FOUND)
+    message(WARNING "gold not found! Slower linking!")
+endif (GOLD_FOUND)
 
 
+find_program(CCACHE_FOUND ccache)
+if (CCACHE_FOUND)
+    message(STATUS "ccache found! Faster compilation!")
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK    ccache)
+else (CCACHE_FOUND)
+    message(WARNING "ccache not found! Slower compilation!")
+endif (CCACHE_FOUND)
 
 set(DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps")
 
@@ -23,10 +40,6 @@ set(SOURCE_FILES
         #wanted by all precise analysis
         src/ARBACExact.h
         src/ARBACExact.cpp
-        #wanted by Interproc
-        #wanted by Mucke
-        src/varOrd.h
-        src/varOrd.cpp
         src/SMT.h
         src/SMTSolvers/yices.h
         src/SMTSolvers/yices.cpp
@@ -58,6 +71,10 @@ set(SOURCE_FILES
         src/config.cpp
         src/SMT_Configuration.h)
 
+set_source_files_properties(src/ARBACParser.cpp PROPERTIES COMPILE_FLAGS "-fpermissive -Wwrite-strings")
+set_source_files_properties(src/ARBACParser.h   PROPERTIES COMPILE_FLAGS "-fpermissive -Wwrite-strings")
+set_source_files_properties(src/ARBACLexer.cpp  PROPERTIES COMPILE_FLAGS "-fpermissive -Wwrite-strings")
+set_source_files_properties(src/ARBACLexer.h    PROPERTIES COMPILE_FLAGS "-fpermissive -Wwrite-strings")
 
 
 # Add path for custom modules
