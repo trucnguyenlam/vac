@@ -64,7 +64,6 @@ set(SOURCE_FILES
         src/prelude.h
         src/SMT_Analysis.h
         src/SMT_Analysis.cpp
-        src/SMT_Analysis_old_style.cpp
         src/config.h
         src/BMC_Struct.h
         src/ARBAC_to_SMT_BMC.h
