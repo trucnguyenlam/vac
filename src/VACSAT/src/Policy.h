@@ -21,8 +21,10 @@ namespace SMT {
 
         void print() const;
 
-        std::string to_string() const;
-        std::string get_type() const;
+        const std::string to_string() const;
+        const std::string to_new_string() const;
+        const std::string to_arbac_string() const;
+        const std::string get_type() const;
 
         static rule* create_ca(Expr admin, Expr prec, atom target, int original_idx);
         static rule* create_cr(Expr admin, Expr prec, atom target, int original_idx);
@@ -59,9 +61,9 @@ namespace SMT {
 
         static user from_policy(std::vector<atom>& atoms, int original_idx);
 
-        const bool infinite;
         const int original_idx;
         const std::string name;
+        const bool infinite;
     private:
         std::set<atom> _config;
     };
@@ -121,8 +123,8 @@ namespace SMT {
 //        void remove_can_assign(rule to_remove);
 //        void remove_can_revoke(rule to_remove);
 
-        inline const Expr user_to_expr(int user_id) const {
-            return _cache->user_expr(user_id);
+        inline const Expr user_to_expr(int user_id) {
+            return cache()->user_expr(user_id);
         }
 
         const Expr user_to_expr(int user_id, const std::set<Literalw, std::owner_less<Literalw>>& literals) const;
@@ -157,14 +159,12 @@ namespace SMT {
         void remove_user(const userp& user);
 
         const std::string to_string() const;
+        const std::string to_arbac_string() const;
+        const std::string to_new_string() const;
 
-        void print_cache() const;
+        void print_cache();
 
         friend std::ostream& operator<< (std::ostream& stream, const arbac_policy& self);
-
-        Literalp goal_role;
-
-        const std::string filename;
 
         inline const std::vector<rulep>& rules() const {
             return _rules;
@@ -182,39 +182,23 @@ namespace SMT {
             return _users;
         }
         inline const std::set<userp, std::function<bool (const userp&, const userp&)>>& unique_configurations() {
-            return _cache->unique_configurations();
+            return cache()->unique_configurations();
         };
-        inline const int users_to_track() const {
+        inline int users_to_track() const {
             return _users_to_track;
         }
 
         inline const std::vector<std::list<rulep>>& per_role_can_assign_rule() {
-            if (_cache == nullptr) {
-                log->error("Cache is not valid.");
-                throw std::runtime_error("Cache is not valid.");
-            }
-            return this->_cache->_per_role_ca_rules;
+            return this->cache()->_per_role_ca_rules;
         }
         inline const std::list<rulep>& per_role_can_assign_rule(atom _atom) {
-            if (_cache == nullptr) {
-                log->error("Cache is not valid.");
-                throw std::runtime_error("Cache is not valid.");
-            }
-            return this->_cache->_per_role_ca_rules[_atom->role_array_index];
+            return this->cache()->_per_role_ca_rules[_atom->role_array_index];
         }
         inline const std::vector<std::list<rulep>>& per_role_can_revoke_rule() {
-            if (_cache == nullptr) {
-                std::cerr << "Cache is not valid." << std::endl;
-                throw std::runtime_error("Cache is not valid.");
-            }
-            return this->_cache->_per_role_cr_rules;
+            return this->cache()->_per_role_cr_rules;
         }
         inline const std::list<rulep>& per_role_can_revoke_rule(atom _atom) {
-            if (_cache == nullptr) {
-                log->error("Cache is not valid.");
-                throw std::runtime_error("Cache is not valid.");
-            }
-            return this->_cache->_per_role_cr_rules[_atom->role_array_index];
+            return this->cache()->_per_role_cr_rules[_atom->role_array_index];
         }
 
         inline const rulep& rules(int i) {
@@ -233,6 +217,17 @@ namespace SMT {
             return _users[i];
         }
 
+        inline const std::shared_ptr<policy_cache>& cache() {
+            if (_cache == nullptr) {
+                update();
+            }
+            return _cache;
+        }
+
+
+        Literalp goal_role;
+        const std::string filename;
+
         private:
 
         friend class policy_cache;
@@ -244,14 +239,13 @@ namespace SMT {
         void unsafe_remove_can_assign(const rulep& rule);
         void unsafe_remove_can_revoke(const rulep& rule);
 
-        int _users_to_track;
-
         std::vector<Literalp> _atoms;
+        std::vector<userp> _users;
         std::vector<std::shared_ptr<rule>> _rules;
         std::vector<std::shared_ptr<rule>> _can_assign_rules;
         std::vector<std::shared_ptr<rule>> _can_revoke_rules;
 
-        std::vector<userp> _users;
+        int _users_to_track;
 
         std::shared_ptr<policy_cache> _cache = nullptr;
 

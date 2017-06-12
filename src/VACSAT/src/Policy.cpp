@@ -47,7 +47,7 @@ namespace SMT {
         return new rule(false, admin, prec, target, original_idx);
     }
 
-    std::string rule::to_string() const {
+    const std::string rule::to_string() const {
         std::stringstream fmt;
 
         fmt << this->get_type();
@@ -59,7 +59,41 @@ namespace SMT {
         return fmt.str();
     }
 
-    std::string rule::get_type() const {
+    const std::string rule::to_arbac_string() const {
+        std::stringstream fmt;
+
+        std::string sadmin = simplifyExpr(this->admin)->to_arbac_string();
+        std::string sprec = simplifyExpr(this->prec)->to_arbac_string();
+
+        if (this->is_ca) {
+            fmt << "<" << sadmin << ", " << sprec << ", " << this->target->name << ">";
+        }
+        else {
+            fmt << "<" << sadmin << ", " << this->target->name << ">";
+        }
+
+        return fmt.str();
+
+    }
+
+    const std::string rule::to_new_string() const {
+        std::stringstream fmt;
+
+        std::string adm("a");
+        std::string user("t");
+
+        std::string suffix = this->is_ca ? "=1" : "=0";
+
+        Expr simpl_admin = simplifyExpr(this->admin);
+        Expr simpl_prec = simplifyExpr(this->prec);
+
+        fmt << "<" << simpl_admin->to_new_string(adm) << ", " << simpl_prec->to_new_string(user) << ": t." << this->target->name << suffix << ">";
+
+        return fmt.str();
+
+}
+
+    const std::string rule::get_type() const {
         return this->is_ca ? "CA" : "CR";
     }
 
@@ -97,11 +131,11 @@ namespace SMT {
     user::user(int _original_idx, bool _infinite) :
             original_idx(_original_idx), name(std::string(user_array[_original_idx])), infinite(_infinite) { }
     user::user(std::string _name, int _original_idx, bool _infinite) :
-            original_idx(_original_idx), name(_name), _config(std::set<atom>()), infinite(_infinite) { }
+            original_idx(_original_idx), name(_name), infinite(_infinite) { }
     user::user(std::string _name, int _original_idx, std::set<atom> config, bool _infinite) :
-            original_idx(_original_idx), name(_name), _config(config), infinite(_infinite) { }
+            original_idx(_original_idx), name(_name), infinite(_infinite), _config(config) { }
     user::user(int _original_idx, std::set<atom> config, bool _infinite) :
-            original_idx(_original_idx), name(std::string(user_array[_original_idx])), _config(config), infinite(_infinite) { }
+            original_idx(_original_idx), name(std::string(user_array[_original_idx])), infinite(_infinite), _config(config) { }
 
     void user::add_atom(const atom& atom1) {
         //TODO: Truc: check this stub
@@ -344,8 +378,8 @@ namespace SMT {
         this->update();
     }
 
-    void arbac_policy::print_cache() const {
-        log->info(_cache->to_string());
+    void arbac_policy::print_cache() {
+        log->info(cache()->to_string());
     }
 
     void arbac_policy::show_policy_statistics(int wanted_threads_count) const {
@@ -534,7 +568,7 @@ namespace SMT {
             }
         }
         if (user == nullptr) {
-            log->warn("{} does not match any existing user. Considering all...", username);
+//            log->warn("{} does not match any existing user. Considering all...", username);
             this->goal_role = goal_role;
             return;
         }
@@ -668,6 +702,83 @@ namespace SMT {
         stream << "\t;" << std::endl << std::endl;
         stream << "SPEC:" << std::endl;
         stream << "\t" << *this->goal_role << std::endl;
+        stream << "\t;" << std::endl << std::endl;
+
+        return stream.str();
+    }
+    const std::string arbac_policy::to_arbac_string() const {
+        std::stringstream stream;
+        stream << "Users " << std::endl;
+        for (auto &&user : this->_users) {
+            stream << "\t" << user->name << std::endl;
+        }
+        stream << "\t;" << std::endl << std::endl;
+        stream << "Roles " << std::endl;
+        for (auto &&atom : this->_atoms) {
+            stream << "\t" << atom->name << std::endl;
+        }
+        stream << "\t;" << std::endl << std::endl;
+        stream << "UA" << std::endl;
+        for (auto &&user : this->_users) {
+            for (auto &&atom : user->config()) {
+                stream << "\t<" << user->name << ", " << atom->name << ">" << std::endl;
+            }
+        }
+        stream << "\t;" << std::endl << std::endl;
+        stream << "CR" << std::endl;
+        for (auto &&cr : this->_can_revoke_rules) {
+            stream << "\t" << cr->to_arbac_string() << std::endl;
+        }
+
+        stream << "\t;" << std::endl << std::endl;
+        stream << "CA" << std::endl;
+        for (auto &&ca : this->_can_assign_rules) {
+            stream << "\t" << ca->to_arbac_string() << std::endl;
+        }
+
+        stream << "\t;" << std::endl << std::endl;
+        stream << "SPEC" << std::endl;
+        stream << "\t" << *this->goal_role << std::endl;
+        stream << "\t;" << std::endl << std::endl;
+
+        return stream.str();
+    }
+    const std::string arbac_policy::to_new_string() const {
+        std::stringstream stream;
+        stream << "/*" << std::endl;
+        stream << " * " << "Policy generated from: " << this->filename << std::endl;
+        stream << "*/" << std::endl << std::endl;
+        stream << "USERS " << std::endl;
+        for (auto &&user : this->_users) {
+            stream << "\t" << user->name << std::endl;
+        }
+        stream << "\t;" << std::endl << std::endl;
+        stream << "ATTRIBUTES " << std::endl;
+        for (auto &&atom : this->_atoms) {
+            stream << "\t" << atom->name << "[1]" << std::endl;
+        }
+        stream << "\t;" << std::endl << std::endl;
+        stream << "INIT" << std::endl;
+        for (auto &&user : this->_users) {
+            for (auto &&atom : user->config()) {
+                stream << "\t<" << user->name << ": " << atom->name << "=1>" << std::endl;
+            }
+        }
+        stream << "\t;" << std::endl << std::endl;
+        stream << "RULES" << std::endl;
+        for (auto &&cr : this->_can_revoke_rules) {
+            stream << "\t" << cr->to_new_string() << std::endl;
+        }
+
+        stream << std::endl;
+
+        for (auto &&ca : this->_can_assign_rules) {
+            stream << "\t" << ca->to_new_string() << std::endl;
+        }
+
+        stream << "\t;" << std::endl << std::endl;
+        stream << "QUERY" << std::endl;
+        stream << "\t" << "__any__." << *this->goal_role << "=1" << std::endl;
         stream << "\t;" << std::endl << std::endl;
 
         return stream.str();
