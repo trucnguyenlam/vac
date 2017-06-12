@@ -12,13 +12,6 @@
 
 namespace SMT {
 
-    template <typename T, typename TCmp>
-    std::set<T, TCmp> setUnion(const std::set<T, TCmp>& a, const std::set<T, TCmp>& b) {
-        std::set<T, TCmp> result = a;
-        result.insert(b.begin(), b.end());
-        return result;
-    }
-
 /*DEFS*/
     constexpr char Defs::line_end[];
     constexpr char Defs::and_op[];
@@ -61,63 +54,63 @@ namespace SMT {
 
 /*EXPR OPS*/
     Exprv::Exprv(ExprType ty, std::set<Literalw, std::owner_less<Literalw>> literals) : type(ty), _literals(literals) { }
-    
-//    bool Exprv::containsLiteral(std::string full_name) {
-//        for (auto ite = _literals.begin(); ite != _literals.end(); ++ite) {
-//            if ((*ite)->fullName() == full_name)
-//                return true;
-//        }
-//        return false;
-//    }
-//    bool Exprv::containsLiteral(Literalp lit) {
-//        return this->_literals.count(lit) > 0;
-//    }
-//    void Exprv::setSuffix(std::string suffix) {
-//        auto lits = this->literals();
-//        for (std::set<Literalp>::iterator ite = lits.begin(); ite != lits.end(); ++ite) {
-//            Literalp lit = *ite;
-//            lit->setSuffix(suffix);
-//        }
-//    }
-//    void Exprv::setSuffix(int idx) {
-//        this->setSuffix(std::to_string(idx));
-//    }
-//    void Exprv::resetSuffix() {
-//        auto lits = this->literals();
-//        for (std::set<Literalp>::iterator ite = lits.begin(); ite != lits.end(); ++ite) {
-//            Literalp lit = *ite;
-//            lit->resetSuffix();
-//        }
-//    }
-//
-//    void Exprv::setLiteralValue(Literalp lit, Expr value) {
-//        lit->setValue(value);
-//    }
-//
-//    void Exprv::setLiteralValue(std::string lit_name, Expr value) {
-//        auto lits = this->literals();
-//        for (std::set<Literalp>::iterator ite = lits.begin(); ite != lits.end(); ++ite) {
-//            Literalp lit = *ite;
-//            if (lit->name == lit_name) {
-//                lit->setValue(value);
-//            }
-//        }
-//    }
-//    void Exprv::resetValue(std::string lit_name) {
-//        auto lits = this->literals();
-//        for (std::set<Literalp>::iterator ite = lits.begin(); ite != lits.end(); ++ite) {
-//            Literalp lit = *ite;
-//            if (lit_name == "" || lit_name == lit->name) {
-//                lit->resetValue();
-//            }
-//        }
-//    }
+    /*
+     * bool Exprv::containsLiteral(std::string full_name) {
+        for (auto ite = _literals.begin(); ite != _literals.end(); ++ite) {
+            if ((*ite)->fullName() == full_name)
+                return true;
+        }
+        return false;
+    }
+    bool Exprv::containsLiteral(Literalp lit) {
+        return this->_literals.count(lit) > 0;
+    }
+    void Exprv::setSuffix(std::string suffix) {
+        auto lits = this->literals();
+        for (std::set<Literalp>::iterator ite = lits.begin(); ite != lits.end(); ++ite) {
+            Literalp lit = *ite;
+            lit->setSuffix(suffix);
+        }
+    }
+    void Exprv::setSuffix(int idx) {
+        this->setSuffix(std::to_string(idx));
+    }
+    void Exprv::resetSuffix() {
+        auto lits = this->literals();
+        for (std::set<Literalp>::iterator ite = lits.begin(); ite != lits.end(); ++ite) {
+            Literalp lit = *ite;
+            lit->resetSuffix();
+        }
+    }
+
+    void Exprv::setLiteralValue(Literalp lit, Expr value) {
+        lit->setValue(value);
+    }
+
+    void Exprv::setLiteralValue(std::string lit_name, Expr value) {
+        auto lits = this->literals();
+        for (std::set<Literalp>::iterator ite = lits.begin(); ite != lits.end(); ++ite) {
+            Literalp lit = *ite;
+            if (lit->name == lit_name) {
+                lit->setValue(value);
+            }
+        }
+    }
+    void Exprv::resetValue(std::string lit_name) {
+        auto lits = this->literals();
+        for (std::set<Literalp>::iterator ite = lits.begin(); ite != lits.end(); ++ite) {
+            Literalp lit = *ite;
+            if (lit_name == "" || lit_name == lit->name) {
+                lit->resetValue();
+            }
+        }
+    }*/
 
     const std::set<Literalw, std::owner_less<Literalw>>& Exprv::literals() {
         return this->_literals;
      }
 
-    std::ostream & operator<<(std::ostream & out, Exprv const & expr) {
+    std::ostream & operator<<(std::ostream& out, Exprv const & expr) {
         out << expr.to_string();
 
         return out;
@@ -138,18 +131,19 @@ namespace SMT {
                 this->bv_size == other_lit->bv_size;
     }
 
-//    void Literal::setLiterals(Literalp &self) {
-//        this->_literals.insert(self);
-//    }
-//    void Literal::setSuffix(std::string suffix) {
-//        this->suffix = suffix;
-//    }
-//    void Literal::setSuffix(int index) {
-//        this->setSuffix(std::to_string(index));
-//    }
-//    void Literal::resetSuffix() {
-//        this->suffix = "";
-//    }
+    /*
+     * void Literal::setLiterals(Literalp &self) {
+        this->_literals.insert(self);
+    }
+    void Literal::setSuffix(std::string suffix) {
+        this->suffix = suffix;
+    }
+    void Literal::setSuffix(int index) {
+        this->setSuffix(std::to_string(index));
+    }
+    void Literal::resetSuffix() {
+        this->suffix = "";
+    }*/
     void Literal::setValue(Expr value) {
         this->value = value;
     }
@@ -199,6 +193,14 @@ namespace SMT {
         fmt << this->fullName();
         return fmt.str();
     }
+    std::string Literal::to_arbac_string() const {
+        std::stringstream fmt;
+        fmt << this->name;
+        return fmt.str();
+    }
+    std::string Literal::to_new_string(std::string& uname) const {
+        return uname + "." + this->name + "=1";
+    }
 
 /*CONSTANT OPS*/
     Constant::Constant(int _value, int _bv_size) :
@@ -213,7 +215,7 @@ namespace SMT {
         return  this->bv_size == other_lit->bv_size &&
                 this->value == other_lit->value;
     }
-    
+
     std::string Constant::to_string() const {
         if (this->bv_size == 1) {
             if (this->value) {
@@ -229,6 +231,27 @@ namespace SMT {
             fmt << ":BV[" << this->bv_size << "]";
             return fmt.str();
         }
+    }
+    std::string Constant::to_arbac_string() const {
+        if (this->bv_size == 1) {
+            if (this->value) {
+                return Defs::true_str;
+            }
+            else {
+                log->error("Could not print a false constant in ARBAC style: {}", *this);
+                throw std::runtime_error("Could not print a false constant in ARBAC style");
+            }
+        }
+        else {
+            log->error("Could not print a bitvector constant in ARBAC style: {}", *this);
+            throw std::runtime_error("Could not print a bitvector constant in ARBAC style");
+        }
+    }
+    std::string Constant::to_new_string(std::string& uname) const {
+        if (bv_size == 1) {
+            return this->value ? "1" : "0";
+        }
+        return std::to_string(value);
     }
     
 /*OR OPS*/
@@ -251,6 +274,17 @@ namespace SMT {
         fmt << "(" << lhsv << Defs::or_op << rhsv << ")";
         return fmt.str();
     }
+    std::string OrExpr::to_arbac_string() const {
+        log->error("Cannot print in ARBAC grammar OR_EXPR: {}", *this);
+        throw std::runtime_error("UNSUPPORTED ARBAC STYLE PRINT: OR_EXPR");
+    }
+    std::string OrExpr::to_new_string(std::string& uname) const {
+        std::stringstream fmt;
+        std::string lhsv = this->lhs->to_new_string(uname);
+        std::string rhsv = this->rhs->to_new_string(uname);
+        fmt << "(" << lhsv << Defs::or_op << rhsv << ")";
+        return fmt.str();
+    }
 
 /*AND OPS*/
     AndExpr::AndExpr(Expr _lhs, Expr _rhs) :
@@ -264,11 +298,25 @@ namespace SMT {
         return  this->lhs->equals(other_expr->lhs) &&
                 this->rhs->equals(other_expr->rhs);
     }
-    
+
     std::string AndExpr::to_string() const {
         std::stringstream fmt;
         std::string lhsv = this->lhs->to_string();
         std::string rhsv = this->rhs->to_string();
+        fmt << "(" << lhsv << Defs::and_op << rhsv << ")";
+        return fmt.str();
+    }
+    std::string AndExpr::to_arbac_string() const {
+        std::stringstream fmt;
+        std::string lhsv = this->lhs->to_arbac_string();
+        std::string rhsv = this->rhs->to_arbac_string();
+        fmt << lhsv << Defs::and_op << rhsv;
+        return fmt.str();
+    }
+    std::string AndExpr::to_new_string(std::string& uname) const {
+        std::stringstream fmt;
+        std::string lhsv = this->lhs->to_new_string(uname);
+        std::string rhsv = this->rhs->to_new_string(uname);
         fmt << "(" << lhsv << Defs::and_op << rhsv << ")";
         return fmt.str();
     }
@@ -293,6 +341,23 @@ namespace SMT {
         fmt << "(" << lhsv << Defs::eq_op << rhsv << ")";
         return fmt.str();
     }
+    std::string EqExpr::to_arbac_string() const {
+        log->error("Cannot print in ARBAC grammar EQ_EXPR: {}", *this);
+        throw std::runtime_error("UNSUPPORTED ARBAC STYLE PRINT: EQ_EXPR");
+    }
+    std::string EqExpr::to_new_string(std::string& uname) const {
+        std::stringstream fmt;
+        std::string slhsv = lhs->type == LITERAL ? uname + "." + (std::dynamic_pointer_cast<Literal>(lhs))->name : lhs->to_new_string(uname);
+        std::string srhsv = rhs->type == LITERAL ? uname + "." + (std::dynamic_pointer_cast<Literal>(rhs))->name : rhs->to_new_string(uname);
+        if ((lhs->type == LITERAL && rhs->type == CONSTANT) ||
+            (lhs->type == CONSTANT && rhs->type == LITERAL)) {
+            fmt << slhsv << Defs::eq_op << srhsv;
+        }
+        else {
+            fmt << "(" << slhsv << Defs::eq_op << srhsv << ")";
+        }
+        return fmt.str();
+    }
 
 /*IMPLICATION OPS*/
     ImplExpr::ImplExpr(Expr _lhs, Expr _rhs) :
@@ -311,6 +376,17 @@ namespace SMT {
         std::stringstream fmt;
         std::string lhsv = this->lhs->to_string();
         std::string rhsv = this->rhs->to_string();
+        fmt << "(" << lhsv << Defs::impl_op << rhsv << ")";
+        return fmt.str();
+    }
+    std::string ImplExpr::to_arbac_string() const {
+        log->error("Cannot print in ARBAC grammar IMPL_EXPR: {}", *this);
+        throw std::runtime_error("UNSUPPORTED ARBAC STYLE PRINT: IMPL_EXPR");
+    }
+    std::string ImplExpr::to_new_string(std::string& uname) const {
+        std::stringstream fmt;
+        std::string lhsv = this->lhs->to_new_string(uname);
+        std::string rhsv = this->rhs->to_new_string(uname);
         fmt << "(" << lhsv << Defs::impl_op << rhsv << ")";
         return fmt.str();
     }
@@ -333,6 +409,17 @@ namespace SMT {
         fmt << Defs::not_op << "(" << exprv << ")";
         return fmt.str();
     }
+    std::string NotExpr::to_arbac_string() const {
+        std::stringstream fmt;
+        fmt << "-" << expr->to_arbac_string();
+        return fmt.str();
+    }
+    std::string NotExpr::to_new_string(std::string& uname) const {
+        std::stringstream fmt;
+        std::string sexpr = this->expr->to_new_string(uname);
+        fmt << Defs::not_op << "(" << sexpr << ")";
+        return fmt.str();
+    }
 
 /*COND OPS*/
     CondExpr::CondExpr(Expr _cond, Expr _choice1, Expr _choice2) :
@@ -348,7 +435,7 @@ namespace SMT {
                 this->choice1->equals(other_expr->choice1) &&
                 this->choice2->equals(other_expr->choice2);
     }
-    
+
     std::string CondExpr::to_string() const {
         std::stringstream fmt;
         std::string cond = this->cond->to_string();
@@ -357,235 +444,233 @@ namespace SMT {
         fmt << "((" << cond << ") ? (" << ch1 << ") : (" << ch2 << "))";
         return fmt.str();
     }
+    std::string CondExpr::to_arbac_string() const {
+        log->error("Cannot print in ARBAC grammar COND_EXPR: {}", *this);
+        throw std::runtime_error("UNSUPPORTED ARBAC STYLE PRINT: COND_EXPR");
+    }
+    std::string CondExpr::to_new_string(std::string &uname) const {
+        std::stringstream fmt;
+        std::string cond = this->cond->to_new_string(uname);
+        std::string ch1 = this->choice1->to_new_string(uname);
+        std::string ch2 = this->choice2->to_new_string(uname);
+        fmt << "((" << cond << ") ? (" << ch1 << ") : (" << ch2 << "))";
+        return fmt.str();
+    }
 
-/*SIMPLIFICATION OPS COMMENTED */
-    // Simplifier::Simplifier(SimplLevel _level) : level(_level) { }
+/*SIMPLIFICATION OPS */
+    Simplifier::Simplifier(SimplLevel _level) : level(_level) { }
 
-    // void Simplifier::simplifyStmt(Stmt stmt) {
-    //     switch (stmt->type) {
-    //         case Stmtv::ASSERT:
-    //             this->simplifyAssertion(std::dynamic_pointer_cast<Assertion>(stmt));
-    //             break; 
-    //         case Stmtv::ASSUME:
-    //             this->simplifyAssumption(std::dynamic_pointer_cast<Assumption>(stmt));
-    //             break;
-    //         case Stmtv::ASSIGNMENT:
-    //             this->simplifyAssignment(std::dynamic_pointer_cast<Assignment>(stmt));
-    //             break;
-    //         case Stmtv::COMMENT: 
-    //             break;
-    //         case Stmtv::OUTPUT: 
-    //             break;        
-    //     }
-    // }
+    Expr Simplifier::simplifyExpr(Expr expr) const {
+         switch (expr->type) {
+             case Exprv::LITERAL:
+                 return simplifyLiteral(std::dynamic_pointer_cast<Literal>(expr));
+             case Exprv::CONSTANT:
+                 // CAN BE REMOVED SINCE IS ID
+                 return simplifyConstant(std::dynamic_pointer_cast<Constant>(expr));
+             case Exprv::OR_EXPR:
+                 return simplifyOrExpr(std::dynamic_pointer_cast<OrExpr>(expr));
+             case Exprv::AND_EXPR:
+                 return simplifyAndExpr(std::dynamic_pointer_cast<AndExpr>(expr));
+             case Exprv::EQ_EXPR:
+                 return simplifyEqExpr(std::dynamic_pointer_cast<EqExpr>(expr));
+             case Exprv::IMPL_EXPR:
+                 return simplifyImplExpr(std::dynamic_pointer_cast<ImplExpr>(expr));
+             case Exprv::NOT_EXPR:
+                 return simplifyNotExpr(std::dynamic_pointer_cast<NotExpr>(expr));
+             case Exprv::COND_EXPR:
+                 return simplifyCondExpr(std::dynamic_pointer_cast<CondExpr>(expr));
+             default:
+                 throw std::runtime_error("Unknown expression to simplify...");
+         }
+         // return expr;
+     }
 
-    // Expr Simplifier::simplifyExpr(Expr expr) {
-    //     switch (expr->type) {
-    //         case Exprv::CONSTANT:
-    //             // CAN REMOVED SINCE IS ID
-    //             return simplifyConstant(std::dynamic_pointer_cast<Constant>(expr));
-    //         case Exprv::VARIABLE:
-    //             return simplifyVariable(std::dynamic_pointer_cast<Variable>(expr));
-    //         case Exprv::EQ_EXPR:
-    //             return simplifyEqExpr(std::dynamic_pointer_cast<EqExpr>(expr));
-    //         case Exprv::NOT_EXPR:
-    //             return simplifyNotExpr(std::dynamic_pointer_cast<NotExpr>(expr));
-    //         case Exprv::OR_EXPR:
-    //             return simplifyOrExpr(std::dynamic_pointer_cast<OrExpr>(expr));
-    //         case Exprv::AND_EXPR:
-    //             return simplifyAndExpr(std::dynamic_pointer_cast<AndExpr>(expr));
-    //         case Exprv::COND_EXPR:
-    //             return simplifyCondExpr(std::dynamic_pointer_cast<CondExpr>(expr));
-    //         case Exprv::NONDET_EXPR:
-    //             return expr;
-    //         default:
-    //             break;
-    //     }
-    //     // return expr;
-    // }
+    Expr Simplifier::simplifyLiteral(std::shared_ptr<Literal> lit) const {
+     if (level == Simplifier::INLINE_KNOWN) {
+         return lit->get_value();
+     }
+     return lit;
+    }
+    Expr Simplifier::simplifyConstant(std::shared_ptr<Constant> expr) const {
+     //TODO: could be removed
+     return expr;
+    }
+    Expr Simplifier::simplifyOrExpr(std::shared_ptr<OrExpr> or_expr) const {
+     Expr nlhs, nrhs;
+     nlhs = simplifyExpr(or_expr->lhs);
+     if (nlhs->type == Exprv::CONSTANT) {
+         auto lv = (std::dynamic_pointer_cast<Constant>(nlhs));
+         if (lv->bv_size > 1) {
+             log->error("Cannot simplify something of the form (bitvector_literal || e): ({} {} {})", *nlhs, Defs::or_op, *or_expr->rhs);
+             throw std::runtime_error("Cannot simplify something of the form (bitvector_literal || e)");
+         }
 
-    // int Simplifier::canInline(Expr expr) {
-    //     switch (this->level) {
-    //         //WARNING: Switch without break to fall in previous cases
-    //         case ALL:
-    //             return true;
-    //         case EQUALITY:
-    //             if (expr->type == Exprv::EQ_EXPR) {
-    //                 return true;
-    //             }
-    //         case LBIN_OPS:
-    //             if (expr->type == Exprv::OR_EXPR || expr->type == Exprv::AND_EXPR) {
-    //                 return true;
-    //             }
-    //         case UN_OPS:
-    //             if (expr->type == Exprv::NOT_EXPR) {
-    //                 return true;
-    //             }
-    //         case CONST_VARS:
-    //             if (expr->type == Exprv::CONSTANT || expr->type == Exprv::VARIABLE) {
-    //                 return true;
-    //             }
-    //         case NOTHING:
-    //             return false;
-    //     }
-    //     return false;
-    // }
-    // void Simplifier::simplifyAssignment(shared_ptr<Assignment> assignment) {
-    //     //TODO: put here redundancy after simplification check
-    //     Expr nval = this->simplifyExpr(assignment->variable->value);
+         if (is_constant_true(nlhs)) {
+             return nlhs;
+         }
+         else {
+             return simplifyExpr(or_expr->rhs);
+         }
+     }
+     nrhs = simplifyExpr(or_expr->rhs);
+     if (nrhs->type == Exprv::CONSTANT) {
+         auto rv = (std::dynamic_pointer_cast<Constant>(nrhs));
+         if (rv->bv_size > 1) {
+             log->error("Cannot simplify something of the form (e || bitvector_literal): ({} {} {})", *nlhs, Defs::or_op, *nlhs);
+             throw std::runtime_error("Cannot simplify something of the form (e || bitvector_literal)");
+         }
+         if (is_constant_true(nrhs)) {
+             return nrhs;
+         }
+         else {
+             return nlhs;
+         }
+     }
+     return createOrExpr(nlhs, nrhs);
+    }
+    Expr Simplifier::simplifyAndExpr(std::shared_ptr<AndExpr> and_expr) const {
+     Expr nlhs, nrhs;
+     nlhs = simplifyExpr(and_expr->lhs);
+     if (nlhs->type == Exprv::CONSTANT) {
+         auto lv = (std::dynamic_pointer_cast<Constant>(nlhs));
+         if (lv->bv_size > 1) {
+             log->error("Cannot simplify something of the form (bitvector_literal && e): ({} {} {})", *nlhs, Defs::and_op, *and_expr->rhs);
+             throw std::runtime_error("Cannot simplify something of the form (bitvector_literal && e)");
+         }
+         if (is_constant_false(nlhs)) {
+             return nlhs;
+         }
+         else {
+             return simplifyExpr(and_expr->rhs);
+         }
+     }
+     nrhs = simplifyExpr(and_expr->rhs);
+     if (nrhs->type == Exprv::CONSTANT) {
+         auto rv = (std::dynamic_pointer_cast<Constant>(nrhs));
+         if (rv->bv_size > 1) {
+             log->error("Cannot simplify something of the form (e && bitvector_literal): ({} {} {})", *nlhs, Defs::and_op, *nrhs);
+             throw std::runtime_error("Cannot simplify something of the form (bitvector_literal && e)");
+         }
+         if (is_constant_false(nrhs)) {
+             return nrhs;
+         }
+         else {
+             return nlhs;
+         }
+     }
+     return createAndExpr(nlhs, nrhs);
+    }
+    Expr Simplifier::simplifyEqExpr(std::shared_ptr<EqExpr> expr) const {
+         //TODO: COULD BE IMPROVED
+         Expr nlhs = simplifyExpr(expr->lhs);
+         Expr nrhs = simplifyExpr(expr->rhs);
 
-    //     assignment->value = nval;
-    //     assignment->variable->value = nval;
-    //     assignment->variable->_inline = assignment->variable->_inline && canInline(nval);
+//         if (nlhs->equals(nrhs)) {
+         if (nlhs == nrhs) {
+             return createConstantExpr(1, 1);
+         }
 
-    // }
-    // void Simplifier::simplifyAssertion(shared_ptr<Assertion> assertion) {
-    //     //TODO: put here redundancy after simplification check
-    //     Expr nval = this->simplifyExpr(assertion->assertion);
-    //     assertion->assertion = nval;
-    // }
-    // void Simplifier::simplifyAssumption(shared_ptr<Assumption> assumption) {
-    //     //TODO: put here redundancy after simplification check
-    //     Expr nval = this->simplifyExpr(assumption->assumption);
-    //     assumption->assumption = nval;
-    // }
+         if (nlhs->type == Exprv::CONSTANT && nrhs->type == Exprv::CONSTANT) {
+             std::shared_ptr<Constant> nl = std::dynamic_pointer_cast<Constant>(nlhs);
+             std::shared_ptr<Constant> nr = std::dynamic_pointer_cast<Constant>(nrhs);
+             return createConstantExpr(nl->value == nr->value, 1);
+         }
 
-    // Expr Simplifier::simplifyVariable(shared_ptr<Variable> var) {
-    //     if (!var->_inline) {
-    //         return var;
-    //     }
-    //     Expr res = var->value;
-    //     while (res->type == Exprv::VARIABLE && std::dynamic_pointer_cast<Variable>(res)->_inline) {
-    //         res = std::dynamic_pointer_cast<Variable>(res)->value;
-    //     }
-    //     return res;
-    // }
-    // Expr Simplifier::simplifyConstant(shared_ptr<Constant> expr) {
-    //     //TODO: could be removed
-    //     return expr;
-    // }
-    // Expr Simplifier::simplifyOrExpr(shared_ptr<OrExpr> or_expr) {
-    //     Expr nlhs, nrhs;
-    //     nlhs = simplifyExpr(or_expr->lhs);
-    //     if (nlhs->type == Exprv::CONSTANT) {
-    //         int v = (std::dynamic_pointer_cast<Constant>(nlhs))->value;
-    //         if (v) {
-    //             return nlhs;
-    //         }
-    //         else {
-    //             return simplifyExpr(or_expr->rhs);
-    //         }
-    //     }
-    //     nrhs = simplifyExpr(or_expr->rhs);
-    //     if (nrhs->type == Exprv::CONSTANT) {
-    //         if ((std::dynamic_pointer_cast<Constant>(nrhs))->value) {
-    //             return std::dynamic_pointer_cast<Constant>(nrhs);
-    //         }
-    //         else {
-    //             return nlhs;            
-    //         }
-    //     }
-    //     return createOrExpr(nlhs, nrhs);
-    // }
-    // Expr Simplifier::simplifyAndExpr(shared_ptr<AndExpr> and_expr) {
-    //     Expr nlhs, nrhs;
-    //     nlhs = simplifyExpr(and_expr->lhs);
-    //     if (nlhs->type == Exprv::CONSTANT) {
-    //         int v = std::dynamic_pointer_cast<Constant>(nlhs)->value;
-    //         if (!v) {
-    //             return nlhs;
-    //         }
-    //         else {
-    //             return simplifyExpr(and_expr->rhs);
-    //         }
-    //     }
-    //     nrhs = simplifyExpr(and_expr->rhs);
-    //     if (nrhs->type == Exprv::CONSTANT) {
-    //         if (!(std::dynamic_pointer_cast<Constant>(nrhs)->value)) {
-    //             return nrhs;
-    //         }
-    //         else {
-    //             return nlhs;
-    //         }
-    //     }
-    //     return createAndExpr(nlhs, nrhs);
-    // }
-    // Expr Simplifier::simplifyEqExpr(shared_ptr<EqExpr> expr) {
-    //     //TODO: COULD BE IMPROVED
-    //     Expr nlhs = simplifyExpr(expr->lhs);
-    //     Expr nrhs = simplifyExpr(expr->rhs);
-
-    //     if (nlhs == nrhs) {
-    //         return createConstantExpr(1, 1);
-    //     }
-
-    //     if (nlhs->type == Exprv::CONSTANT && nrhs->type == Exprv::CONSTANT) {
-    //         std::shared_ptr<Constant> nl = std::dynamic_pointer_cast<Constant>(nlhs);
-    //         std::shared_ptr<Constant> nr = std::dynamic_pointer_cast<Constant>(nrhs);
-    //         return createConstantExpr(nl->value == nr->value, 1);
-    //     }
-
-    //     return createEqExpr(nlhs, nrhs);
+         return createEqExpr(nlhs, nrhs);
             
-    // }
-    // Expr Simplifier::simplifyNotExpr(shared_ptr<NotExpr> not_expr) {
-    //     Expr nexpr = simplifyExpr(not_expr->expr);
-    //     if (nexpr->type == Exprv::CONSTANT) {
-    //         return createConstantExpr(!(std::dynamic_pointer_cast<Constant>(nexpr))->value, 1);
-    //     }
-    //     if (nexpr->type == Exprv::NOT_EXPR) {
-    //         return std::dynamic_pointer_cast<NotExpr>(nexpr)->expr;
-    //     }
-    //     return createNotExpr(nexpr);
-    // }
-    // Expr Simplifier::simplifyCondExpr(shared_ptr<CondExpr> cond_expr) {
-    //     Expr ncond = simplifyExpr(cond_expr->cond);
-    //     // If condition is true or false return the selected branch simplified...
-    //     if (ncond->type == Exprv::CONSTANT) {
-    //         if ((std::dynamic_pointer_cast<Constant>(ncond))->value) {
-    //             return simplifyExpr(cond_expr->choice1);
-    //         }
-    //         else {
-    //             return simplifyExpr(cond_expr->choice2);
-    //         }
-    //     }
+     }
+    Expr Simplifier::simplifyImplExpr(std::shared_ptr<ImplExpr> impl_expr) const {
+        Expr nlhs, nrhs;
+        nlhs = simplifyExpr(impl_expr->lhs);
+        if (nlhs->type == Exprv::CONSTANT) {
+            auto lv = (std::dynamic_pointer_cast<Constant>(nlhs));
+            if (lv->bv_size > 1) {
+                log->error("Cannot simplify something of the form (bitvector_literal ==> e): ({} {} {})", *nlhs, Defs::impl_op, *impl_expr->rhs);
+                throw std::runtime_error("Cannot simplify something of the form (bitvector_literal ==> e)");
+            }
+            if (is_constant_false(nlhs)) {
+                return createConstantTrue();
+            }
+            else {
+                return simplifyExpr(impl_expr->rhs);
+            }
+        }
+        nrhs = simplifyExpr(impl_expr->rhs);
+        if (nrhs->type == Exprv::CONSTANT) {
+            auto rv = (std::dynamic_pointer_cast<Constant>(nrhs));
+            if (rv->bv_size > 1) {
+                log->error("Cannot simplify something of the form (e ==> bitvector_literal): ({} {} {})", *nlhs, Defs::impl_op, *nrhs);
+                throw std::runtime_error("Cannot simplify something of the form (bitvector_literal ==> e)");
+            }
+            if (is_constant_true(nrhs)) {
+                return createConstantTrue();
+            }
+            else {
+                return createNotExpr(nlhs);
+            }
+        }
+        return createImplExpr(nlhs, nrhs);
+    }
+    Expr Simplifier::simplifyNotExpr(std::shared_ptr<NotExpr> not_expr) const {
+         Expr nexpr = simplifyExpr(not_expr->expr);
+         if (nexpr->type == Exprv::CONSTANT) {
+             auto v = std::dynamic_pointer_cast<Constant>(nexpr);
+             if (v->bv_size > 1) {
+                 log->error("Cannot simplify something of the form (! bitvector_literal): ({} {})", Defs::not_op, *v);
+                 throw std::runtime_error("Cannot simplify something of the form (!bitvector_literal)");
+             }
+             return createConstantExpr(!(std::dynamic_pointer_cast<Constant>(nexpr))->value, 1);
+         }
+         if (nexpr->type == Exprv::NOT_EXPR) {
+             return std::dynamic_pointer_cast<NotExpr>(nexpr)->expr;
+         }
+         return createNotExpr(nexpr);
+     }
+    Expr Simplifier::simplifyCondExpr(std::shared_ptr<CondExpr> cond_expr) const {
+         Expr ncond = simplifyExpr(cond_expr->cond);
+         // If condition is true or false return the selected branch simplified...
+         if (ncond->type == Exprv::CONSTANT) {
+             auto nv = std::dynamic_pointer_cast<Constant>(ncond);
+             if (nv->bv_size > 1) {
+                 log->error("Cannot simplify something of the form (bitvector_literal ? e : e): ({} ? {} : {})", *nv, cond_expr->choice1, cond_expr->choice2);
+                 throw std::runtime_error("Cannot simplify something of the form (bitvector_literal ? e : e)");
+             }
+             if (is_constant_true(ncond)) {
+                 return simplifyExpr(cond_expr->choice1);
+             }
+             else {
+                 return simplifyExpr(cond_expr->choice2);
+             }
+         }
 
-    //     Expr nch1 = simplifyExpr(cond_expr->choice1);
-    //     Expr nch2 = simplifyExpr(cond_expr->choice2);
-    //     // If simplified branches are equals simplify removing conditional expression and return it
-    //     if (nch1 == nch2) {
-    //         //TODO: Reference comparison!?!
-    //         return nch1;
-    //     }
+         Expr nch1 = simplifyExpr(cond_expr->choice1);
+         Expr nch2 = simplifyExpr(cond_expr->choice2);
+         // If simplified branches are equals simplify removing conditional expression and return it
+//         if (nch1->equals(nch2)) {
+         if (nch1 == nch2) {
+             return nch1;
+         }
 
-    //     // If branches are 1, 0 or 0, 1 replace conditional expression with guard or negation of it respectively
-    //     if (nch1->type == Exprv::CONSTANT && nch2->type == Exprv::CONSTANT) {
-    //         std::shared_ptr<Constant> nc2 = std::dynamic_pointer_cast<Constant>(nch2);
-    //         std::shared_ptr<Constant> nc1 = std::dynamic_pointer_cast<Constant>(nch1);
-    //         if (nc1->value == 0 && nc2->value == 1) {
-    //             return createNotExpr(ncond);
-    //         }
-    //         if (nc1->value == 1 && nc2->value == 0) {
-    //             return ncond;
-    //         }
-    //     }
-    //     // Otherwise return the simplified conditional expression.
-    //     return createCondExpr(ncond, nch1, nch2);
-    // }
-    // // Expr Simplifier::simplifyNondetExpr(shared_ptr<NondetExpr> nondet_expr) {
-    // //     return nondet_expr;
-    // // }
+         // If branches are 1, 0 or 0, 1 replace conditional expression with guard or negation of it respectively
+         if (nch1->type == Exprv::CONSTANT && nch2->type == Exprv::CONSTANT) {
+             std::shared_ptr<Constant> nc2 = std::dynamic_pointer_cast<Constant>(nch2);
+             std::shared_ptr<Constant> nc1 = std::dynamic_pointer_cast<Constant>(nch1);
+             if (nc1->value == 0 && nc2->value == 1) {
+                 return createNotExpr(ncond);
+             }
+             if (nc1->value == 1 && nc2->value == 0) {
+                 return ncond;
+             }
+         }
+         // Otherwise return the simplified conditional expression.
+         return createCondExpr(ncond, nch1, nch2);
+     }
 
-
-/*OTHER OPS*/
+/*EXPR CREATION AND CHECK OPS*/
     Literalp createLiteralp(const std::string name, int role_array_index, int bv_size, Expr value) {
         std::shared_ptr<Literal> res(new Literal(name, role_array_index, bv_size, value));
         return res;
     }
-
-//    Expr createLiteralExpr(const std::string name, int role_array_index, int bv_size, Expr value) {
-//        return std::shared_ptr<Exprv>(new Literal(name, role_array_index, bv_size, value));
-//    }
     Expr createConstantExpr(int value, int bv_size) {
         return std::shared_ptr<Exprv>(new Constant(value, bv_size));
     }
@@ -637,6 +722,7 @@ namespace SMT {
         }
     }
 
+/*Other operations on Expressions: normalization and atom removal*/
     Expr normalize_expr(Expr expr) {
         switch (expr->type) {
             case Exprv::CONSTANT: {
@@ -711,6 +797,27 @@ namespace SMT {
         fprintf(stderr, "Cannot translate expression to SMT:\n    %s\n", expr->to_string().c_str());
     }
 
+    bool is_lit_const_eq(const std::shared_ptr<EqExpr>& eq_expr) {
+        return (eq_expr->lhs->type == Exprv::LITERAL && eq_expr->rhs->type == Exprv::CONSTANT) ||
+               (eq_expr->lhs->type == Exprv::CONSTANT && eq_expr->rhs->type == Exprv::LITERAL);
+    }
+    std::pair<Literalp, std::shared_ptr<Constant>> eq_to_lit_const(const std::shared_ptr<EqExpr>& eq_expr) {
+        if (!is_lit_const_eq(eq_expr)) {
+            log->error("Cannot extract literal and constant from a formula not of the (lit = const) form: {}", *eq_expr);
+            throw std::runtime_error("Cannot extract literal and constant from a formula not of the (lit = const) form: " + eq_expr->to_string());
+        }
+        Literalp r1;
+        std::shared_ptr<Constant> r2;
+
+        if (eq_expr->lhs->type == Exprv::LITERAL) {
+            r1 = std::dynamic_pointer_cast<Literal>(eq_expr->lhs);
+            r2 = std::dynamic_pointer_cast<Constant>(eq_expr->rhs);
+        } else {
+            r2 = std::dynamic_pointer_cast<Constant>(eq_expr->lhs);
+            r1 = std::dynamic_pointer_cast<Literal>(eq_expr->rhs);
+        }
+        return std::pair<Literalp, std::shared_ptr<Constant>>(r1, r2);
+    }
 
     Expr delete_atom(Expr expr, Literalp lit) {
         switch (expr->type) {
@@ -750,10 +857,27 @@ namespace SMT {
                         else {
                             return expr;
                         }
+                    case Exprv::EQ_EXPR: {
+                        std::shared_ptr<EqExpr> inner_eq = std::dynamic_pointer_cast<EqExpr>(inner);
+                        if (is_lit_const_eq(inner_eq)) {
+                            auto pair = eq_to_lit_const(inner_eq);
+                            if (pair.first == lit) {
+                                return createConstantTrue();
+                            } else {
+                                return expr;
+                            }
+                        }
+                        else {
+                            log->error("NOT expression MUST be located close to atoms (LITERAL, CONSTANT or EQ_EXPR)");
+                            log->error("\tExpr is {}", expr->to_string());
+                            throw std::runtime_error("NOT expression MUST be located close to atoms (LITERAL, CONSTANT or EQ_EXPR)");
+                        }
+                        break;
+                    }
                     default:
-                        log->error("NOT expression MUST be located close to atoms (LITERAL or CONSTANT)");
+                        log->error("NOT expression MUST be located close to atoms (LITERAL, CONSTANT or EQ_EXPR)");
                         log->error("\tExpr is {}", expr->to_string());
-                        throw std::runtime_error("NOT expression MUST be located close to atoms (LITERAL or CONSTANT)");
+                        throw std::runtime_error("NOT expression MUST be located close to atoms (LITERAL, CONSTANT or EQ_EXPR)");
                         return nullptr;
                 }
             }
@@ -772,18 +896,9 @@ namespace SMT {
 //            }
             case Exprv::EQ_EXPR: {
                 std::shared_ptr<EqExpr> eq_expr = std::dynamic_pointer_cast<EqExpr>(expr);
-                Expr lhs = eq_expr->lhs;
-                Expr rhs = eq_expr->rhs;
-                if (lhs->type == Exprv::LITERAL && rhs->type == Exprv::CONSTANT) {
-                    if (lhs == lit) {
-                        return createConstantTrue();
-                    }
-                    else {
-                        return expr;
-                    }
-                }
-                else if (lhs->type == Exprv::CONSTANT && rhs->type == Exprv::LITERAL) {
-                    if (rhs == lit) {
+                if (is_lit_const_eq(eq_expr)) {
+                    auto lit_cons = eq_to_lit_const(eq_expr);
+                    if (lit_cons.first == lit) {
                         return createConstantTrue();
                     }
                     else {
@@ -807,94 +922,28 @@ namespace SMT {
         fprintf(stderr, "Cannot translate expression to SMT:\n    %s\n", expr->to_string().c_str());
     }
 
-    // Variable* createConstVar(const char* var_name, int occ, int value) {
-    //     Expr var_e = createVariable(var_name, occ, 0, NULL);
-    //     Variable* var = (Variable*)var_e->value;
-    //     Stmt res = createAssignment(var, createConstant(value));
-    //     free(var_e);
-    //     return res;
-    // }
-    
-    // Stmt createAssign(const char* var_name, int occ, Expr value) {
-    //     Expr var_e = createVariable(var_name, occ, 0, NULL);
-    //     Variable* var = (Variable*)var_e->value;
-    //     Stmt res = createAssignment(var, value);
-    //     free(var_e);
-    //     return res;
-    // }
-/*TRANSLATION FUNCTION*/
-    // template <typename TVar, typename TExpr>
-    // TExpr generateSMTFunction(std::shared_ptr<SMTFactory<TVar, TExpr>> solver, Expr expr, std::map<std::string, TVar> var_map, std::string suffix) {
-    //     switch (expr->type) {
-    //         case Exprv::CONSTANT: {
-    //             std::shared_ptr<Constant> c = std::dynamic_pointer_cast<Constant>(expr);
-    //             if (c->bv_size == 1) {
-    //                 return solver->createBoolConst(c->value);
-    //             }
-    //             else {
-    //                 return solver->createBVConst(c->value, c->bv_size);
-    //             } 
-    //         }
-    //         case Exprv::LITERAL: {
-    //             Literalp lit = std::dynamic_pointer_cast<Literal>(expr);
-    //             if (lit->value == nullptr) {
-    //                 std::string name = lit->nameWithSuffix(suffix);
-    //                 if(var_map.find(name) != var_map.end()) {
-    //                     return var_map[name];
-    //                 }
-    //                 else {
-    //                     TVar var = solver->createVar2(name, lit->bv_size);
-    //                     var_map[name] = var;
-    //                     // printf("%s not found. Creating it: %d\n", name.c_str(), var);
-    //                     return var;
-    //                 }
-    //             }
-    //             else {
-    //                 return generateSMTFunction(solver, lit->value, var_map, suffix);
-    //             }
-                
-    //         }
-    //         case Exprv::AND_EXPR: {
-    //             std::shared_ptr<AndExpr> andExpr = std::dynamic_pointer_cast<AndExpr>(expr);
-    //             TExpr slhs = generateSMTFunction(solver, andExpr->lhs, var_map, suffix);
-    //             TExpr srhs = generateSMTFunction(solver, andExpr->rhs, var_map, suffix);
-    //             return solver->createAndExpr(slhs, srhs);
-    //         }
-    //         case Exprv::OR_EXPR: {
-    //             std::shared_ptr<OrExpr> orExpr = std::dynamic_pointer_cast<OrExpr>(expr);
-    //             TExpr slhs = generateSMTFunction(solver, orExpr->lhs, var_map, suffix);
-    //             TExpr srhs = generateSMTFunction(solver, orExpr->rhs, var_map, suffix);
-    //             return solver->createOrExpr(slhs, srhs);
-    //         }
-    //         case Exprv::IMPL_EXPR: {
-    //             std::shared_ptr<ImplExpr> implExpr = std::dynamic_pointer_cast<ImplExpr>(expr);
-    //             TExpr slhs = generateSMTFunction(solver, implExpr->lhs, var_map, suffix);
-    //             TExpr srhs = generateSMTFunction(solver, implExpr->rhs, var_map, suffix);
-    //             return solver->createImplExpr(slhs, srhs);
-    //         }
-    //         case Exprv::COND_EXPR: {
-    //             std::shared_ptr<CondExpr> condExpr = std::dynamic_pointer_cast<CondExpr>(expr);
-    //             TExpr scond = generateSMTFunction(solver, condExpr->cond, var_map, suffix);
-    //             TExpr schoice1 = generateSMTFunction(solver, condExpr->choice1, var_map, suffix);
-    //             TExpr schoice2 = generateSMTFunction(solver, condExpr->choice2, var_map, suffix);
-    //             return solver->createCondExpr(scond, schoice1, schoice2);
-    //         }
-    //         case Exprv::EQ_EXPR: {
-    //             std::shared_ptr<EqExpr> eqExpr = std::dynamic_pointer_cast<EqExpr>(expr);
-    //             TExpr slhs = generateSMTFunction(solver, eqExpr->lhs, var_map, suffix);
-    //             TExpr srhs = generateSMTFunction(solver, eqExpr->rhs, var_map, suffix);
-    //             return solver->createEqExpr(slhs, srhs);
-    //         }
-    //         case Exprv::NOT_EXPR:{
-    //             std::shared_ptr<NotExpr> notExpr = std::dynamic_pointer_cast<NotExpr>(expr);
-    //             TExpr sexpr = generateSMTFunction(solver, notExpr->expr, var_map, suffix);
-    //             return solver->createNotExpr(sexpr);
-    //         }
-    //         default:
-    //             break;
-    //     }
-    //     throw std::runtime_error("Cannot translate expression to SMT");
-    //     fprintf(stderr, "Cannot translate expression to SMT:\n    %s\n", expr->to_string().c_str());
-    // }
+    std::list<Expr> get_toplevel_or(const Expr& expr) {
+        switch (expr->type) {
+            case Exprv::OR_EXPR: {
+                std::shared_ptr<OrExpr> self = std::dynamic_pointer_cast<OrExpr>(expr);
+                std::list<Expr> lexprs = get_toplevel_or(self->lhs);
+                std::list<Expr> rexprs = get_toplevel_or(self->rhs);
+                lexprs.insert(lexprs.end(), rexprs.begin(), rexprs.end());
+                return lexprs;
+            }
+            default: {
+                std::list<Expr> result;
+                result.push_back(expr);
+                return result;
+            }
+        }
+    }
+
+/*EXPR COMPARER FOR STD COLLECTIONS*/
+    int deepCmpExprs::operator()(const Expr &e1, const Expr &e2) const {
+        //FIXME: use semantics equivalence and not structural one
+        int res = e1->equals(e2) ? 0 : (e1 < e2);
+        return res;
+    }
 
 }
