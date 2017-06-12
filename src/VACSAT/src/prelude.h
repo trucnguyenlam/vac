@@ -14,6 +14,13 @@
 
 namespace SMT {
 
+    template <typename T, typename TCmp=std::less<T>>
+    std::set<T, TCmp> setUnion(const std::set<T, TCmp>& a, const std::set<T, TCmp>& b) {
+        std::set<T, TCmp> result = a;
+        result.insert(b.begin(), b.end());
+        return result;
+    }
+
     template <typename T>
     static inline bool contains(const std::set<T> &set, const T &elem) {
         return set.find(elem) != set.end();
