@@ -27,8 +27,6 @@ class R6Transformer {
     std::shared_ptr<SMTFactory<TVar, TExpr>> solver;
     std::stringstream fmt;
 
-    bool log;
-
     void clean_fmt() {
         fmt.str(std::string());
     }
@@ -528,8 +526,7 @@ class R6Transformer {
         policy(_policy), target_rule(_to_check),
         target_expr(_check_adm ? target_rule->admin : target_rule->prec), check_adm(_check_adm),
         zero(solver->createFalse()), one(solver->createTrue()),
-        pc_size(get_pc_size(target_expr->literals())),
-        log(false) {
+        pc_size(get_pc_size(target_expr->literals())) {
         solver->deep_clean();
         allocate_core_role_array_set_pc_size();
         generate_variables();
