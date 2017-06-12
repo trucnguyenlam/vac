@@ -63,6 +63,8 @@ public:
     const int bmc_thread_count;
     const std::string mem_limit;
     const int verbosity;
+    const bool profile;
+    const bool update_model;
     const bool show_statistics;
     const bool show_help;
     const std::string input_file;
@@ -84,6 +86,8 @@ public:
             int _bmc_thread_count,
             std::string _mem_limit,
             int _verbosity,
+            bool _profile,
+            bool _update_model,
             bool _show_statistics,
             bool _show_help,
             std::string _input_file,
@@ -102,6 +106,8 @@ public:
         bmc_thread_count(_bmc_thread_count),
         mem_limit(_mem_limit),
         verbosity(_verbosity),
+        profile(_profile),
+        update_model(_update_model),
         show_statistics(_show_statistics),
         show_help(_show_help),
         input_file(_input_file),
@@ -114,8 +120,8 @@ struct arg_obj {
 public:
     const std::string name;
     const TArg default_value;
-    TArg result;
     const std::string description;
+    TArg result;
 
     arg_obj(std::string _name,
             TArg _default_value,
@@ -204,7 +210,9 @@ static options parse_args(int ac, const char* const* av) {
     arg_obj<int> bmc_rounds_count = create_arg_obj_int("rounds,r", "Number of rounds for the bmc");
     arg_obj<int> bmc_steps_count = create_arg_obj_int("steps,s", "Number of steps per round for the bmc");
     arg_obj<int> bmc_thread_count = create_arg_obj_int("threads,t", "Number of threads (tracked users) for the bmc");
-    arg_obj<int> verbosity = create_arg_obj_int("verbose,v", 2, "Verbosity level(1=info, 2=debug, 3=trace)");
+    arg_obj<int> verbosity = create_arg_obj_int("verbose,v", 2, "Verbosity level (1=info, 2=debug, 3=trace)");
+    arg_obj<bool> profile = create_arg_obj_bool("profile,P", "Show times");
+    arg_obj<bool> update_model = create_arg_obj_bool("update-model,U", "Update the model from VAC syntax to VAC2 one");
     arg_obj<bool> show_statistics = create_arg_obj_bool("show-statistics,S", "Print policy stetistics");
     arg_obj<std::string> memory_limit = create_arg_obj_string("memlimit,M", "10G", "Set a specific memory limit for the process");
     arg_obj<bool> show_help = create_arg_obj_bool("help,h", "Show this message");
@@ -224,8 +232,10 @@ static options parse_args(int ac, const char* const* av) {
     add_option_description(desc, bmc_steps_count);
     add_option_description(desc, bmc_thread_count);
     add_option_description(desc, verbosity);
-    add_option_description(desc, memory_limit);
+    add_option_description(desc, profile);
+    add_option_description(desc, update_model);
     add_option_description(desc, show_statistics);
+    add_option_description(desc, memory_limit);
     add_option_description(desc, input_file);
 
     add_option_description(desc, dump_smt_formula);
@@ -259,6 +269,8 @@ static options parse_args(int ac, const char* const* av) {
                     bmc_thread_count.result,
                     memory_limit.result,
                     verbosity.result,
+                    profile.result,
+                    update_model.result,
                     show_statistics.result,
                     show_help.result,
                     input_file.result,
@@ -351,7 +363,7 @@ int main(int argc, const char * const *argv) {
         options config = parse_args(argc, argv);
 
         if (config.output_file != "") {
-            SMT::log = spdlog::basic_logger_mt("log", config.output_file);
+            SMT::log = spdlog::basic_logger_mt("log", config.output_file, true);
             logging_on_console = false;
         } else {
             SMT::log = spdlog::stdout_color_mt("log");
@@ -378,6 +390,10 @@ int main(int argc, const char * const *argv) {
             throw std::runtime_error("Cannot perform prune-only and reachability-only at the same time.");
         } else if (config.new_reachability_only && config.show_statistics) {
             throw std::runtime_error("show-statistics option is incompatible with reachability-only.");
+        } else if (config.update_model && (config.new_prune_only || config.show_statistics || config.new_reachability_only)) {
+            throw std::runtime_error("update-model option is incompatible with prune-only, reachability-only, and show-statistics.");
+        } else if (config.update_model) {
+            an_ty = SMT::UPDATE_MODEL;
         } else if (config.new_prune_only) {
             an_ty = SMT::PRUNE_ONLY;
         } else if (config.new_reachability_only) {
@@ -397,182 +413,56 @@ int main(int argc, const char * const *argv) {
         if (config.dump_smt_formula != "") {
             SMT::Config::dump_smt_formula = config.dump_smt_formula;
         }
+        auto global_start = std::chrono::high_resolution_clock::now();
+        bool analysis_result =
+                SMT::perform_analysis(config.input_file,
+                                      config.old_parser,
+                                      an_ty,
+                                      config.new_backend,
+                                      bmc_conf);
 
-        bool analysis_result;
-        if (config.old_parser) {
-            analysis_result = SMT::perform_analysis_old_style(config.input_file, an_ty, config.input_file, config.new_backend, bmc_conf);
-        } else {
-            analysis_result = SMT::perform_analysis(config.input_file, an_ty, config.input_file, config.new_backend, bmc_conf);
+
+        auto global_end = std::chrono::high_resolution_clock::now();
+        auto delta_t = global_end - global_start;
+
+        if (config.profile) {
+            SMT::log->info("------------ Whole analysis done in {} ms. ------------",
+                           std::chrono::duration_cast<std::chrono::milliseconds>(delta_t).count());
         }
 
         exit_with_result(analysis_result);
     }
-    catch (const std::runtime_error& err) {
-        if (logging_on_console) {
-            SMT::log->error("Unexpected exception raised: {}", err.what());
-        } else {
-            std::cerr << "Unexpected exception raised: {}" << err.what() << std::endl;
-        }
-        error_exit();
-    }
+        //FIXME: remove comment in deploy
+//    catch (const std::runtime_error& err) {
+//        if (logging_on_console) {
+//            SMT::log->error("Unexpected exception raised: {}", err.what());
+//        } else {
+//            std::cerr << "Unexpected exception raised: {}" << err.what() << std::endl;
+//        }
+//        error_exit();
+//    }
     catch (const spdlog::spdlog_ex& ex) {
         std::cerr << "Log init failed: " << ex.what() << std::endl;
         error_exit();
     }
-    catch (const std::exception& ex) {
-        if (logging_on_console) {
-            SMT::log->error("Unexpected exception raised: {}", ex.what());
-        } else {
-            std::cerr << "Unexpected exception raised: {}" << ex.what() << std::endl;
-        }
-        error_exit();
-    }
-    catch (...) {
-        if (logging_on_console) {
-            SMT::log->critical("Unknown unexpected exception raised");
-        } else {
-            std::cerr << "Unknown unexpected exception raised" << std::endl;
-        }
-        error_exit();
-    }
-
-
-
-//        if (algo_arg == 0 || format_arg == 0)
-//        {
-//            error_exit();
+//    catch (const std::exception& ex) {
+//        if (logging_on_console) {
+//            SMT::log->error("Unexpected exception raised: {}", ex.what());
+//        } else {
+//            std::cerr << "Unexpected exception raised: {}" << ex.what() << std::endl;
 //        }
-//        else if (strcmp(algo_arg, "precise") == 0)
-//        {
-//            if (strcmp(format_arg, "moped") == 0)
-//            {
-//                transform_2_GETAFIX_ExactAlg(filename, out_file);
-//            }
-//            else if (strcmp(format_arg, "cbmc") == 0)
-//            {
-//                transform_2_CBMC_ExactAlg(filename, out_file);
-//            }
-//            else if (strcmp(format_arg, "nusmv") == 0)
-//            {
-//                transform_2_NuSMV_ExactAlg(filename, out_file);
-//            }
-//            else if (strcmp(format_arg, "mucke") == 0)
-//            {
-//                transform_2_MUCKE_ExactAlg(filename, out_file);
-//            }
-//            else if (strcmp(format_arg, "mucke-cav") == 0)
-//            {
-//                if (rounds == -1) {
-//                    fprintf(stderr, "MUCKE requires to specify the rounds number (-r)\n");
-//                    error_exit();
-//                }
-//                if (formula_filename == NULL) {
-//                    fprintf(stderr, "MUCKE requires to specify the formula (-f)\n");
-//                    error_exit();
-//                }
-//                transform_2_MUCKE_CAV2010(filename, out_file, formula_filename, rounds);
-//            }
-//            else if (strcmp(format_arg, "lazycseq") == 0)
-//            {
-//                if (rounds == -1) {
-//                    fprintf(stderr, "lazycseq requires to specify the rounds number (-r)\n");
-//                    error_exit();
-//                }
-//                if (steps == -1) {
-//                    fprintf(stderr, "lazycseq requires to specify the steos number (-s)\n");
-//                    error_exit();
-//                }
-//                if (_inline) {
-//                    transform_2_lazycseq_inlined(filename, out_file, rounds, steps, wanted_threads);
-//                }
-//                else {
-//                    transform_2_lazycseq(filename, out_file, rounds, steps, wanted_threads);
-//                }
-//            }
-////            else if (strcmp(format_arg, "ssa") == 0)
-////            {
-////                if (rounds == -1) {
-////                    fprintf(stderr, "ssa requires to specify the rounds number (-r)\n");
-////                    error_exit();
-////                }
-////                if (steps == -1) {
-////                    fprintf(stderr, "ssa requires to specify the steos number (-s)\n");
-////                    error_exit();
-////                }
-////                SSA::transform_2_ssa(filename, out_file, rounds, steps, wanted_threads);
-////            }
-////            else if (strcmp(format_arg, "yices") == 0)
-////            {
-////                if (rounds == -1) {
-////                    fprintf(stderr, "yices requires to specify the rounds number (-r)\n");
-////                    error_exit();
-////                }
-////                if (steps == -1) {
-////                    fprintf(stderr, "yices requires to specify the steos number (-s)\n");
-////                    error_exit();
-////                }
-////
-////                SSA::transform_2_yices(filename, out_file, rounds, steps, wanted_threads);
-////            }
-//            else if (strcmp(format_arg, "smt") == 0)
-//            {
-//                if (rounds == -1) {
-//                    fprintf(stderr, "smt requires to specify the rounds number (-r)\n");
-//                    error_exit();
-//                }
-//                if (steps == -1) {
-//                    fprintf(stderr, "smt requires to specify the steos number (-s)\n");
-//                    error_exit();
-//                }
-//
-//                SMT::transform_2_bounded_smt(filename, out_file, rounds, steps, wanted_threads);
-//            }
-//            else if (strcmp(format_arg, "completeness_query") == 0)
-//            {
-//                if (rounds == -1) {
-//                    fprintf(stderr, "completeness_query requires to specify the rounds number (-r)\n");
-//                    error_exit();
-//                }
-//                if (steps == -1) {
-//                    fprintf(stderr, "completeness_query requires to specify the steos number (-s)\n");
-//                    error_exit();
-//                }
-//                transform_2_lazycseq_completeness_query(filename, out_file, rounds, steps, wanted_threads);
-//            }
-//            else if (strcmp(format_arg, "concurc") == 0)
-//            {
-//                transform_2_concurC(filename, out_file, wanted_threads);
-//            }
-//            else
-//            {
-//                error_exit();
-//            }
-//        }
-//        else if (strcmp(algo_arg, "abstract") == 0)
-//        {
-//            if (strcmp(format_arg, "interproc") == 0)
-//            {
-//                Abstract::transform_2_INTERPROC_OverApr(filename, out_file);
-//            }
-//            else {
-//                error_exit();
-//            }
-//        }
-//        else
-//        {
-//            error_exit();
-//        }
-//
-//        if (out_name != NULL) {
-//            fclose(out_file);
-//        }
-//
-//        free(filename);
-//    }
-//    else if (!help_opt)
-//    {
 //        error_exit();
 //    }
+//    catch (...) {
+//        if (logging_on_console) {
+//            SMT::log->critical("Unknown unexpected exception raised");
+//        } else {
+//            std::cerr << "Unknown unexpected exception raised" << std::endl;
+//        }
+//        error_exit();
+//    }
+
+
 #ifdef WAIT_ON_EXIT
     wait_keypressed();
 #endif
