@@ -8,6 +8,7 @@
 #include <string>
 #include <ostream>
 #include <spdlog/logger.h>
+#include <spdlog/fmt/ostr.h>
 //#include <boost/log/trivial.hpp>
 //#include <boost/log/core.hpp>
 //#include <boost/log/expressions.hpp>
