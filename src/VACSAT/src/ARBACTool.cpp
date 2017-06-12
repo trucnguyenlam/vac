@@ -272,7 +272,7 @@ reduction_finiteARBAC(void)
 		hasNewUserMode = 0;
 
 		// Add these user to the dictionary
-		if (user_dict != NULL);
+		if (user_dict != NULL)
 		{
 			iDictionary.Finalize(user_dict);
 		}
@@ -718,7 +718,7 @@ free_data()
 	{
 		iDictionary.Finalize(role_dict);
 	}
-	if (user_dict != NULL);
+	if (user_dict != NULL)
 	{
 		iDictionary.Finalize(user_dict);
 	}
