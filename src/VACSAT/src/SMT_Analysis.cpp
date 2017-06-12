@@ -17,15 +17,17 @@ namespace SMT {
                  const std::shared_ptr<arbac_policy>& policy,
                  bmc_config config) {
         switch (analysis_type) {
+            case UPDATE_MODEL:
+                log->info(policy->to_new_string());
+                return true;
             case SHOW_AFTERPRUNE_STATISTICS:
                 prune_policy(solver, policy);
             case SHOW_INITIAL_STATISTICS:
                 policy->show_policy_statistics(config.wanted_threads_count);
                 return true;
-
             case PRUNE_ONLY:
                 prune_policy(solver, policy);
-                log->info(policy->to_string());
+                log->info(policy->to_new_string());
                 return true;
             case BMC_ONLY:
 //                std::cout << *policy;
@@ -62,21 +64,32 @@ namespace SMT {
 
     };
 
+    std::shared_ptr<arbac_policy> parse_old(const std::string& filename) {
+        read_ARBAC(filename.c_str());
+        // Preprocess the ARBAC Policies
+        preprocess(false);
+        build_config_array();
+
+        std::shared_ptr<arbac_policy> policy(new arbac_policy(filename, true));
+
+        free_data();
+        free_precise_temp_data();
+
+        return policy;
+    }
+    std::shared_ptr<arbac_policy> parse_new(const std::string& filename) {
+        std::shared_ptr<arbac_policy> policy = Parser::parse_new_ac(filename);
+        return policy;
+    }
+
     bool perform_analysis(const std::string& filename,
+                          bool use_old_parser,
                           AnalysisType analysis_type,
-                          const std::string &inputFile,
                           const std::string &solver_name,
                           bmc_config config) {
 
-        auto global_start = std::chrono::high_resolution_clock::now();
-
-        std::shared_ptr<arbac_policy> policy = Parser::parse_new_ac(inputFile);
+        auto policy = use_old_parser ? parse_old(filename) : parse_new(filename);
         bool res = set_solver_execute(filename, analysis_type, policy, solver_name, config);
-
-        auto global_end = std::chrono::high_resolution_clock::now();
-        auto delta_t = global_end - global_start;
-        log->info("------------ Whole analysis done in {} ms. ------------",
-                  std::chrono::duration_cast<std::chrono::milliseconds>(delta_t).count());
 
         return res;
     }

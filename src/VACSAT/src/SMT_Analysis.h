@@ -16,6 +16,7 @@
 
 namespace SMT {
     enum AnalysisType {
+        UPDATE_MODEL,
         SHOW_INITIAL_STATISTICS,
         SHOW_AFTERPRUNE_STATISTICS,
         PRUNE_ONLY,
@@ -35,13 +36,12 @@ namespace SMT {
 
     bool perform_analysis_old_style(const std::string& filename,
                                     AnalysisType analysis_type,
-                                    const std::string &inputFile,
                                     const std::string &solver_name,
                                     bmc_config config);
 
     bool perform_analysis(const std::string& filename,
+                          bool use_old_parser,
                           AnalysisType analysis_type,
-                          const std::string &inputFile,
                           const std::string &solver_name,
                           bmc_config config);
 }
