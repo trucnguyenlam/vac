@@ -6,9 +6,9 @@
 #include <algorithm>
 #include <unordered_set>
 #include "Policy.h"
-#include "ARBACData.h"
+#include "old_parser/ARBACData.h"
 #include "ARBACTransform.h"
-#include "ARBACExact.h"
+#include "old_parser/ARBACExact.h"
 
 namespace SMT {
 
@@ -146,9 +146,19 @@ namespace SMT {
         _config.erase(atom1);
     }
 
+    std::shared_ptr<user> user::extract_copy(int idx) const {
+        if (!this->infinite) {
+            log->error("Cannot extract a copy of a finite user: {}", this->to_full_string());
+            throw std::runtime_error("Cannot extract a copy of a finite user: " + this->to_full_string());
+        }
+        std::string new_name("new_" + this->name + "_" + std::to_string(idx));
+        user copy = user(new_name, -1, this->config(), false);
+        return std::make_shared<user>(copy);
+    }
+
     const std::string user::to_full_string() const {
         std::stringstream fmt;
-        fmt << "name: " << this->name << ", id: " << original_idx << std::endl;
+        fmt << "name: " << this->name << ", id: " << original_idx << ", infinite: " << (infinite ? "TRUE" : "FALSE") << std::endl;
         fmt << "\t{";
 
         if (this->_config.size() > 0) {
@@ -164,7 +174,7 @@ namespace SMT {
     }
 
     const std::string user::to_string() const {
-        return this->name;
+        return this->name + (this->infinite ? "*" : "");
     }
 
     std::ostream& operator<< (std::ostream& stream, const user& self) {
@@ -172,18 +182,31 @@ namespace SMT {
         return stream;
     }
 
-    user user::from_policy(std::vector<atom>& atoms, int original_idx) {
-        if (original_idx >= user_array_size) {
-            log->error("{} is not a valid user id...", original_idx);
-            throw std::runtime_error("Not a valid user id.");
-        }
-        std::set<atom> config;
-        set init = user_config_array[original_idx];
-        for (int i = 0; i < init.array_size; ++i) {
-            config.insert(atoms[init.array[i]]);
-        }
+    user user::from_old_policy(std::vector<atom> &atoms, int original_idx, bool infinite) {
+        if (!infinite) {
+            if (original_idx >= user_array_size) {
+                log->error("{} is not a valid user id...", original_idx);
+                throw std::runtime_error("Not a valid user id.");
+            }
+            std::set<atom> config;
+            set init = user_config_array[original_idx];
+            for (int i = 0; i < init.array_size; ++i) {
+                config.insert(atoms[init.array[i]]);
+            }
 
-        return user(original_idx, config);
+            return user(std::string(user_array[original_idx]), original_idx, config, infinite);
+        } else {
+            if (original_idx >= newuser_array_size) {
+                log->error("{} is not a valid infinite user id...", original_idx);
+                throw std::runtime_error("Not a valid infinite user id.");
+            }
+            std::set<atom> config;
+            for (int i = 0; i < newuser_array[original_idx].role_array_size; ++i) {
+                config.insert(atoms[newuser_array[original_idx].role_array[i]]);
+            }
+
+            return user(std::string(newuser_array[original_idx].name), original_idx, config, infinite);
+        }
     }
 
 
@@ -373,7 +396,10 @@ namespace SMT {
             // printf("%s\n", getCRPNFormula(i)->to_string().c_str());
         }
         for (i = 0; i < user_array_size; ++i) {
-            _users.push_back(std::make_shared<user>(user::from_policy(this->_atoms, i)));
+            _users.push_back(std::make_shared<user>(user::from_old_policy(this->_atoms, i, false)));
+        }
+        for (i = 0; i < newuser_array_size; ++i) {
+            _users.push_back(std::make_shared<user>(user::from_old_policy(this->_atoms, i, true)));
         }
         this->update();
     }
@@ -513,6 +539,10 @@ namespace SMT {
             }
         }
 
+        for (int j = 0; j < _users.size(); ++j) {
+            _users[j]->original_idx = j;
+        }
+
         _users_to_track = std::numeric_limits<int>::max();
 
         _cache = std::shared_ptr<policy_cache>(new policy_cache(this));
@@ -588,12 +618,9 @@ namespace SMT {
         this->goal_role = targetPrime;
     }
 
-
-
     void arbac_policy::add_atom(const atom& atom){
         _atoms.push_back(atom);
     }
-
 
     void arbac_policy::add_rule(const rulep& rule) {
         if (rule->is_ca) {

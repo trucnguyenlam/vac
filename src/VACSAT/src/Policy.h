@@ -50,6 +50,8 @@ namespace SMT {
         void add_atom(const atom& atom1);
         void remove_atom(const atom& atom1);
 
+        std::shared_ptr<user> extract_copy(int idx) const;
+
         const std::string to_full_string() const;
 
         const std::string to_string() const;
@@ -59,9 +61,9 @@ namespace SMT {
             return _config;
         }
 
-        static user from_policy(std::vector<atom>& atoms, int original_idx);
+        static user from_old_policy(std::vector<atom> &atoms, int original_idx, bool infinite);
 
-        const int original_idx;
+        int original_idx;
         const std::string name;
         const bool infinite;
     private:
