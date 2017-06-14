@@ -544,7 +544,7 @@ class R6Transformer {
 };
 
     template <typename TVar, typename TExpr>
-    bool apply_r6(const std::shared_ptr<SMTFactory<TVar, TExpr>> solver,
+    bool apply_r6(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
                   const std::shared_ptr<arbac_policy>& policy,
                   const std::shared_ptr<rule>& to_check,
                   bool check_admin) {
@@ -562,25 +562,13 @@ class R6Transformer {
     }
 
 
-    template bool apply_r6<term_t, term_t>(const std::shared_ptr<SMTFactory<term_t, term_t>> solver,
+    template bool apply_r6<term_t, term_t>(const std::shared_ptr<SMTFactory<term_t, term_t>>& solver,
                                            const std::shared_ptr<arbac_policy>& policy,
                                            const std::shared_ptr<rule>& to_check,
                                            bool check_admin);
-    template bool apply_r6<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>> solver,
+    template bool apply_r6<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>>& solver,
                                        const std::shared_ptr<arbac_policy>& policy,
                                        const std::shared_ptr<rule>& to_check,
                                        bool check_admin);
-
-
-//    bool apply_r6(int rule_index, bool is_ca) {
-//        std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());
-//        R6Transformer<term_t, term_t> transf(solver, rule_index, is_ca);
-//        // std::shared_ptr<SMTFactory<expr, expr>> solver(new Z3Solver());
-//        // R6Transformer<expr, expr> transf(solver, rule_index, is_ca);
-//        bool res = transf.apply_r6(rule_index, is_ca);
-//        // if (res || true)
-//        //     solver->printContext();
-//        return res;
-//    }
 
 }
