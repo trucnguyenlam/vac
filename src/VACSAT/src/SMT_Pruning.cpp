@@ -1910,9 +1910,9 @@ namespace SMT {
 
             log->debug("{}", *policy);
 
-            apply_infini_admin(solver, policy, *policy->rules().begin(), createConstantTrue(), 10, 10, 10);
-
-            log->debug("{}", *policy);
+//            apply_infini_admin(solver, policy, *policy->rules().begin(), createConstantTrue(), 10, 10, 10);
+//
+//            log->debug("{}", *policy);
 
             auto global_end = std::chrono::high_resolution_clock::now();
             auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(global_end - global_start);
