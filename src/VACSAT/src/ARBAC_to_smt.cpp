@@ -1,4 +1,4 @@
-#include "ARBACExact.h"
+#include "old_parser/ARBACExact.h"
 #include <time.h>
 #include <vector>
 #include <iostream>
@@ -112,9 +112,6 @@ class Transformer {
 
     void precompute_merge() {
 
-        float assignable_roles_count = 0;
-        float removable_roles_count = 0;
-
         roles_ca_counts = (int *) malloc(sizeof(int) * role_array_size);
         roles_cr_counts = (int *) malloc(sizeof(int) * role_array_size);
         per_role_ca_indexes = (int **) malloc(sizeof(int *) * role_array_size);
@@ -134,7 +131,6 @@ class Transformer {
             //INSTANTIATING per_role_ca_indexes CONTENT
             if (roles_ca_counts[i] > 0) {
                 int k = 0;
-                assignable_roles_count++;
                 per_role_ca_indexes[i] = (int *) malloc(sizeof(int) * roles_ca_counts[i]);
 
                 for (int j = 0; j < ca_array_size; ++j) {
@@ -573,7 +569,6 @@ class Transformer {
     }
 
     TExpr generate_CR_cond(int thread_id, int cr_index) {
-        int i;
         TExpr cond;
         // TExpr cond = -1;
         // Admin role must be available
@@ -784,7 +779,6 @@ class Transformer {
         int label_idx = 0;
         emitComment("---------- IDLE ROUND REMOVED SINCE PC MAY BE GREATER THAN PC_MAX ---------");
 
-        int i;
         emitComment("---------- CAN ASSIGN SIMULATION ---------");
         emitComment("---------- MERGED PER ROLE ---------");
         for (int i = 0; i < role_array_size; ++i) {
