@@ -263,8 +263,8 @@ namespace SMT {
             return false;
         std::shared_ptr<OrExpr> other_expr = std::dynamic_pointer_cast<OrExpr>(other);
 
-        return  this->lhs->equals(other_expr->lhs) &&
-                this->rhs->equals(other_expr->rhs);
+        return  (this->lhs->equals(other_expr->lhs) && this->rhs->equals(other_expr->rhs)) ||
+                (this->lhs->equals(other_expr->rhs) && this->rhs->equals(other_expr->lhs));
     }
     
     std::string OrExpr::to_string() const {
@@ -295,8 +295,8 @@ namespace SMT {
             return false;
         std::shared_ptr<AndExpr> other_expr = std::dynamic_pointer_cast<AndExpr>(other);
 
-        return  this->lhs->equals(other_expr->lhs) &&
-                this->rhs->equals(other_expr->rhs);
+        return  (this->lhs->equals(other_expr->lhs) && this->rhs->equals(other_expr->rhs)) ||
+                (this->lhs->equals(other_expr->rhs) && this->rhs->equals(other_expr->lhs)) ;
     }
 
     std::string AndExpr::to_string() const {
@@ -330,8 +330,8 @@ namespace SMT {
             return false;
         std::shared_ptr<EqExpr> other_expr = std::dynamic_pointer_cast<EqExpr>(other);
 
-        return  this->lhs->equals(other_expr->lhs) &&
-                this->rhs->equals(other_expr->rhs);
+        return  (this->lhs->equals(other_expr->lhs) && this->rhs->equals(other_expr->rhs)) ||
+                (this->lhs->equals(other_expr->rhs) && this->rhs->equals(other_expr->lhs));
     }
     
     std::string EqExpr::to_string() const {
