@@ -28,18 +28,6 @@ endif (CCACHE_FOUND)
 set(DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps")
 
 set(SOURCE_FILES
-        src/ARBACUtil.h
-        src/ARBACUtil.cpp
-        src/ARBACData.h
-        src/ARBACData.cpp
-        src/ARBACTool.cpp
-        src/ARBACLexer.h
-        src/ARBACLexer.cpp
-        src/ARBACParser.h
-        src/ARBACParser.cpp
-        #wanted by all precise analysis
-        src/ARBACExact.h
-        src/ARBACExact.cpp
         src/SMT.h
         src/SMTSolvers/yices.h
         src/SMTSolvers/yices.cpp
@@ -49,12 +37,9 @@ set(SOURCE_FILES
         src/Logics.cpp
         src/SMT_Pruning.h
         src/SMT_Pruning.cpp
-        src/ARBAC_to_ConcurC.cpp
-        src/ARBAC_to_LazyCSeq.cpp
-        src/ARBAC_to_CompletenessLazyCSeq.cpp
         src/SMT_Pruning_R6_LazyCSeq.cpp
         src/SMT_Pruning_R6_SSA.cpp
-        src/ARBAC_to_smt.cpp
+#        src/ARBAC_to_smt.cpp
         src/ARBAC_to_SMT_BMC.cpp
         src/ARBACTransform.h
         src/ARBACTransform.cpp
@@ -67,13 +52,8 @@ set(SOURCE_FILES
         src/BMC_Struct.h
         src/ARBAC_to_SMT_BMC.h
         src/config.cpp
-        src/SMT_Configuration.h)
-
-set_source_files_properties(src/ARBACParser.cpp PROPERTIES COMPILE_FLAGS "-fpermissive -Wwrite-strings")
-set_source_files_properties(src/ARBACParser.h   PROPERTIES COMPILE_FLAGS "-fpermissive -Wwrite-strings")
-set_source_files_properties(src/ARBACLexer.cpp  PROPERTIES COMPILE_FLAGS "-fpermissive -Wwrite-strings")
-set_source_files_properties(src/ARBACLexer.h    PROPERTIES COMPILE_FLAGS "-fpermissive -Wwrite-strings")
-
+        src/SMT_Configuration.h
+        src/SMT_Infini_admin_bmc.cpp)
 
 # Add path for custom modules
 list (APPEND CMAKE_MODULE_PATH
@@ -147,8 +127,10 @@ set(PARSER_SOURCES
 
 add_executable(vacsat ${SOURCE_FILES} ${PARSER_SOURCES} ${antlr_generated_files})
 add_dependencies(vacsat antlr4cpp)
+add_subdirectory(src/old_parser)
 # Set the link libraries (GMP MUST BE THE LAST)
-target_link_libraries(vacsat antlr4-runtime yices z3 ccl antlr3c gmp ${Boost_LIBRARIES} spdlog::spdlog ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(vacsat PRIVATE vacsat_old)
+target_link_libraries(vacsat PUBLIC antlr4-runtime yices z3 ccl antlr3c gmp ${Boost_LIBRARIES} spdlog::spdlog ${CMAKE_THREAD_LIBS_INIT})
 
 
 install (TARGETS vacsat DESTINATION bin)
