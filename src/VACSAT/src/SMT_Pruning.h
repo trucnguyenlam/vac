@@ -100,8 +100,6 @@ namespace SMT {
         const std::string name;
     };
 
-    bool backward_slicing(std::shared_ptr<arbac_policy>& policy);
-
     template <typename TVar, typename TExpr>
     bool apply_infini_admin(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
                             const std::shared_ptr<arbac_policy>& policy,

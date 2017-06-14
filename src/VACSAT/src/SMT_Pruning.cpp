@@ -17,53 +17,6 @@
 
 namespace SMT {
 
-    bool backward_slicing(std::shared_ptr<arbac_policy> &policy) {
-        bool fixpoint = false;
-        std::set<rulep> to_save;
-        std::set<Literalw, std::owner_less<Literalw>> necessary_atoms;
-        necessary_atoms.insert(Literalw(policy->goal_role));
-        while (!fixpoint) {
-            fixpoint = true;
-            for (auto &&rule : policy->rules()) {
-//                    print_collection(necessary_atoms);
-//                    print_collection(to_save);
-//                    std::cout << *rule << ": "_atoms);
-//                    print_collection(to_save);
-//                    std::cout << *rule << ": " << (!contains(to_save, rule) && contains(necessary_atoms, rule->target)) << std::endl;
-                if (!contains(to_save, rule) && contains_ptr(necessary_atoms, rule->target)) {
-//                        print_collection(rule->admin->literals());
-//                        print_collection(rule->prec->literals());
-
-                    necessary_atoms.insert(rule->admin->literals().begin(), rule->admin->literals().end());
-                    necessary_atoms.insert(rule->prec->literals().begin(), rule->prec->literals().end());
-                    to_save.insert(rule);
-                    fixpoint = false;
-                }
-            }
-        }
-
-        std::list<rulep> to_remove;
-        for (auto &&rule : policy->rules()) {
-            if (!contains(to_save, rule)) {
-                to_remove.push_back(rule);
-                log->debug("{}", *rule);
-            }
-        }
-
-        std::list<atom> atoms_to_remove;
-        for (auto &&atom : policy->atoms()) {
-            if (!contains_ptr(necessary_atoms, atom)) {
-                atoms_to_remove.push_back(atom);
-                log->debug("{}", *atom);
-            }
-        }
-
-        policy->remove_rules(to_remove);
-        policy->remove_atoms(atoms_to_remove);
-
-        return to_remove.size() > 0;
-    }
-
     template <typename TVar, typename TExpr>
     class Pruning {
 
@@ -106,8 +59,51 @@ namespace SMT {
         }
 
         /* PRELIMINARY BACKWARD SLICING */
-        bool inner_backward_slicing() {
-            return backward_slicing(policy);
+        bool backward_slicing() {
+            bool fixpoint = false;
+            std::set<rulep> to_save;
+            std::set<Literalw, std::owner_less<Literalw>> necessary_atoms;
+            necessary_atoms.insert(Literalw(policy->goal_role));
+            while (!fixpoint) {
+                fixpoint = true;
+                for (auto &&rule : policy->rules()) {
+//                    print_collection(necessary_atoms);
+//                    print_collection(to_save);
+//                    std::cout << *rule << ": "_atoms);
+//                    print_collection(to_save);
+//                    std::cout << *rule << ": " << (!contains(to_save, rule) && contains(necessary_atoms, rule->target)) << std::endl;
+                    if (!contains(to_save, rule) && contains_ptr(necessary_atoms, rule->target)) {
+//                        print_collection(rule->admin->literals());
+//                        print_collection(rule->prec->literals());
+
+                        necessary_atoms.insert(rule->admin->literals().begin(), rule->admin->literals().end());
+                        necessary_atoms.insert(rule->prec->literals().begin(), rule->prec->literals().end());
+                        to_save.insert(rule);
+                        fixpoint = false;
+                    }
+                }
+            }
+
+            std::list<rulep> to_remove;
+            for (auto &&rule : policy->rules()) {
+                if (!contains(to_save, rule)) {
+                    to_remove.push_back(rule);
+                    log->debug("{}", *rule);
+                }
+            }
+
+            std::list<atom> atoms_to_remove;
+            for (auto &&atom : policy->atoms()) {
+                if (!contains_ptr(necessary_atoms, atom)) {
+                    atoms_to_remove.push_back(atom);
+                    log->debug("{}", *atom);
+                }
+            }
+
+            policy->remove_rules(to_remove);
+            policy->remove_atoms(atoms_to_remove);
+
+            return to_remove.size() > 0;
         }
 
         /* PRELIMINARY SIMPLE PRUNING (REMOVING ATOMS NOT USED IN ANY CONDITION,
@@ -1794,7 +1790,7 @@ namespace SMT {
 //                }
 
                 log->debug("Applying backward_slicing on {}", policy->rules().size());
-                bool backward_slicing_res = this->inner_backward_slicing();
+                bool backward_slicing_res = this->backward_slicing();
                 backward_slicing_res = reduce_roles() || backward_slicing_res;
                 log->debug(" ==> {} rules...", policy->rules().size());
                 solver->deep_clean();
@@ -1808,7 +1804,7 @@ namespace SMT {
                 log->debug(" ==> {} rules...", policy->rules().size());
                 if (easy_pruning_res) {
                     // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
-                    inner_backward_slicing();
+                    backward_slicing();
                 }
                 solver->deep_clean();
 
@@ -1818,7 +1814,7 @@ namespace SMT {
                 log->debug(" ==> {} rules...", policy->rules().size());
                 if (prune_immaterial_roles_res) {
                     // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
-                    inner_backward_slicing();
+                    backward_slicing();
                 }
                 solver->deep_clean();
 
@@ -1829,7 +1825,7 @@ namespace SMT {
                 log->debug(" ==> {} rules...", policy->rules().size());
                 if (prune_irrelevant_roles_res) {
                     // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
-                    inner_backward_slicing();
+                    backward_slicing();
                 }
                 solver->deep_clean();
 
@@ -1840,7 +1836,7 @@ namespace SMT {
                 log->debug(" ==> {} rules...", policy->rules().size());
                 if (prune_implied_pairs_res) {
                     // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
-                    inner_backward_slicing();
+                    backward_slicing();
                 }
                 solver->deep_clean();
 
@@ -1853,7 +1849,7 @@ namespace SMT {
                     log->debug(" ==> {} rules...", policy->rules().size());
                     if (merge_rules_res) {
                         // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
-                        inner_backward_slicing();
+                        backward_slicing();
                     }
                     solver->deep_clean();
 
@@ -1871,7 +1867,7 @@ namespace SMT {
                     log->debug(" ==> {} rules...", policy->rules().size());
                     if (merge_rules_res) {
                         // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
-                        inner_backward_slicing();
+                        backward_slicing();
                     }
                     solver->deep_clean();
 
