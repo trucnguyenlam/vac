@@ -1,6 +1,6 @@
 #include "ARBACLexer.h"
 #include "ARBACParser.h"
-#include "ARBACTransform.h"
+#include "../ARBACTransform.h"
 #include "ARBACUtil.h"
 
 /**
@@ -625,7 +625,7 @@ void
 preprocess(int require_reduction_user)
 {
 	// First reduce the system
-	reduction_finiteARBAC();
+//	reduction_finiteARBAC();
 
 	// Remove non-engage user
 	if (require_reduction_user)
