@@ -8,7 +8,7 @@
 #include <string>
 #include <memory>
 #include "ARBACTransform.h"
-#include "ARBACExact.h"
+#include "old_parser/ARBACExact.h"
 #include "SMT.h"
 #include "SMTSolvers/Z3.h"
 #include "SMTSolvers/yices.h"
