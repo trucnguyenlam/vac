@@ -7,7 +7,7 @@
 #include <utility>
 #include <algorithm>
 
-#include "ARBACExact.h"
+//#include "old_parser/ARBACExact.h"
 #include "SMT_Pruning.h"
 #include "SMT.h"
 #include "Logics.h"
@@ -17,103 +17,57 @@
 
 namespace SMT {
 
+    bool backward_slicing(std::shared_ptr<arbac_policy> &policy) {
+        bool fixpoint = false;
+        std::set<rulep> to_save;
+        std::set<Literalw, std::owner_less<Literalw>> necessary_atoms;
+        necessary_atoms.insert(Literalw(policy->goal_role));
+        while (!fixpoint) {
+            fixpoint = true;
+            for (auto &&rule : policy->rules()) {
+//                    print_collection(necessary_atoms);
+//                    print_collection(to_save);
+//                    std::cout << *rule << ": "_atoms);
+//                    print_collection(to_save);
+//                    std::cout << *rule << ": " << (!contains(to_save, rule) && contains(necessary_atoms, rule->target)) << std::endl;
+                if (!contains(to_save, rule) && contains_ptr(necessary_atoms, rule->target)) {
+//                        print_collection(rule->admin->literals());
+//                        print_collection(rule->prec->literals());
+
+                    necessary_atoms.insert(rule->admin->literals().begin(), rule->admin->literals().end());
+                    necessary_atoms.insert(rule->prec->literals().begin(), rule->prec->literals().end());
+                    to_save.insert(rule);
+                    fixpoint = false;
+                }
+            }
+        }
+
+        std::list<rulep> to_remove;
+        for (auto &&rule : policy->rules()) {
+            if (!contains(to_save, rule)) {
+                to_remove.push_back(rule);
+                log->debug("{}", *rule);
+            }
+        }
+
+        std::list<atom> atoms_to_remove;
+        for (auto &&atom : policy->atoms()) {
+            if (!contains_ptr(necessary_atoms, atom)) {
+                atoms_to_remove.push_back(atom);
+                log->debug("{}", *atom);
+            }
+        }
+
+        policy->remove_rules(to_remove);
+        policy->remove_atoms(atoms_to_remove);
+
+        return to_remove.size() > 0;
+    }
+
     template <typename TVar, typename TExpr>
     class Pruning {
 
-        struct atom_status {
-        public:
-            enum status {
-                UNKNOWN,
-                USED,
-                UNUSED
-            };
 
-            static std::vector<std::shared_ptr<atom_status>> create(std::shared_ptr<arbac_policy>& policy) {
-                std::vector<std::shared_ptr<atom_status>> result((ulong) policy->atom_count());
-                for (auto &&atom : policy->atoms()) {
-                    int size = (int) pow(2, atom->bv_size);
-                    result[atom->role_array_index] = std::shared_ptr<atom_status>(new atom_status(size, atom->to_string()));
-                }
-
-                return result;
-            }
-
-            inline status get_status(int value) {
-                if (invalid) {
-                    log->error("atom_status object in cache is invalid");
-                    throw std::runtime_error("Object in cache is invalid");
-                }
-                return statuses[value];
-            }
-
-            void set_unused() {
-                if (invalid) {
-                    log->error("atom_status object in cache is invalid");
-                    throw std::runtime_error("Object in cache is invalid");
-                }
-                for (int i = 0; i < values_count; ++i) {
-                    statuses[i] = UNUSED;
-                }
-            }
-
-            inline void set_value(int value, status _status) {
-                if (invalid) {
-                    log->error("atom_status object in cache is invalid");
-                    throw std::runtime_error("Object in cache is invalid");
-                }
-                statuses[value] = _status;
-            }
-
-            std::string to_string() const {
-                std::stringstream fmt;
-                fmt << name << ":" << std::endl;
-                for (int i = 0; i < statuses.size(); ++i) {
-                    fmt << "\t" << i << ": " << status_to_string(statuses[i]) << std::endl;
-                }
-                return fmt.str();
-            }
-
-            friend std::ostream& operator<<(std::ostream& stream, const atom_status& self) {
-                stream << self.to_string();
-                return stream;
-            }
-
-
-        private:
-            atom_status() : invalid(true), values_count(0), name("") { }
-            atom_status(int _values_count, std::string _name) :
-                    invalid(false),
-                    values_count(_values_count),
-                    statuses((ulong) _values_count),
-                    name(_name) {
-                for (int i = 0; i < _values_count; ++i) {
-                    statuses[i] = UNKNOWN;
-                }
-            }
-//            void fill(int val_size) {
-//                invalid = false;
-//                values_count = val_size;
-//                statuses = std::vector<status>((ulong) val_size);
-//                for (int i = 0; i < val_size; ++i) {
-//                    statuses[i] = UNKNOWN;
-//                }
-//            }
-            static inline const std::string status_to_string(status _status) {
-                switch (_status) {
-                    case UNKNOWN:
-                        return "UNKNOWN";
-                    case USED:
-                        return "USED";
-                    case UNUSED:
-                        return "UNUSED";
-                }
-                return "err";
-            }
-            const bool invalid = true;
-            const int values_count;
-            std::vector<status> statuses;
-            const std::string name;
-        };
 
         std::shared_ptr<SMTFactory<TVar, TExpr>> solver;
 
@@ -152,51 +106,8 @@ namespace SMT {
         }
 
         /* PRELIMINARY BACKWARD SLICING */
-        bool backward_slicing() {
-            bool fixpoint = false;
-            std::set<rulep> to_save;
-            std::set<Literalw, std::owner_less<Literalw>> necessary_atoms;
-            necessary_atoms.insert(Literalw(policy->goal_role));
-            while (!fixpoint) {
-                fixpoint = true;
-                for (auto &&rule : policy->rules()) {
-//                    print_collection(necessary_atoms);
-//                    print_collection(to_save);
-//                    std::cout << *rule << ": "_atoms);
-//                    print_collection(to_save);
-//                    std::cout << *rule << ": " << (!contains(to_save, rule) && contains(necessary_atoms, rule->target)) << std::endl;
-                    if (!contains(to_save, rule) && contains_ptr(necessary_atoms, rule->target)) {
-//                        print_collection(rule->admin->literals());
-//                        print_collection(rule->prec->literals());
-
-                        necessary_atoms.insert(rule->admin->literals().begin(), rule->admin->literals().end());
-                        necessary_atoms.insert(rule->prec->literals().begin(), rule->prec->literals().end());
-                        to_save.insert(rule);
-                        fixpoint = false;
-                    }
-                }
-            }
-
-            std::list<rulep> to_remove;
-            for (auto &&rule : policy->rules()) {
-                if (!contains(to_save, rule)) {
-                    to_remove.push_back(rule);
-                    log->debug("{}", *rule);
-                }
-            }
-
-            std::list<atom> atoms_to_remove;
-            for (auto &&atom : policy->atoms()) {
-                if (!contains_ptr(necessary_atoms, atom)) {
-                    atoms_to_remove.push_back(atom);
-                    log->debug("{}", *atom);
-                }
-            }
-
-            policy->remove_rules(to_remove);
-            policy->remove_atoms(atoms_to_remove);
-
-            return to_remove.size() > 0;
+        bool inner_backward_slicing() {
+            return backward_slicing(policy);
         }
 
         /* PRELIMINARY SIMPLE PRUNING (REMOVING ATOMS NOT USED IN ANY CONDITION,
@@ -532,12 +443,7 @@ namespace SMT {
                 TExpr solver_exp = generateSMTFunction2(solver, expr, free_var_vec, std::string("adm"));
 
                 std::vector<std::shared_ptr<TVar>> updated_vec = update_tlookup(free_var_vec, adm_var_vec);
-//                std::cout << "adm_var_vec" << std::endl;
-//                printLookup(adm_var_vec);
-//                std::cout << "free_var_vec" << std::endl;
-//                printLookup(free_var_vec);
-//                std::cout << "updated_vec" << std::endl;
-//                printLookup(updated_vec);
+
                 TExpr not_solver_exp = solver->createNotExpr(generateSMTFunction2(solver, expr, updated_vec, std::string("adm")));
 
                 solver->assertNow(solver_adm);
@@ -600,20 +506,29 @@ namespace SMT {
             for (auto &&rule :policy->rules()) {
                 if (!rule->admin->equals(true_expr)) {
                     admin_exprs.insert(rule->admin);
-//                    std::cout << "ADM: " << *rule->admin << std::endl;
                 }
             }
-
-//            print_collection(admin_exprs, "set: ");
 
             return (int) admin_exprs.size();
         }
 
-        bool immaterial_get_k_plus_two(const userp& user, const Expr& adm, int k) {
-            std::set<atom> conf = user->config();
+        bool immaterial_get_k_plus_two(const userp& target_user, const Expr& adm, int k) {
+            if (target_user->infinite) {
+                log->trace("User {} satisfies administrative formula {} and there are infinite copy of her!",
+                           target_user->to_full_string(), *adm);
+                log->trace("\tRequired were {} (k = {}). (Remove  k + 2)", k + 2, k);
+                return true;
+            }
+            std::set<atom> conf = target_user->config();
             int i = 0;
             for (auto &&_user : policy->users()) {
                 if (_user->config() == conf) {
+                    if (_user->infinite) {
+                        log->trace("User {} satisfies administrative formula {} and there are infinite copy of her!",
+                                   _user->to_full_string(), *adm);
+                        log->trace("\tRequired were {} (k = {}). (Remove  k + 2)", k + 2, k);
+                        return true;
+                    }
                     i++;
                 }
             }
@@ -623,7 +538,7 @@ namespace SMT {
             if (res) {
 //                log->warn(policy->to_string());
                 log->trace("User {} satisfies administrative formula {} and there are {} copy of her!",
-                            user->to_full_string(), *adm, i);
+                            target_user->to_full_string(), *adm, i);
                 log->trace("\tRequired were {} (k = {}). (Remove  k + 2)", k + 2, k);
             }
 
@@ -1477,10 +1392,21 @@ namespace SMT {
                 if (pair.second.size() < user_k) {
                     for (auto &&user : policy->users()) {
                         if (user->config() == pair.first) {
+                            if (user->infinite) {
+                                int i = 1;
+                                while (pair.second.size() < user_k) {
+                                    pair.second.push_back(user->extract_copy(i++));
+                                }
+                                break;
+                            }
                             pair.second.push_back(user);
 
-                            if (pair.second.size() >= user_k) {
+                            if (pair.second.size() == user_k) {
                                 break;
+                            }
+                            if (pair.second.size() > user_k) {
+                                log->critical("User size cannot be greater than k + 1 and is {}; k + 1 = {}", pair.second.size(), user_k);
+                                throw std::runtime_error("User size cannot be greater than k + 1.");
                             }
                         }
                     }
@@ -1868,7 +1794,7 @@ namespace SMT {
 //                }
 
                 log->debug("Applying backward_slicing on {}", policy->rules().size());
-                bool backward_slicing_res = this->backward_slicing();
+                bool backward_slicing_res = this->inner_backward_slicing();
                 backward_slicing_res = reduce_roles() || backward_slicing_res;
                 log->debug(" ==> {} rules...", policy->rules().size());
                 solver->deep_clean();
@@ -1882,7 +1808,7 @@ namespace SMT {
                 log->debug(" ==> {} rules...", policy->rules().size());
                 if (easy_pruning_res) {
                     // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
-                    backward_slicing();
+                    inner_backward_slicing();
                 }
                 solver->deep_clean();
 
@@ -1892,7 +1818,7 @@ namespace SMT {
                 log->debug(" ==> {} rules...", policy->rules().size());
                 if (prune_immaterial_roles_res) {
                     // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
-                    backward_slicing();
+                    inner_backward_slicing();
                 }
                 solver->deep_clean();
 
@@ -1903,7 +1829,7 @@ namespace SMT {
                 log->debug(" ==> {} rules...", policy->rules().size());
                 if (prune_irrelevant_roles_res) {
                     // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
-                    backward_slicing();
+                    inner_backward_slicing();
                 }
                 solver->deep_clean();
 
@@ -1914,7 +1840,7 @@ namespace SMT {
                 log->debug(" ==> {} rules...", policy->rules().size());
                 if (prune_implied_pairs_res) {
                     // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
-                    backward_slicing();
+                    inner_backward_slicing();
                 }
                 solver->deep_clean();
 
@@ -1927,7 +1853,7 @@ namespace SMT {
                     log->debug(" ==> {} rules...", policy->rules().size());
                     if (merge_rules_res) {
                         // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
-                        backward_slicing();
+                        inner_backward_slicing();
                     }
                     solver->deep_clean();
 
@@ -1945,7 +1871,7 @@ namespace SMT {
                     log->debug(" ==> {} rules...", policy->rules().size());
                     if (merge_rules_res) {
                         // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
-                        backward_slicing();
+                        inner_backward_slicing();
                     }
                     solver->deep_clean();
 
@@ -1981,6 +1907,10 @@ namespace SMT {
 
             reduce_users();
             solver->deep_clean();
+
+            log->debug("{}", *policy);
+
+            apply_infini_admin(solver, policy, *policy->rules().begin(), createConstantTrue(), 10, 10, 10);
 
             log->debug("{}", *policy);
 
