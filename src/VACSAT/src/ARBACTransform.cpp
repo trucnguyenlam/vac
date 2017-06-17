@@ -435,6 +435,13 @@ int main(int argc, const char * const *argv) {
 //        }
 //        error_exit();
 //    }
+//    catch (const SMT::unexpected_error& err) {
+//        if (logging_on_console) {
+//            SMT::log->critical("Unexpected exception raised: {}", err.what());
+//        } else {
+//            std::cerr << "Unexpected exception raised: " << err.what() << std::endl;
+//        }
+//    }
     catch (const spdlog::spdlog_ex& ex) {
         std::cerr << "Log init failed: " << ex.what() << std::endl;
         error_exit();

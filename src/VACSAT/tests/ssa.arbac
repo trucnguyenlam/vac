@@ -1,25 +1,25 @@
-Roles r0 r1 r2 r3 rt ;
+Roles r0 r1 r2 r3 rt rs ;
 
 Users u1;
 
 NEWUSERS
     <n0, r0>
-    <n1, r2&r3>
 ;
 
-UA  <u1, r0>
-	;
+UA
+	<u1, rs>;
 
-CR 	;
+CR 	<r0, r1>;
 
 CA
     <r0, TRUE, r1>
 
-    <r1, TRUE, r2>
 
-    <r0, -r0&r2, rt>
 
-    <r0, -r1, rt>
+    <rs, r1, r2>
+
+    <r2, -rs, rt>
+
 
 	;
 
