@@ -14,6 +14,19 @@
 
 namespace SMT {
 
+    typedef unsigned long long int ulong64;
+
+    class unexpected_error : public std::exception
+    {
+        std::string what_message;
+    public:
+        unexpected_error(std::string msg) : what_message(msg) {
+        }
+        const char* what() const noexcept override {
+            return what_message.c_str();
+        }
+    };
+
     template <typename T, typename TCmp=std::less<T>>
     std::set<T, TCmp> setUnion(const std::set<T, TCmp>& a, const std::set<T, TCmp>& b) {
         std::set<T, TCmp> result = a;
