@@ -88,7 +88,7 @@ namespace SMT {
             for (auto &&rule : policy->rules()) {
                 if (!contains(to_save, rule)) {
                     to_remove.push_back(rule);
-                    log->debug("{}", *rule);
+                    log->info("{}", *rule);
                 }
             }
 
@@ -96,7 +96,7 @@ namespace SMT {
             for (auto &&atom : policy->atoms()) {
                 if (!contains_ptr(necessary_atoms, atom)) {
                     atoms_to_remove.push_back(atom);
-                    log->debug("{}", *atom);
+                    log->info("{}", *atom);
                 }
             }
 
@@ -494,20 +494,6 @@ namespace SMT {
             return false;
         }
 
-        int admin_count() {
-            //FIXME: use semantics equivalence and not structural one
-            std::set<Expr, deepCmpExprs> admin_exprs;
-
-            Expr true_expr = createConstantTrue();
-            for (auto &&rule :policy->rules()) {
-                if (!rule->admin->equals(true_expr)) {
-                    admin_exprs.insert(rule->admin);
-                }
-            }
-
-            return (int) admin_exprs.size();
-        }
-
         bool immaterial_get_k_plus_two(const userp& target_user, const Expr& adm, int k) {
             if (target_user->infinite) {
                 log->trace("User {} satisfies administrative formula {} and there are infinite copy of her!",
@@ -581,7 +567,7 @@ namespace SMT {
                 bool satisfies = solver->solve() == SAT;
 
                 if (satisfies) {
-                    int _admin_count = admin_count();
+                    int _admin_count = policy->admin_count();
                     bool cover_it = immaterial_get_k_plus_two(user, adm, _admin_count);
                     if (cover_it) {
                         return true;
@@ -1382,7 +1368,7 @@ namespace SMT {
                 partitions.push_back(std::pair<std::set<atom>, std::list<userp>>(u_conf->config(), std::list<userp>()));
             }
 
-            int user_k = admin_count() + 1;
+            int user_k = policy->admin_count() + 1;
 
             for (auto &&pair : partitions) {
                 if (pair.second.size() < user_k) {
@@ -1402,7 +1388,7 @@ namespace SMT {
                             }
                             if (pair.second.size() > user_k) {
                                 log->critical("User size cannot be greater than k + 1 and is {}; k + 1 = {}", pair.second.size(), user_k);
-                                throw std::runtime_error("User size cannot be greater than k + 1.");
+                                throw unexpected_error("User size cannot be greater than k + 1.");
                             }
                         }
                     }
@@ -1510,6 +1496,50 @@ namespace SMT {
                 }
             }
             return changed;
+        }
+
+        /* INFINITY BMC FUNCTIONS */
+        void compute_all_atom_statuses(std::vector<std::shared_ptr<atom_status>>& cache) {
+            //FUTURE: Remove and do in a lazy way directly in the infini role reachability
+            for (auto &&atom : policy->atoms()) {
+                log->info("Processing atom {}", *atom);
+                atom_used_as_value(atom, 0, cache);
+                atom_used_as_value(atom, 1, cache);
+            }
+        }
+
+        bool query_infini_admin(int steps,
+                                int rounds,
+                                int wanted_threads_count) {
+            std::vector<std::shared_ptr<atom_status>> statuses = atom_status::create(policy);
+            compute_all_atom_statuses(statuses);
+
+            std::list<rulep> to_remove_admin;
+
+            std::map<Expr, std::list<rulep>, deepCmpExprs> per_admin_rules;
+            for (auto &&rule : policy->rules()) {
+                if (!is_constant_true(rule->admin)) {
+                    per_admin_rules[rule->admin].push_back(rule);
+                }
+            }
+
+            for (auto &&pair : per_admin_rules) {
+                bool res = apply_infini_admin(solver, policy, pair.first, statuses, steps, rounds, wanted_threads_count);
+                log->info("Administrative expression {} is {} with BMC.",*pair.first, res ? "REACHABLE" : "NOT REACHABLE");
+                if (res) {
+                    log->info("Removing in:");
+                    for (auto &&rule : pair.second) {
+                        log->info("\t{}", *rule);
+                        to_remove_admin.push_back(rule);
+                    }
+                }
+            }
+
+            for (auto &&rule : to_remove_admin) {
+                rule->admin = createConstantTrue();
+            }
+
+            return to_remove_admin.size() > 0;
         }
 
         /* NOT USED ANYMORE */
@@ -1779,140 +1809,151 @@ namespace SMT {
             int fixpoint_iteration = 1;
 
             auto global_start = std::chrono::high_resolution_clock::now();
+            log->info("{}", *policy);
 
+            query_infini_admin(10, 2, -1);
 
-            while (!fixpoint) {
-                auto step_start = std::chrono::high_resolution_clock::now();
-//                solver->deep_clean();
-
-//                for (auto &&user :policy->unique_configurations()) {
-//                    std::cout << "###  " << user->to_full_string() << std::endl;
-//                }
-
-                log->debug("Applying backward_slicing on {}", policy->rules().size());
-                bool backward_slicing_res = this->backward_slicing();
-                backward_slicing_res = reduce_roles() || backward_slicing_res;
-                log->debug(" ==> {} rules...", policy->rules().size());
-                solver->deep_clean();
-
-//                std::cout << *policy << std::endl;
-
-
-                log->debug("Applying easy_pruning on {}", policy->rules().size());
-                bool easy_pruning_res = this->easy_pruning();
-                easy_pruning_res = reduce_roles() && easy_pruning_res;
-                log->debug(" ==> {} rules...", policy->rules().size());
-                if (easy_pruning_res) {
-                    // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
-                    backward_slicing();
-                }
-                solver->deep_clean();
-
-                log->debug("Applying prune_immaterial_roles on {}", policy->rules().size());
-                bool prune_immaterial_roles_res = this->prune_immaterial_roles_opt(); // this->prune_immaterial_roles();
-                prune_immaterial_roles_res = reduce_roles() || prune_immaterial_roles_res;
-                log->debug(" ==> {} rules...", policy->rules().size());
-                if (prune_immaterial_roles_res) {
-                    // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
-                    backward_slicing();
-                }
-                solver->deep_clean();
-
-
-                log->debug("Applying prune_irrelevant_roles on {}", policy->rules().size());
-                bool prune_irrelevant_roles_res = this->prune_irrelevant_roles();
-                prune_irrelevant_roles_res = reduce_roles() || prune_irrelevant_roles_res;
-                log->debug(" ==> {} rules...", policy->rules().size());
-                if (prune_irrelevant_roles_res) {
-                    // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
-                    backward_slicing();
-                }
-                solver->deep_clean();
-
-
-                log->debug("Applying prune_implied_pairs on {}", policy->rules().size());
-                bool prune_implied_pairs_res = this->prune_implied_pairs();
-                prune_implied_pairs_res = reduce_roles() || prune_implied_pairs_res;
-                log->debug(" ==> {} rules...", policy->rules().size());
-                if (prune_implied_pairs_res) {
-                    // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
-                    backward_slicing();
-                }
-                solver->deep_clean();
-
-
-                bool merge_rules_res = false;
-                if (Config::merge) {
-                    log->debug("Applying merge_rules on {}", policy->rules().size());
-                    merge_rules_res = this->merge_rules();
-                    merge_rules_res = reduce_roles() || merge_rules_res;
-                    log->debug(" ==> {} rules...", policy->rules().size());
-                    if (merge_rules_res) {
-                        // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
-                        backward_slicing();
-                    }
-                    solver->deep_clean();
-
-
-                    bool simplify_expression_res = simplify_expressions();
-                    merge_rules_res = merge_rules_res || simplify_expression_res;
-
-                }
-
-                bool simplify_toplevel_or_res = false;
-                if (Config::simplify_toplevel_or) {
-
-                    log->debug("Applying simplify_or_expressions on {}", policy->rules().size());
-                    simplify_toplevel_or_res = simplify_or_expressions();
-                    log->debug(" ==> {} rules...", policy->rules().size());
-                    if (merge_rules_res) {
-                        // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
-                        backward_slicing();
-                    }
-                    solver->deep_clean();
-
-
-                    bool simplify_expression_res = simplify_expressions();
-                    simplify_toplevel_or_res = simplify_toplevel_or_res || simplify_expression_res;
-                }
-
-                log->debug("Applying prune_rule_6 on {}", policy->rules().size());
-                bool prune_rule_6_res = this->prune_rule_6();
-                prune_rule_6_res = reduce_roles() || prune_rule_6_res;
-                log->debug(" ==> {} rules...", policy->rules().size());
-                solver->deep_clean();
-
-
-                fixpoint =
-                        !(
-                          backward_slicing_res       ||
-                          easy_pruning_res           ||
-                          prune_immaterial_roles_res ||
-                          prune_irrelevant_roles_res ||
-                          prune_implied_pairs_res    ||
-                          merge_rules_res            ||
-                          simplify_toplevel_or_res   ||
-                          prune_rule_6_res
-                          );
-
-                log->debug("Iteration: {}", fixpoint_iteration++);
-                auto step_end = std::chrono::high_resolution_clock::now();
-                auto step_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(step_end - step_start);
-                log->debug(" done in {} ms.", step_milliseconds .count());
-            }
-
-            reduce_users();
-            solver->deep_clean();
-
-            log->debug("{}", *policy);
-
-//            apply_infini_admin(solver, policy, *policy->rules().begin(), createConstantTrue(), 10, 10, 10);
-//
-//            log->debug("{}", *policy);
+            log->info("{}", *policy);
 
             auto global_end = std::chrono::high_resolution_clock::now();
             auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(global_end - global_start);
             log->debug("------------ Pruning done in {} ms. ------------", milliseconds.count());
+
+            return;
+
+
+//            while (!fixpoint) {
+//                auto step_start = std::chrono::high_resolution_clock::now();
+////                solver->deep_clean();
+//
+////                for (auto &&user :policy->unique_configurations()) {
+////                    std::cout << "###  " << user->to_full_string() << std::endl;
+////                }
+//
+//                log->debug("Applying backward_slicing on {}", policy->rules().size());
+//                bool backward_slicing_res = this->backward_slicing();
+//                backward_slicing_res = reduce_roles() || backward_slicing_res;
+//                log->debug(" ==> {} rules...", policy->rules().size());
+//                solver->deep_clean();
+//
+////                std::cout << *policy << std::endl;
+//
+//
+//                log->debug("Applying easy_pruning on {}", policy->rules().size());
+//                bool easy_pruning_res = this->easy_pruning();
+//                easy_pruning_res = reduce_roles() && easy_pruning_res;
+//                log->debug(" ==> {} rules...", policy->rules().size());
+//                if (easy_pruning_res) {
+//                    // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
+//                    backward_slicing();
+//                }
+//                solver->deep_clean();
+//
+//                log->debug("Applying prune_immaterial_roles on {}", policy->rules().size());
+//                bool prune_immaterial_roles_res = this->prune_immaterial_roles_opt(); // this->prune_immaterial_roles();
+//                prune_immaterial_roles_res = reduce_roles() || prune_immaterial_roles_res;
+//                log->debug(" ==> {} rules...", policy->rules().size());
+//                if (prune_immaterial_roles_res) {
+//                    // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
+//                    backward_slicing();
+//                }
+//                solver->deep_clean();
+//
+//
+//                log->debug("Applying prune_irrelevant_roles on {}", policy->rules().size());
+//                bool prune_irrelevant_roles_res = this->prune_irrelevant_roles();
+//                prune_irrelevant_roles_res = reduce_roles() || prune_irrelevant_roles_res;
+//                log->debug(" ==> {} rules...", policy->rules().size());
+//                if (prune_irrelevant_roles_res) {
+//                    // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
+//                    backward_slicing();
+//                }
+//                solver->deep_clean();
+//
+//
+//                log->debug("Applying prune_implied_pairs on {}", policy->rules().size());
+//                bool prune_implied_pairs_res = this->prune_implied_pairs();
+//                prune_implied_pairs_res = reduce_roles() || prune_implied_pairs_res;
+//                log->debug(" ==> {} rules...", policy->rules().size());
+//                if (prune_implied_pairs_res) {
+//                    // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
+//                    backward_slicing();
+//                }
+//                solver->deep_clean();
+//
+//
+//                bool merge_rules_res = false;
+//                if (Config::merge) {
+//                    log->debug("Applying merge_rules on {}", policy->rules().size());
+//                    merge_rules_res = this->merge_rules();
+//                    merge_rules_res = reduce_roles() || merge_rules_res;
+//                    log->debug(" ==> {} rules...", policy->rules().size());
+//                    if (merge_rules_res) {
+//                        // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
+//                        backward_slicing();
+//                    }
+//                    solver->deep_clean();
+//
+//
+//                    bool simplify_expression_res = simplify_expressions();
+//                    merge_rules_res = merge_rules_res || simplify_expression_res;
+//
+//                }
+//
+//                bool simplify_toplevel_or_res = false;
+//                if (Config::simplify_toplevel_or) {
+//
+//                    log->debug("Applying simplify_or_expressions on {}", policy->rules().size());
+//                    simplify_toplevel_or_res = simplify_or_expressions();
+//                    log->debug(" ==> {} rules...", policy->rules().size());
+//                    if (merge_rules_res) {
+//                        // IF SOMETHING CHANGED REPEAT THE BACKWARD SLICING SINCE IT IS FAST AND CAN REDUCE THE POLICY
+//                        backward_slicing();
+//                    }
+//                    solver->deep_clean();
+//
+//
+//                    bool simplify_expression_res = simplify_expressions();
+//                    simplify_toplevel_or_res = simplify_toplevel_or_res || simplify_expression_res;
+//                }
+//
+//                log->debug("Applying prune_rule_6 on {}", policy->rules().size());
+//                bool prune_rule_6_res = this->prune_rule_6();
+//                prune_rule_6_res = reduce_roles() || prune_rule_6_res;
+//                log->debug(" ==> {} rules...", policy->rules().size());
+//                solver->deep_clean();
+//
+//
+//                fixpoint =
+//                        !(
+//                          backward_slicing_res       ||
+//                          easy_pruning_res           ||
+//                          prune_immaterial_roles_res ||
+//                          prune_irrelevant_roles_res ||
+//                          prune_implied_pairs_res    ||
+//                          merge_rules_res            ||
+//                          simplify_toplevel_or_res   ||
+//                          prune_rule_6_res
+//                          );
+//
+//                log->debug("Iteration: {}", fixpoint_iteration++);
+//                auto step_end = std::chrono::high_resolution_clock::now();
+//                auto step_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(step_end - step_start);
+//                log->debug(" done in {} ms.", step_milliseconds .count());
+//            }
+//
+//            reduce_users();
+//            solver->deep_clean();
+//
+//            log->debug("{}", *policy);
+//
+////            apply_infini_admin(solver, policy, *policy->rules().begin(), createConstantTrue(), 10, 10, 10);
+////
+////            log->debug("{}", *policy);
+//
+//            auto global_end = std::chrono::high_resolution_clock::now();
+//            auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(global_end - global_start);
+//            log->debug("------------ Pruning done in {} ms. ------------", milliseconds.count());
 
         }
 
@@ -1925,6 +1966,9 @@ namespace SMT {
     template <typename TVar, typename TExpr>
     void prune_policy(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
                       const std::shared_ptr<arbac_policy>& policy) {
+
+//        bool res = apply_infini_admin(solver, policy, createAndExpr(policy->can_assign_rules()[0]->admin, policy->can_assign_rules()[1]->admin), 10, 10, -1);
+//        log->debug("{}", res);
 
         Pruning<TVar, TExpr> core(solver, policy);
 

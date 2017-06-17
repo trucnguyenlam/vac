@@ -312,7 +312,7 @@
 //    }
 //
 //    static void
-//    simulate_can_revokes_by_role(FILE *outputFile, int target_role_index, int label_index, int excluded_rule) {
+//    simulate_can_revokes_by_atom(FILE *outputFile, int target_role_index, int label_index, int excluded_rule) {
 //        // Precondition: exists always at least one CR that assign the role i.e.: roles_cr_counts[target_role_index] > 1
 //        int i = 0;
 //        //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
@@ -459,7 +459,7 @@
 //            // printf("CR idx: %d, role: %s: count: %d\n", i, role_array[i], roles_cr_counts[i]);
 //            if (core_roles[i] && roles_cr_counts[i] > 0) {
 //                int exclude = !excluded_is_ca ? exclude_idx : -1;
-//                simulate_can_revokes_by_role(outputFile, i, label_idx++, exclude);
+//                simulate_can_revokes_by_atom(outputFile, i, label_idx++, exclude);
 //            }
 //        }
 //

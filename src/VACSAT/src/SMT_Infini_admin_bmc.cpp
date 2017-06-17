@@ -12,6 +12,7 @@
 #include "SMTSolvers/yices.h"
 #include "SMTSolvers/Z3.h"
 #include "Policy.h"
+#include "SMT_Pruning.h"
 
 #include <chrono>
 
@@ -20,10 +21,10 @@
 
 namespace SMT {
 
-    using std::vector;
-    using std::shared_ptr;
-    using std::stringstream;
-    using std::string;
+//    using std::vector;
+//    using std::shared_ptr;
+//    using std::stringstream;
+//    using std::string;
 
     template <typename TVar, typename TExpr>
     class InfiniBMCTransformer {
@@ -34,6 +35,7 @@ namespace SMT {
         int threads_count;
         int use_tracks;
         int pc_size;
+        int thread_pc_size;
 
         std::shared_ptr<SMTFactory<TVar, TExpr>> solver;
 
@@ -47,28 +49,127 @@ namespace SMT {
 
         /*--- SMT VARIABLE INDEXES ---*/
         /*--- VALUES ARE  ---*/
-//    std::vector<variable> globals;
         std::vector<variable> thread_assigneds;
         std::vector<variable> program_counters;
         std::vector<std::vector<variable>> locals;
+        std::vector<variable> from_infinite;
         variable guard;
         variable nondet_bool;
         variable nondet_int;
+        variable thread_assignment_nondet_int;
         int steps;
 
         // vector<SSA::Stmt> out_stmts;
 
         std::shared_ptr<arbac_policy> policy;
+        Expr to_check;
 
         TExpr zero;
         TExpr one;
 
         std::vector<TExpr> final_assertions;
 
+        std::vector<std::pair<userp, bool>> tracked_users;
+
+        std::vector<std::shared_ptr<atom_status>> atom_statuses;
+
         std::vector<Expr> per_rule_admin_expr;
+//        std::vector<bool> per_rule_admin_expr_locked;
         std::map<Expr, variable> globals_map;
 
-        // #endif
+
+        /* PREPROCESSING */
+        bool backward_slicing() {
+            bool fixpoint = false;
+            std::set<rulep> to_save;
+            std::set<Literalw, std::owner_less<Literalw>> necessary_atoms;
+            necessary_atoms.insert(to_check->literals().begin(), to_check->literals().end());
+            while (!fixpoint) {
+                fixpoint = true;
+                for (auto &&rule : policy->rules()) {
+//                    print_collection(necessary_atoms);
+//                    print_collection(to_save);
+//                    std::cout << *rule << ": "_atoms);
+//                    print_collection(to_save);
+//                    std::cout << *rule << ": " << (!contains(to_save, rule) && contains(necessary_atoms, rule->target)) << std::endl;
+                    if (!contains(to_save, rule) && contains_ptr(necessary_atoms, rule->target)) {
+                        necessary_atoms.insert(rule->admin->literals().begin(), rule->admin->literals().end());
+                        necessary_atoms.insert(rule->prec->literals().begin(), rule->prec->literals().end());
+                        to_save.insert(rule);
+                        fixpoint = false;
+                    }
+                }
+            }
+
+            std::list<rulep> to_remove;
+            for (auto &&rule : policy->rules()) {
+                if (!contains(to_save, rule)) {
+                    to_remove.push_back(rule);
+//                    log->debug("{}", *rule);
+                }
+            }
+
+//            std::list<atom> atoms_to_remove;
+//            for (auto &&atom : policy->atoms()) {
+//                if (!contains_ptr(necessary_atoms, atom)) {
+//                    atoms_to_remove.push_back(atom);
+//                    log->debug("{}", *atom);
+//                }
+//            }
+
+            policy->remove_rules(to_remove);
+//            policy->remove_atoms(atoms_to_remove);
+
+            return to_remove.size() > 0;
+        }
+
+        void reduce_users(bool from_infinite) {
+
+            auto unique_conf = policy->unique_configurations();
+            std::map<std::set<atom>, std::list<std::pair<userp, bool>>> partitions;
+
+            std::set<Expr, deepCmpExprs> admins;
+            for (auto &&rule : policy->rules()) {
+                if (!is_constant_true(rule->admin)) {
+                    admins.insert(rule->admin);
+                }
+            }
+
+            int t_count = (int) admins.size() + 1;
+
+            for (auto &&u_conf : unique_conf) {
+                partitions[u_conf->config()] = std::list<std::pair<userp, bool>>();
+            }
+
+            int user_k = t_count;
+
+            for (auto &&iuser : policy->infinite_users()) {
+                int i = 0;
+                while (partitions[iuser->config()].size() < user_k) {
+                    partitions[iuser->config()].push_back(std::pair<userp, bool>(iuser->extract_copy(++i), true));
+                }
+            }
+
+            if (!from_infinite) {
+                for (auto &&fuser : policy->finite_users()) {
+                    if (partitions[fuser->config()].size() < user_k) {
+                        partitions[fuser->config()].push_back(std::pair<userp, bool>(fuser, false));
+                        log->info("FINITE User {} was not part of user_to_track. Adding it!", fuser->to_full_string());
+                    }
+                }
+            }
+
+            for (auto &&pair : partitions) {
+                tracked_users.insert(tracked_users.end(), pair.second.begin(), pair.second.end());
+            }
+        }
+
+        void clean_precompute() {
+            backward_slicing();
+            reduce_users(false);
+        }
+
+        /* SOLVER BASED FUNCTIONS */
 
         inline void emit_assignment(const variable& variable, TExpr value) {
             TExpr assign = solver->createEqExpr(variable.get_solver_var(), value);
@@ -83,6 +184,7 @@ namespace SMT {
             final_assertions.push_back(assertion);
         }
 
+        /* ANALYSIS INFOS */
         int get_pc_count() const {
             int n = 0;
             for (auto &&atom :policy->atoms()) {
@@ -94,6 +196,7 @@ namespace SMT {
             return bits_count(n + 1);
         }
 
+        /*  */
         void initialize_var_counters() {
 
             guard = dummy_var;
@@ -104,25 +207,28 @@ namespace SMT {
 //            globals[i] = dummy_var;
 //        }
 
-            thread_assigneds = std::vector<variable>((unsigned long) threads_count);
+            thread_assigneds = std::vector<variable>((ulong) threads_count);
             for (int i = 0; i < threads_count; ++i) {
                 thread_assigneds[i] = dummy_var;
             }
 
-            program_counters = std::vector<variable>((unsigned long) steps);
+            program_counters = std::vector<variable>((ulong) steps);
             for (int i = 0; i < steps; ++i) {
                 program_counters[i] = dummy_var;
             }
 
-            locals = std::vector<std::vector<variable>>((unsigned long) threads_count);
+            locals = std::vector<std::vector<variable>>((ulong) threads_count);
+            from_infinite = std::vector<variable>((ulong) threads_count);
             for (int i = 0; i < threads_count; ++i) {
                 locals[i] = std::vector<variable>((unsigned long) policy->atom_count());
+                from_infinite[i] = dummy_var;
                 for (int j = 0; j < policy->atom_count(); ++j) {
                     locals[i][j] = dummy_var;
                 }
             }
 
             pc_size = get_pc_count();
+            thread_pc_size = bits_count(threads_count);
         }
 
         void emitComment(const std::string& comment) {
@@ -151,10 +257,19 @@ namespace SMT {
 
             bool res = solver->solve() == UNSAT;
 
+            for (auto &&trackedUser : tracked_users) {
+                log->info("{} user: {}", trackedUser.second ? "INFINITE" : "FINITE", trackedUser.first->to_full_string());
+            }
+
+            log->info("{}", *policy);
+
             return res;
         }
 
-        const std::list<std::list<rulep>> partition_equivalent(const atom& target, const std::list<rulep>& targetings) {
+        const std::list<std::list<rulep>> partition_equivalent(const std::list<rulep>& targetings) {
+            if (targetings.size() == 0) {
+                return std::list<std::list<rulep>>();
+            }
             auto ite = targetings.begin();
             std::list<std::list<rulep>> partitions;
             partitions.push_back(std::list<rulep>());
@@ -183,7 +298,7 @@ namespace SMT {
 
         void generate_admin_partitions() {
             std::list<rulep> rules(policy->rules().begin(), policy->rules().end());
-            std::list<std::list<rulep>> partitions = partition_equivalent(nullptr, rules);
+            std::list<std::list<rulep>> partitions = partition_equivalent(rules);
             per_rule_admin_expr = std::vector<Expr>(policy->rules().size());
 //        std::list<Expr> parts;
 
@@ -226,6 +341,7 @@ namespace SMT {
             guard = variable("guard", -1, 1, solver.get(), BOOLEAN);
             nondet_bool = variable("nondet_bool", -2, 1, solver.get(), BOOLEAN);
             nondet_int = variable("nondet_int", -2, pc_size, solver.get(), BIT_VECTOR);
+            thread_assignment_nondet_int = variable("thread_assignment_nondet_int", -2, thread_pc_size, solver.get(), BIT_VECTOR);
             // emitAssignment(guard);
             // emitAssignment(nondet_bool);
             // emitAssignment(nondet_int);
@@ -278,7 +394,7 @@ namespace SMT {
                     emit_assignment(var, zero);
                 }
                 else {//locals[thread_id][i]++
-                    bool _contains = contains(policy->users(thread_id)->config(), policy->atoms(i));
+                    bool _contains = contains(tracked_users[thread_id].first->config(), policy->atoms(i));
                     variable var = variable(fmt.str(), 0, 1, solver.get(), BOOLEAN);
                     locals[thread_id][i] = var;
                     emit_assignment(var, _contains ? one : zero);
@@ -304,17 +420,35 @@ namespace SMT {
             }
         }
 
+        void generate_thread_infinite_locals() {
+            emitComment("--------------- THREAD INFINITY LOCAL VARIABLES ------------");
+            for (int i = 0; i < threads_count; ++i) {
+                clean_fmt();
+                fmt << "thread_" << i << "_infinite";
+                if (use_tracks) {
+                    variable var = variable(fmt.str(), 0, 1, solver.get(), BOOLEAN);
+                    from_infinite[i] = var;
+                    emit_assignment(var, zero);
+                }
+                else {
+                    bool is_finite = tracked_users[i].second;
+                    variable var = variable(fmt.str(), 0, 1, solver.get(), BOOLEAN);
+                    from_infinite[i] = var;
+                    emit_assignment(var, is_finite ? one : zero);
+                }
+            }
+        }
+
         void thread_assignment_if(int thread_id, int user_id) {
             clean_fmt();
-            fmt << "-------THREAD " << thread_id << " TO USER " << user_id << " (" << policy->users(user_id) << ")-------";
+            fmt << "-------THREAD " << thread_id << " TO USER " << user_id << " (" << *tracked_users[user_id].first << ")-------";
             emitComment(fmt.str());
 
-            TExpr con_e = solver->createBVConst(thread_id, pc_size);
-            TExpr eq_e = solver->createEqExpr(nondet_int.get_solver_var(), con_e);
+            TExpr con_e = solver->createBVConst(thread_id, thread_pc_size);
+            TExpr eq_e = solver->createEqExpr(thread_assignment_nondet_int.get_solver_var(), con_e);
             TExpr not_e = solver->createNotExpr(thread_assigneds[thread_id].get_solver_var());
-            TExpr if_guard = solver->createAndExpr(
-                    eq_e ,
-                    not_e );
+            TExpr if_guard = solver->createAndExpr(eq_e,
+                                                   not_e);
             variable n_guard = guard.createFrom();
             emit_assignment(n_guard, if_guard);
             guard = n_guard;
@@ -325,7 +459,14 @@ namespace SMT {
             emit_assignment(assigned, ass_val);
             thread_assigneds[thread_id] = assigned;
 
-            for (auto &&atom : policy->users(user_id)->config()) {
+            TExpr is_infinite_user = tracked_users[user_id].second ? one : zero;
+            TExpr infin_val = solver->createCondExpr(guard.get_solver_var(), is_infinite_user, from_infinite[thread_id].get_solver_var());
+            variable infinite = from_infinite[thread_id].createFrom();
+            emit_assignment(infinite, infin_val);
+            from_infinite[thread_id] = infinite;
+
+
+            for (auto &&atom : tracked_users[user_id].first->config()) {
                 // if (belong_to(admin_role_array_index, admin_role_array_index_size, user_config_array[user_id].array[j])) {
                 //     Expr glob_val = createCondExpr(exprFromVar(guard), createConstantExpr(1), globals[user_config_array[user_id].array[j]]));
                 //     Variablep glob = createFrom(globals[user_config_array[user_id].array[j]], glob_val);
@@ -341,11 +482,10 @@ namespace SMT {
 
         void assign_thread_to_user(int user_id) {
             clean_fmt();
-            fmt << "--------------- CONFIGURATION OF USER " << user_id << " (" << policy->users(user_id) << ") ------------";
+            fmt << "--------------- CONFIGURATION OF USER " << user_id << " (" << *tracked_users[user_id].first << ") ------------";
             emitComment(fmt.str());
-            variable nondet = nondet_int.createFrom();
-//        emitAssignment(nondet);
-            nondet_int = nondet;
+
+            thread_assignment_nondet_int = thread_assignment_nondet_int.createFrom();
 
             for (int i = 0; i < threads_count; i++) {
                 thread_assignment_if(i, user_id);
@@ -357,7 +497,7 @@ namespace SMT {
                 log->info("Cannot assign threads if no tracks are used.");
                 throw std::runtime_error("Cannot assign threads if no tracks are used.");
             }
-            for (int i = 0; i < policy->users().size(); i++) {
+            for (int i = 0; i < tracked_users.size(); i++) {
                 assign_thread_to_user(i);
             }
 
@@ -444,6 +584,16 @@ namespace SMT {
                 return;
             }
 
+            TExpr finite_cond;
+            // IF TARGET IS NON NEGATIVE
+            if (atom_statuses[target->idx]->get_status(0) == atom_status::UNUSED) {
+                // CAN ALWAYS ASSIGN
+                finite_cond = one;
+            } else {
+                // CAN ASSIGN ONLY IF THREAD IS INFINITE
+                finite_cond = from_infinite[thread_id].get_solver_var();
+            }
+
             pc_cond = generate_PC_cond(rule_id);
 
 //        emit_ca_comment(per_role_ca_indexes[target_role_index][0]);
@@ -456,7 +606,9 @@ namespace SMT {
                 ca_cond = solver->createOrExpr(ca_cond, ith_cond);
             }
 
-            all_cond = solver->createAndExpr(pc_cond, ca_cond);
+            all_cond = solver->createAndExpr(finite_cond,
+                                             solver->createAndExpr(pc_cond,
+                                                                   ca_cond));
             variable ca_guard = guard.createFrom();
             emit_assignment(ca_guard, all_cond);
             guard = ca_guard;
@@ -482,7 +634,7 @@ namespace SMT {
             }
         }
 
-        void simulate_can_revokes_by_role(int thread_id, const atom& target, int rule_id) {
+        void simulate_can_revokes_by_atom(int thread_id, const atom &target, int rule_id) {
             // Precondition: exists always at least one CR that assign the role i.e.: roles_cr_counts[target_role_index] > 1
             int i = 0;
             TExpr pc_cond, cr_cond, all_cond;
@@ -500,6 +652,16 @@ namespace SMT {
                 return;
             }
 
+            TExpr finite_cond;
+            // IF TARGET IS NON POSITIVE
+            if (atom_statuses[target->idx]->get_status(1) == atom_status::UNUSED) {
+                // ALWAYS CAN REMOVE
+                finite_cond = one;
+            } else {
+                // CAN REMOVE ONLY IF THREAD IS INFINITE
+                finite_cond = from_infinite[thread_id].get_solver_var();
+            }
+
             pc_cond = generate_PC_cond(rule_id);
 
 //        emit_cr_comment(per_role_cr_indexes[target_role_index][0]);
@@ -512,7 +674,9 @@ namespace SMT {
                 cr_cond = solver->createOrExpr(cr_cond, ith_cond);
             }
 
-            all_cond = solver->createAndExpr(pc_cond, cr_cond);
+            all_cond = solver->createAndExpr(finite_cond,
+                                             solver->createAndExpr(pc_cond,
+                                                                   cr_cond));
             variable cr_guard = guard.createFrom();
             emit_assignment(cr_guard, all_cond);
             guard = cr_guard;
@@ -544,7 +708,7 @@ namespace SMT {
 //        clean_fmt();
 //        fmt << "---------------ERROR CHECK THREAD " << thread_id << " ROLE " << role_array[goal_role_index] << "------------";
 //        emitComment(fmt.str());
-            TExpr term_cond = locals[thread_id][policy->goal_role->role_array_index].get_solver_var();
+            TExpr term_cond = generateSMTFunction2(solver, to_check, locals[thread_id], "");
             variable term_guard = guard.createFrom();
             emit_assignment(term_guard, term_cond);
             guard = term_guard;
@@ -577,7 +741,7 @@ namespace SMT {
             for (auto &&atom : policy->atoms()) {
                 // printf("CR idx: %d, role: %s: count: %d\n", i, role_array[i], roles_cr_counts[i]);
                 if (policy->per_role_can_revoke_rule(atom).size() > 0) {
-                    simulate_can_revokes_by_role(thread_id, atom, label_idx++);
+                    simulate_can_revokes_by_atom(thread_id, atom, label_idx++);
                 }
             }
 
@@ -627,7 +791,7 @@ namespace SMT {
         void generate_program(int rounds) {
             generate_zero_one_dummy();
 
-            auto start = std::chrono::high_resolution_clock::now();
+//            auto start = std::chrono::high_resolution_clock::now();
 
             initialize_var_counters();
 
@@ -639,6 +803,7 @@ namespace SMT {
 
             generate_globals();
             generate_locals();
+            generate_thread_infinite_locals();
 
             if (use_tracks) {
                 generate_thread_assigned_locals();
@@ -649,19 +814,19 @@ namespace SMT {
             generate_main(rounds);
 
 
-            auto end = std::chrono::high_resolution_clock::now();
-            auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-            log->debug("------------ SMT GENERATED IN {} ms ------------", milliseconds.count());
-            start = std::chrono::high_resolution_clock::now();
+//            auto end = std::chrono::high_resolution_clock::now();
+//            auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+//            log->debug("------------ SMT GENERATED IN {} ms ------------", milliseconds.count());
+//            start = std::chrono::high_resolution_clock::now();
 
             // add_all_assignments();
 
             create_final_assert();
 
 
-            end = std::chrono::high_resolution_clock::now();
-            milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-            log->debug("------------ SMT LOADED IN {} ms ------------", milliseconds.count());
+//            end = std::chrono::high_resolution_clock::now();
+//            milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+//            log->debug("------------ SMT LOADED IN {} ms ------------", milliseconds.count());
 
         }
 
@@ -675,9 +840,11 @@ namespace SMT {
                 log->info("BMC SMT formula dumped at: {}", Config::dump_smt_formula);
             }
 
-            auto end = std::chrono::high_resolution_clock::now();
-            auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-            log->debug("------------ SMT SOLVED IN {} ms ------------", milliseconds.count());
+//            auto end = std::chrono::high_resolution_clock::now();
+//            auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+//            log->debug("------------ SMT SOLVED IN {} ms ------------", milliseconds.count());
+
+
 
             switch (res) {
                 case SAT:
@@ -706,16 +873,20 @@ namespace SMT {
 
     public:
         InfiniBMCTransformer(const std::shared_ptr<SMTFactory<TVar, TExpr>>& _solver,
-                       const std::shared_ptr<arbac_policy> _policy) :
-                solver(_solver), policy(std::make_shared<arbac_policy>(*_policy)) {
-            policy->remove_atoms(std::list<atom>(policy->atoms().begin(), policy->atoms().end()));
-            log->warn("{}", policy->to_new_string());
-            log->warn("{}", policy->to_new_string());
-        }
+                             const std::shared_ptr<arbac_policy>& _policy,
+                             const Expr& _to_check,
+                             const std::vector<std::shared_ptr<atom_status>>& _atom_statuses) : solver(_solver),
+                                                                                                policy(_policy->clone_but_expr()),
+                                                                                                to_check(_to_check),
+                                                                                                atom_statuses(_atom_statuses) { }
 
         bool transform_2_bounded_smt(int rounds, int _steps, int wanted_threads_count) {
 //        solver->deep_clean();
             // solver = _solver;
+            clean_precompute();
+
+
+
             solver->deep_clean();
 
             steps = _steps;
@@ -724,8 +895,8 @@ namespace SMT {
 
             //Set the number of user to track
             if (wanted_threads_count < 1) {
-                if (policy->users().size() <= globals_map.size() + 1) {
-                    threads_count = (int) policy->users().size();
+                if (tracked_users.size() <= globals_map.size() + 1) {
+                    threads_count = (int) tracked_users.size();
                     use_tracks = false;
                 }
                 else {
@@ -734,10 +905,10 @@ namespace SMT {
                 }
             }
             else {
-                if ((int) policy->users().size() <= wanted_threads_count) {
-                    stringstream fmt;
+                if ((int) tracked_users.size() <= wanted_threads_count) {
+                    std::stringstream fmt;
                     fmt << "Cannot spawn " << wanted_threads_count <<
-                        " threads because are more than user count (" << policy->users().size() << ")";
+                        " threads because are more than user count (" << tracked_users.size() << ")";
                     log->error(fmt.str());
                     throw std::runtime_error(fmt.str());
                 }
@@ -760,67 +931,76 @@ namespace SMT {
     template <typename TVar, typename TExpr>
     bool apply_infini_admin(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
                             const std::shared_ptr<arbac_policy>& policy,
-                            const std::shared_ptr<rule>& to_check,
                             const Expr& query,
+                            const std::vector<std::shared_ptr<atom_status>>& atom_statuses,
                             int steps,
                             int rounds,
                             int wanted_threads_count) {
 
-        InfiniBMCTransformer<TVar, TExpr>(solver,policy);
+        log->debug("\n\nPERFORMING INFINI-ADMIN BMC ON POLICY...\n");
 
-        return false;
-//        log->debug("\n\nPERFORMING INFINI-ADMIN BMC ON POLICY...\n");
-//
-//        // Checking if target is already assigned at the beginning
-//        for (auto &&conf : policy->unique_configurations()) {
-//            if (contains(conf->config(), policy->goal_role)) {
-//                log->info("Target role is assignable assigned to user: {} in the initial configuration!", conf->name);
-//                log->info("Target role is reachable");
-//                return true;
-//            }
-//        }
-//
-//        // Checking if target is not assignable
-//        if (policy->per_role_can_assign_rule(policy->goal_role).size() < 1) {
-//            log->info("Target role is not assignable!");
-//            log->info("Target role is not reachable");
-//            return false;
-//        }
-//
-//        if (rounds < 1) {
-//            log->error("Cannot simulate a number of rounds < 1");
-//            throw std::runtime_error("Cannot simulate a number of rounds < 1");
-//        }
-//        if (steps < 1) {
-//            log->error("Cannot simulate a number of steps < 1");
-//            throw std::runtime_error("Cannot simulate a number of steps < 1");
-//        }
-//
-//        BMCTransformer<TVar, TExpr> core(solver, policy);
-//        bool ret = core.transform_2_bounded_smt(rounds, steps, wanted_threads_count);
-//
-//        if (ret) {
-//            log->info("Target role is reachable");
-//        }
-//        else {
-//            log->info("Target role may not be reachable");
-//        }
-//
-//        return ret;
+        if (is_constant_true(query)) {
+            log->info("The query ({}) is trivially true", *query);
+            return true;
+        }
+
+        if (is_constant_false(query)) {
+            log->info("The query ({}) is trivially false", *query);
+            return false;
+        }
+
+        // Checking if target is already assigned at the beginning
+        for (auto &&conf : policy->unique_configurations()) {
+            if (contains(conf->config(), policy->goal_role)) {
+                log->info("Target role is assignable assigned to user: {} in the initial configuration!", conf->name);
+                log->info("Target role is reachable");
+                throw std::runtime_error("Target role is assignable assigned to a user in the initial configuration (should be already removed)!: " + conf->name);
+                return true;
+            }
+        }
+
+        // Checking if target is not assignable
+        if (policy->per_role_can_assign_rule(policy->goal_role).size() < 1) {
+            log->info("Target role is not assignable!");
+            log->info("Target role is not reachable");
+            throw std::runtime_error("Target role is not assignable! (should be already removed)");
+            return false;
+        }
+
+        if (rounds < 1) {
+            log->error("Cannot simulate a number of rounds < 1");
+            throw std::runtime_error("Cannot simulate a number of rounds < 1");
+        }
+        if (steps < 1) {
+            log->error("Cannot simulate a number of steps < 1");
+            throw std::runtime_error("Cannot simulate a number of steps < 1");
+        }
+
+        InfiniBMCTransformer<TVar, TExpr> core(solver, policy, query, atom_statuses);
+        bool ret = core.transform_2_bounded_smt(rounds, steps, wanted_threads_count);
+
+        if (ret) {
+            log->info("Target query ({}) is reachable", *query);
+        }
+        else {
+            log->info("Target query ({}) may not be reachable", *query);
+        }
+
+        return ret;
     }
 
     template bool apply_infini_admin<term_t, term_t>(const std::shared_ptr<SMTFactory<term_t, term_t>>& solver,
                                                      const std::shared_ptr<arbac_policy>& policy,
-                                                     const std::shared_ptr<rule>& to_check,
                                                      const Expr& query,
+                                                     const std::vector<std::shared_ptr<atom_status>>& atom_statuses,
                                                      int steps,
                                                      int rounds,
                                                      int wanted_threads_count);
 
     template bool apply_infini_admin<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>>& solver,
                                                  const std::shared_ptr<arbac_policy>& policy,
-                                                 const std::shared_ptr<rule>& to_check,
                                                  const Expr& query,
+                                                 const std::vector<std::shared_ptr<atom_status>>& atom_statuses,
                                                  int steps,
                                                  int rounds,
                                                  int wanted_threads_count);

@@ -103,8 +103,8 @@ namespace SMT {
     template <typename TVar, typename TExpr>
     bool apply_infini_admin(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
                             const std::shared_ptr<arbac_policy>& policy,
-                            const std::shared_ptr<rule>& to_check,
                             const Expr& query,
+                            const std::vector<std::shared_ptr<atom_status>>& atom_statuses,
                             int steps,
                             int rounds,
                             int wanted_threads_count);
