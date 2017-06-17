@@ -68,9 +68,27 @@ namespace SMT {
     typedef std::shared_ptr<Literal> Literalp;
     typedef std::weak_ptr<Literal> Literalw;
     typedef Literalp Atom;
-    
+
     class Constant;
     typedef std::shared_ptr<Constant> Constantp;
+
+    class OrExpr;
+    typedef std::shared_ptr<OrExpr> OrExprp;
+
+    class AndExpr;
+    typedef std::shared_ptr<AndExpr> AndExprp;
+
+    class ImplExpr;
+    typedef std::shared_ptr<ImplExpr> ImplExprp;
+
+    class EqExpr;
+    typedef std::shared_ptr<EqExpr> EqExprp;
+
+    class NotExpr;
+    typedef std::shared_ptr<NotExpr> NotExprp;
+
+    class CondExpr;
+    typedef std::shared_ptr<CondExpr> CondExprp;
 
     class Exprv {
         public:
@@ -111,6 +129,10 @@ namespace SMT {
         virtual const std::set<Literalw, std::owner_less<Literalw>>& literals();
 
         ExprType type;
+        ulong64 idx;
+
+        static ulong64 counter;
+
 
     protected:
         std::set<Literalw, std::owner_less<Literalw>> _literals;
@@ -168,6 +190,7 @@ namespace SMT {
     };
     class OrExpr : public Exprv  {
     public:
+        enum or_position {LEFT, RIGHT};
         friend Simplifier;
         OrExpr(Expr _lhs, Expr _rhs);
         bool equals(const Expr& other) const override;
@@ -267,6 +290,12 @@ namespace SMT {
     Expr delete_atom(Expr expr, Literalp lit);
 
     std::list<Expr> get_toplevel_or(const Expr& expr);
+
+    Expr clone_but_lits(const Expr& expr);
+
+    std::list<OrExprp> get_or_expressions(const Expr& expr);
+    Expr select_or_expressions(Expr expr, OrExprp _or, OrExpr::or_position pos);
+    Expr remove_or_expressions(Expr expr, OrExprp _or, OrExpr::or_position pos);
 
 
     // Expr - Solver expr funtions

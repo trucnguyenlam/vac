@@ -53,7 +53,8 @@ namespace SMT {
     }
 
 /*EXPR OPS*/
-    Exprv::Exprv(ExprType ty, std::set<Literalw, std::owner_less<Literalw>> literals) : type(ty), _literals(literals) { }
+    ulong64 Exprv::counter = 0;
+    Exprv::Exprv(ExprType ty, std::set<Literalw, std::owner_less<Literalw>> literals) : type(ty), idx(counter++), _literals(literals) { }
     /*
      * bool Exprv::containsLiteral(std::string full_name) {
         for (auto ite = _literals.begin(); ite != _literals.end(); ++ite) {
@@ -497,7 +498,7 @@ namespace SMT {
     }
     Expr Simplifier::simplifyOrExpr(std::shared_ptr<OrExpr> or_expr) const {
      Expr nlhs, nrhs;
-     nlhs = simplifyExpr(or_expr->lhs);
+     nlhs = this->simplifyExpr(or_expr->lhs);
      if (nlhs->type == Exprv::CONSTANT) {
          auto lv = (std::dynamic_pointer_cast<Constant>(nlhs));
          if (lv->bv_size > 1) {
@@ -509,10 +510,10 @@ namespace SMT {
              return nlhs;
          }
          else {
-             return simplifyExpr(or_expr->rhs);
+             return this->simplifyExpr(or_expr->rhs);
          }
      }
-     nrhs = simplifyExpr(or_expr->rhs);
+     nrhs = this->simplifyExpr(or_expr->rhs);
      if (nrhs->type == Exprv::CONSTANT) {
          auto rv = (std::dynamic_pointer_cast<Constant>(nrhs));
          if (rv->bv_size > 1) {
@@ -530,7 +531,7 @@ namespace SMT {
     }
     Expr Simplifier::simplifyAndExpr(std::shared_ptr<AndExpr> and_expr) const {
      Expr nlhs, nrhs;
-     nlhs = simplifyExpr(and_expr->lhs);
+     nlhs = this->simplifyExpr(and_expr->lhs);
      if (nlhs->type == Exprv::CONSTANT) {
          auto lv = (std::dynamic_pointer_cast<Constant>(nlhs));
          if (lv->bv_size > 1) {
@@ -541,10 +542,10 @@ namespace SMT {
              return nlhs;
          }
          else {
-             return simplifyExpr(and_expr->rhs);
+             return this->simplifyExpr(and_expr->rhs);
          }
      }
-     nrhs = simplifyExpr(and_expr->rhs);
+     nrhs = this->simplifyExpr(and_expr->rhs);
      if (nrhs->type == Exprv::CONSTANT) {
          auto rv = (std::dynamic_pointer_cast<Constant>(nrhs));
          if (rv->bv_size > 1) {
@@ -562,8 +563,8 @@ namespace SMT {
     }
     Expr Simplifier::simplifyEqExpr(std::shared_ptr<EqExpr> expr) const {
          //TODO: COULD BE IMPROVED
-         Expr nlhs = simplifyExpr(expr->lhs);
-         Expr nrhs = simplifyExpr(expr->rhs);
+         Expr nlhs = this->simplifyExpr(expr->lhs);
+         Expr nrhs = this->simplifyExpr(expr->rhs);
 
 //         if (nlhs->equals(nrhs)) {
          if (nlhs == nrhs) {
@@ -581,7 +582,7 @@ namespace SMT {
      }
     Expr Simplifier::simplifyImplExpr(std::shared_ptr<ImplExpr> impl_expr) const {
         Expr nlhs, nrhs;
-        nlhs = simplifyExpr(impl_expr->lhs);
+        nlhs = this->simplifyExpr(impl_expr->lhs);
         if (nlhs->type == Exprv::CONSTANT) {
             auto lv = (std::dynamic_pointer_cast<Constant>(nlhs));
             if (lv->bv_size > 1) {
@@ -592,10 +593,10 @@ namespace SMT {
                 return createConstantTrue();
             }
             else {
-                return simplifyExpr(impl_expr->rhs);
+                return this->simplifyExpr(impl_expr->rhs);
             }
         }
-        nrhs = simplifyExpr(impl_expr->rhs);
+        nrhs = this->simplifyExpr(impl_expr->rhs);
         if (nrhs->type == Exprv::CONSTANT) {
             auto rv = (std::dynamic_pointer_cast<Constant>(nrhs));
             if (rv->bv_size > 1) {
@@ -612,7 +613,7 @@ namespace SMT {
         return createImplExpr(nlhs, nrhs);
     }
     Expr Simplifier::simplifyNotExpr(std::shared_ptr<NotExpr> not_expr) const {
-         Expr nexpr = simplifyExpr(not_expr->expr);
+         Expr nexpr = this->simplifyExpr(not_expr->expr);
          if (nexpr->type == Exprv::CONSTANT) {
              auto v = std::dynamic_pointer_cast<Constant>(nexpr);
              if (v->bv_size > 1) {
@@ -627,7 +628,7 @@ namespace SMT {
          return createNotExpr(nexpr);
      }
     Expr Simplifier::simplifyCondExpr(std::shared_ptr<CondExpr> cond_expr) const {
-         Expr ncond = simplifyExpr(cond_expr->cond);
+         Expr ncond = this->simplifyExpr(cond_expr->cond);
          // If condition is true or false return the selected branch simplified...
          if (ncond->type == Exprv::CONSTANT) {
              auto nv = std::dynamic_pointer_cast<Constant>(ncond);
@@ -636,15 +637,15 @@ namespace SMT {
                  throw std::runtime_error("Cannot simplify something of the form (bitvector_literal ? e : e)");
              }
              if (is_constant_true(ncond)) {
-                 return simplifyExpr(cond_expr->choice1);
+                 return this->simplifyExpr(cond_expr->choice1);
              }
              else {
-                 return simplifyExpr(cond_expr->choice2);
+                 return this->simplifyExpr(cond_expr->choice2);
              }
          }
 
-         Expr nch1 = simplifyExpr(cond_expr->choice1);
-         Expr nch2 = simplifyExpr(cond_expr->choice2);
+         Expr nch1 = this->simplifyExpr(cond_expr->choice1);
+         Expr nch2 = this->simplifyExpr(cond_expr->choice2);
          // If simplified branches are equals simplify removing conditional expression and return it
 //         if (nch1->equals(nch2)) {
          if (nch1 == nch2) {
@@ -937,6 +938,118 @@ namespace SMT {
                 return result;
             }
         }
+    }
+
+    Expr clone_but_lits(const Expr& expr) {
+        switch (expr->type) {
+            case Exprv::LITERAL:
+            case Exprv::CONSTANT:
+                return expr;
+            case Exprv::EQ_EXPR: {
+                EqExprp eq_expr = std::dynamic_pointer_cast<EqExpr>(expr);
+                Expr res = createEqExpr(clone_but_lits(eq_expr->lhs), clone_but_lits(eq_expr->rhs));
+                res->idx = expr->idx;
+                return res;
+            }
+            case Exprv::NOT_EXPR: {
+                NotExprp not_expr = std::dynamic_pointer_cast<NotExpr>(expr);
+                Expr res = createNotExpr(clone_but_lits(not_expr->expr));
+                res->idx = expr->idx;
+                return res;
+            }
+            case Exprv::AND_EXPR: {
+                AndExprp and_expr = std::dynamic_pointer_cast<AndExpr>(expr);
+                Expr res = createAndExpr(clone_but_lits(and_expr->lhs), clone_but_lits(and_expr->rhs));
+                res->idx = expr->idx;
+                return res;
+            }
+            case Exprv::OR_EXPR: {
+                OrExprp or_expr = std::dynamic_pointer_cast<OrExpr>(expr);
+                Expr res = createOrExpr(clone_but_lits(or_expr->lhs), clone_but_lits(or_expr->rhs));
+                res->idx = expr->idx;
+                return res;
+            }
+            case Exprv::IMPL_EXPR: {
+                ImplExprp impl_expr = std::dynamic_pointer_cast<ImplExpr>(expr);
+                Expr res = createImplExpr(clone_but_lits(impl_expr->lhs), clone_but_lits(impl_expr->rhs));
+                res->idx = expr->idx;
+                return res;
+            }
+            case Exprv::COND_EXPR: {
+                CondExprp cond_expr = std::dynamic_pointer_cast<CondExpr>(expr);
+                Expr res =  createCondExpr(clone_but_lits(cond_expr->cond),
+                                           clone_but_lits(cond_expr->choice1),
+                                           clone_but_lits(cond_expr->choice2));
+                res->idx = expr->idx;
+                return res;
+            }
+            default:
+                log->critical("Should not be here...");
+                throw unexpected_error("Should not be here...");
+        }
+
+    }
+
+    std::list<OrExprp> get_or_expressions(const Expr& expr) {
+        switch (expr->type) {
+            case Exprv::LITERAL:
+            case Exprv::CONSTANT:
+                return std::list<OrExprp>();
+            case Exprv::OR_EXPR: {
+                OrExprp or_expr = std::dynamic_pointer_cast<OrExpr>(expr);
+                std::list<OrExprp> lhs_or = get_or_expressions(or_expr->lhs);
+                std::list<OrExprp> rhs_or = get_or_expressions(or_expr->rhs);
+                lhs_or.push_front(or_expr);
+                lhs_or.insert(lhs_or.end(), rhs_or.begin(), rhs_or.end());
+                return lhs_or;
+            }
+            case Exprv::AND_EXPR: {
+                AndExprp and_expr = std::dynamic_pointer_cast<AndExpr>(expr);
+                std::list<OrExprp> lhs_or = get_or_expressions(and_expr->lhs);
+                std::list<OrExprp> rhs_or = get_or_expressions(and_expr->rhs);
+                lhs_or.insert(lhs_or.end(), rhs_or.begin(), rhs_or.end());
+                return lhs_or;
+            }
+            case Exprv::EQ_EXPR: {
+                EqExprp eq_expr = std::dynamic_pointer_cast<EqExpr>(expr);
+                std::list<OrExprp> lhs_or = get_or_expressions(eq_expr->lhs);
+                std::list<OrExprp> rhs_or = get_or_expressions(eq_expr->rhs);
+                lhs_or.insert(lhs_or.end(), rhs_or.begin(), rhs_or.end());
+                return lhs_or;
+            }
+            case Exprv::NOT_EXPR: {
+                NotExprp not_expr = std::dynamic_pointer_cast<NotExpr>(expr);
+                return get_or_expressions(not_expr->expr);
+            }
+            case Exprv::IMPL_EXPR: {
+                log->critical("IMPL_EXPR not supported here");
+                throw unexpected_error("IMPL_EXPR not supported here");
+            }
+            case Exprv::COND_EXPR: {
+                log->critical("COND_EXPR not supported here");
+                throw unexpected_error("COND_EXPR not supported here");
+            }
+            default:
+                log->critical("Should not be here");
+                throw unexpected_error("Should not be here");
+        }
+    }
+
+    Expr substituteExpr(Expr original, Expr new_expr) {
+        //FIXME: continue here
+        throw unexpected_error("NOT IMPLEMENTED YET");
+        return nullptr;
+    }
+
+    Expr select_or_expressions(Expr expr, OrExprp _or, OrExpr::or_position pos) {
+        //FIXME: continue here
+        throw unexpected_error("NOT IMPLEMENTED YET");
+        return nullptr;
+    }
+    Expr remove_or_expressions(Expr expr, OrExprp _or, OrExpr::or_position pos) {
+        //FIXME: continue here
+        throw unexpected_error("NOT IMPLEMENTED YET");
+        return nullptr;
     }
 
 /*EXPR COMPARER FOR STD COLLECTIONS*/
