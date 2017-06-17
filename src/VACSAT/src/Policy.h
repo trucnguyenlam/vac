@@ -19,6 +19,8 @@ namespace SMT {
     public:
         rule(bool is_ca, Expr admin, Expr prec, atom target, int original_idx);
 
+        std::shared_ptr<rule> clone_but_expr();
+
         void print() const;
 
         const std::string to_string() const;
@@ -47,6 +49,8 @@ namespace SMT {
         user(std::string _name, int original_idx, std::set<atom> config, bool _infinite = false);
         user(int original_idx, std::set<atom> config, bool _infinite = false);
 
+        std::shared_ptr<user> clone_but_expr();
+
         void add_atom(const atom& atom1);
         void remove_atom(const atom& atom1);
 
@@ -54,6 +58,7 @@ namespace SMT {
 
         const std::string to_full_string() const;
 
+        const std::string to_arbac_string() const;
         const std::string to_string() const;
         friend std::ostream& operator<< (std::ostream& stream, const user& self);
 
@@ -105,6 +110,8 @@ namespace SMT {
         std::vector<std::list<rulep>> _per_role_ca_rules;
         std::vector<std::list<rulep>> _per_role_cr_rules;
         std::set<userp, std::function<bool (const userp&, const userp&)>> _unique_configurations;
+        std::list<userp> _finite_users;
+        std::list<userp> _infinite_users;
 
         const arbac_policy* _policy;
     };
@@ -115,6 +122,9 @@ namespace SMT {
         arbac_policy(std::string filename);
         arbac_policy(std::string filename, bool old_version);
 
+        std::shared_ptr<arbac_policy> clone_but_expr();
+
+        int admin_count() const;
         inline int atom_count() const {
             return (int) _atoms.size();
         }
@@ -201,6 +211,12 @@ namespace SMT {
         }
         inline const std::list<rulep>& per_role_can_revoke_rule(atom _atom) {
             return this->cache()->_per_role_cr_rules[_atom->role_array_index];
+        }
+        inline const std::list<userp>& finite_users() {
+            return cache()->_finite_users;
+        }
+        inline const std::list<userp>& infinite_users() {
+            return cache()->_infinite_users;
         }
 
         inline const rulep& rules(int i) {

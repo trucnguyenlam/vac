@@ -12,8 +12,14 @@
 
 namespace SMT {
 
+
+    // ************  RULE  ****************
     rule::rule(bool _is_ca, Expr _admin, Expr _prec, Literalp _target, int _original_idx) :
             is_ca(_is_ca), admin(_admin), prec(_prec), target(_target), original_idx(_original_idx) { }
+
+    std::shared_ptr<rule> rule::clone_but_expr() {
+        return std::make_shared<rule>(rule(this->is_ca, this->admin, this->prec, this->target, this->original_idx));
+    }
 
     void rule::print() const {
         if (this->original_idx < 0) {
@@ -104,30 +110,7 @@ namespace SMT {
     }
 
 
-////    arbac_cache(arbac_policy policy);
-//    arbac_cache(std::vector<Literalp> atoms,
-//                std::vector<rulep> can_assign_rules,
-//                std::vector<rulep> can_revoke_rules) {
-//
-//    }
-//    std::list<rulep> get_assigning_r(Literalp atom) {
-//        return assigning_r[atom->role_array_index];
-//    }
-//    std::list<rulep> get_revoking_r(Literalp atom) {
-//        return revoking_r[atom->role_array_index];
-//    }
-//    std::list<rulep> get_ca_using_r(Literalp atom) {
-//        return ca_using_r[atom->role_array_index];
-//    }
-//    std::list<rulep> get_cr_using_r(Literalp atom) {
-//        return cr_using_r[atom->role_array_index];
-//    }
-//
-//    void update(arbac_policy policy) {}
-
-
     // ************  USER  ****************
-
     user::user(int _original_idx, bool _infinite) :
             original_idx(_original_idx), name(std::string(user_array[_original_idx])), infinite(_infinite) { }
     user::user(std::string _name, int _original_idx, bool _infinite) :
@@ -136,6 +119,10 @@ namespace SMT {
             original_idx(_original_idx), name(_name), infinite(_infinite), _config(config) { }
     user::user(int _original_idx, std::set<atom> config, bool _infinite) :
             original_idx(_original_idx), name(std::string(user_array[_original_idx])), infinite(_infinite), _config(config) { }
+
+    std::shared_ptr<user> user::clone_but_expr() {
+        return std::make_shared<user>(user(this->name, this->original_idx, this->_config, this->infinite));
+    }
 
     void user::add_atom(const atom& atom1) {
         //TODO: Truc: check this stub
@@ -171,6 +158,24 @@ namespace SMT {
         fmt << "}" << std::endl;
 
         return fmt.str();
+    }
+
+    const std::string user::to_arbac_string() const {
+        if (!this->infinite) {
+            return this->name;
+        } else {
+            std::stringstream fmt;
+            fmt << "<" << this->name;
+            if (this->config().size() > 0) {
+                auto ite = this->_config.begin();
+                fmt << ", " << (**ite);
+                for (++ite; ite != _config.end(); ++ite) {
+                    fmt << "&" << **ite;
+                }
+            }
+            fmt << ">";
+            return fmt.str();
+        }
     }
 
     const std::string user::to_string() const {
@@ -210,8 +215,100 @@ namespace SMT {
     }
 
 
-    // ************ POLICY ****************
+    // ************ POLICY_CACHE ****************
+    std::vector<std::vector<Literalp>> create_user_assignment(std::vector<Atom> &role_vars) {
+        std::vector<std::vector<Literalp>> res = std::vector<std::vector<Literalp>>((unsigned long) user_array_size);
+        for (int i = 0; i < user_array_size; ++i) {
+            set user_config = user_config_array[i];
+            for (int j = 0; j < user_config.array_size; ++j) {
+                Literalp role = role_vars[user_config.array[j]];
+                res[i].push_back(role);
+            }
+        }
+        return res;
+    }
 
+    std::set<userp, std::function<bool (const userp&, const userp&)>> update_unique_confs(std::vector<userp> users) {
+        auto user_comp = [&](const userp user1, const userp user2){ return user1->config() < user2->config(); };
+        auto confs = std::set<userp, std::function<bool (const userp&, const userp&)>>( user_comp );
+
+        for (auto &&user : users) {
+            confs.insert(user);
+        }
+
+        return confs;
+    };
+
+    policy_cache::policy_cache(const arbac_policy* policy) :
+            _per_user_exprs(std::vector<Expr>((ulong) policy->user_count())),
+            _per_role_ca_rules(std::vector<std::list<rulep>>((ulong) policy->atom_count())),
+            _per_role_cr_rules(std::vector<std::list<rulep>>((ulong) policy->atom_count())),
+            _finite_users(std::list<userp>()),
+            _infinite_users(std::list<userp>()),
+            _policy(policy) {
+        for (auto &&rule : policy->can_assign_rules()) {
+            _per_role_ca_rules[rule->target->role_array_index].push_back(rule);
+        }
+        for (auto &&rule : policy->can_revoke_rules()) {
+            _per_role_cr_rules[rule->target->role_array_index].push_back(rule);
+        }
+        for (auto &&user : policy->_users) {
+            if (user->infinite) {
+                _infinite_users.push_back(user);
+            } else {
+                _finite_users.push_back(user);
+            }
+        }
+        _unique_configurations = update_unique_confs(policy->users());
+    }
+
+    Expr policy_cache::_user_to_expr(int user_id) const {
+        Expr conf = createConstantTrue();
+        std::set<atom> user_atoms = _policy->_users[user_id]->config();
+        for (auto &&atom : _policy->_atoms) {
+            Expr node =
+                    (contains(user_atoms.begin(), user_atoms.end(), atom)) ?
+                    atom :
+                    createNotExpr(atom);
+
+            conf = createAndExpr(conf, node);
+        }
+        return conf;
+    }
+
+    const std::string policy_cache::to_string() const {
+        std::stringstream fmt;
+
+        fmt << "CA: " << std::endl;
+        for (auto &&atom : _policy->atoms()) {
+            fmt << "\t" << *atom << std::endl;
+            for (auto &&ca_rule : _per_role_ca_rules[atom->role_array_index]) {
+                fmt << "\t\t" << *ca_rule<< std::endl;
+            }
+        }
+
+        fmt << "CR: " << std::endl;
+        for (auto &&atom : _policy->atoms()) {
+            fmt << "\t" << *atom << std::endl;
+            for (auto &&cr_rule : _per_role_cr_rules[atom->role_array_index]) {
+                fmt << "\t\t" << *cr_rule<< std::endl;
+            }
+        }
+
+        fmt << "CONF: " << std::endl;
+        for (auto &&conf : _unique_configurations) {
+            fmt << "\t" << *conf << std::endl;
+        }
+
+        return fmt.str();
+    }
+
+    std::ostream& operator<< (std::ostream& stream, const policy_cache& self) {
+        stream << self.to_string();
+        return stream;
+    }
+
+    // ************ POLICY ****************
     Expr getCRAdmFormula(std::vector<Atom> &role_vars, int ruleId) {
         Expr ret;
         if (cr_array[ruleId].admin_role_index == -1) {
@@ -261,89 +358,6 @@ namespace SMT {
         }
 
         return cond;
-    }
-
-    std::vector<std::vector<Literalp>> create_user_assignment(std::vector<Atom> &role_vars) {
-        std::vector<std::vector<Literalp>> res = std::vector<std::vector<Literalp>>((unsigned long) user_array_size);
-        for (int i = 0; i < user_array_size; ++i) {
-            set user_config = user_config_array[i];
-            for (int j = 0; j < user_config.array_size; ++j) {
-                Literalp role = role_vars[user_config.array[j]];
-                res[i].push_back(role);
-            }
-        }
-        return res;
-    }
-
-    std::set<userp, std::function<bool (const userp&, const userp&)>> update_unique_confs(std::vector<userp> users) {
-        auto user_comp = [&](const userp user1, const userp user2){ return user1->config() < user2->config(); };
-        auto confs = std::set<userp, std::function<bool (const userp&, const userp&)>>( user_comp );
-
-        for (auto &&user : users) {
-            confs.insert(user);
-        }
-
-        return confs;
-    };
-
-    policy_cache::policy_cache(const arbac_policy* policy) :
-            _per_user_exprs(std::vector<Expr>((ulong) policy->user_count())),
-            _per_role_ca_rules(std::vector<std::list<rulep>>((ulong) policy->atom_count())),
-            _per_role_cr_rules(std::vector<std::list<rulep>>((ulong) policy->atom_count())),
-            _policy(policy) {
-        for (auto &&rule : policy->can_assign_rules()) {
-            _per_role_ca_rules[rule->target->role_array_index].push_back(rule);
-        }
-        for (auto &&rule : policy->can_revoke_rules()) {
-            _per_role_cr_rules[rule->target->role_array_index].push_back(rule);
-        }
-        _unique_configurations = update_unique_confs(policy->users());
-    }
-
-    Expr policy_cache::_user_to_expr(int user_id) const {
-        Expr conf = createConstantTrue();
-        std::set<atom> user_atoms = _policy->_users[user_id]->config();
-        for (auto &&atom : _policy->_atoms) {
-            Expr node =
-                    (contains(user_atoms.begin(), user_atoms.end(), atom)) ?
-                    atom :
-                    createNotExpr(atom);
-
-            conf = createAndExpr(conf, node);
-        }
-        return conf;
-    }
-
-    const std::string policy_cache::to_string() const {
-        std::stringstream fmt;
-
-        fmt << "CA: " << std::endl;
-        for (auto &&atom : _policy->atoms()) {
-            fmt << "\t" << *atom << std::endl;
-            for (auto &&ca_rule : _per_role_ca_rules[atom->role_array_index]) {
-                fmt << "\t\t" << *ca_rule<< std::endl;
-            }
-        }
-
-        fmt << "CR: " << std::endl;
-        for (auto &&atom : _policy->atoms()) {
-            fmt << "\t" << *atom << std::endl;
-            for (auto &&cr_rule : _per_role_cr_rules[atom->role_array_index]) {
-                fmt << "\t\t" << *cr_rule<< std::endl;
-            }
-        }
-
-        fmt << "CONF: " << std::endl;
-        for (auto &&conf : _unique_configurations) {
-            fmt << "\t" << *conf << std::endl;
-        }
-
-        return fmt.str();
-    }
-
-    std::ostream& operator<< (std::ostream& stream, const policy_cache& self) {
-        stream << self.to_string();
-        return stream;
     }
 
 
@@ -398,10 +412,53 @@ namespace SMT {
         for (i = 0; i < user_array_size; ++i) {
             _users.push_back(std::make_shared<user>(user::from_old_policy(this->_atoms, i, false)));
         }
+        std::set<std::set<atom>> infini_configs;
         for (i = 0; i < newuser_array_size; ++i) {
-            _users.push_back(std::make_shared<user>(user::from_old_policy(this->_atoms, i, true)));
+            auto new_infini_user = user::from_old_policy(this->_atoms, i, true);
+            if (!contains(infini_configs, new_infini_user.config())) {
+                _users.push_back(std::make_shared<user>(new_infini_user));
+                infini_configs.insert(new_infini_user.config());
+            } else {
+                log->debug("Policy already contains an infinite user with same configuration of user: {}\tSKIPPING!", new_infini_user.to_full_string());
+            }
         }
         this->update();
+    }
+
+    std::shared_ptr<arbac_policy> arbac_policy::clone_but_expr() {
+        std::shared_ptr<arbac_policy> pol(new arbac_policy(filename));
+        pol->_atoms = this->_atoms;
+        for (auto &&rule : this->_rules) {
+            auto nrule = rule->clone_but_expr();
+            pol->_rules.push_back(nrule);
+            if (nrule->is_ca) {
+                pol->_can_assign_rules.push_back(nrule);
+            } else {
+                pol->_can_revoke_rules.push_back(nrule);
+            }
+        }
+        for (auto &&user : this->_users) {
+            pol->_users.push_back(user->clone_but_expr());
+        }
+        pol->goal_role = this->goal_role;
+        pol->_users_to_track = this->_users_to_track;
+
+        pol->update();
+
+        return pol;
+    }
+    int arbac_policy::admin_count() const {
+        //FIXME: use semantics equivalence and not structural one
+        std::set<Expr, deepCmpExprs> admin_exprs;
+
+        Expr true_expr = createConstantTrue();
+        for (auto &&rule : _rules) {
+            if (!rule->admin->equals(true_expr)) {
+                admin_exprs.insert(rule->admin);
+            }
+        }
+
+        return (int) admin_exprs.size();
     }
 
     void arbac_policy::print_cache() {
@@ -706,7 +763,16 @@ namespace SMT {
         stream << "\t;" << std::endl << std::endl;
         stream << "USERS: " << std::endl;
         for (auto &&user : this->_users) {
-            stream << "\t" << user->name << std::endl;
+            if (!user->infinite) {
+                stream << "\t" << user->name << std::endl;
+            }
+        }
+        stream << "\t;" << std::endl << std::endl;
+        stream << "NEWUSERS: " << std::endl;
+        for (auto &&user : this->_users) {
+            if (user->infinite) {
+                stream << "\t" << user->to_arbac_string() << std::endl;
+            }
         }
         stream << "\t;" << std::endl << std::endl;
         stream << "UA:" << std::endl;
