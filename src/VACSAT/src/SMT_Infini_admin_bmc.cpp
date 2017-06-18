@@ -62,7 +62,8 @@ namespace SMT {
         // vector<SSA::Stmt> out_stmts;
 
         std::shared_ptr<arbac_policy> policy;
-        Expr to_check;
+        Expr to_check_infinite;
+        Expr to_check_finite;
 
         TExpr zero;
         TExpr one;
@@ -83,7 +84,7 @@ namespace SMT {
             bool fixpoint = false;
             std::set<rulep> to_save;
             std::set<Literalw, std::owner_less<Literalw>> necessary_atoms;
-            necessary_atoms.insert(to_check->literals().begin(), to_check->literals().end());
+            necessary_atoms.insert(to_check_infinite->literals().begin(), to_check_infinite->literals().end());
             while (!fixpoint) {
                 fixpoint = true;
                 for (auto &&rule : policy->rules()) {
@@ -708,7 +709,12 @@ namespace SMT {
 //        clean_fmt();
 //        fmt << "---------------ERROR CHECK THREAD " << thread_id << " ROLE " << role_array[goal_role_index] << "------------";
 //        emitComment(fmt.str());
-            TExpr term_cond = generateSMTFunction2(solver, to_check, locals[thread_id], "");
+
+            TExpr infinite_term_cond = generateSMTFunction2(solver, to_check_infinite, locals[thread_id], "");
+            TExpr finite_term_cond = generateSMTFunction2(solver, to_check_finite, locals[thread_id], "");
+            TExpr term_cond = solver->createCondExpr(from_infinite[thread_id].get_solver_var(),
+                                                     finite_term_cond,
+                                                     infinite_term_cond);
             variable term_guard = guard.createFrom();
             emit_assignment(term_guard, term_cond);
             guard = term_guard;
@@ -866,10 +872,29 @@ namespace SMT {
             return false;
         }
 
-        // void
-        // free_stmts() {
-        //     ssa_prog.clear();
-        // }
+         Expr infinite_to_finite(const Expr& to_check) {
+             std::map<atom, Expr> guards;
+             for (auto &&atomw : to_check->literals()) {
+                 atom _atom = atomw.lock();
+                 Expr guard = createConstantTrue();
+                 if (atom_statuses[_atom->idx]->get_status(0) == atom_status::USED) {
+                     guard = createAndExpr(guard,
+                                           createNotExpr(_atom));
+                 }
+                 if (atom_statuses[_atom->idx]->get_status(1) == atom_status::USED) {
+                     guard = createAndExpr(guard,
+                                           _atom);
+                 }
+                 guards[_atom] = guard;
+             }
+             Expr final = to_check;
+             for (auto &&pairs : guards) {
+                final = guard_atom(final, pairs.first, pairs.second);
+             }
+             log->info("original: {}", *to_check);
+             log->info("finite_version: {}", *final);
+             return final;
+         }
 
     public:
         InfiniBMCTransformer(const std::shared_ptr<SMTFactory<TVar, TExpr>>& _solver,
@@ -877,8 +902,13 @@ namespace SMT {
                              const Expr& _to_check,
                              const std::vector<std::shared_ptr<atom_status>>& _atom_statuses) : solver(_solver),
                                                                                                 policy(_policy->clone_but_expr()),
-                                                                                                to_check(_to_check),
-                                                                                                atom_statuses(_atom_statuses) { }
+                                                                                                to_check_infinite(nullptr),
+                                                                                                to_check_finite(nullptr),
+                                                                                                atom_statuses(_atom_statuses) {
+            to_check_infinite = _to_check;
+            to_check_finite = infinite_to_finite(_to_check);
+
+        }
 
         bool transform_2_bounded_smt(int rounds, int _steps, int wanted_threads_count) {
 //        solver->deep_clean();
