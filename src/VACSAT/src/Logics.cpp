@@ -923,6 +923,109 @@ namespace SMT {
         fprintf(stderr, "Cannot translate expression to SMT:\n    %s\n", expr->to_string().c_str());
     }
 
+    Expr guard_atom(Expr expr, const Literalp& lit, const Expr& guard) {
+        switch (expr->type) {
+            case Exprv::CONSTANT: {
+                return expr;
+            }
+            case Exprv::LITERAL: {
+                if (expr == lit) {
+                    return createAndExpr(guard, lit);
+                }
+                else {
+                    return expr;
+                }
+            }
+            case Exprv::AND_EXPR: {
+                std::shared_ptr<AndExpr> andExpr = std::dynamic_pointer_cast<AndExpr>(expr);
+                Expr nlhs = guard_atom(andExpr->lhs, lit, guard);
+                Expr nrhs = guard_atom(andExpr->rhs, lit, guard);
+                return createAndExpr(nlhs, nrhs);
+            }
+            case Exprv::OR_EXPR: {
+                std::shared_ptr<OrExpr> orExpr = std::dynamic_pointer_cast<OrExpr>(expr);
+                Expr nlhs = guard_atom(orExpr->lhs, lit, guard);
+                Expr nrhs = guard_atom(orExpr->rhs, lit, guard);
+                return createOrExpr(nlhs, nrhs);
+            }
+            case Exprv::NOT_EXPR: {
+                std::shared_ptr<NotExpr> notExpr = std::dynamic_pointer_cast<NotExpr>(expr);
+                Expr inner = notExpr->expr;
+                switch (inner->type) {
+                    case Exprv::CONSTANT:
+                        return expr;
+                    case Exprv::LITERAL:
+                        if (inner == lit) {
+                            return createAndExpr(guard, notExpr);
+                        }
+                        else {
+                            return expr;
+                        }
+                    case Exprv::EQ_EXPR: {
+                        std::shared_ptr<EqExpr> inner_eq = std::dynamic_pointer_cast<EqExpr>(inner);
+                        if (is_lit_const_eq(inner_eq)) {
+                            auto pair = eq_to_lit_const(inner_eq);
+                            if (pair.first == lit) {
+                                return createAndExpr(guard, notExpr);
+                            } else {
+                                return expr;
+                            }
+                        }
+                        else {
+                            log->error("NOT expression MUST be located close to atoms (LITERAL, CONSTANT or EQ_EXPR)");
+                            log->error("\tExpr is {}", expr->to_string());
+                            throw std::runtime_error("NOT expression MUST be located close to atoms (LITERAL, CONSTANT or EQ_EXPR)");
+                        }
+                        break;
+                    }
+                    default:
+                        log->error("NOT expression MUST be located close to atoms (LITERAL, CONSTANT or EQ_EXPR)");
+                        log->error("\tExpr is {}", expr->to_string());
+                        throw std::runtime_error("NOT expression MUST be located close to atoms (LITERAL, CONSTANT or EQ_EXPR)");
+                        return nullptr;
+                }
+            }
+//            case Exprv::IMPL_EXPR: {
+//                std::shared_ptr<ImplExpr> implExpr = std::dynamic_pointer_cast<ImplExpr>(expr);
+//                TExpr slhs = generateSMTFunction(solver, implExpr->lhs, var_array, suffix);
+//                TExpr srhs = generateSMTFunction(solver, implExpr->rhs, var_array, suffix);
+//                return solver->createImplExpr(slhs, srhs);
+//            }
+//            case Exprv::COND_EXPR: {
+//                std::shared_ptr<CondExpr> condExpr = std::dynamic_pointer_cast<CondExpr>(expr);
+//                TExpr scond = generateSMTFunction(solver, condExpr->cond, var_array, suffix);
+//                TExpr schoice1 = generateSMTFunction(solver, condExpr->choice1, var_array, suffix);
+//                TExpr schoice2 = generateSMTFunction(solver, condExpr->choice2, var_array, suffix);
+//                return solver->createCondExpr(scond, schoice1, schoice2);
+//            }
+            case Exprv::EQ_EXPR: {
+                std::shared_ptr<EqExpr> eq_expr = std::dynamic_pointer_cast<EqExpr>(expr);
+                if (is_lit_const_eq(eq_expr)) {
+                    auto lit_cons = eq_to_lit_const(eq_expr);
+                    if (lit_cons.first == lit) {
+                        return createAndExpr(guard, expr);
+                    }
+                    else {
+                        return expr;
+                    }
+                }
+                else {
+                    log->error("EQ expression MUST be between an ATOM (LITERAL) and a CONSTANT");
+                    log->error("\tExpr is {}", expr->to_string());
+                    throw std::runtime_error("EQ expression MUST be between an ATOM (LITERAL) and a CONSTANT");
+                    return nullptr;
+                }
+            }
+            default:
+                log->error("Could not simplify an expression that is not an OR, AND, NOT, CONSTANT, LITERAL.");
+                log->error("\tExpr is {}", expr->to_string());
+                throw std::runtime_error("Could not normalize this expression");
+                return expr;
+        }
+        throw std::runtime_error("Cannot translate expression to SMT");
+        fprintf(stderr, "Cannot translate expression to SMT:\n    %s\n", expr->to_string().c_str());
+    }
+
     std::list<Expr> get_toplevel_or(const Expr& expr) {
         switch (expr->type) {
             case Exprv::OR_EXPR: {

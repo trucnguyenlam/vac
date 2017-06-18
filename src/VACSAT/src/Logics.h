@@ -289,6 +289,8 @@ namespace SMT {
 
     Expr delete_atom(Expr expr, Literalp lit);
 
+    Expr guard_atom(Expr expr, const Literalp& lit, const Expr& guard);
+
     std::list<Expr> get_toplevel_or(const Expr& expr);
 
     Expr clone_but_lits(const Expr& expr);
