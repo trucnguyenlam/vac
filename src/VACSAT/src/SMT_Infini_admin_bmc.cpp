@@ -155,7 +155,7 @@ namespace SMT {
                 for (auto &&fuser : policy->finite_users()) {
                     if (partitions[fuser->config()].size() < user_k) {
                         partitions[fuser->config()].push_back(std::pair<userp, bool>(fuser, false));
-                        log->info("FINITE User {} was not part of user_to_track. Adding it!", fuser->to_full_string());
+                        log->trace("FINITE User {} was not part of user_to_track. Adding it!", fuser->to_full_string());
                     }
                 }
             }
@@ -258,11 +258,11 @@ namespace SMT {
 
             bool res = solver->solve() == UNSAT;
 
-            for (auto &&trackedUser : tracked_users) {
-                log->info("{} user: {}", trackedUser.second ? "INFINITE" : "FINITE", trackedUser.first->to_full_string());
-            }
+//            for (auto &&trackedUser : tracked_users) {
+//                log->info("{} user: {}", trackedUser.second ? "INFINITE" : "FINITE", trackedUser.first->to_full_string());
+//            }
 
-            log->info("{}", *policy);
+//            log->info("{}", *policy);
 
             return res;
         }
@@ -495,7 +495,7 @@ namespace SMT {
 
         void assign_threads() {
             if (!use_tracks) {
-                log->info("Cannot assign threads if no tracks are used.");
+                log->error("Cannot assign threads if no tracks are used.");
                 throw std::runtime_error("Cannot assign threads if no tracks are used.");
             }
             for (int i = 0; i < tracked_users.size(); i++) {
@@ -587,7 +587,7 @@ namespace SMT {
 
             TExpr finite_cond;
             // IF TARGET IS NON NEGATIVE
-            if (atom_statuses[target->idx]->get_status(0) == atom_status::UNUSED) {
+            if (atom_statuses[target->role_array_index]->get_status(0) == atom_status::UNUSED) {
                 // CAN ALWAYS ASSIGN
                 finite_cond = one;
             } else {
@@ -655,7 +655,7 @@ namespace SMT {
 
             TExpr finite_cond;
             // IF TARGET IS NON POSITIVE
-            if (atom_statuses[target->idx]->get_status(1) == atom_status::UNUSED) {
+            if (atom_statuses[target->role_array_index]->get_status(1) == atom_status::UNUSED) {
                 // ALWAYS CAN REMOVE
                 finite_cond = one;
             } else {
@@ -713,8 +713,9 @@ namespace SMT {
             TExpr infinite_term_cond = generateSMTFunction2(solver, to_check_infinite, locals[thread_id], "");
             TExpr finite_term_cond = generateSMTFunction2(solver, to_check_finite, locals[thread_id], "");
             TExpr term_cond = solver->createCondExpr(from_infinite[thread_id].get_solver_var(),
-                                                     finite_term_cond,
-                                                     infinite_term_cond);
+                                                     infinite_term_cond,
+                                                     finite_term_cond);
+
             variable term_guard = guard.createFrom();
             emit_assignment(term_guard, term_cond);
             guard = term_guard;
@@ -854,11 +855,11 @@ namespace SMT {
 
             switch (res) {
                 case SAT:
-                    log->debug("SAT\n");
+                    log->trace("SAT\n");
                     return true;
                     break;
                 case UNSAT:
-                    log->debug("UNSAT\n");
+                    log->trace("UNSAT\n");
                     return false;
                     break;
                 case UNKNOWN:
@@ -872,28 +873,30 @@ namespace SMT {
             return false;
         }
 
-         Expr infinite_to_finite(const Expr& to_check) {
-             std::map<atom, Expr> guards;
-             for (auto &&atomw : to_check->literals()) {
-                 atom _atom = atomw.lock();
-                 Expr guard = createConstantTrue();
-                 if (atom_statuses[_atom->idx]->get_status(0) == atom_status::USED) {
-                     guard = createAndExpr(guard,
-                                           createNotExpr(_atom));
-                 }
-                 if (atom_statuses[_atom->idx]->get_status(1) == atom_status::USED) {
-                     guard = createAndExpr(guard,
-                                           _atom);
-                 }
-                 guards[_atom] = guard;
-             }
-             Expr final = to_check;
-             for (auto &&pairs : guards) {
-                final = guard_atom(final, pairs.first, pairs.second);
-             }
-             log->info("original: {}", *to_check);
-             log->info("finite_version: {}", *final);
-             return final;
+        Expr infinite_to_finite(const Expr& to_check) {
+            std::map<atom, Expr> guards;
+            for (auto &&atomw : to_check->literals()) {
+                atom _atom = atomw.lock();
+                Expr guard = createConstantTrue();
+                if ((atom_statuses[_atom->role_array_index]->get_status(0) == atom_status::USED) &&
+                    /*FIXME: HIGLY EXPERIMENTAL!*/ (policy->per_role_can_revoke_rule(_atom).size() > 0)) {
+                    guard = createAndExpr(guard,
+                                          createNotExpr(_atom));
+                }
+                if ((atom_statuses[_atom->role_array_index]->get_status(1) == atom_status::USED) &&
+                    /*FIXME: HIGLY EXPERIMENTAL!*/ (policy->per_role_can_assign_rule(_atom).size() > 0)) {
+                    guard = createAndExpr(guard,
+                                          _atom);
+                }
+                guards[_atom] = guard;
+            }
+            Expr final = to_check;
+            for (auto &&pairs : guards) {
+               final = guard_atom(final, pairs.first, pairs.second);
+            }
+            log->trace("original: {}", *to_check);
+            log->trace("finite_version: {}", *final);
+            return final;
          }
 
     public:
@@ -967,32 +970,22 @@ namespace SMT {
                             int rounds,
                             int wanted_threads_count) {
 
-        log->debug("\n\nPERFORMING INFINI-ADMIN BMC ON POLICY...\n");
+//        log->trace("\n\nPERFORMING INFINI-ADMIN BMC ON POLICY...\n");
 
         if (is_constant_true(query)) {
-            log->info("The query ({}) is trivially true", *query);
+//            log->info("The query ({}) is trivially true", *query);
             return true;
         }
 
         if (is_constant_false(query)) {
-            log->info("The query ({}) is trivially false", *query);
+//            log->info("The query ({}) is trivially false", *query);
             return false;
-        }
-
-        // Checking if target is already assigned at the beginning
-        for (auto &&conf : policy->unique_configurations()) {
-            if (contains(conf->config(), policy->goal_role)) {
-                log->info("Target role is assignable assigned to user: {} in the initial configuration!", conf->name);
-                log->info("Target role is reachable");
-                throw std::runtime_error("Target role is assignable assigned to a user in the initial configuration (should be already removed)!: " + conf->name);
-                return true;
-            }
         }
 
         // Checking if target is not assignable
         if (policy->per_role_can_assign_rule(policy->goal_role).size() < 1) {
-            log->info("Target role is not assignable!");
-            log->info("Target role is not reachable");
+//            log->info("Target role is not assignable!");
+//            log->info("Target role is not reachable");
             throw std::runtime_error("Target role is not assignable! (should be already removed)");
             return false;
         }
@@ -1010,10 +1003,10 @@ namespace SMT {
         bool ret = core.transform_2_bounded_smt(rounds, steps, wanted_threads_count);
 
         if (ret) {
-            log->info("Target query ({}) is reachable", *query);
+            log->trace("Target query ({}) is reachable", *query);
         }
         else {
-            log->info("Target query ({}) may not be reachable", *query);
+            log->trace("Target query ({}) may not be reachable", *query);
         }
 
         return ret;
