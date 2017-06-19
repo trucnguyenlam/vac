@@ -54,7 +54,7 @@ namespace SMT {
 
 /*EXPR OPS*/
     ulong64 Exprv::counter = 0;
-    Exprv::Exprv(ExprType ty, std::set<Literalw, std::owner_less<Literalw>> literals) : type(ty), idx(counter++), _literals(literals) { }
+    Exprv::Exprv(ExprType ty, std::set<Literalw, std::owner_less<Literalw>> literals) : type(ty), node_idx(counter++), _literals(literals) { }
     /*
      * bool Exprv::containsLiteral(std::string full_name) {
         for (auto ite = _literals.begin(); ite != _literals.end(); ++ite) {
@@ -1051,31 +1051,31 @@ namespace SMT {
             case Exprv::EQ_EXPR: {
                 EqExprp eq_expr = std::dynamic_pointer_cast<EqExpr>(expr);
                 Expr res = createEqExpr(clone_but_lits(eq_expr->lhs), clone_but_lits(eq_expr->rhs));
-                res->idx = expr->idx;
+                res->node_idx = expr->node_idx;
                 return res;
             }
             case Exprv::NOT_EXPR: {
                 NotExprp not_expr = std::dynamic_pointer_cast<NotExpr>(expr);
                 Expr res = createNotExpr(clone_but_lits(not_expr->expr));
-                res->idx = expr->idx;
+                res->node_idx = expr->node_idx;
                 return res;
             }
             case Exprv::AND_EXPR: {
                 AndExprp and_expr = std::dynamic_pointer_cast<AndExpr>(expr);
                 Expr res = createAndExpr(clone_but_lits(and_expr->lhs), clone_but_lits(and_expr->rhs));
-                res->idx = expr->idx;
+                res->node_idx = expr->node_idx;
                 return res;
             }
             case Exprv::OR_EXPR: {
                 OrExprp or_expr = std::dynamic_pointer_cast<OrExpr>(expr);
                 Expr res = createOrExpr(clone_but_lits(or_expr->lhs), clone_but_lits(or_expr->rhs));
-                res->idx = expr->idx;
+                res->node_idx = expr->node_idx;
                 return res;
             }
             case Exprv::IMPL_EXPR: {
                 ImplExprp impl_expr = std::dynamic_pointer_cast<ImplExpr>(expr);
                 Expr res = createImplExpr(clone_but_lits(impl_expr->lhs), clone_but_lits(impl_expr->rhs));
-                res->idx = expr->idx;
+                res->node_idx = expr->node_idx;
                 return res;
             }
             case Exprv::COND_EXPR: {
@@ -1083,7 +1083,7 @@ namespace SMT {
                 Expr res =  createCondExpr(clone_but_lits(cond_expr->cond),
                                            clone_but_lits(cond_expr->choice1),
                                            clone_but_lits(cond_expr->choice2));
-                res->idx = expr->idx;
+                res->node_idx = expr->node_idx;
                 return res;
             }
             default:

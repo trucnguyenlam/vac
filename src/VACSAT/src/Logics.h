@@ -129,7 +129,7 @@ namespace SMT {
         virtual const std::set<Literalw, std::owner_less<Literalw>>& literals();
 
         ExprType type;
-        ulong64 idx;
+        ulong64 node_idx;
 
         static ulong64 counter;
 
