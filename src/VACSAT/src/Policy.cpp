@@ -625,6 +625,9 @@ namespace SMT {
 
     void arbac_policy::set_atoms(const std::vector<Literalp> &atoms) {
         _atoms = atoms;
+//        for (int i = 0; i < this->atom_count(); ++i) {
+//            _atoms[i]-> = i;
+//        }
         update();
     }
 
@@ -843,7 +846,7 @@ namespace SMT {
         stream << "*/" << std::endl << std::endl;
         stream << "USERS " << std::endl;
         for (auto &&user : this->_users) {
-            stream << "\t" << user->name << std::endl;
+            stream << "\t" << user->to_string() << std::endl;
         }
         stream << "\t;" << std::endl << std::endl;
         stream << "ATTRIBUTES " << std::endl;
