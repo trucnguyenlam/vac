@@ -14,6 +14,9 @@ namespace SMT {
     bool Config::merge = false;
     bool Config::simplify_toplevel_or = false;
 
+    int infinity_bmc_rounds_count = -1;
+    int infinity_bmc_steps_count = -1;
+
 
     std::string Config::dump_smt_formula = "";
 

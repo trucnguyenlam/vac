@@ -1925,7 +1925,7 @@ namespace SMT {
                                     prune_rule_6_res
                             );
                 }
-                infini_fixpoint = !query_infini_admin(10, 2, -1);
+                infini_fixpoint = !query_infini_admin(Config::infinity_bmc_rounds_count, Config::infinity_bmc_steps_count, -1);
 
                 log->debug("Iteration: {}", fixpoint_iteration++);
                 auto step_end = std::chrono::high_resolution_clock::now();

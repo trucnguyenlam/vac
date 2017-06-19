@@ -60,6 +60,8 @@ public:
     const int bmc_rounds_count;
     const int bmc_steps_count;
     const int bmc_thread_count;
+    const int infinity_bmc_rounds_count;
+    const int infinity_bmc_steps_count;
     const std::string mem_limit;
     const int verbosity;
     const bool profile;
@@ -82,6 +84,8 @@ public:
             int _bmc_rounds_count,
             int _bmc_steps_count,
             int _bmc_thread_count,
+            int _infinity_bmc_rounds_count,
+            int _infinity_bmc_steps_count,
             std::string _mem_limit,
             int _verbosity,
             bool _profile,
@@ -101,6 +105,8 @@ public:
         bmc_rounds_count(_bmc_rounds_count),
         bmc_steps_count(_bmc_steps_count),
         bmc_thread_count(_bmc_thread_count),
+        infinity_bmc_rounds_count(_infinity_bmc_rounds_count),
+        infinity_bmc_steps_count(_infinity_bmc_steps_count),
         mem_limit(_mem_limit),
         verbosity(_verbosity),
         profile(_profile),
@@ -206,6 +212,8 @@ static options parse_args(int ac, const char* const* av) {
     arg_obj<int> bmc_rounds_count = create_arg_obj_int("rounds,r", "Number of rounds for the bmc");
     arg_obj<int> bmc_steps_count = create_arg_obj_int("steps,s", "Number of steps per round for the bmc");
     arg_obj<int> bmc_thread_count = create_arg_obj_int("threads,t", "Number of threads (tracked users) for the bmc");
+    arg_obj<int> infinity_bmc_rounds_count = create_arg_obj_int("infinity-rounds", 10, "Number of rounds for the infinity bmc");
+    arg_obj<int> infinity_bmc_steps_count = create_arg_obj_int("infinity-steps", 2, "Number of steps per round for the infinity bmc");
     arg_obj<int> verbosity = create_arg_obj_int("verbose,v", 2, "Verbosity level (1=info, 2=debug, 3=trace)");
     arg_obj<bool> profile = create_arg_obj_bool("profile,P", "Show times");
     arg_obj<bool> update_model = create_arg_obj_bool("update-model,U", "Update the model from VAC syntax to VAC2 one");
@@ -226,6 +234,8 @@ static options parse_args(int ac, const char* const* av) {
     add_option_description(desc, bmc_rounds_count);
     add_option_description(desc, bmc_steps_count);
     add_option_description(desc, bmc_thread_count);
+    add_option_description(desc, infinity_bmc_rounds_count);
+    add_option_description(desc, infinity_bmc_steps_count);
     add_option_description(desc, verbosity);
     add_option_description(desc, profile);
     add_option_description(desc, update_model);
@@ -261,6 +271,8 @@ static options parse_args(int ac, const char* const* av) {
                     bmc_rounds_count.result,
                     bmc_steps_count.result,
                     bmc_thread_count.result,
+                    infinity_bmc_rounds_count.result,
+                    infinity_bmc_steps_count.result,
                     memory_limit.result,
                     verbosity.result,
                     profile.result,
@@ -355,6 +367,9 @@ int main(int argc, const char * const *argv) {
     try {
         set_logger_err_handler();
         options config = parse_args(argc, argv);
+
+        SMT::Config::infinity_bmc_rounds_count = config.infinity_bmc_rounds_count;
+        SMT::Config::infinity_bmc_steps_count = config.infinity_bmc_steps_count;
 
         if (config.output_file != "") {
             SMT::log = spdlog::basic_logger_mt("log", config.output_file, true);
