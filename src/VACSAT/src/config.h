@@ -30,6 +30,7 @@ namespace SMT {
         static bool simplify_toplevel_or;
         static std::string dump_smt_formula;
 
+        static bool no_infinity_bmc;
         static int infinity_bmc_rounds_count;
         static int infinity_bmc_steps_count;
 
