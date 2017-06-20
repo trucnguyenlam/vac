@@ -155,7 +155,7 @@ namespace SMT {
                 for (auto &&fuser : policy->finite_users()) {
                     if (partitions[fuser->config()].size() < user_k) {
                         partitions[fuser->config()].push_back(std::pair<userp, bool>(fuser, false));
-                        log->trace("FINITE User {} was not part of user_to_track. Adding it!", fuser->to_full_string());
+//                        log->trace("FINITE User {} was not part of user_to_track. Adding it!", fuser->to_full_string());
                     }
                 }
             }
@@ -855,11 +855,11 @@ namespace SMT {
 
             switch (res) {
                 case SAT:
-                    log->trace("SAT\n");
+//                    log->trace("SAT\n");
                     return true;
                     break;
                 case UNSAT:
-                    log->trace("UNSAT\n");
+//                    log->trace("UNSAT\n");
                     return false;
                     break;
                 case UNKNOWN:
@@ -894,8 +894,8 @@ namespace SMT {
             for (auto &&pairs : guards) {
                final = guard_atom(final, pairs.first, pairs.second);
             }
-            log->trace("original: {}", *to_check);
-            log->trace("finite_version: {}", *final);
+//            log->trace("original: {}", *to_check);
+//            log->trace("finite_version: {}", *final);
             return final;
          }
 
@@ -1002,12 +1002,12 @@ namespace SMT {
         InfiniBMCTransformer<TVar, TExpr> core(solver, policy, query, atom_statuses);
         bool ret = core.transform_2_bounded_smt(rounds, steps, wanted_threads_count);
 
-        if (ret) {
-            log->trace("Target query ({}) is reachable", *query);
-        }
-        else {
-            log->trace("Target query ({}) may not be reachable", *query);
-        }
+//        if (ret) {
+//            log->trace("Target query ({}) is reachable", *query);
+//        }
+//        else {
+//            log->trace("Target query ({}) may not be reachable", *query);
+//        }
 
         return ret;
     }
