@@ -1524,14 +1524,28 @@ namespace SMT {
 
             for (auto &&pair : per_admin_rules) {
                 bool res = apply_infini_admin(solver, policy, pair.first, statuses, steps, rounds, wanted_threads_count);
-                log->trace("Administrative expression {} is {} with BMC.",*pair.first, res ? "REACHABLE" : "NOT REACHABLE");
+//                log->trace("Administrative expression {} is {} with BMC.",*pair.first, res ? "REACHABLE" : "NOT REACHABLE");
                 if (res) {
-                    log->trace("Removing in:");
+                    if (can_write(spdlog::level::trace)) {
+                        std::cout << "*";
+                        std::flush(std::cout);
+                    }
+//                    log->trace("Removing in:");
                     for (auto &&rule : pair.second) {
-                        log->trace("\t{}", *rule);
+//                        log->trace("\t{}", *rule);
                         to_remove_admin.push_back(rule);
                     }
                 }
+                else {
+                    if (can_write(spdlog::level::trace)) {
+                        std::cout << "=";
+                        std::flush(std::cout);
+                    }
+                }
+            }
+
+            if (can_write(spdlog::level::trace)) {
+                std::cout << std::endl;
             }
 
             for (auto &&rule : to_remove_admin) {
@@ -1925,7 +1939,17 @@ namespace SMT {
                                     prune_rule_6_res
                             );
                 }
-                infini_fixpoint = !query_infini_admin(Config::infinity_bmc_rounds_count, Config::infinity_bmc_steps_count, -1);
+
+                if (!Config::no_infinity_bmc) {
+                    log->debug("Applying infinity BMC on {}", policy->rules().size());
+                    infini_fixpoint = !query_infini_admin(Config::infinity_bmc_rounds_count,
+                                                          Config::infinity_bmc_steps_count, -1);
+                    infini_fixpoint = reduce_roles() || infini_fixpoint;
+                    log->debug(" ==> {} rules...", policy->rules().size());
+                    solver->deep_clean();
+                } else {
+                    log->debug("Not applying infinity BMC");
+                }
 
                 log->debug("Iteration: {}", fixpoint_iteration++);
                 auto step_end = std::chrono::high_resolution_clock::now();
