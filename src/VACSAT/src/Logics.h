@@ -190,7 +190,6 @@ namespace SMT {
     };
     class OrExpr : public Exprv  {
     public:
-        enum or_position {LEFT, RIGHT};
         friend Simplifier;
         OrExpr(Expr _lhs, Expr _rhs);
         bool equals(const Expr& other) const override;
@@ -295,9 +294,7 @@ namespace SMT {
 
     Expr clone_but_lits(const Expr& expr);
 
-    std::list<OrExprp> get_or_expressions(const Expr& expr);
-    Expr select_or_expressions(Expr expr, OrExprp _or, OrExpr::or_position pos);
-    Expr remove_or_expressions(Expr expr, OrExprp _or, OrExpr::or_position pos);
+    std::list<std::pair<int, OrExprp>> get_or_expressions(const Expr& expr, int level);
 
 
     // Expr - Solver expr funtions

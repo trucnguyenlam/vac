@@ -1093,36 +1093,36 @@ namespace SMT {
 
     }
 
-    std::list<OrExprp> get_or_expressions(const Expr& expr) {
+    std::list<std::pair<int, OrExprp>> get_or_expressions(const Expr& expr, int level) {
         switch (expr->type) {
             case Exprv::LITERAL:
             case Exprv::CONSTANT:
-                return std::list<OrExprp>();
+                return std::list<std::pair<int, OrExprp>>();
             case Exprv::OR_EXPR: {
                 OrExprp or_expr = std::dynamic_pointer_cast<OrExpr>(expr);
-                std::list<OrExprp> lhs_or = get_or_expressions(or_expr->lhs);
-                std::list<OrExprp> rhs_or = get_or_expressions(or_expr->rhs);
-                lhs_or.push_front(or_expr);
+                std::list<std::pair<int, OrExprp>> lhs_or = get_or_expressions(or_expr->lhs, level);
+                std::list<std::pair<int, OrExprp>> rhs_or = get_or_expressions(or_expr->rhs, level);
+                lhs_or.push_front(std::pair<int, OrExprp>(level, or_expr));
                 lhs_or.insert(lhs_or.end(), rhs_or.begin(), rhs_or.end());
                 return lhs_or;
             }
             case Exprv::AND_EXPR: {
                 AndExprp and_expr = std::dynamic_pointer_cast<AndExpr>(expr);
-                std::list<OrExprp> lhs_or = get_or_expressions(and_expr->lhs);
-                std::list<OrExprp> rhs_or = get_or_expressions(and_expr->rhs);
+                std::list<std::pair<int, OrExprp>> lhs_or = get_or_expressions(and_expr->lhs, level + 1);
+                std::list<std::pair<int, OrExprp>> rhs_or = get_or_expressions(and_expr->rhs, level + 1);
                 lhs_or.insert(lhs_or.end(), rhs_or.begin(), rhs_or.end());
                 return lhs_or;
             }
             case Exprv::EQ_EXPR: {
                 EqExprp eq_expr = std::dynamic_pointer_cast<EqExpr>(expr);
-                std::list<OrExprp> lhs_or = get_or_expressions(eq_expr->lhs);
-                std::list<OrExprp> rhs_or = get_or_expressions(eq_expr->rhs);
+                std::list<std::pair<int, OrExprp>> lhs_or = get_or_expressions(eq_expr->lhs, level + 1);
+                std::list<std::pair<int, OrExprp>> rhs_or = get_or_expressions(eq_expr->rhs, level + 1);
                 lhs_or.insert(lhs_or.end(), rhs_or.begin(), rhs_or.end());
                 return lhs_or;
             }
             case Exprv::NOT_EXPR: {
                 NotExprp not_expr = std::dynamic_pointer_cast<NotExpr>(expr);
-                return get_or_expressions(not_expr->expr);
+                return get_or_expressions(not_expr->expr, level + 1);
             }
             case Exprv::IMPL_EXPR: {
                 log->critical("IMPL_EXPR not supported here");
@@ -1138,22 +1138,69 @@ namespace SMT {
         }
     }
 
-    Expr substituteExpr(Expr original, Expr new_expr) {
-        //FIXME: continue here
-        throw unexpected_error("NOT IMPLEMENTED YET");
-        return nullptr;
-    }
-
-    Expr select_or_expressions(Expr expr, OrExprp _or, OrExpr::or_position pos) {
-        //FIXME: continue here
-        throw unexpected_error("NOT IMPLEMENTED YET");
-        return nullptr;
-    }
-    Expr remove_or_expressions(Expr expr, OrExprp _or, OrExpr::or_position pos) {
-        //FIXME: continue here
-        throw unexpected_error("NOT IMPLEMENTED YET");
-        return nullptr;
-    }
+//    Expr select_or_expressions(Expr expr, OrExprp _or, OrExpr::or_position pos) {
+//        //FIXME: continue here
+//        throw unexpected_error("NOT IMPLEMENTED YET");
+//        return nullptr;
+//    }
+//    void set_or_expressions_sub(Expr expr, const OrExprp& _or, OrExpr::or_position pos, const Expr& new_value) {
+//        if (expr->node_idx == _or->node_idx) {
+//            OrExprp self = std::dynamic_pointer_cast<OrExpr>(expr);
+//            switch (pos) {
+//                case OrExpr::LEFT:
+//                    self->lhs = new_value;
+//                break;
+//                case OrExpr::RIGHT:
+//                    self->rhs = new_value;
+//                break;
+//                default:
+//                    throw unexpected_error("Uh?");
+//                    break;
+//            }
+//            return;
+//        }
+//        else {
+//            switch (expr->type) {
+//                case Exprv::LITERAL:
+//                case Exprv::CONSTANT:
+//                    return;
+//                case Exprv::OR_EXPR: {
+//                    OrExprp or_expr = std::dynamic_pointer_cast<OrExpr>(expr);
+//                    set_or_expressions_sub(or_expr->lhs, _or, pos, new_value);
+//                    set_or_expressions_sub(or_expr->rhs, _or, pos, new_value);
+//                    return;
+//                }
+//                case Exprv::AND_EXPR: {
+//                    AndExprp and_expr = std::dynamic_pointer_cast<AndExpr>(expr);
+//                    set_or_expressions_sub(and_expr->lhs, _or, pos, new_value);
+//                    set_or_expressions_sub(and_expr->rhs, _or, pos, new_value);
+//                    return;
+//                }
+//                case Exprv::EQ_EXPR: {
+//                    EqExprp eq_expr = std::dynamic_pointer_cast<EqExpr>(expr);
+//                    set_or_expressions_sub(eq_expr->lhs, _or, pos, new_value);
+//                    set_or_expressions_sub(eq_expr->rhs, _or, pos, new_value);
+//                    return;
+//                }
+//                case Exprv::NOT_EXPR: {
+//                    NotExprp not_expr = std::dynamic_pointer_cast<NotExpr>(expr);
+//                    set_or_expressions_sub(not_expr->expr, _or, pos, new_value);
+//                    return;
+//                }
+//                case Exprv::IMPL_EXPR: {
+//                    log->critical("IMPL_EXPR not supported here");
+//                    throw unexpected_error("IMPL_EXPR not supported here");
+//                }
+//                case Exprv::COND_EXPR: {
+//                    log->critical("COND_EXPR not supported here");
+//                    throw unexpected_error("COND_EXPR not supported here");
+//                }
+//                default:
+//                    log->critical("Should not be here");
+//                    throw unexpected_error("Should not be here");
+//            }
+//        }
+//    }
 
 /*EXPR COMPARER FOR STD COLLECTIONS*/
     int deepCmpExprs::operator()(const Expr &e1, const Expr &e2) const {
