@@ -1216,17 +1216,105 @@ namespace SMT {
         }
 
         /* RULE 6 FUNCTIONS (NOT FIREABLE RULES) */
+        std::list<OrExprp> get_or_list(Expr& expr, const std::set<ulong64>& visited, int max_level) {
+            std::list<std::pair<int, OrExprp>> ors = get_or_expressions(expr, 1);
+            std::list<OrExprp> res;
+            for (auto &&pair : ors) {
+                if (max_level >= 0 &&
+                    pair.first > max_level) {
+                    continue;
+                }
+                OrExprp _or = pair.second;
+                if (!contains(visited, _or->node_idx)) {
+                    res.push_back(_or);
+                }
+            }
+            return res;
+        };
+
+        enum interactive_split_result {
+            REMOVE,
+            SIMPLIFIED,
+            UNCHANGED
+        };
+
+        interactive_split_result interactive_split(const Expr expr, const rulep& rule, bool admin) {
+            int max_depth = Config::rule_6_max_depth;
+            bool changed = false;
+            Expr orig = expr;
+            if (apply_r6<TVar, TExpr>(this->solver, this->policy, orig, rule)) {
+                return REMOVE;
+            }
+
+            Expr rolling = clone_but_lits(orig);
+
+            std::set<ulong64> visited;
+
+            std::list<OrExprp> ors = get_or_list(rolling, visited, max_depth);
+
+            while (ors.size() > 0) {
+                auto _or = *ors.begin();
+                visited.insert(_or->node_idx);
+
+//                log->trace("Expr: {}", *rolling);
+//                log->trace("{}", *_or);
+
+                Expr old_r = _or->rhs;
+                _or->rhs = createConstantFalse();
+//                log->trace("testing: {}", *_or);
+                if (apply_r6<TVar, TExpr>(this->solver, this->policy, rolling, rule)) {
+                    _or->lhs = createConstantFalse();
+                    _or->rhs = old_r;
+                    changed = true;
+                } else {
+                    _or->rhs = old_r;
+                }
+
+                Expr old_l = _or->lhs;
+                _or->lhs = createConstantFalse();
+//                log->trace("testing: {}", *_or);
+                if (apply_r6<TVar, TExpr>(this->solver, this->policy, rolling, rule)) {
+                    _or->rhs = createConstantFalse();
+                    _or->lhs = old_l;
+                    changed = true;
+                } else {
+                    _or->lhs = old_l;
+                }
+
+                ors = get_or_list(rolling, visited, max_depth);
+            }
+            if (changed) {
+//                log->trace("Expression is changed!");
+//                log->trace("{}", *simplifyExpr(rolling));
+//                log->trace("{}", *simplifyExpr(orig));
+                if (admin) {
+                    rule->admin = rolling;
+                } else {
+                    rule->prec = rolling;
+                }
+            } else {
+//                log->trace("Expression is not changed!");
+            }
+//            log->trace("done!");
+            return changed ? SIMPLIFIED : UNCHANGED;
+        }
+
         bool prune_rule_6() {
             std::list<std::shared_ptr<rule>> to_remove;
+            bool changed = false;
+
 
             for (auto &&rule : policy->rules()) {
 //                if (rule->target->name.compare(0, 7, "anyfour") == 0) {
 //                    std::cout << *rule << std::endl;
 //                }
                 solver->clean();
-                bool rem_pn = apply_r6<TVar, TExpr>(this->solver, this->policy, rule, false);
+                interactive_split_result rem_pn = interactive_split(rule->prec, rule, false); //apply_r6<TVar, TExpr>(this->solver, this->policy, rule->prec, rule);
                 solver->clean();
-                bool rem_adm = rem_pn ? false : apply_r6<TVar, TExpr>(this->solver, this->policy, rule, true);
+                interactive_split_result rem_adm =
+                        rem_pn == REMOVE ? UNCHANGED
+                                         : interactive_split(rule->prec, rule, true);
+                            ; // apply_r6<TVar, TExpr>(this->solver, this->policy, rule->admin, rule);
 
                 //                std::cout << ca_adm_formulae[i]->to_string() << std::endl;
 
@@ -1238,18 +1326,26 @@ namespace SMT {
                 //                }
 
 
-                if (rem_pn) {
+                if (rem_pn == REMOVE) {
                     //                    print_ca_comment(stdout, i);
                     //                    fprintf(stdout, "rule %d %s be removed since not fireable\n\n", i, res ? "CAN" : "CANNOT");
                     to_remove.push_back(rule);
+                    changed = true;
                     if (can_write(spdlog::level::trace)) {
                         std::cout << "X";
                         std::flush(std::cout);
                     }
-                } else if (rem_adm) {
+                } else if (rem_adm == REMOVE) {
                     to_remove.push_back(rule);
+                    changed = true;
                     if (can_write(spdlog::level::trace)) {
                         std::cout << "O";
+                        std::flush(std::cout);
+                    }
+                } else if (rem_pn == SIMPLIFIED || rem_adm == SIMPLIFIED) {
+                    changed = true;
+                    if (can_write(spdlog::level::trace)) {
+                        std::cout << "+";
                         std::flush(std::cout);
                     }
                 } else {
@@ -1273,7 +1369,7 @@ namespace SMT {
 
 //            std::cout << std::endl << "Removed " << to_remove.size() << " rules" << std::endl;
 
-            return to_remove.size() > 0;
+            return changed;
 
 //            auto start = std::chrono::high_resolution_clock::now();
             // CODE

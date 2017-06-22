@@ -45,7 +45,6 @@ class R6Transformer {
     std::shared_ptr<arbac_policy> policy;
     std::shared_ptr<rule> target_rule;
     Expr target_expr;
-    bool check_adm;
 
     TExpr zero;
     TExpr one;
@@ -521,10 +520,12 @@ class R6Transformer {
     public:
     R6Transformer(const std::shared_ptr<SMTFactory<TVar, TExpr>> _solver,
                   const std::shared_ptr<arbac_policy>& _policy,
-                  const std::shared_ptr<rule> _to_check, bool _check_adm) :
+                  const Expr _to_check,
+                  const std::shared_ptr<rule> _to_check_source) :
         solver(_solver),
-        policy(_policy), target_rule(_to_check),
-        target_expr(_check_adm ? target_rule->admin : target_rule->prec), check_adm(_check_adm),
+        policy(_policy),
+        target_rule(_to_check_source),
+        target_expr(_to_check),
         zero(solver->createFalse()), one(solver->createTrue()),
         pc_size(get_pc_size(target_expr->literals())) {
         solver->deep_clean();
@@ -546,13 +547,12 @@ class R6Transformer {
     template <typename TVar, typename TExpr>
     bool apply_r6(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
                   const std::shared_ptr<arbac_policy>& policy,
-                  const std::shared_ptr<rule>& to_check,
-                  bool check_admin) {
-        if ((check_admin && is_constant_true(to_check->admin)) ||
-            (!check_admin && is_constant_true(to_check->prec))) {
+                  const Expr& to_check,
+                  const std::shared_ptr<rule>& to_check_source) {
+        if (is_constant_true(to_check)) {
             return false;
         }
-        R6Transformer<TVar, TExpr> transf(solver, policy, to_check, check_admin);
+        R6Transformer<TVar, TExpr> transf(solver, policy, to_check, to_check_source);
         // std::shared_ptr<SMTFactory<expr, expr>> solver(new Z3Solver());
         // R6Transformer<expr, expr> transf(solver, rule_index, is_ca);
         bool res = transf.apply_r6();
@@ -564,11 +564,11 @@ class R6Transformer {
 
     template bool apply_r6<term_t, term_t>(const std::shared_ptr<SMTFactory<term_t, term_t>>& solver,
                                            const std::shared_ptr<arbac_policy>& policy,
-                                           const std::shared_ptr<rule>& to_check,
-                                           bool check_admin);
+                                           const Expr& to_check,
+                                           const std::shared_ptr<rule>& to_check_source);
     template bool apply_r6<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>>& solver,
                                        const std::shared_ptr<arbac_policy>& policy,
-                                       const std::shared_ptr<rule>& to_check,
-                                       bool check_admin);
+                                       const Expr& to_check,
+                                       const std::shared_ptr<rule>& to_check_source);
 
 }
