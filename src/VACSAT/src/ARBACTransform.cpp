@@ -56,6 +56,7 @@ public:
     const bool new_prune_only;
     const bool new_reachability_only;
     const bool experimental_use_merge;
+    const int rule_6_max_depth;
     const bool experimental_simplify_toplevel_or;
     const int bmc_rounds_count;
     const int bmc_steps_count;
@@ -81,6 +82,7 @@ public:
             bool _new_prune_only,
             bool _new_reachability_only,
             bool _experimental_use_merge,
+            int _rule_6_max_depth,
             bool _experimental_simplify_toplevel_or,
             int _bmc_rounds_count,
             int _bmc_steps_count,
@@ -103,6 +105,7 @@ public:
         new_prune_only(_new_prune_only),
         new_reachability_only(_new_reachability_only),
         experimental_use_merge(_experimental_use_merge),
+        rule_6_max_depth(_rule_6_max_depth),
         experimental_simplify_toplevel_or(_experimental_simplify_toplevel_or),
         bmc_rounds_count(_bmc_rounds_count),
         bmc_steps_count(_bmc_steps_count),
@@ -211,6 +214,7 @@ static options parse_args(int ac, const char* const* av) {
     arg_obj<bool> new_prune_only = create_arg_obj_bool("prune-only,p", "Prune the policy using sat based approaches only");
     arg_obj<bool> new_reachability_only = create_arg_obj_bool("reachability-only,q", "Check reachability with bmc only");
     arg_obj<bool> experimental_use_merge = create_arg_obj_bool("merge,m", "Use the pruning merge rule");
+    arg_obj<int> rule_6_max_depth = create_arg_obj_int("rule6-max-depth,6", -1, "Set the max depth of or that should be tested in rule 6. (< 0 for any)");
     arg_obj<bool> experimental_simplify_toplevel_or = create_arg_obj_bool("simplify-or,X", "Simplify toplevel or expressions");
     arg_obj<int> bmc_rounds_count = create_arg_obj_int("rounds,r", "Number of rounds for the bmc");
     arg_obj<int> bmc_steps_count = create_arg_obj_int("steps,s", "Number of steps per round for the bmc");
@@ -234,6 +238,7 @@ static options parse_args(int ac, const char* const* av) {
     add_option_description(desc, new_prune_only);
     add_option_description(desc, new_reachability_only);
     add_option_description(desc, experimental_use_merge);
+    add_option_description(desc, rule_6_max_depth);
     add_option_description(desc, experimental_simplify_toplevel_or);
     add_option_description(desc, bmc_rounds_count);
     add_option_description(desc, bmc_steps_count);
@@ -272,6 +277,7 @@ static options parse_args(int ac, const char* const* av) {
                     new_prune_only.result,
                     new_reachability_only.result,
                     experimental_use_merge.result,
+                    rule_6_max_depth.result,
                     experimental_simplify_toplevel_or.result,
                     bmc_rounds_count.result,
                     bmc_steps_count.result,
@@ -374,6 +380,7 @@ int main(int argc, const char * const *argv) {
         set_logger_err_handler();
         options config = parse_args(argc, argv);
 
+        SMT::Config::rule_6_max_depth = config.rule_6_max_depth;
         SMT::Config::no_infinity_bmc = config.no_infinity_bmc;
         SMT::Config::infinity_bmc_rounds_count = config.infinity_bmc_rounds_count;
         SMT::Config::infinity_bmc_steps_count = config.infinity_bmc_steps_count;
@@ -389,8 +396,6 @@ int main(int argc, const char * const *argv) {
         SMT::log->set_pattern("%v");
 
         set_mem_limit(config.mem_limit);
-
-        FILE* out_file = nullptr;
 
         if (access(config.input_file.c_str(), R_OK) == -1) {
             throw std::runtime_error("Input file does not exists: " + filename);
