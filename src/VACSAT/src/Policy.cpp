@@ -15,7 +15,7 @@ namespace SMT {
 
     // ************  RULE  ****************
     rule::rule(bool _is_ca, Expr _admin, Expr _prec, Literalp _target, int _original_idx) :
-            is_ca(_is_ca), admin(_admin), prec(_prec), target(_target), original_idx(_original_idx) { }
+            is_ca(_is_ca), admin(normalize_expr(_admin)), prec(normalize_expr(_prec)), target(_target), original_idx(_original_idx) { }
 
     std::shared_ptr<rule> rule::clone_but_expr() {
         return std::make_shared<rule>(rule(this->is_ca, this->admin, this->prec, this->target, this->original_idx));
