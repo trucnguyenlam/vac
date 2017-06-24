@@ -1238,7 +1238,7 @@ namespace SMT {
             UNCHANGED
         };
 
-        interactive_split_result interactive_split(const Expr expr, const rulep& rule, bool admin) {
+        interactive_split_result interactive_split(const Expr& expr, const rulep& rule, bool admin) {
             int max_depth = Config::rule_6_max_depth;
             bool changed = false;
             Expr orig = expr;
@@ -1287,6 +1287,7 @@ namespace SMT {
 //                log->trace("Expression is changed!");
 //                log->trace("{}", *simplifyExpr(rolling));
 //                log->trace("{}", *simplifyExpr(orig));
+                rolling = simplifyExpr(rolling);
                 if (admin) {
                     rule->admin = rolling;
                 } else {
@@ -1299,21 +1300,75 @@ namespace SMT {
             return changed ? SIMPLIFIED : UNCHANGED;
         }
 
+        /*bool interactive_split_all(const Expr& expr,
+                                   const rulep& rule,
+                                   bool admin,
+                                   std::map<Expr, bool, deepCmpExprs>& results) {
+            int max_depth = Config::rule_6_max_depth;
+            bool changed = false;
+
+            std::list<std::pair<int, OrExprp>> ors = get_proper_or_expressions_sorted(expr, max_depth, 0);
+            if (ors.size() == 0) {
+                bool can_remove = apply_r6<TVar, TExpr>(this->solver, this->policy, expr, rule);
+                return can_remove;
+
+            }
+
+            OrExprp actual = (*ors.begin()).second;
+
+
+//          Try LEFT
+            Expr orig_rhs = actual->rhs;
+            actual->rhs = createConstantFalse();
+
+            bool can_remove_lhs = interactive_split_all(expr, rule, admin, results);
+            actual->rhs = orig_rhs;
+
+//          Try RIGHT
+            Expr orig_lhs = actual->lhs;
+            actual->lhs = createConstantFalse();
+
+            bool can_remove_rhs = interactive_split_all(expr, rule, admin, results);
+            actual->lhs = orig_lhs;
+
+            if (!can_remove_lhs) {
+                results[actual->lhs] = false;
+            }
+            if (!can_remove_rhs) {
+                results[actual->rhs] = false;
+            }
+        }*/
+
+        interactive_split_result apply_remove_simplify(Expr& expr, const rulep& rule, bool admin) {
+            std::list<std::pair<int, Expr>> ors = get_internal_expressions(expr, Config::rule_6_max_depth, 0);
+
+        }
+
         bool prune_rule_6() {
             std::list<std::shared_ptr<rule>> to_remove;
             bool changed = false;
-
+            bool do_log = false;
 
             for (auto &&rule : policy->rules()) {
 //                if (rule->target->name.compare(0, 7, "anyfour") == 0) {
 //                    std::cout << *rule << std::endl;
 //                }
+                if (do_log) {
+                    log->trace("{}", *rule);
+                }
+
                 solver->clean();
-                interactive_split_result rem_pn = interactive_split(rule->prec, rule, false); //apply_r6<TVar, TExpr>(this->solver, this->policy, rule->prec, rule);
+                interactive_split_result rem_pn = interactive_split_all(rule->prec, rule, false); //apply_r6<TVar, TExpr>(this->solver, this->policy, rule->prec, rule);
+                if (do_log) {
+                    log->trace("{}", *rule);
+                }
                 solver->clean();
                 interactive_split_result rem_adm =
                         rem_pn == REMOVE ? UNCHANGED
-                                         : interactive_split(rule->prec, rule, true);
+                                         : interactive_split_all(rule->admin, rule, true);
+                if (do_log) {
+                    log->trace("{}", *rule);
+                }
                             ; // apply_r6<TVar, TExpr>(this->solver, this->policy, rule->admin, rule);
 
                 //                std::cout << ca_adm_formulae[i]->to_string() << std::endl;
@@ -1916,6 +1971,13 @@ namespace SMT {
         void apply() {
             int fixpoint_iteration = 1;
             bool infini_fixpoint = false;
+
+            log->debug("Applying prune_rule_6 on {}", policy->rules().size());
+            bool prune_rule_6_res = this->prune_rule_6();
+
+            log->info("{}", *policy);
+
+            exit(0);
 
             auto global_start = std::chrono::high_resolution_clock::now();
 
