@@ -107,6 +107,14 @@ namespace SMT {
         }
     }*/
 
+    void Exprv::set_value(Expr value) {
+        this->value = value;
+
+    }
+    Expr& Exprv::get_value(){
+        return this->value;
+    }
+
     const std::set<Literalw, std::owner_less<Literalw>>& Exprv::literals() {
         return this->_literals;
      }
@@ -744,6 +752,9 @@ namespace SMT {
                 Expr nrhs = normalize_expr(orExpr->rhs);
                 return createOrExpr(nlhs, nrhs);
             }
+            case Exprv::EQ_EXPR: {
+                return expr;
+            }
             case Exprv::NOT_EXPR:{
                 std::shared_ptr<NotExpr> notExpr = std::dynamic_pointer_cast<NotExpr>(expr);
                 Expr inner = notExpr->expr;
@@ -1138,69 +1149,182 @@ namespace SMT {
         }
     }
 
-//    Expr select_or_expressions(Expr expr, OrExprp _or, OrExpr::or_position pos) {
-//        //FIXME: continue here
-//        throw unexpected_error("NOT IMPLEMENTED YET");
-//        return nullptr;
-//    }
-//    void set_or_expressions_sub(Expr expr, const OrExprp& _or, OrExpr::or_position pos, const Expr& new_value) {
-//        if (expr->node_idx == _or->node_idx) {
-//            OrExprp self = std::dynamic_pointer_cast<OrExpr>(expr);
-//            switch (pos) {
-//                case OrExpr::LEFT:
-//                    self->lhs = new_value;
-//                break;
-//                case OrExpr::RIGHT:
-//                    self->rhs = new_value;
-//                break;
-//                default:
-//                    throw unexpected_error("Uh?");
-//                    break;
-//            }
-//            return;
-//        }
-//        else {
-//            switch (expr->type) {
-//                case Exprv::LITERAL:
-//                case Exprv::CONSTANT:
-//                    return;
-//                case Exprv::OR_EXPR: {
-//                    OrExprp or_expr = std::dynamic_pointer_cast<OrExpr>(expr);
-//                    set_or_expressions_sub(or_expr->lhs, _or, pos, new_value);
-//                    set_or_expressions_sub(or_expr->rhs, _or, pos, new_value);
-//                    return;
-//                }
-//                case Exprv::AND_EXPR: {
-//                    AndExprp and_expr = std::dynamic_pointer_cast<AndExpr>(expr);
-//                    set_or_expressions_sub(and_expr->lhs, _or, pos, new_value);
-//                    set_or_expressions_sub(and_expr->rhs, _or, pos, new_value);
-//                    return;
-//                }
-//                case Exprv::EQ_EXPR: {
-//                    EqExprp eq_expr = std::dynamic_pointer_cast<EqExpr>(expr);
-//                    set_or_expressions_sub(eq_expr->lhs, _or, pos, new_value);
-//                    set_or_expressions_sub(eq_expr->rhs, _or, pos, new_value);
-//                    return;
-//                }
-//                case Exprv::NOT_EXPR: {
-//                    NotExprp not_expr = std::dynamic_pointer_cast<NotExpr>(expr);
-//                    set_or_expressions_sub(not_expr->expr, _or, pos, new_value);
-//                    return;
-//                }
-//                case Exprv::IMPL_EXPR: {
-//                    log->critical("IMPL_EXPR not supported here");
-//                    throw unexpected_error("IMPL_EXPR not supported here");
-//                }
-//                case Exprv::COND_EXPR: {
-//                    log->critical("COND_EXPR not supported here");
-//                    throw unexpected_error("COND_EXPR not supported here");
-//                }
-//                default:
-//                    log->critical("Should not be here");
-//                    throw unexpected_error("Should not be here");
-//            }
-//        }
-//    }
+    std::list<std::pair<int, Expr>> get_internal_expressions(const Expr& expr, int max_level, int level) {
+        if (level > max_level) {
+            return std::list<std::pair<int, Expr>>();
+        }
+        auto pair_comparison = [](const std::pair<int, Expr>& l, const std::pair<int, Expr>& r) -> int { return l.first < r.first; };
+        switch (expr->type) {
+            case Exprv::LITERAL:
+            case Exprv::CONSTANT: {
+                std::list<std::pair<int, Expr>> res;
+                res.push_back(std::pair<int, Expr>(level, expr));
+                return res;
+            }
+            case Exprv::OR_EXPR: {
+                OrExprp or_expr = std::dynamic_pointer_cast<OrExpr>(expr);
+                std::list<std::pair<int, Expr>> lhs_or = get_internal_expressions(or_expr->lhs, max_level, level + 1);
+                std::list<std::pair<int, Expr>> rhs_or = get_internal_expressions(or_expr->rhs, max_level, level + 1);
+                lhs_or.push_front(std::pair<int, Expr>(level, or_expr));
+                lhs_or.insert(lhs_or.end(), rhs_or.begin(), rhs_or.end());
+                lhs_or.sort(pair_comparison);
+                return lhs_or;
+            }
+            case Exprv::AND_EXPR: {
+                AndExprp and_expr = std::dynamic_pointer_cast<AndExpr>(expr);
+                std::list<std::pair<int, Expr>> lhs_or = get_internal_expressions(and_expr->lhs, max_level, level + 1);
+                std::list<std::pair<int, Expr>> rhs_or = get_internal_expressions(and_expr->rhs, max_level, level + 1);
+                lhs_or.push_back(std::pair<int, Expr>(level, and_expr));
+                lhs_or.insert(lhs_or.end(), rhs_or.begin(), rhs_or.end());
+                lhs_or.sort(pair_comparison);
+                return lhs_or;
+            }
+            case Exprv::EQ_EXPR: {
+                //NOT recurring since eq expressions should be located inside or
+                std::list<std::pair<int, Expr>> res;
+                res.push_back(std::pair<int, Expr>(level, expr));
+                return res;
+            }
+            case Exprv::NOT_EXPR: {
+                //NOT recurring since not expression are treated as leaves
+                std::list<std::pair<int, Expr>> res;
+                res.push_back(std::pair<int, Expr>(level, expr));
+                return res;
+            }
+            case Exprv::IMPL_EXPR: {
+                log->critical("IMPL_EXPR not supported here");
+                throw unexpected_error("IMPL_EXPR not supported here");
+            }
+            case Exprv::COND_EXPR: {
+                log->critical("COND_EXPR not supported here");
+                throw unexpected_error("COND_EXPR not supported here");
+            }
+            default:
+                log->critical("Should not be here");
+                throw unexpected_error("Should not be here");
+        }
+    };
+
+    /*// THIS FUNCTION DIFFERS FROM THE PREVIOUS BECAUSE THE FIRST RETURNS ALL THE OR (E.G. FALSE | A), WHILE THIS ONLY THE VALID ONES
+    std::list<std::pair<int, OrExprp>> get_proper_or_expressions_sorted(const Expr& expr, int max_level, int level) {
+        // -1 is for all levels
+        if (max_level >= 0 && level > max_level) {
+            return std::list<std::pair<int, OrExprp>>();
+        }
+        switch (expr->type) {
+            case Exprv::LITERAL:
+            case Exprv::CONSTANT:
+                return std::list<std::pair<int, OrExprp>>();
+            case Exprv::OR_EXPR: {
+                OrExprp or_expr = std::dynamic_pointer_cast<OrExpr>(expr);
+                if (or_expr->lhs->type == Exprv::CONSTANT) {
+                    return get_proper_or_expressions_sorted(or_expr->rhs, max_level, level);
+                } else if (or_expr->rhs->type == Exprv::CONSTANT) {
+                    return get_proper_or_expressions_sorted(or_expr->lhs, max_level, level);
+                } else {
+                    std::list<std::pair<int, OrExprp>> lhs_or = get_proper_or_expressions_sorted(or_expr->lhs, max_level, level);
+                    std::list<std::pair<int, OrExprp>> rhs_or = get_proper_or_expressions_sorted(or_expr->rhs, max_level, level);
+                    lhs_or.push_front(std::pair<int, OrExprp>(level, or_expr));
+                    lhs_or.insert(lhs_or.end(), rhs_or.begin(), rhs_or.end());
+                    lhs_or.sort([](const std::pair<int, OrExprp>& l, const std::pair<int, OrExprp>& r) -> bool
+                                    { return l.first < r.first; });
+                    return lhs_or;
+                }
+            }
+            case Exprv::AND_EXPR: {
+                AndExprp and_expr = std::dynamic_pointer_cast<AndExpr>(expr);
+                std::list<std::pair<int, OrExprp>> lhs_or = get_proper_or_expressions_sorted(and_expr->lhs, max_level, level + 1);
+                std::list<std::pair<int, OrExprp>> rhs_or = get_proper_or_expressions_sorted(and_expr->rhs, max_level, level + 1);
+                lhs_or.insert(lhs_or.end(), rhs_or.begin(), rhs_or.end());
+                lhs_or.sort([](const std::pair<int, OrExprp>& l, const std::pair<int, OrExprp>& r) -> bool
+                                { return l.first < r.first; });
+                return lhs_or;
+            }
+            case Exprv::EQ_EXPR: {
+                EqExprp eq_expr = std::dynamic_pointer_cast<EqExpr>(expr);
+                std::list<std::pair<int, OrExprp>> lhs_or = get_proper_or_expressions_sorted(eq_expr->lhs, max_level, level + 1);
+                std::list<std::pair<int, OrExprp>> rhs_or = get_proper_or_expressions_sorted(eq_expr->rhs, max_level, level + 1);
+                lhs_or.insert(lhs_or.end(), rhs_or.begin(), rhs_or.end());
+                lhs_or.sort([](const std::pair<int, OrExprp>& l, const std::pair<int, OrExprp>& r) -> bool
+                                { return l.first < r.first; });
+                return lhs_or;
+            }
+            case Exprv::NOT_EXPR: {
+                NotExprp not_expr = std::dynamic_pointer_cast<NotExpr>(expr);
+                return get_proper_or_expressions_sorted(not_expr->expr, max_level, level + 1);
+            }
+            case Exprv::IMPL_EXPR: {
+                log->critical("IMPL_EXPR not supported here");
+                throw unexpected_error("IMPL_EXPR not supported here");
+            }
+            case Exprv::COND_EXPR: {
+                log->critical("COND_EXPR not supported here");
+                throw unexpected_error("COND_EXPR not supported here");
+            }
+            default:
+                log->critical("Should not be here");
+                throw unexpected_error("Should not be here");
+        }
+    }*/
+
+    /*void set_or_expressions_sub(Expr expr, const OrExprp& _or, OrExpr::or_position pos, const Expr& new_value) {
+        if (expr->node_idx == _or->node_idx) {
+            OrExprp self = std::dynamic_pointer_cast<OrExpr>(expr);
+            switch (pos) {
+                case OrExpr::LEFT:
+                    self->lhs = new_value;
+                break;
+                case OrExpr::RIGHT:
+                    self->rhs = new_value;
+                break;
+                default:
+                    throw unexpected_error("Uh?");
+                    break;
+            }
+            return;
+        }
+        else {
+            switch (expr->type) {
+                case Exprv::LITERAL:
+                case Exprv::CONSTANT:
+                    return;
+                case Exprv::OR_EXPR: {
+                    OrExprp or_expr = std::dynamic_pointer_cast<OrExpr>(expr);
+                    set_or_expressions_sub(or_expr->lhs, _or, pos, new_value);
+                    set_or_expressions_sub(or_expr->rhs, _or, pos, new_value);
+                    return;
+                }
+                case Exprv::AND_EXPR: {
+                    AndExprp and_expr = std::dynamic_pointer_cast<AndExpr>(expr);
+                    set_or_expressions_sub(and_expr->lhs, _or, pos, new_value);
+                    set_or_expressions_sub(and_expr->rhs, _or, pos, new_value);
+                    return;
+                }
+                case Exprv::EQ_EXPR: {
+                    EqExprp eq_expr = std::dynamic_pointer_cast<EqExpr>(expr);
+                    set_or_expressions_sub(eq_expr->lhs, _or, pos, new_value);
+                    set_or_expressions_sub(eq_expr->rhs, _or, pos, new_value);
+                    return;
+                }
+                case Exprv::NOT_EXPR: {
+                    NotExprp not_expr = std::dynamic_pointer_cast<NotExpr>(expr);
+                    set_or_expressions_sub(not_expr->expr, _or, pos, new_value);
+                    return;
+                }
+                case Exprv::IMPL_EXPR: {
+                    log->critical("IMPL_EXPR not supported here");
+                    throw unexpected_error("IMPL_EXPR not supported here");
+                }
+                case Exprv::COND_EXPR: {
+                    log->critical("COND_EXPR not supported here");
+                    throw unexpected_error("COND_EXPR not supported here");
+                }
+                default:
+                    log->critical("Should not be here");
+                    throw unexpected_error("Should not be here");
+            }
+        }
+    }*/
 
 /*EXPR COMPARER FOR STD COLLECTIONS*/
     int deepCmpExprs::operator()(const Expr &e1, const Expr &e2) const {

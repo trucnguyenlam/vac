@@ -121,6 +121,9 @@ namespace SMT {
 //        void setLiteralValue(Literalp lit, Expr value);
 //        void setLiteralValue(std::string lit_name, Expr value);
 //        void resetValue(std::string lit_name = "");
+
+        void set_value(Expr value);
+        Expr& get_value();
         friend std::ostream & operator<<(std::ostream & out, Exprv const & expr);
         virtual std::string to_string() const = 0;
         virtual std::string to_arbac_string() const = 0;
@@ -135,6 +138,7 @@ namespace SMT {
 
 
     protected:
+        Expr value;
         std::set<Literalw, std::owner_less<Literalw>> _literals;
     };
 
@@ -285,6 +289,7 @@ namespace SMT {
     bool is_constant_false(const Expr& expr);
 
     Expr normalize_expr(Expr expr);
+    Expr or_to_xor(Expr expr);
 
     Expr delete_atom(Expr expr, Literalp lit);
 
@@ -295,7 +300,10 @@ namespace SMT {
     Expr clone_but_lits(const Expr& expr);
 
     std::list<std::pair<int, OrExprp>> get_or_expressions(const Expr& expr, int level);
+    std::list<std::pair<int, Expr>> get_internal_expressions(const Expr& expr, int max_level, int level);
 
+    // THIS FUNCTION DIFFERS FROM THE PREVIOUS BECAUSE THE FIRST RETURNS ALL THE OR (E.G. FALSE | A), WHILE THIS ONLY THE VALID ONES
+//    std::list<std::pair<int, OrExprp>> get_proper_or_expressions_sorted(const Expr& expr, int max_level, int level);
 
     // Expr - Solver expr funtions
     template<typename TVar>
@@ -444,6 +452,9 @@ namespace SMT {
     template <typename TVar, typename TExpr, typename TLookup>
     TExpr generateSMTFunction2(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, const Expr& expr, TLookup& lookup,
                                const std::string suffix) {
+        if (expr->get_value() != nullptr) {
+            return generateSMTFunction2(solver, expr->get_value(), lookup, suffix);
+        }
         switch (expr->type) {
             case Exprv::CONSTANT: {
                 std::shared_ptr<Constant> c = std::dynamic_pointer_cast<Constant>(expr);
