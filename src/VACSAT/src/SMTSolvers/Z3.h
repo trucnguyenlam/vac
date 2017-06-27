@@ -43,6 +43,9 @@ namespace SMT {
         expr createLEqExpr(expr lhs, expr rhs) override;
         expr createImplExpr(expr lhs, expr rhs) override;
 
+        expr createBitSet(expr container, unsigned int ith, expr value) override;
+        expr createDistinct(std::list<expr> exprs) override;
+
         expr joinExprsWithAnd(std::list<expr>& exprs) override;
         expr joinExprsWithOr(std::list<expr>& exprs) override;
 

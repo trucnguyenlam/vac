@@ -52,6 +52,8 @@ namespace SMT {
         virtual TExpr createLtExpr(TExpr lhs, TExpr rhs) = 0;
         virtual TExpr createLEqExpr(TExpr lhs, TExpr rhs) = 0;
         virtual TExpr createImplExpr(TExpr lhs, TExpr rhs) = 0;
+        virtual TExpr createBitSet(TExpr container, unsigned int ith, TExpr value) = 0;
+        virtual TExpr createDistinct(std::list<TExpr> exprs) = 0;
 
         virtual TExpr joinExprsWithAnd(std::list<TExpr>& exprs) = 0;
         virtual TExpr joinExprsWithOr(std::list<TExpr>& exprs) = 0;

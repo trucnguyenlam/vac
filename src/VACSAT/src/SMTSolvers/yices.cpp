@@ -188,6 +188,42 @@ namespace SMT {
         return res;
     }
 
+    term_t YicesSolver::createBitSet(term_t container, unsigned int ith, term_t value) {
+        term_t elem = yices_bitextract(container, ith);
+        term_t res = yices_eq(elem, value);
+        if (res < 0) {
+            std::list<term_t> parts;
+            parts.push_back(container);
+            parts.push_back(value);
+            yices_fail("YicesSolver::createBitExtract", parts);
+        }
+        return res;
+    }
+    term_t YicesSolver::createDistinct(std::list<term_t> exprs) {
+        uint32_t size = (uint32_t) exprs.size();
+        if (size > YICES_MAX_ARITY){
+            std::list<term_t> parts;
+            yices_fail("YicesSolver::createDistinct, size greater than YICES_MAX_ARITY", parts);
+        }
+        else if (size <= 0) {
+            std::list<term_t> parts;
+            yices_fail("YicesSolver::createDistinct, size <= 0", parts);
+        }
+        term_t* elems = new term_t[size];
+        int i = 0;
+        for (auto &&expr : exprs) {
+            elems[i++] = expr;
+        }
+
+        term_t res = yices_distinct(size, elems);
+
+        if (res < 0) {
+            std::list<term_t> parts;
+            yices_fail("YicesSolver::createDistinct", parts);
+        }
+        return res;
+    }
+
     term_t YicesSolver::createImplExpr(term_t lhs, term_t rhs) {
         term_t res = yices_implies(lhs, rhs);
         if (res < 0) {

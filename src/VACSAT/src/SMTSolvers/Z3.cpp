@@ -1,4 +1,5 @@
 #include "Z3.h"
+#include "../prelude.h"
 #include <z3++.h>
 #include <fstream>
 #include <ostream>
@@ -91,6 +92,27 @@ namespace SMT {
 
     expr Z3Solver::createImplExpr(expr lhs, expr rhs) {
         expr res = implies(lhs, rhs);
+        return res;
+    }
+
+    expr Z3Solver::createBitSet(expr container, unsigned int ith, expr value) {
+            expr bit = container.extract(ith, ith);
+//            log->info("bit: {}; value: {}", bit.get_sort(), bit);
+            expr bv_value = createCondExpr(value,
+                                           createBVConst(0, 1),
+                                           createBVConst(1, 1));
+//            log->info("bv_value: {}; value: {}", bv_value.get_sort(), bv_value);
+            expr res = createEqExpr(bit, bv_value);
+//            log->info("res: {}; value: {}", res.get_sort(), res);
+            return res;
+    }
+    expr Z3Solver::createDistinct(std::list<expr> exprs) {
+        expr_vector z3_exps(this->context);
+
+        for (auto &&expr : exprs) {
+            z3_exps.push_back(expr);
+        }
+        expr res = z3::distinct(z3_exps);
         return res;
     }
 
