@@ -39,6 +39,9 @@ experiments/
 vac_64bit.tar.bz2
 VAC.tar.bz2
 
+# Keep dependecies even if .a or .so
+!src/VACSAT/deps/
+
 #AUTOTOOLS GENERATED FILES
 INSTALL
 Makefile
