@@ -1082,7 +1082,7 @@ namespace SMT {
 
             solver->clean();
 
-            std::vector<std::shared_ptr<TVar>> var_vec(policy->atom_count());
+            std::vector<std::shared_ptr<TVar>> var_vec((ulong) policy->atom_count());
             TExpr se1 = generateSMTFunction2(solver, e1, var_vec, "eq");
             TExpr se2 = generateSMTFunction2(solver, e2, var_vec, "eq");
 
@@ -1216,7 +1216,13 @@ namespace SMT {
         }
 
         /* RULE 6 FUNCTIONS (NOT FIREABLE RULES) */
-        std::list<OrExprp> get_or_list(Expr& expr, const std::set<ulong64>& visited, int max_level) {
+        enum interactive_split_result {
+            REMOVE,
+            SIMPLIFIED,
+            UNCHANGED
+        };
+
+        /*std::list<OrExprp> get_or_list(Expr& expr, const std::set<ulong64>& visited, int max_level) {
             std::list<std::pair<int, OrExprp>> ors = get_or_expressions(expr, 1);
             std::list<OrExprp> res;
             for (auto &&pair : ors) {
@@ -1230,12 +1236,6 @@ namespace SMT {
                 }
             }
             return res;
-        };
-
-        enum interactive_split_result {
-            REMOVE,
-            SIMPLIFIED,
-            UNCHANGED
         };
 
         interactive_split_result interactive_split(const Expr& expr, const rulep& rule, bool admin) {
@@ -1298,50 +1298,88 @@ namespace SMT {
             }
 //            log->trace("done!");
             return changed ? SIMPLIFIED : UNCHANGED;
-        }
-
-        /*bool interactive_split_all(const Expr& expr,
-                                   const rulep& rule,
-                                   bool admin,
-                                   std::map<Expr, bool, deepCmpExprs>& results) {
-            int max_depth = Config::rule_6_max_depth;
-            bool changed = false;
-
-            std::list<std::pair<int, OrExprp>> ors = get_proper_or_expressions_sorted(expr, max_depth, 0);
-            if (ors.size() == 0) {
-                bool can_remove = apply_r6<TVar, TExpr>(this->solver, this->policy, expr, rule);
-                return can_remove;
-
-            }
-
-            OrExprp actual = (*ors.begin()).second;
-
-
-//          Try LEFT
-            Expr orig_rhs = actual->rhs;
-            actual->rhs = createConstantFalse();
-
-            bool can_remove_lhs = interactive_split_all(expr, rule, admin, results);
-            actual->rhs = orig_rhs;
-
-//          Try RIGHT
-            Expr orig_lhs = actual->lhs;
-            actual->lhs = createConstantFalse();
-
-            bool can_remove_rhs = interactive_split_all(expr, rule, admin, results);
-            actual->lhs = orig_lhs;
-
-            if (!can_remove_lhs) {
-                results[actual->lhs] = false;
-            }
-            if (!can_remove_rhs) {
-                results[actual->rhs] = false;
-            }
         }*/
 
-        interactive_split_result apply_remove_simplify(Expr& expr, const rulep& rule, bool admin) {
-            std::list<std::pair<int, Expr>> ors = get_internal_expressions(expr, Config::rule_6_max_depth, 0);
+        std::list<OrExprp> get_proper_or_list(Expr& expr, const std::set<ulong64>& visited, int max_level) {
+            std::list<std::pair<int, OrExprp>> ors = get_proper_or_expressions_sorted(expr, max_level, 1);
+            std::list<OrExprp> res;
+            for (auto &&pair : ors) {
+                if (max_level >= 0 &&
+                    pair.first > max_level) {
+                    continue;
+                }
+                OrExprp _or = pair.second;
+                if (!contains(visited, _or->node_idx)) {
+                    res.push_back(_or);
+                }
+            }
+            return res;
+        };
 
+        bool try_simplify(const Expr& expr, OrExprp _or, bool left, const rulep& rule) {
+            Expr final;
+            Expr copy = clone_but_lits(expr);
+            Expr removed;
+            if (left) {
+                removed = _or->lhs;
+                _or->lhs = createConstantFalse();
+            } else {
+                removed = _or->rhs;
+                _or->rhs = createConstantFalse();
+            }
+//            log->info("");
+//            log->info("expr: {}", *expr);
+//            log->info("copy: {}", *copy);
+
+            final = createAndExpr(createNotExpr(expr),
+                                  copy);
+//            log->info("final: {}", *final);
+
+            bool res = apply_r6<TVar, TExpr>(this->solver, this->policy, final, rule);
+
+//            log->info("remove: {}", res);
+
+            if (!res) {
+                if (left) {
+                    _or->lhs = removed;
+                } else {
+                    _or->rhs = removed;
+                }
+            }
+
+            return res;
+        }
+
+        interactive_split_result apply_remove_simplify(Expr& expr, const rulep& rule, bool admin) {
+            // IF RULE IS NEVER FIREABLE THAN REMOVE IT!
+            if (apply_r6<TVar, TExpr>(this->solver, this->policy, expr, rule)) {
+                return REMOVE;
+            }
+
+            bool changed = false;
+            std::set<ulong64> visited;
+            Expr actual = clone_but_lits(expr);
+            std::list<OrExprp> ors = get_proper_or_list(actual, visited, Config::rule_6_max_depth);
+            while (ors.size() > 0) {
+                OrExprp to_analyze = *ors.begin();
+                visited.insert(to_analyze->node_idx);
+                bool can_remove_left = try_simplify(actual, to_analyze, true, rule);
+                bool can_remove_right = try_simplify(actual, to_analyze, false, rule);
+                if (can_remove_left || can_remove_right) {
+                    changed = true;
+                }
+                ors = get_proper_or_list(actual, visited, Config::rule_6_max_depth);
+            }
+
+            if (changed) {
+                if (admin) {
+                    rule->admin = actual;
+                } else {
+                    rule->prec = actual;
+                }
+            }
+
+            return changed ? SIMPLIFIED : UNCHANGED;
         }
 
         bool prune_rule_6() {
@@ -1358,14 +1396,14 @@ namespace SMT {
                 }
 
                 solver->clean();
-                interactive_split_result rem_pn = interactive_split_all(rule->prec, rule, false); //apply_r6<TVar, TExpr>(this->solver, this->policy, rule->prec, rule);
+                interactive_split_result rem_pn = apply_remove_simplify(rule->prec, rule, false); // interactive_split(rule->prec, rule, false); //apply_r6<TVar, TExpr>(this->solver, this->policy, rule->prec, rule);
                 if (do_log) {
                     log->trace("{}", *rule);
                 }
                 solver->clean();
                 interactive_split_result rem_adm =
                         rem_pn == REMOVE ? UNCHANGED
-                                         : interactive_split_all(rule->admin, rule, true);
+                                         : apply_remove_simplify(rule->admin, rule, true); // interactive_split(rule->admin, rule, true);
                 if (do_log) {
                     log->trace("{}", *rule);
                 }
@@ -1972,12 +2010,12 @@ namespace SMT {
             int fixpoint_iteration = 1;
             bool infini_fixpoint = false;
 
-            log->debug("Applying prune_rule_6 on {}", policy->rules().size());
-            bool prune_rule_6_res = this->prune_rule_6();
-
-            log->info("{}", *policy);
-
-            exit(0);
+//            log->debug("Applying prune_rule_6 on {}", policy->rules().size());
+//            bool prune_rule_6_res = this->prune_rule_6();
+//
+//            log->info("{}", *policy);
+//
+//            exit(0);
 
             auto global_start = std::chrono::high_resolution_clock::now();
 
