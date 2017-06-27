@@ -300,10 +300,10 @@ namespace SMT {
     Expr clone_but_lits(const Expr& expr);
 
     std::list<std::pair<int, OrExprp>> get_or_expressions(const Expr& expr, int level);
-    std::list<std::pair<int, Expr>> get_internal_expressions(const Expr& expr, int max_level, int level);
 
     // THIS FUNCTION DIFFERS FROM THE PREVIOUS BECAUSE THE FIRST RETURNS ALL THE OR (E.G. FALSE | A), WHILE THIS ONLY THE VALID ONES
-//    std::list<std::pair<int, OrExprp>> get_proper_or_expressions_sorted(const Expr& expr, int max_level, int level);
+    std::list<std::pair<int, OrExprp>> get_proper_or_expressions_sorted(const Expr& expr, int max_level, int level);
+//    std::list<std::pair<int, Expr>> get_internal_or_expressions(const Expr& expr, int max_level, int level);
 
     // Expr - Solver expr funtions
     template<typename TVar>
@@ -354,9 +354,8 @@ namespace SMT {
     };
 
     template <typename TVar, typename TExpr, typename TLookup>
-    TExpr
-    generateSMTFunction2(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, const Expr& expr, TLookup& lookup,
-                         const std::string suffix);
+    TExpr generateSMTFunction2(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, const Expr& expr, TLookup& lookup,
+                               const std::string suffix);
 
 
 

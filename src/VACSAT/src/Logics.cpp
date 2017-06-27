@@ -1149,7 +1149,7 @@ namespace SMT {
         }
     }
 
-    std::list<std::pair<int, Expr>> get_internal_expressions(const Expr& expr, int max_level, int level) {
+    /*std::list<std::pair<int, Expr>> get_internal_expressions(const Expr& expr, int max_level, int level) {
         if (level > max_level) {
             return std::list<std::pair<int, Expr>>();
         }
@@ -1203,9 +1203,9 @@ namespace SMT {
                 log->critical("Should not be here");
                 throw unexpected_error("Should not be here");
         }
-    };
+    };*/
 
-    /*// THIS FUNCTION DIFFERS FROM THE PREVIOUS BECAUSE THE FIRST RETURNS ALL THE OR (E.G. FALSE | A), WHILE THIS ONLY THE VALID ONES
+    // THIS FUNCTION DIFFERS FROM THE PREVIOUS BECAUSE THE FIRST RETURNS ALL THE OR (E.G. FALSE | A), WHILE THIS ONLY THE VALID ONES
     std::list<std::pair<int, OrExprp>> get_proper_or_expressions_sorted(const Expr& expr, int max_level, int level) {
         // -1 is for all levels
         if (max_level >= 0 && level > max_level) {
@@ -1265,7 +1265,7 @@ namespace SMT {
                 log->critical("Should not be here");
                 throw unexpected_error("Should not be here");
         }
-    }*/
+    }
 
     /*void set_or_expressions_sub(Expr expr, const OrExprp& _or, OrExpr::or_position pos, const Expr& new_value) {
         if (expr->node_idx == _or->node_idx) {
