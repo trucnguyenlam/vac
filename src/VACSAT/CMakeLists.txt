@@ -69,7 +69,7 @@ set(CCL_PREFIX ${DEPS_DIR}/ccl)
 set(ANTLR4_PREFIX ${DEPS_DIR}/antlr4-4.7)
 
 # For each required library call its find macro
-# find_package(ANTLR3C REQUIRED)
+find_package(ANTLR3C REQUIRED)
 find_package(GMP REQUIRED)
 find_package(YICES REQUIRED)
 find_package(Z3 REQUIRED)
