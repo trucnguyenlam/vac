@@ -1,5 +1,5 @@
 #cmake_minimum_required(VERSION 3.7)
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.0)
 project(vacsat)
 
 set(CMAKE_CXX_STANDARD 11)  # enable C++11 standard
@@ -7,23 +7,23 @@ set(CMAKE_CXX_STANDARD 11)  # enable C++11 standard
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -fpermissive -Wwrite-strings")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused -Wno-comment -Wno-sign-compare")
 
-find_program(GOLD_FOUND gold)
-if (GOLD_FOUND)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
-    message(STATUS "gold found! Faster linking!")
-else (GOLD_FOUND)
-    message(WARNING "gold not found! Slower linking!")
-endif (GOLD_FOUND)
-
-
-find_program(CCACHE_FOUND ccache)
-if (CCACHE_FOUND)
-    message(STATUS "ccache found! Faster compilation!")
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK    ccache)
-else (CCACHE_FOUND)
-    message(WARNING "ccache not found! Slower compilation!")
-endif (CCACHE_FOUND)
+#find_program(GOLD_FOUND gold)
+#if (GOLD_FOUND)
+#    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
+#    message(STATUS "gold found! Faster linking!")
+#else (GOLD_FOUND)
+#    message(WARNING "gold not found! Slower linking!")
+#endif (GOLD_FOUND)
+#
+#
+#find_program(CCACHE_FOUND ccache)
+#if (CCACHE_FOUND)
+#    message(STATUS "ccache found! Faster compilation!")
+#    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+#    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK    ccache)
+#else (CCACHE_FOUND)
+#    message(WARNING "ccache not found! Slower compilation!")
+#endif (CCACHE_FOUND)
 
 set(DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps")
 
@@ -62,16 +62,19 @@ list (APPEND CMAKE_MODULE_PATH
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ${CMAKE_FIND_LIBRARY_SUFFIXES})
 
 # Set local prefix for local libraries
+set(ANTLR3C_PREFIX ${DEPS_DIR}/antlr3c)
 set(YICES_PREFIX ${DEPS_DIR}/yices_2.5.2_static)
 set(Z3_PREFIX ${DEPS_DIR}/z3_static)
 set(CCL_PREFIX ${DEPS_DIR}/ccl)
+set(ANTLR4_PREFIX ${DEPS_DIR}/antlr4-4.7)
 
 # For each required library call its find macro
+find_package(ANTLR3C REQUIRED)
 find_package(GMP REQUIRED)
 find_package(YICES REQUIRED)
 find_package(Z3 REQUIRED)
 find_package(CCL REQUIRED)
-find_package(ANTLR3C REQUIRED)
+find_package(ANTLR4 REQUIRED)
 
 # Add spdlog library for logging
 set(CMAKE_PREFIX_PATH ${DEPS_DIR}/spdlog)
@@ -83,7 +86,7 @@ FIND_PACKAGE( Boost COMPONENTS program_options REQUIRED )
 INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 
 # Add include directories for local libraries
-include_directories( "${YICES_INCLUDE_DIR}" "${Z3_INCLUDE_DIR}" "${CCL_INCLUDE_DIR}" )
+include_directories( "${YICES_INCLUDE_DIR}" "${Z3_INCLUDE_DIR}" "${CCL_INCLUDE_DIR}" "${ANTLR4_INCLUDE_DIR}")
 
 # Add OpenMP (used by Z3)
 find_package(OpenMP REQUIRED)
@@ -91,14 +94,14 @@ find_package(OpenMP REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 # Add local libraries linking directories
-link_directories(${YICES_LIBRARY_DIR} ${Z3_LIBRARY_DIR} ${CCL_LIBRARY_DIR})
+link_directories(${YICES_LIBRARY_DIR} ${Z3_LIBRARY_DIR} ${CCL_LIBRARY_DIR} ${ANTLR4_LIBRARY_DIR})
 
 # add external build for antlrcpp
-include( ExternalAntlr4Cpp )
+#include( ExternalAntlr4Cpp )
 # add antrl4cpp artifacts to project environment
-include_directories( ${ANTLR4CPP_INCLUDE_DIRS} )
-link_directories( ${ANTLR4CPP_LIBS} )
-message(STATUS "Found antlr4cpp libs: ${ANTLR4CPP_LIBS} and includes: ${ANTLR4CPP_INCLUDE_DIRS} ")
+#include_directories( ${ANTLR4CPP_INCLUDE_DIRS} )
+#link_directories( ${ANTLR4CPP_LIBS} )
+#message(STATUS "Found antlr4cpp libs: ${ANTLR4CPP_LIBS} and includes: ${ANTLR4CPP_INCLUDE_DIRS} ")
 
 # include_directories(${PROJECT_SOURCE_DIR}/src)
 set(generated_files
@@ -126,11 +129,11 @@ set(PARSER_SOURCES
 )
 
 add_executable(vacsat ${SOURCE_FILES} ${PARSER_SOURCES} ${antlr_generated_files})
-add_dependencies(vacsat antlr4cpp)
+# add_dependencies(vacsat antlr4cpp)
 add_subdirectory(src/old_parser)
 # Set the link libraries (GMP MUST BE THE LAST)
 target_link_libraries(vacsat PRIVATE vacsat_old)
-target_link_libraries(vacsat PUBLIC antlr4-runtime yices z3 ccl antlr3c gmp ${Boost_LIBRARIES} spdlog::spdlog ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(vacsat PUBLIC yices z3 ccl antlr3c antlr4-runtime gmp ${Boost_LIBRARIES} spdlog::spdlog ${CMAKE_THREAD_LIBS_INIT})
 
 
 install (TARGETS vacsat DESTINATION bin)

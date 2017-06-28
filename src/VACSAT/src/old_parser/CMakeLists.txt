@@ -9,25 +9,25 @@ SET(CMAKE_CXX_COMPILER c++)
 
 set(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../..")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused -Wno-comment -Wno-sign-compare -fpermissive -Wwrite-strings -static")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused -Wno-comment -Wno-sign-compare -fpermissive -Wwrite-strings")
 
-find_program(GOLD_FOUND gold)
-if (GOLD_FOUND)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
-    message(STATUS "gold found! Faster linking!")
-else (GOLD_FOUND)
-    message(WARNING "gold not found! Slower linking!")
-endif (GOLD_FOUND)
-
-
-find_program(CCACHE_FOUND ccache)
-if (CCACHE_FOUND)
-    message(STATUS "ccache found! Faster compilation!")
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK    ccache)
-else (CCACHE_FOUND)
-    message(WARNING "ccache not found! Slower compilation!")
-endif (CCACHE_FOUND)
+#find_program(GOLD_FOUND gold)
+#if (GOLD_FOUND)
+#    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
+#    message(STATUS "gold found! Faster linking!")
+#else (GOLD_FOUND)
+#    message(WARNING "gold not found! Slower linking!")
+#endif (GOLD_FOUND)
+#
+#
+#find_program(CCACHE_FOUND ccache)
+#if (CCACHE_FOUND)
+#    message(STATUS "ccache found! Faster compilation!")
+#    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+#    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK    ccache)
+#else (CCACHE_FOUND)
+#    message(WARNING "ccache not found! Slower compilation!")
+#endif (CCACHE_FOUND)
 
 set(DEPS_DIR "${PROJECT_ROOT}/deps")
 
@@ -57,6 +57,7 @@ set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ${CMAKE_FIND_LIBRARY_SUFFIXES})
 
 # Set local prefix for local libraries
 set(CCL_PREFIX ${DEPS_DIR}/ccl)
+set(ANTLR3C_PREFIX ${DEPS_DIR}/antlr3c)
 
 # For each required library call its find macro
 find_package(CCL REQUIRED)
