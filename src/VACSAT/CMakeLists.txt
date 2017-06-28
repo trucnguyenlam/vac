@@ -69,7 +69,7 @@ set(CCL_PREFIX ${DEPS_DIR}/ccl)
 set(ANTLR4_PREFIX ${DEPS_DIR}/antlr4-4.7)
 
 # For each required library call its find macro
-find_package(ANTLR3C REQUIRED)
+# find_package(ANTLR3C REQUIRED)
 find_package(GMP REQUIRED)
 find_package(YICES REQUIRED)
 find_package(Z3 REQUIRED)
@@ -94,7 +94,7 @@ find_package(OpenMP REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 # Add local libraries linking directories
-link_directories(${YICES_LIBRARY_DIR} ${Z3_LIBRARY_DIR} ${CCL_LIBRARY_DIR} ${ANTLR4_LIBRARY_DIR})
+link_directories(${ANTLR3C_LIBRARY_DIR} ${YICES_LIBRARY_DIR} ${Z3_LIBRARY_DIR} ${CCL_LIBRARY_DIR} ${ANTLR4_LIBRARY_DIR})
 
 # add external build for antlrcpp
 #include( ExternalAntlr4Cpp )
