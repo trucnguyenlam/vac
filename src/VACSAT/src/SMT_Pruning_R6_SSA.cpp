@@ -245,7 +245,7 @@ class R6Transformer {
 //            std::cout << std::endl << std::endl;
 //        }
 
-        TExpr res = generateSMTFunction2(solver, precond, role_vars, "");
+        TExpr res = generateSMTFunction(solver, precond, role_vars, "");
 
 //        delete[] array;
 //        std::cout << "\t" << res << std::endl;

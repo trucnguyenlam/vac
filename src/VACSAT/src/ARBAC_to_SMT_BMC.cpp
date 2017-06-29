@@ -139,8 +139,8 @@ namespace SMT {
             solver->clean();
 
             std::vector<std::shared_ptr<TVar>> var_vec((ulong) policy->atom_count());
-            TExpr se1 = generateSMTFunction2(solver, e1, var_vec, "eq");
-            TExpr se2 = generateSMTFunction2(solver, e2, var_vec, "eq");
+            TExpr se1 = generateSMTFunction(solver, e1, var_vec, "eq");
+            TExpr se2 = generateSMTFunction(solver, e2, var_vec, "eq");
 
             // e1 /\ not e2
             TExpr e1_not_e2 = solver->createAndExpr(se1,
@@ -261,7 +261,7 @@ namespace SMT {
                 TExpr global_value = solver->createFalse();
                 for (auto &&user : policy->unique_configurations()) {
                     std::vector<std::shared_ptr<TVar>> var_vect = user_to_lookup_vect(user);
-                    TExpr sadm_expr = generateSMTFunction2(solver, adm_expr, var_vect, user->name);
+                    TExpr sadm_expr = generateSMTFunction(solver, adm_expr, var_vect, user->name);
                     //FIXME: added just for debug purposes
                     TVar user_name = solver->createBoolVar(user->name);
                     TExpr final_expr = solver->createAndExpr(user_name, sadm_expr);
@@ -383,7 +383,7 @@ namespace SMT {
                 variable global_var = global_pair.second;
                 for (auto &&canRevokeRule : policy->can_revoke_rules()) {
                     if (contains_ptr(global_expr->literals(), canRevokeRule->target)) {
-                        TExpr respects = generateSMTFunction2(solver, global_expr, locals[thread_id], std::to_string(thread_id));
+                        TExpr respects = generateSMTFunction(solver, global_expr, locals[thread_id], std::to_string(thread_id));
                         TExpr value = solver->createOrExpr(global_var.get_solver_var(), respects);
                         variable n_glob = global_var.createFrom();
                         emit_assignment(n_glob, value);
@@ -398,7 +398,7 @@ namespace SMT {
 
         TExpr generate_from_prec(int thread_id, const Expr &precond) {
 
-            TExpr res = generateSMTFunction2(solver, precond, locals[thread_id], "");
+            TExpr res = generateSMTFunction(solver, precond, locals[thread_id], "");
 
             return res;
         }
@@ -480,7 +480,7 @@ namespace SMT {
                 Expr adm_expr = glob_pair.first;
                 variable glob_var = glob_pair.second;
                 if (contains_ptr(adm_expr->literals(), target)) {
-                    TExpr ngval = generateSMTFunction2(solver, adm_expr, locals[thread_id], std::to_string(thread_id));
+                    TExpr ngval = generateSMTFunction(solver, adm_expr, locals[thread_id], std::to_string(thread_id));
                     TExpr n_cond_gval = solver->createCondExpr(ca_guard.get_solver_var(), ngval, glob_var.get_solver_var());
                     variable nglob = glob_var.createFrom();
                     emit_assignment(nglob, n_cond_gval);
@@ -536,7 +536,7 @@ namespace SMT {
                 Expr glob_expr = global_pair.first;
                 variable glob_var = global_pair.second;
                 if (contains_ptr(glob_expr->literals(), target)) {
-                    TExpr ngval = generateSMTFunction2(solver, glob_expr, locals[thread_id], std::to_string(thread_id));
+                    TExpr ngval = generateSMTFunction(solver, glob_expr, locals[thread_id], std::to_string(thread_id));
                     TExpr n_cond_gval = solver->createCondExpr(cr_guard.get_solver_var(), ngval, glob_var.get_solver_var());
                     variable nglob_var = glob_var.createFrom();
                     emit_assignment(nglob_var, n_cond_gval);

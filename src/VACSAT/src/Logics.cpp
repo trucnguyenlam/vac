@@ -708,6 +708,20 @@ namespace SMT {
         return std::shared_ptr<Exprv>(new CondExpr(cond, choice1, choice2));
     }
 
+    Expr joinBigAnd(const std::list<Expr>& exprs) {
+        if (exprs.size() < 1) {
+            return createConstantTrue();
+//            log->error(stderr, "Cannot join zero expressions...\n");
+//            throw std::runtime_error("Cannot join zero expressions");
+        }
+        auto ite = exprs.begin();
+        Expr ret = *ite;
+        for (++ite; ite != exprs.end(); ++ite) {
+            ret = createAndExpr(ret, *ite);
+        }
+        return ret;
+    }
+
     bool is_constant_true(const Expr& expr) {
         switch (expr->type) {
             case Exprv::CONSTANT: {
@@ -1094,6 +1108,63 @@ namespace SMT {
                 Expr res =  createCondExpr(clone_but_lits(cond_expr->cond),
                                            clone_but_lits(cond_expr->choice1),
                                            clone_but_lits(cond_expr->choice2));
+                res->node_idx = expr->node_idx;
+                return res;
+            }
+            default:
+                log->critical("Should not be here...");
+                throw unexpected_error("Should not be here...");
+        }
+
+    }
+
+    Expr clone_substitute(const Expr& expr, const Expr& substitute, const Expr& with) {
+        if (expr == substitute) {
+            return with;
+        }
+        switch (expr->type) {
+            case Exprv::LITERAL:
+            case Exprv::CONSTANT:
+                return expr;
+            case Exprv::EQ_EXPR: {
+                EqExprp eq_expr = std::dynamic_pointer_cast<EqExpr>(expr);
+                Expr res = createEqExpr(clone_substitute(eq_expr->lhs, substitute, with),
+                                        clone_substitute(eq_expr->rhs, substitute, with));
+                res->node_idx = expr->node_idx;
+                return res;
+            }
+            case Exprv::NOT_EXPR: {
+                NotExprp not_expr = std::dynamic_pointer_cast<NotExpr>(expr);
+                Expr res = createNotExpr(clone_substitute(not_expr->expr, substitute, with));
+                res->node_idx = expr->node_idx;
+                return res;
+            }
+            case Exprv::AND_EXPR: {
+                AndExprp and_expr = std::dynamic_pointer_cast<AndExpr>(expr);
+                Expr res = createAndExpr(clone_substitute(and_expr->lhs, substitute, with),
+                                         clone_substitute(and_expr->rhs, substitute, with));
+                res->node_idx = expr->node_idx;
+                return res;
+            }
+            case Exprv::OR_EXPR: {
+                OrExprp or_expr = std::dynamic_pointer_cast<OrExpr>(expr);
+                Expr res = createOrExpr(clone_substitute(or_expr->lhs, substitute, with),
+                                        clone_substitute(or_expr->rhs, substitute, with));
+                res->node_idx = expr->node_idx;
+                return res;
+            }
+            case Exprv::IMPL_EXPR: {
+                ImplExprp impl_expr = std::dynamic_pointer_cast<ImplExpr>(expr);
+                Expr res = createImplExpr(clone_substitute(impl_expr->lhs, substitute, with),
+                                          clone_substitute(impl_expr->rhs, substitute, with));
+                res->node_idx = expr->node_idx;
+                return res;
+            }
+            case Exprv::COND_EXPR: {
+                CondExprp cond_expr = std::dynamic_pointer_cast<CondExpr>(expr);
+                Expr res =  createCondExpr(clone_substitute(cond_expr->cond, substitute, with),
+                                           clone_substitute(cond_expr->choice1, substitute, with),
+                                           clone_substitute(cond_expr->choice2, substitute, with));
                 res->node_idx = expr->node_idx;
                 return res;
             }
