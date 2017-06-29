@@ -7,23 +7,23 @@ set(CMAKE_CXX_STANDARD 11)  # enable C++11 standard
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -fpermissive -Wwrite-strings")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused -Wno-comment -Wno-sign-compare")
 
-#find_program(GOLD_FOUND gold)
-#if (GOLD_FOUND)
-#    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
-#    message(STATUS "gold found! Faster linking!")
-#else (GOLD_FOUND)
-#    message(WARNING "gold not found! Slower linking!")
-#endif (GOLD_FOUND)
-#
-#
-#find_program(CCACHE_FOUND ccache)
-#if (CCACHE_FOUND)
-#    message(STATUS "ccache found! Faster compilation!")
-#    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-#    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK    ccache)
-#else (CCACHE_FOUND)
-#    message(WARNING "ccache not found! Slower compilation!")
-#endif (CCACHE_FOUND)
+find_program(GOLD_FOUND gold)
+if (GOLD_FOUND)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
+    message(STATUS "gold found! Faster linking!")
+else (GOLD_FOUND)
+    message(WARNING "gold not found! Slower linking!")
+endif (GOLD_FOUND)
+
+
+find_program(CCACHE_FOUND ccache)
+if (CCACHE_FOUND)
+    message(STATUS "ccache found! Faster compilation!")
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK    ccache)
+else (CCACHE_FOUND)
+    message(WARNING "ccache not found! Slower compilation!")
+endif (CCACHE_FOUND)
 
 set(DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps")
 
