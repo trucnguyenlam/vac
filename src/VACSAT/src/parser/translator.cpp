@@ -1,5 +1,8 @@
 #include "translator.h"
 
+#include <fstream>
+#include <sstream>
+
 namespace { // Use unnamed namespace for private functions
 
 // bool hasSameUser(Parser::Expr e) {
@@ -162,28 +165,32 @@ std::shared_ptr<SMT::arbac_policy> toSMT_arbac_policy(std::string inputFile, Par
 
 }
 
+Parser::TranslatorException::TranslatorException(const std::string &msg) : std::exception(), _message(msg) {
+}
+
+const char* Parser::TranslatorException::what() const noexcept {
+    return ("translatorExeption: " + _message).c_str();
+}
+
+
 std::shared_ptr<SMT::arbac_policy> Parser::parse_new_ac(std::string inputfile) {
     std::ifstream stream;
     stream.open(inputfile);
 
-    antlr4::ANTLRInputStream input(stream);
-    Parser::vacgrammarLexer lexer(&input);
-    antlr4::CommonTokenStream tokens(&lexer);
-
-    // Create parser
-    Parser::vacgrammarParser parser(&tokens);
-    antlr4::tree::ParseTree * program = parser.file();
-
-    // Work through parser tree to produce the model
-    Parser::MyListener listener;
-    antlr4::tree::ParseTreeWalker::DEFAULT.walk(&listener, program);
-
-    // Retrieve policy
-    Parser::ModelPtr policy = listener.getPolicy();
-
+    std::stringstream buffer;
+    buffer << stream.rdbuf();
+    std::string str = buffer.str();
     // Close file stream
     stream.close();
+    Scanner* sc = new Scanner(str);
+    HandParser *pr = new HandParser(sc->scanTokens());
+    pr->parse();
 
+    // Retrieve policy
+    Parser::ModelPtr policy = pr->getPolicy();
+
+    delete pr;
+    delete sc;
     // Print policy
     // std::cout << policy->to_string();
     std::shared_ptr<SMT::arbac_policy> newpolicy = toSMT_arbac_policy(inputfile, policy);

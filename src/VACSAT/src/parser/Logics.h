@@ -2,8 +2,7 @@
 // Created by esteffin on 25/04/17.
 //
 
-#ifndef PARSER_LOGICS_H
-#define PARSER_LOGICS_H
+#pragma once
 
 #include <set>
 #include <map>
@@ -186,4 +185,3 @@ class CondExpr : public Exprv  {
 };
 }
 
-#endif //PARSER_LOGICS_H
