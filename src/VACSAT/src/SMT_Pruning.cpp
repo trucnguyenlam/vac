@@ -26,6 +26,8 @@ namespace SMT {
 
         std::shared_ptr<arbac_policy> policy;
 
+        bool with_tampone = false;
+
         /*bool set_contains(const Expr& expr, const std::string& name) {
             std::set<Literalp> literals = expr->literals();
             for (auto ite = literals.begin(); ite != literals.end(); ++ite) {
@@ -1357,6 +1359,22 @@ namespace SMT {
             return res;
         };
 
+        bool check_sat(const Expr &expr) const {
+            solver->clean();
+            std::vector<std::shared_ptr<TVar>> var_vect((ulong) policy->atom_count());
+            TExpr solver_expr = generateSMTFunction(solver, expr, var_vect, "C");
+            solver->assertNow(solver_expr);
+            return solver->solve() != SAT;
+        }
+
+        bool always_false(const Expr& expr, const rulep& rule) {
+            if (with_tampone) {
+                return apply_r6<TVar, TExpr>(solver, policy, expr, rule);
+            } else {
+                return check_sat(expr);
+            }
+        }
+
         bool try_simplify(const Expr& expr, OrExprp _or, bool left, const rulep& rule) {
             Expr final;
             Expr copy = clone_but_lits(expr);
@@ -1376,7 +1394,8 @@ namespace SMT {
                                   copy);
 //            log->info("final: {}", *final);
 
-            bool res = apply_r6<TVar, TExpr>(this->solver, this->policy, final, rule);
+//            bool res = apply_r6<TVar, TExpr>(this->solver, this->policy, final, rule);
+            bool res = always_false(final, rule);
 
 //            log->info("remove: {}", res);
 
@@ -1393,7 +1412,8 @@ namespace SMT {
 
         interactive_split_result apply_remove_simplify(Expr& expr, const rulep& rule, bool admin) {
             // IF RULE IS NEVER FIREABLE THAN REMOVE IT!
-            if (apply_r6<TVar, TExpr>(this->solver, this->policy, expr, rule)) {
+//            if (apply_r6<TVar, TExpr>(this->solver, this->policy, expr, rule)) {
+            if (always_false(expr, rule)) {
                 return REMOVE;
             }
 
@@ -1811,13 +1831,9 @@ namespace SMT {
             int fixpoint_iteration = 1;
             bool infini_fixpoint = false;
 
-//            bool asd = policy->atoms(0) == policy->atoms(1);
-//            log->warn("{}", asd);
-//            bool asd1 = policy->atoms(0) == policy->atoms(0);
-//            log->warn("{}", asd1);
 //
 //            log->info("{}", *policy);
-//            this->prune_irrelevant_roles();
+//            this->prune_rule_6();
 //            log->info("{}", *policy);
 //            exit(0);
 
@@ -1926,6 +1942,8 @@ namespace SMT {
 //                        bool simplify_expression_res = simplify_expressions();
 //                        simplify_toplevel_or_res = simplify_toplevel_or_res || simplify_expression_res;
 //                    }
+
+                    this->with_tampone = true;
 
                     log->debug("Applying prune_rule_6 on {}", policy->rules().size());
                     bool prune_rule_6_res = this->prune_rule_6();
