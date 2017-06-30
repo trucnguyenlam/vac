@@ -64,10 +64,14 @@ namespace SMT {
 
     class Simplifier;
 
+    class Atom;
+
+    typedef std::shared_ptr<Atom> Atomp;
+
     class Literal;
     typedef std::shared_ptr<Literal> Literalp;
-    typedef std::weak_ptr<Literal> Literalw;
-    typedef Literalp Atom;
+//    typedef std::weak_ptr<Literal> Literalw;
+//    typedef Literalp Atom;
 
     class Constant;
     typedef std::shared_ptr<Constant> Constantp;
@@ -90,6 +94,40 @@ namespace SMT {
     class CondExpr;
     typedef std::shared_ptr<CondExpr> CondExprp;
 
+    class Atom : public std::enable_shared_from_this<Atom> {
+    public:
+
+        Atom(const std::string _name, int _role_array_index, int bv_size, Expr value = nullptr);
+        bool equals(const Atomp& other) const;
+
+        const std::string getSMTName() const;
+        const std::string fullName() const;
+        const std::string nameWithSuffix(std::string suffix) const;
+
+        void setValue(Expr  value);
+        void resetValue();
+
+        std::string to_string() const;
+        std::string to_arbac_string() const;
+        std::string to_new_string(std::string& uname) const;
+        friend std::ostream & operator<<(std::ostream & out, Atom const & atom);
+
+        inline Expr get_value() const {
+            return value;
+        }
+
+
+        std::string name;
+        // Index in the role_array
+        int role_array_index;
+        // VarType type;
+        int bv_size;
+        std::string suffix;
+
+    private:
+        Expr value;
+    };
+
     class Exprv {
         public:
         friend Simplifier;
@@ -108,7 +146,7 @@ namespace SMT {
                 IMPL_EXPR,
             };
 
-        Exprv(ExprType ty, std::set<Literalw, std::owner_less<Literalw>> literals);
+        Exprv(ExprType ty, std::set<Atomp> literals);
 
         virtual bool equals(const Expr& other) const = 0;
 
@@ -129,7 +167,8 @@ namespace SMT {
         virtual std::string to_arbac_string() const = 0;
         virtual std::string to_new_string(std::string& uname) const = 0;
 
-        virtual const std::set<Literalw, std::owner_less<Literalw>>& literals();
+        //FIXME: update otherwise could be not valid
+        virtual const std::set<Atomp>& atoms();
 
         ExprType type;
         ulong64 node_idx;
@@ -139,79 +178,33 @@ namespace SMT {
 
     protected:
         Expr value;
-        std::set<Literalw, std::owner_less<Literalw>> _literals;
+        std::set<Atomp> _atoms;
     };
 
-    class Literal : public Exprv, public std::enable_shared_from_this<Literal> {
+    class Literal : public Exprv {
     public:
         friend Simplifier;
 
-        Literal(const std::string _name, int _role_array_index, int bv_size, Expr value = nullptr);
+        Literal(Atomp _inner);
         bool equals(const Expr& other) const override;
 
         const std::string getSMTName() const;
         const std::string fullName() const;
         const std::string nameWithSuffix(std::string suffix) const;
 
-        void setValue(Expr  value);
-        void resetValue();
+//        void setValue(Expr  value);
+//        void resetValue();
 
         std::string to_string() const override;
         std::string to_arbac_string() const override;
         std::string to_new_string(std::string& uname) const override;
 
-        const std::set<Literalw, std::owner_less<Literalw>>& literals() override;
-
         inline Expr get_value() const {
-            return value;
+            return atom->get_value();
         }
 
-
-        std::string name;
-        // Index in the role_array
-        int role_array_index;
-        // VarType type;
-        int bv_size;
-        std::string suffix;
-
-    private:
-        std::shared_ptr<Literal> get_ptr();
-        Expr value;
+        const Atomp atom;
     };
-
-
-    /*// 20.7.2.2.7 shared_ptr comparisons
-//    template<typename _Tp1, typename _Tp2>
-    inline bool
-    operator==(const std::shared_ptr<Literal>& __a,
-               const std::shared_ptr<Literal>& __b) noexcept
-    {
-        std::cout << "ASD" << std::endl;
-        return __a.get()->role_array_index == __b.get()->role_array_index;
-    }
-
-    template<typename _Tp>
-    struct literal_less;
-
-    /// Partial specialization of literal_less for shared_ptr.
-    template <>
-    struct literal_less<Literalp> {
-        int operator()(const Literalp& l1, const Literalw& l2) const {
-            Literalp l2p = l2.lock();
-            log->critical("asd");
-            return l1->role_array_index < l2p->role_array_index;
-        };
-    };
-
-    /// Partial specialization of literal_less for weak_ptr.
-    template <>
-    struct literal_less<Literalw> {
-        int operator()(const Literalw& l1, const Literalp& l2) const {
-            Literalp l1p = l1.lock();
-            log->critical("asd");
-            return l1p->role_array_index < l2->role_array_index;
-        };
-    };*/
     class Constant : public Exprv  {
     public:
         friend Simplifier;
@@ -305,9 +298,10 @@ namespace SMT {
         Expr choice2;
     };
 
-    Literalp createLiteralp(const std::string name, int role_array_index, int bv_size, Expr value = nullptr);
+    Atomp createAtomp(const std::string _name, int _role_array_index, int _bv_size, Expr _value = nullptr);
 
-    Expr createLiteralExpr(const std::string name, int role_array_index, int bv_size, Expr value = nullptr);
+    Literalp createLiteralp(Atomp atom);
+//    Expr createLiteralExpr(Atomp atom);
     Expr createConstantExpr(int value, int bv_size);
     Expr createConstantTrue();
     Expr createConstantFalse();
@@ -327,7 +321,7 @@ namespace SMT {
     Expr normalize_expr(Expr expr);
     Expr or_to_xor(Expr expr);
 
-    Expr delete_atom(Expr expr, Literalp lit);
+    Expr delete_atom(Expr expr, Atomp atom);
 
     Expr guard_atom(Expr expr, const Literalp& lit, const Expr& guard);
 
@@ -398,70 +392,75 @@ namespace SMT {
 
 
     template <typename TVar, typename TExpr, typename TLookup>
-    TExpr literalToSMT(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, const Literalp& lit, TLookup& lookup,
-                       const std::string suffix);
+    TExpr atomToSMT(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+                    const Atomp& atom,
+                    TLookup& lookup,
+                    const std::string suffix);
 
     template <typename TVar, typename TExpr>
-    TExpr literalToSMT(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, const Literalp& lit,
-                       std::vector<std::shared_ptr<TExpr>>& var_vector,
-                       const std::string suffix) {
-        if (lit->get_value() == nullptr) {
-            std::string name = lit->nameWithSuffix(suffix);
-            if (var_vector[lit->role_array_index] != nullptr) {
-                return *var_vector[lit->role_array_index];
+    TExpr atomToSMT(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+                    const Atomp& atom,
+                    std::vector<std::shared_ptr<TExpr>>& var_vector,
+                    const std::string suffix) {
+        if (atom->get_value() == nullptr) {
+            std::string name = atom->nameWithSuffix(suffix);
+            if (var_vector[atom->role_array_index] != nullptr) {
+                return *var_vector[atom->role_array_index];
             }
             else {
-                TVar var = solver->createVar2(name, lit->bv_size);
-                var_vector[lit->role_array_index] = std::make_shared<TVar>(var);
+                TVar var = solver->createVar2(name, atom->bv_size);
+                var_vector[atom->role_array_index] = std::make_shared<TVar>(var);
                 // printf("%s not found. Creating it: %d\n", name.c_str(), var);
                 return var;
             }
         }
         else {
-            return generateSMTFunction(solver, lit->get_value(), var_vector, suffix);
+            return generateSMTFunction(solver, atom->get_value(), var_vector, suffix);
         }
     }
 
     template <typename TVar, typename TExpr>
-    TExpr literalToSMT(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, const Literalp& lit,
-                       std::map<std::string, TVar>& var_map,
-                       const std::string suffix) {
-        if (lit->get_value() == nullptr) {
-            std::string name = lit->nameWithSuffix(suffix);
+    TExpr atomToSMT(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+                    const Atomp& atom,
+                    std::map<std::string, TVar>& var_map,
+                    const std::string suffix) {
+        if (atom->get_value() == nullptr) {
+            std::string name = atom->nameWithSuffix(suffix);
             if (var_map.find(name) != var_map.end()) {
                 return var_map[name];
             }
             else {
-                TVar var = solver->createVar2(name, lit->bv_size);
+                TVar var = solver->createVar2(name, atom->bv_size);
                 var_map[name] = var;
                 // printf("%s not found. Creating it: %d\n", name.c_str(), var);
                 return var;
             }
         }
         else {
-            return generateSMTFunction(solver, lit->get_value(), var_map, suffix);
+            return generateSMTFunction(solver, atom->get_value(), var_map, suffix);
         }
     }
 
     template <typename TVar, typename TExpr, typename TWrapper>
-    TExpr literalToSMT(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, const Literalp& lit,
-                       std::vector<TWrapper>& var_vector,
-                       const std::string suffix) {
+    TExpr atomToSMT(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+                    const Atomp& atom,
+                    std::vector<TWrapper>& var_vector,
+                    const std::string suffix) {
         static_assert(std::is_base_of<TVarWrapper<TVar>, TWrapper>::value, "TWrapper not derived from TWrapper<TVar>");
 
-        if (lit->get_value() == nullptr) {
-            std::string name = lit->nameWithSuffix(suffix);
-            if (var_vector[lit->role_array_index].solver_varp != nullptr) {
-                return *var_vector[lit->role_array_index].solver_varp;
+        if (atom->get_value() == nullptr) {
+            std::string name = atom->nameWithSuffix(suffix);
+            if (var_vector[atom->role_array_index].solver_varp != nullptr) {
+                return *var_vector[atom->role_array_index].solver_varp;
             } else {
                 std::stringstream fmt;
                 fmt << "Error in literalToSMT with vector<TWrapper>." << std::endl;
-                fmt << "Lookup table does not contain item with index " << lit->role_array_index
+                fmt << "Lookup table does not contain item with index " << atom->role_array_index
                     << " and could not be instantiated.";
                 throw std::runtime_error(fmt.str());
             }
         } else {
-            return generateSMTFunction(solver, lit->get_value(), var_vector, suffix);
+            return generateSMTFunction(solver, atom->get_value(), var_vector, suffix);
         }
 
     }
@@ -503,7 +502,7 @@ namespace SMT {
             }
             case Exprv::LITERAL: {
                 Literalp lit = std::dynamic_pointer_cast<Literal>(expr);
-                return literalToSMT(solver, lit, lookup, suffix);
+                return atomToSMT(solver, lit->atom, lookup, suffix);
 
             }
             case Exprv::AND_EXPR: {
@@ -561,7 +560,9 @@ namespace SMT {
         if (expr->get_value() != nullptr) {
             return generateSMTFunction2(solver, expr->get_value(), lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
         }
+//        log->trace("Translating: {}", *expr);
         if (contains(lookup2_exprs, expr)) {
+//            log->trace("Found {} for translation with {}", *expr, suffix2);
             return generateSMTFunction(solver, expr, lookup2, suffix2);
         }
         switch (expr->type) {
@@ -575,7 +576,7 @@ namespace SMT {
             }
             case Exprv::LITERAL: {
                 Literalp lit = std::dynamic_pointer_cast<Literal>(expr);
-                return literalToSMT(solver, lit, lookup1, suffix1);
+                return atomToSMT(solver, lit->atom, lookup1, suffix1);
 
             }
             case Exprv::AND_EXPR: {

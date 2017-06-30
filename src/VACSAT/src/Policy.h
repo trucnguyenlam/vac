@@ -13,11 +13,11 @@
 
 namespace SMT {
 
-    typedef Literalp atom;
+    typedef Atomp atomp;
 
     class rule {
     public:
-        rule(bool is_ca, Expr admin, Expr prec, atom target, int original_idx);
+        rule(bool is_ca, Expr admin, Expr prec, atomp target, int original_idx);
 
         std::shared_ptr<rule> clone_but_expr();
 
@@ -28,15 +28,15 @@ namespace SMT {
         const std::string to_arbac_string() const;
         const std::string get_type() const;
 
-        static rule* create_ca(Expr admin, Expr prec, atom target, int original_idx);
-        static rule* create_cr(Expr admin, Expr prec, atom target, int original_idx);
+        static rule* create_ca(Expr admin, Expr prec, atomp target, int original_idx);
+        static rule* create_cr(Expr admin, Expr prec, atomp target, int original_idx);
 
         friend std::ostream& operator<< (std::ostream& stream, const rule& self);
 
         bool is_ca;
         Expr admin;
         Expr prec;
-        atom target;
+        atomp target;
         int original_idx;
     };
 
@@ -46,13 +46,13 @@ namespace SMT {
     public:
         user(int original_idx, bool _infinite = false);
         user(std::string _name, int original_idx, bool _infinite = false);
-        user(std::string _name, int original_idx, std::set<atom> config, bool _infinite = false);
-        user(int original_idx, std::set<atom> config, bool _infinite = false);
+        user(std::string _name, int original_idx, std::set<atomp> config, bool _infinite = false);
+        user(int original_idx, std::set<atomp> config, bool _infinite = false);
 
         std::shared_ptr<user> clone_but_expr();
 
-        void add_atom(const atom& atom1);
-        void remove_atom(const atom& atom1);
+        void add_atom(const atomp& atom1);
+        void remove_atom(const atomp& atom1);
 
         std::shared_ptr<user> extract_copy(int idx) const;
 
@@ -62,17 +62,17 @@ namespace SMT {
         const std::string to_string() const;
         friend std::ostream& operator<< (std::ostream& stream, const user& self);
 
-        inline const std::set<atom>& config() const {
+        inline const std::set<atomp>& config() const {
             return _config;
         }
 
-        static user from_old_policy(std::vector<atom> &atoms, int original_idx, bool infinite);
+        static user from_old_policy(std::vector<atomp> &atoms, int original_idx, bool infinite);
 
         int original_idx;
         const std::string name;
         const bool infinite;
     private:
-        std::set<atom> _config;
+        std::set<atomp> _config;
     };
 
     typedef std::shared_ptr<user> userp;
@@ -139,20 +139,20 @@ namespace SMT {
             return cache()->user_expr(user_id);
         }
 
-        const Expr user_to_expr(int user_id, const std::set<Literalw, std::owner_less<Literalw>>& literals) const;
+        const Expr user_to_expr(int user_id, const std::set<Atomp>& literals) const;
 
         void show_policy_statistics(int wanted_threads_count) const;
 
         void set_users(const std::vector<userp>& users);
-        void set_atoms(const std::vector<atom>& atoms);
+        void set_atoms(const std::vector<atomp>& atoms);
 
         // TODO(truc) modify this
         void add_user(const userp& user);
-        void add_atom(const atom& atom);
+        void add_atom(const atomp& atom);
         void add_can_assign_no_update(const rulep& rule);
         void add_can_revoke_no_update(const rulep& rule);
-//        void update_query(const Literalp& goal_role);
-        void update_query(const std::string username, const Literalp& goal_role);
+//        void update_query(const Atomp& goal_role);
+        void update_query(const std::string username, const Atomp& goal_role);
         // END(truc)
 
         void add_rule(const rulep& rule);
@@ -166,8 +166,8 @@ namespace SMT {
         void remove_can_assigns(const std::list<rulep>& rule);
         void remove_can_revoke(const rulep& rule);
         void remove_can_revokes(const std::list<rulep>& rule);
-        void remove_atoms(const std::list<Literalp>& atoms);
-        void remove_atom(const Literalp& atom);
+        void remove_atoms(const std::list<Atomp>& atoms);
+        void remove_atom(const Atomp& atom);
         void remove_user(const userp& user);
 
         const std::string to_string() const;
@@ -187,7 +187,7 @@ namespace SMT {
         inline const std::vector<rulep>& can_revoke_rules() const {
             return _can_revoke_rules;
         }
-        inline const std::vector<Literalp>& atoms() const {
+        inline const std::vector<Atomp>& atoms() const {
             return _atoms;
         }
         inline const std::vector<userp>& users() const {
@@ -203,13 +203,13 @@ namespace SMT {
         inline const std::vector<std::list<rulep>>& per_role_can_assign_rule() {
             return this->cache()->_per_role_ca_rules;
         }
-        inline const std::list<rulep>& per_role_can_assign_rule(atom _atom) {
+        inline const std::list<rulep>& per_role_can_assign_rule(atomp _atom) {
             return this->cache()->_per_role_ca_rules[_atom->role_array_index];
         }
         inline const std::vector<std::list<rulep>>& per_role_can_revoke_rule() {
             return this->cache()->_per_role_cr_rules;
         }
-        inline const std::list<rulep>& per_role_can_revoke_rule(atom _atom) {
+        inline const std::list<rulep>& per_role_can_revoke_rule(atomp _atom) {
             return this->cache()->_per_role_cr_rules[_atom->role_array_index];
         }
         inline const std::list<userp>& finite_users() {
@@ -228,7 +228,7 @@ namespace SMT {
         inline const rulep& can_revoke_rules(int i) {
             return _can_revoke_rules[i];
         }
-        inline const Literalp& atoms(int i) {
+        inline const Atomp& atoms(int i) {
             return _atoms[i];
         }
         inline const userp& users(int i) {
@@ -243,7 +243,7 @@ namespace SMT {
         }
 
 
-        Literalp goal_role;
+        Atomp goal_role;
         const std::string filename;
 
         private:
@@ -251,13 +251,13 @@ namespace SMT {
         friend class policy_cache;
 
         void update();
-        void unsafe_remove_atom(const Literalp& atom);
+        void unsafe_remove_atom(const Atomp& atom);
         void unsafe_remove_user(const userp& user);
         void unsafe_remove_rule(const rulep& rule);
         void unsafe_remove_can_assign(const rulep& rule);
         void unsafe_remove_can_revoke(const rulep& rule);
 
-        std::vector<Literalp> _atoms;
+        std::vector<Atomp> _atoms;
         std::vector<userp> _users;
         std::vector<std::shared_ptr<rule>> _rules;
         std::vector<std::shared_ptr<rule>> _can_assign_rules;

@@ -83,8 +83,8 @@ namespace SMT {
         bool backward_slicing() {
             bool fixpoint = false;
             std::set<rulep> to_save;
-            std::set<Literalw, std::owner_less<Literalw>> necessary_atoms;
-            necessary_atoms.insert(to_check_infinite->literals().begin(), to_check_infinite->literals().end());
+            std::set<atomp> necessary_atoms;
+            necessary_atoms.insert(to_check_infinite->atoms().begin(), to_check_infinite->atoms().end());
             while (!fixpoint) {
                 fixpoint = true;
                 for (auto &&rule : policy->rules()) {
@@ -93,9 +93,9 @@ namespace SMT {
 //                    std::cout << *rule << ": "_atoms);
 //                    print_collection(to_save);
 //                    std::cout << *rule << ": " << (!contains(to_save, rule) && contains(necessary_atoms, rule->target)) << std::endl;
-                    if (!contains(to_save, rule) && contains_ptr(necessary_atoms, rule->target)) {
-                        necessary_atoms.insert(rule->admin->literals().begin(), rule->admin->literals().end());
-                        necessary_atoms.insert(rule->prec->literals().begin(), rule->prec->literals().end());
+                    if (!contains(to_save, rule) && contains(necessary_atoms, rule->target)) {
+                        necessary_atoms.insert(rule->admin->atoms().begin(), rule->admin->atoms().end());
+                        necessary_atoms.insert(rule->prec->atoms().begin(), rule->prec->atoms().end());
                         to_save.insert(rule);
                         fixpoint = false;
                     }
@@ -127,7 +127,7 @@ namespace SMT {
         void reduce_users(bool from_infinite) {
 
             auto unique_conf = policy->unique_configurations();
-            std::map<std::set<atom>, std::list<std::pair<userp, bool>>> partitions;
+            std::map<std::set<atomp>, std::list<std::pair<userp, bool>>> partitions;
 
             std::set<Expr, deepCmpExprs> admins;
             for (auto &&rule : policy->rules()) {
@@ -307,8 +307,8 @@ namespace SMT {
                 rulep candidate_rule = *part.begin();
                 Expr adm = candidate_rule->admin;
 //            parts.push_back(adm);
-                std::string glob_name = adm->literals().size() > 0 ?
-                                        (*adm->literals().begin()).lock()->name :
+                std::string glob_name = adm->atoms().size() > 0 ?
+                                        (*adm->atoms().begin())->name :
                                         "TRUE";
                 globals_map[adm] = variable("global_" + glob_name, -1, 1, solver.get(), BOOLEAN);
                 for (auto &&rule : part) {
@@ -515,7 +515,7 @@ namespace SMT {
                 Expr global_expr = global_pair.first;
                 variable global_var = global_pair.second;
                 for (auto &&canRevokeRule : policy->can_revoke_rules()) {
-                    if (contains_ptr(global_expr->literals(), canRevokeRule->target)) {
+                    if (contains(global_expr->atoms(), canRevokeRule->target)) {
                         TExpr respects = generateSMTFunction(solver, global_expr, locals[thread_id], std::to_string(thread_id));
                         TExpr value = solver->createOrExpr(global_var.get_solver_var(), respects);
                         variable n_glob = global_var.createFrom();
@@ -568,7 +568,7 @@ namespace SMT {
             return cond;
         }
 
-        void simulate_can_assigns_by_atom(int thread_id, const atom& target, int rule_id) {
+        void simulate_can_assigns_by_atom(int thread_id, const atomp& target, int rule_id) {
             // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
             int i = 0;
             TExpr pc_cond, ca_cond, all_cond;
@@ -624,7 +624,7 @@ namespace SMT {
             for (auto &&glob_pair : globals_map) {
                 Expr adm_expr = glob_pair.first;
                 variable glob_var = glob_pair.second;
-                if (contains_ptr(adm_expr->literals(), target)) {
+                if (contains(adm_expr->atoms(), target)) {
                     TExpr ngval = generateSMTFunction(solver, adm_expr, locals[thread_id], std::to_string(thread_id));
                     TExpr n_cond_gval = solver->createCondExpr(ca_guard.get_solver_var(), ngval, glob_var.get_solver_var());
                     variable nglob = glob_var.createFrom();
@@ -635,7 +635,7 @@ namespace SMT {
             }
         }
 
-        void simulate_can_revokes_by_atom(int thread_id, const atom &target, int rule_id) {
+        void simulate_can_revokes_by_atom(int thread_id, const atomp &target, int rule_id) {
             // Precondition: exists always at least one CR that assign the role i.e.: roles_cr_counts[target_role_index] > 1
             int i = 0;
             TExpr pc_cond, cr_cond, all_cond;
@@ -692,7 +692,7 @@ namespace SMT {
             for (auto &&global_pair : globals_map) {
                 Expr glob_expr = global_pair.first;
                 variable glob_var = global_pair.second;
-                if (contains_ptr(glob_expr->literals(), target)) {
+                if (contains(glob_expr->atoms(), target)) {
                     TExpr ngval = generateSMTFunction(solver, glob_expr, locals[thread_id], std::to_string(thread_id));
                     TExpr n_cond_gval = solver->createCondExpr(cr_guard.get_solver_var(), ngval, glob_var.get_solver_var());
                     variable nglob_var = glob_var.createFrom();
@@ -874,25 +874,24 @@ namespace SMT {
         }
 
         Expr infinite_to_finite(const Expr& to_check) {
-            std::map<atom, Expr> guards;
-            for (auto &&atomw : to_check->literals()) {
-                atom _atom = atomw.lock();
+            std::map<atomp, Expr> guards;
+            for (auto &&_atom : to_check->atoms()) {
                 Expr guard = createConstantTrue();
                 if ((atom_statuses[_atom->role_array_index]->get_status(0) == atom_status::USED) &&
                     /*FIXME: HIGLY EXPERIMENTAL!*/ (policy->per_role_can_revoke_rule(_atom).size() > 0)) {
                     guard = createAndExpr(guard,
-                                          createNotExpr(_atom));
+                                          createNotExpr(createLiteralp(_atom)));
                 }
                 if ((atom_statuses[_atom->role_array_index]->get_status(1) == atom_status::USED) &&
                     /*FIXME: HIGLY EXPERIMENTAL!*/ (policy->per_role_can_assign_rule(_atom).size() > 0)) {
                     guard = createAndExpr(guard,
-                                          _atom);
+                                          createLiteralp(_atom));
                 }
                 guards[_atom] = guard;
             }
             Expr final = to_check;
             for (auto &&pairs : guards) {
-               final = guard_atom(final, pairs.first, pairs.second);
+               final = guard_atom(final, createLiteralp(pairs.first), pairs.second);
             }
 //            log->trace("original: {}", *to_check);
 //            log->trace("finite_version: {}", *final);

@@ -52,9 +52,87 @@ namespace SMT {
         return fmt.str();
     }
 
+
+/*ATOMS OPS*/
+    Atom::Atom(const std::string _name, int _role_array_index, int _bv_size, Expr _value):
+            name(_name), role_array_index(_role_array_index), bv_size(_bv_size), value(_value) { }
+
+    bool Atom::equals(const Atomp& other) const {
+        return  this->role_array_index == other->role_array_index &&
+                this->name == other->name &&
+                this->bv_size == other->bv_size;
+    }
+
+    /*
+     * void Literal::setLiterals(Literalp &self) {
+        this->_literals.insert(self);
+    }
+    void Literal::setSuffix(std::string suffix) {
+        this->suffix = suffix;
+    }
+    void Literal::setSuffix(int index) {
+        this->setSuffix(std::to_string(index));
+    }
+    void Literal::resetSuffix() {
+        this->suffix = "";
+    }*/
+    void Atom::setValue(Expr value) {
+        this->value = value;
+    }
+    void Atom::resetValue() {
+        this->value = nullptr;
+    }
+    const std::string Atom::getSMTName() const {
+        return this->fullName();
+    }
+    const std::string Atom::fullName() const {
+        if (this->suffix == "") {
+            return this->name;
+        }
+        else {
+            std::stringstream fmt;
+            fmt << this->name + "_" + this->suffix;
+            return fmt.str();
+        }
+    }
+//    std::shared_ptr<Literal> Literal::get_ptr() {
+//        return shared_from_this();
+//    }
+
+    const std::string Atom::nameWithSuffix(std::string suffix) const {
+//        if (this->suffix == "") {
+        return this->fullName() + "_" + suffix;
+//        }
+//        else {
+//            std::stringstream fmt;
+//            fmt << this->name + "_" + this->suffix;
+//            return fmt.str();
+//        }
+    }
+
+    std::string Atom::to_string() const {
+        std::stringstream fmt;
+        // fmt << "|" << this->fullName() << "|";
+        fmt << this->fullName();
+        return fmt.str();
+    }
+    std::string Atom::to_arbac_string() const {
+        std::stringstream fmt;
+        fmt << this->name;
+        return fmt.str();
+    }
+    std::string Atom::to_new_string(std::string& uname) const {
+        return uname + "." + this->name + "=1";
+    }
+
+    std::ostream & operator<<(std::ostream & out, Atom const & atom) {
+        out << atom.to_string();
+        return out;
+    }
+
 /*EXPR OPS*/
     ulong64 Exprv::counter = 0;
-    Exprv::Exprv(ExprType ty, std::set<Literalw, std::owner_less<Literalw>> literals) : type(ty), node_idx(counter++), _literals(literals) { }
+    Exprv::Exprv(ExprType ty, std::set<Atomp> atoms) : type(ty), node_idx(counter++), _atoms(atoms) { }
     /*
      * bool Exprv::containsLiteral(std::string full_name) {
         for (auto ite = _literals.begin(); ite != _literals.end(); ++ite) {
@@ -115,8 +193,8 @@ namespace SMT {
         return this->value;
     }
 
-    const std::set<Literalw, std::owner_less<Literalw>>& Exprv::literals() {
-        return this->_literals;
+    const std::set<Atomp>& Exprv::atoms() {
+        return this->_atoms;
      }
 
     std::ostream & operator<<(std::ostream& out, Exprv const & expr) {
@@ -126,18 +204,18 @@ namespace SMT {
     }
     
 /*LITERAL OPS*/
-    Literal::Literal(const std::string _name, int _role_array_index, int _bv_size, Expr _value):
-        Exprv(Exprv::LITERAL, std::set<Literalw, std::owner_less<Literalw>>()),
-        name(_name), role_array_index(_role_array_index), bv_size(_bv_size), value(_value) { }
+    Literal::Literal(Atomp _atom):
+        Exprv(Exprv::LITERAL, std::set<Atomp>()),
+        atom(_atom) {
+        _atoms.insert(atom);
+    }
 
     bool Literal::equals(const Expr &other) const {
         if (other->type != Exprv::LITERAL)
             return false;
         Literalp other_lit = std::dynamic_pointer_cast<Literal>(other);
 
-        return  this->role_array_index == other_lit->role_array_index &&
-                this->name == other_lit->name &&
-                this->bv_size == other_lit->bv_size;
+        return this->atom->equals(other_lit->atom);
     }
 
     /*
@@ -153,67 +231,44 @@ namespace SMT {
     void Literal::resetSuffix() {
         this->suffix = "";
     }*/
-    void Literal::setValue(Expr value) {
-        this->value = value;
-    }
-    void Literal::resetValue() {
-        this->value = nullptr;
-    }
-    const std::set<Literalw, std::owner_less<Literalw>>& Literal::literals() {
-        if (this->_literals.size() < 1) {
-            _literals.insert(get_ptr());
-        }
-        return _literals;
-    }
+//    void Literal::setValue(Expr value) {
+//        this->value = value;
+//    }
+//    void Literal::resetValue() {
+//        this->value = nullptr;
+//    }
 
     const std::string Literal::getSMTName() const {
-        return this->fullName();
+        //FIXME: remove ~
+        return "~" + this->atom->getSMTName();
     }
 
     const std::string Literal::fullName() const {
-        if (this->suffix == "") {
-            return this->name;
-        }
-        else {
-            std::stringstream fmt;
-            fmt << this->name + "_" + this->suffix;
-            return fmt.str();
-        }
-    }
-
-    std::shared_ptr<Literal> Literal::get_ptr() {
-        return shared_from_this();
+        //FIXME: remove ~
+        return "~" + this->atom->fullName();
     }
 
     const std::string Literal::nameWithSuffix(std::string suffix) const {
-//        if (this->suffix == "") {
-            return this->fullName() + "_" + suffix;
-//        }
-//        else {
-//            std::stringstream fmt;
-//            fmt << this->name + "_" + this->suffix;
-//            return fmt.str();
-//        }
+        //FIXME: remove ~
+        return "~" + this->atom->nameWithSuffix(suffix);
     }
 
     std::string Literal::to_string() const {
-        std::stringstream fmt;
-        // fmt << "|" << this->fullName() << "|";
-        fmt << this->fullName();
-        return fmt.str();
+        //FIXME: remove ~
+        return "~" + this->atom->to_string();
     }
     std::string Literal::to_arbac_string() const {
-        std::stringstream fmt;
-        fmt << this->name;
-        return fmt.str();
+        //FIXME: remove ~
+        return "~" + this->atom->to_arbac_string();
     }
     std::string Literal::to_new_string(std::string& uname) const {
-        return uname + "." + this->name + "=1";
+        //FIXME: remove ~
+        return "~" + this->atom->to_new_string(uname);
     }
 
 /*CONSTANT OPS*/
     Constant::Constant(int _value, int _bv_size) :
-        Exprv(Exprv::CONSTANT, std::set<Literalw, std::owner_less<Literalw>>()),
+        Exprv(Exprv::CONSTANT, std::set<Atomp>()),
         value(_value), bv_size(_bv_size) { }
 
     bool Constant::equals(const Expr &other) const {
@@ -265,7 +320,7 @@ namespace SMT {
     
 /*OR OPS*/
     OrExpr::OrExpr(Expr _lhs, Expr _rhs) :
-        Exprv(Exprv::OR_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
+        Exprv(Exprv::OR_EXPR, setUnion(_lhs->atoms(), _rhs->atoms())),
         lhs(_lhs), rhs(_rhs) { }
     bool OrExpr::equals(const Expr &other) const {
         if (other->type != Exprv::OR_EXPR)
@@ -297,7 +352,7 @@ namespace SMT {
 
 /*AND OPS*/
     AndExpr::AndExpr(Expr _lhs, Expr _rhs) :
-        Exprv(Exprv::AND_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
+        Exprv(Exprv::AND_EXPR, setUnion(_lhs->atoms(), _rhs->atoms())),
         lhs(_lhs), rhs(_rhs) { }
     bool AndExpr::equals(const Expr &other) const {
         if (other->type != Exprv::AND_EXPR)
@@ -332,7 +387,7 @@ namespace SMT {
 
 /*EQ OPS*/
     EqExpr::EqExpr(Expr _lhs, Expr _rhs) :
-        Exprv(Exprv::EQ_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
+        Exprv(Exprv::EQ_EXPR, setUnion(_lhs->atoms(), _rhs->atoms())),
         lhs(_lhs), rhs(_rhs) { }
     bool EqExpr::equals(const Expr &other) const {
         if (other->type != Exprv::EQ_EXPR)
@@ -356,8 +411,8 @@ namespace SMT {
     }
     std::string EqExpr::to_new_string(std::string& uname) const {
         std::stringstream fmt;
-        std::string slhsv = lhs->type == LITERAL ? uname + "." + (std::dynamic_pointer_cast<Literal>(lhs))->name : lhs->to_new_string(uname);
-        std::string srhsv = rhs->type == LITERAL ? uname + "." + (std::dynamic_pointer_cast<Literal>(rhs))->name : rhs->to_new_string(uname);
+        std::string slhsv = lhs->type == LITERAL ? uname + "." + (std::dynamic_pointer_cast<Literal>(lhs))->atom->name : lhs->to_new_string(uname);
+        std::string srhsv = rhs->type == LITERAL ? uname + "." + (std::dynamic_pointer_cast<Literal>(rhs))->atom->name : rhs->to_new_string(uname);
         if ((lhs->type == LITERAL && rhs->type == CONSTANT) ||
             (lhs->type == CONSTANT && rhs->type == LITERAL)) {
             fmt << slhsv << Defs::eq_op << srhsv;
@@ -370,7 +425,7 @@ namespace SMT {
 
 /*IMPLICATION OPS*/
     ImplExpr::ImplExpr(Expr _lhs, Expr _rhs) :
-        Exprv(Exprv::IMPL_EXPR, setUnion(_lhs->literals(), _rhs->literals())),
+        Exprv(Exprv::IMPL_EXPR, setUnion(_lhs->atoms(), _rhs->atoms())),
         lhs(_lhs), rhs(_rhs) { }
     bool ImplExpr::equals(const Expr &other) const {
         if (other->type != Exprv::IMPL_EXPR)
@@ -402,7 +457,7 @@ namespace SMT {
 
 /*NOT OPS*/
     NotExpr::NotExpr(Expr _expr) :
-        Exprv(Exprv::NOT_EXPR, _expr->literals()),
+        Exprv(Exprv::NOT_EXPR, _expr->atoms()),
         expr(_expr) { }
     bool NotExpr::equals(const Expr &other) const {
         if (other->type != Exprv::NOT_EXPR)
@@ -433,7 +488,7 @@ namespace SMT {
 /*COND OPS*/
     CondExpr::CondExpr(Expr _cond, Expr _choice1, Expr _choice2) :
         Exprv(Exprv::COND_EXPR, 
-              setUnion(_cond->literals(), setUnion(_choice1->literals(), _choice2->literals()))),
+              setUnion(_cond->atoms(), setUnion(_choice1->atoms(), _choice2->atoms()))),
         cond(_cond), choice1(_choice1), choice2(_choice2) { }
     bool CondExpr::equals(const Expr &other) const {
         if (other->type != Exprv::COND_EXPR)
@@ -676,8 +731,12 @@ namespace SMT {
      }
 
 /*EXPR CREATION AND CHECK OPS*/
-    Literalp createLiteralp(const std::string name, int role_array_index, int bv_size, Expr value) {
-        std::shared_ptr<Literal> res(new Literal(name, role_array_index, bv_size, value));
+    Atomp createAtomp(const std::string _name, int _role_array_index, int _bv_size, Expr _value) {
+        std::shared_ptr<Atom> res(new Atom(_name, _role_array_index, _bv_size, _value));
+        return res;
+    }
+    Literalp createLiteralp(Atomp atom) {
+        std::shared_ptr<Literal> res(new Literal(atom));
         return res;
     }
     Expr createConstantExpr(int value, int bv_size) {
@@ -845,13 +904,13 @@ namespace SMT {
         return std::pair<Literalp, std::shared_ptr<Constant>>(r1, r2);
     }
 
-    Expr delete_atom(Expr expr, Literalp lit) {
+    Expr delete_atom(Expr expr, Atomp atom) {
         switch (expr->type) {
             case Exprv::CONSTANT: {
                 return expr;
             }
             case Exprv::LITERAL: {
-                if (expr == lit) {
+                if (std::dynamic_pointer_cast<Literal>(expr)->atom == atom) {
                     return createConstantTrue();
                 }
                 else {
@@ -860,14 +919,14 @@ namespace SMT {
             }
             case Exprv::AND_EXPR: {
                 std::shared_ptr<AndExpr> andExpr = std::dynamic_pointer_cast<AndExpr>(expr);
-                Expr nlhs = delete_atom(andExpr->lhs, lit);
-                Expr nrhs = delete_atom(andExpr->rhs, lit);
+                Expr nlhs = delete_atom(andExpr->lhs, atom);
+                Expr nrhs = delete_atom(andExpr->rhs, atom);
                 return createAndExpr(nlhs, nrhs);
             }
             case Exprv::OR_EXPR: {
                 std::shared_ptr<OrExpr> orExpr = std::dynamic_pointer_cast<OrExpr>(expr);
-                Expr nlhs = delete_atom(orExpr->lhs, lit);
-                Expr nrhs = delete_atom(orExpr->rhs, lit);
+                Expr nlhs = delete_atom(orExpr->lhs, atom);
+                Expr nrhs = delete_atom(orExpr->rhs, atom);
                 return createOrExpr(nlhs, nrhs);
             }
             case Exprv::NOT_EXPR: {
@@ -877,7 +936,7 @@ namespace SMT {
                     case Exprv::CONSTANT:
                         return expr;
                     case Exprv::LITERAL:
-                        if (inner == lit) {
+                        if (std::dynamic_pointer_cast<Literal>(inner)->atom == atom) {
                             return createConstantTrue();
                         }
                         else {
@@ -887,7 +946,7 @@ namespace SMT {
                         std::shared_ptr<EqExpr> inner_eq = std::dynamic_pointer_cast<EqExpr>(inner);
                         if (is_lit_const_eq(inner_eq)) {
                             auto pair = eq_to_lit_const(inner_eq);
-                            if (pair.first == lit) {
+                            if (pair.first->atom == atom) {
                                 return createConstantTrue();
                             } else {
                                 return expr;
@@ -924,7 +983,7 @@ namespace SMT {
                 std::shared_ptr<EqExpr> eq_expr = std::dynamic_pointer_cast<EqExpr>(expr);
                 if (is_lit_const_eq(eq_expr)) {
                     auto lit_cons = eq_to_lit_const(eq_expr);
-                    if (lit_cons.first == lit) {
+                    if (lit_cons.first->atom == atom) {
                         return createConstantTrue();
                     }
                     else {
@@ -1070,9 +1129,10 @@ namespace SMT {
 
     Expr clone_but_lits(const Expr& expr) {
         switch (expr->type) {
-            case Exprv::LITERAL:
             case Exprv::CONSTANT:
                 return expr;
+            case Exprv::LITERAL:
+                return createLiteralp(std::dynamic_pointer_cast<Literal>(expr)->atom);
             case Exprv::EQ_EXPR: {
                 EqExprp eq_expr = std::dynamic_pointer_cast<EqExpr>(expr);
                 Expr res = createEqExpr(clone_but_lits(eq_expr->lhs), clone_but_lits(eq_expr->rhs));
@@ -1119,7 +1179,7 @@ namespace SMT {
     }
 
     Expr clone_substitute(const Expr& expr, const Expr& substitute, const Expr& with) {
-        if (expr == substitute) {
+        if (expr->equals(substitute)) {
             return with;
         }
         switch (expr->type) {

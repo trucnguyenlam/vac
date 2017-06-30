@@ -53,15 +53,15 @@ namespace SMT {
         return false;
     };
 
-    template <typename T, typename TCmp>
-    static inline bool contains_ptr(const std::set<std::weak_ptr<T>, TCmp> &set, const std::shared_ptr<T> &elem) {
-        return set.find(elem) != set.end();
-    }
-
-    template <typename T>
-    static inline bool contains_ptr(const std::set<std::shared_ptr<T>> &set, const std::weak_ptr<T> &elem) {
-        return set.find(elem.lock()) != set.end();
-    }
+//    template <typename T, typename TCmp>
+//    static inline bool contains_ptr(const std::set<std::weak_ptr<T>, TCmp> &set, const std::shared_ptr<T> &elem) {
+//        return set.find(elem) != set.end();
+//    }
+//
+//    template <typename T>
+//    static inline bool contains_ptr(const std::set<std::shared_ptr<T>> &set, const std::weak_ptr<T> &elem) {
+//        return set.find(elem.lock()) != set.end();
+//    }
 
 
     template <class InputIterator, class T>

@@ -65,12 +65,11 @@ class R6Transformer {
         solver->assertLater(expr);
     }
 
-    template <typename TCmp = std::less<atom>>
-    int get_pc_size(const std::set<Literalw, TCmp>& atoms) const {
+//    template <typename TCmp = std::less<atomp>>
+    int get_pc_size(const std::set<Atomp>& atoms) const {
         int count = 1;
 
-        for (auto &&watom : atoms) {
-            auto atom = watom.lock();
+        for (auto &&atom : atoms) {
             if (SMT::iterable_exists(policy->can_assign_rules().begin(), policy->can_assign_rules().end(),
                                      [&](const rulep rule) { return rule->target == atom; } )) {
                 count++;
@@ -90,8 +89,8 @@ class R6Transformer {
             core_roles[i] = false;
         }
 
-        for (auto &&core : target_expr->literals()) {
-            core_roles[core.lock()->role_array_index] = true;
+        for (auto &&core : target_expr->atoms()) {
+            core_roles[core->role_array_index] = true;
             core_roles_size++;
         }
 
@@ -103,7 +102,7 @@ class R6Transformer {
 //        std::cout << "Overapprox: " << numBits((core_roles_size * 2) + 1) << std::endl;
 //        std::cout << "################################################################################################" << std::endl;
 
-        pc_size = get_pc_size(target_expr->literals());
+        pc_size = get_pc_size(target_expr->atoms());
 
     }
 
@@ -263,7 +262,7 @@ class R6Transformer {
         return generate_from_prec(cr_precond);
     }
 
-    TExpr get_assignment_cond_by_role(const atom& target_role, int label_index) {
+    TExpr get_assignment_cond_by_role(const atomp& target_role, int label_index) {
         // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
         // fprintf(outputFile, "    /* --- ASSIGNMENT RULES FOR ROLE %s --- */\n", role_array[target_role_index]);
         TExpr if_prelude = generate_if_SKIP_PC(label_index);
@@ -286,7 +285,7 @@ class R6Transformer {
         return cond;
     }
 
-    TExpr get_revoke_cond_by_role(const atom& target_role, int label_index) {
+    TExpr get_revoke_cond_by_role(const atomp& target_role, int label_index) {
         // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
         // fprintf(outputFile, "    /* --- REVOKE RULES FOR ROLE %s --- */\n", role_array[target_role_index]);
         TExpr if_prelude = generate_if_SKIP_PC(label_index);
@@ -307,7 +306,7 @@ class R6Transformer {
         return cond;
     }
 
-    void simulate_can_assigns_by_role(const atom& target_role, int label_index) {
+    void simulate_can_assigns_by_role(const atomp& target_role, int label_index) {
         //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
         TExpr cond = get_assignment_cond_by_role(target_role, label_index);
 
@@ -329,7 +328,7 @@ class R6Transformer {
         core_sets[target_role_index] = new_set_var;
     }
 
-    void simulate_can_revokes_by_role(const atom& target_role, int label_index) {
+    void simulate_can_revokes_by_role(const atomp& target_role, int label_index) {
         //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
         TExpr cond = get_revoke_cond_by_role(target_role, label_index);
 
@@ -527,7 +526,7 @@ class R6Transformer {
         target_rule(_to_check_source),
         target_expr(_to_check),
         zero(solver->createFalse()), one(solver->createTrue()),
-        pc_size(get_pc_size(target_expr->literals())) {
+        pc_size(get_pc_size(target_expr->atoms())) {
         solver->deep_clean();
         allocate_core_role_array_set_pc_size();
         generate_variables();

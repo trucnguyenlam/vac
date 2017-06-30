@@ -200,8 +200,8 @@ namespace SMT {
                 rulep candidate_rule = *part.begin();
                 Expr adm = candidate_rule->admin;
     //            parts.push_back(adm);
-                std::string glob_name = adm->literals().size() > 0 ?
-                                            (*adm->literals().begin()).lock()->name :
+                std::string glob_name = adm->atoms().size() > 0 ?
+                                            (*adm->atoms().begin())->name :
                                             "TRUE";
                 globals_map[adm] = variable("global_" + glob_name, -1, 1, solver.get(), BOOLEAN);
                 for (auto &&rule : part) {
@@ -382,7 +382,7 @@ namespace SMT {
                 Expr global_expr = global_pair.first;
                 variable global_var = global_pair.second;
                 for (auto &&canRevokeRule : policy->can_revoke_rules()) {
-                    if (contains_ptr(global_expr->literals(), canRevokeRule->target)) {
+                    if (contains(global_expr->atoms(), canRevokeRule->target)) {
                         TExpr respects = generateSMTFunction(solver, global_expr, locals[thread_id], std::to_string(thread_id));
                         TExpr value = solver->createOrExpr(global_var.get_solver_var(), respects);
                         variable n_glob = global_var.createFrom();
@@ -435,7 +435,7 @@ namespace SMT {
             return cond;
         }
 
-        void simulate_can_assigns_by_atom(int thread_id, const atom& target, int rule_id) {
+        void simulate_can_assigns_by_atom(int thread_id, const atomp& target, int rule_id) {
             // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
             int i = 0;
             TExpr pc_cond, ca_cond, all_cond;
@@ -479,7 +479,7 @@ namespace SMT {
             for (auto &&glob_pair : globals_map) {
                 Expr adm_expr = glob_pair.first;
                 variable glob_var = glob_pair.second;
-                if (contains_ptr(adm_expr->literals(), target)) {
+                if (contains(adm_expr->atoms(), target)) {
                     TExpr ngval = generateSMTFunction(solver, adm_expr, locals[thread_id], std::to_string(thread_id));
                     TExpr n_cond_gval = solver->createCondExpr(ca_guard.get_solver_var(), ngval, glob_var.get_solver_var());
                     variable nglob = glob_var.createFrom();
@@ -490,7 +490,7 @@ namespace SMT {
             }
         }
 
-        void simulate_can_revokes_by_atom(int thread_id, const atom &target, int rule_id) {
+        void simulate_can_revokes_by_atom(int thread_id, const atomp &target, int rule_id) {
             // Precondition: exists always at least one CR that assign the role i.e.: roles_cr_counts[target_role_index] > 1
             int i = 0;
             TExpr pc_cond, cr_cond, all_cond;
@@ -535,7 +535,7 @@ namespace SMT {
             for (auto &&global_pair : globals_map) {
                 Expr glob_expr = global_pair.first;
                 variable glob_var = global_pair.second;
-                if (contains_ptr(glob_expr->literals(), target)) {
+                if (contains(glob_expr->atoms(), target)) {
                     TExpr ngval = generateSMTFunction(solver, glob_expr, locals[thread_id], std::to_string(thread_id));
                     TExpr n_cond_gval = solver->createCondExpr(cr_guard.get_solver_var(), ngval, glob_var.get_solver_var());
                     variable nglob_var = glob_var.createFrom();

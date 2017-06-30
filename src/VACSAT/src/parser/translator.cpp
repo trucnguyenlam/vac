@@ -10,7 +10,7 @@ namespace { // Use unnamed namespace for private functions
 //     return true;
 // }
 
-SMT::Expr buildExpression(Parser::Expr e, const Parser::ModelPtr policy, const std::vector<SMT::atom> & atoms) {
+SMT::Expr buildExpression(Parser::Expr e, const Parser::ModelPtr policy, const std::vector<SMT::atomp> & atoms) {
     // std::cout << "DEBUG: " << e->to_string() << ":" << std::to_string(e->type) << std::endl;
     switch (e->type) {
     case Parser::Exprv::CONSTANT:
@@ -19,7 +19,7 @@ SMT::Expr buildExpression(Parser::Expr e, const Parser::ModelPtr policy, const s
     case Parser::Exprv::LITERAL:
         throw Parser::TranslatorException("Expression " + e->to_string() + " is not valid in precondition!");
     case Parser::Exprv::ENTITY:
-        return atoms[std::dynamic_pointer_cast<Parser::Entity>(e)->getAttributeID()];
+        return SMT::createLiteralp(atoms[std::dynamic_pointer_cast<Parser::Entity>(e)->getAttributeID()]);
         break;
     case Parser::Exprv::EQ_EXPR:
         return SMT::createEqExpr(
@@ -50,11 +50,11 @@ std::shared_ptr<SMT::arbac_policy> toSMT_arbac_policy(std::string inputFile, Par
     std::shared_ptr<SMT::arbac_policy> newpolicy = std::make_shared<SMT::arbac_policy>(SMT::arbac_policy(inputFile));
 
     // std::cout << "DEBUG: process atoms" << std::endl;
-    std::vector<SMT::atom> atoms;
+    std::vector<SMT::atomp> atoms;
     // Created attribute, vector of UNIQUE attributes
     for (const auto & a : policy->getCopyOfAttributes()) {
         if (a->getSize() == 1) {
-            SMT::atom role = SMT::createLiteralp(a->getName(), a->getID(), a->getSize());
+            SMT::atomp role = SMT::createAtomp(a->getName(), a->getID(), a->getSize());
             // std::cout << "DEBUG:   " << role->to_string() << std::endl;
             atoms.push_back(role);
             newpolicy->add_atom(role);
@@ -92,7 +92,7 @@ std::shared_ptr<SMT::arbac_policy> toSMT_arbac_policy(std::string inputFile, Par
             // std::cout << "DEBUG: adding rule: " << r->to_string() << std::endl;
             SMT::Expr admin;
             SMT::Expr prec;
-            SMT::atom tar;
+            SMT::atomp tar;
 
             admin = buildExpression(r->getAdmin(), policy, atoms);
             prec = buildExpression(r->getPrecondition(), policy, atoms);
