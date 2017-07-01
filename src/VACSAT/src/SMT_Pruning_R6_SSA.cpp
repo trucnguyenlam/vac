@@ -270,7 +270,7 @@ class R6Transformer {
         TExpr ca_guards = solver->createFalse();
 
         for (auto &&rule :policy->per_role_can_assign_rule(target_role)) {
-            if ((rule->is_ca == target_rule->is_ca) && (rule == target_rule)) {
+            if (target_rule != nullptr && (rule->is_ca == target_rule->is_ca) && (rule == target_rule)) {
                 // EXCLUDE THE TARGET RULE FROM ASSIGNMENT
                 continue;
             }
@@ -293,7 +293,7 @@ class R6Transformer {
         TExpr cr_guards = solver->createFalse();
         
         for (auto &&rule :policy->per_role_can_revoke_rule(target_role)) {
-            if ((rule->is_ca == target_rule->is_ca) && (rule == target_rule)) {
+            if (target_rule != nullptr && (rule->is_ca == target_rule->is_ca) && (rule == target_rule)) {
                 // EXCLUDE THE TARGET RULE FROM ASSIGNMENT
                 continue;
             }
