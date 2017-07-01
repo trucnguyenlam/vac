@@ -45,6 +45,7 @@ class R6Transformer {
     std::shared_ptr<arbac_policy> policy;
     std::shared_ptr<rule> target_rule;
     Expr target_expr;
+    std::set<Expr> free;
 
     TExpr zero;
     TExpr one;
@@ -398,7 +399,8 @@ class R6Transformer {
         // fprintf(outputFile, "    /*--------------- ERROR CHECK ------------*/\n");
         // fprintf(outputFile, "    /*--------------- assume(\\phi) ------------*/\n");
 
-        TExpr rule_assumption = generate_from_prec(target_expr);
+        std::vector<std::shared_ptr<TVar>> free_var_vect((ulong) policy->atom_count());
+        TExpr rule_assumption = generateSMTFunction2(solver, target_expr, free, role_vars, free_var_vect, "", "free");
         emit_assumption(rule_assumption);
 
         int user_id = 0;
@@ -520,13 +522,15 @@ class R6Transformer {
     R6Transformer(const std::shared_ptr<SMTFactory<TVar, TExpr>> _solver,
                   const std::shared_ptr<arbac_policy>& _policy,
                   const Expr _to_check,
+                  const std::set<Expr>& _free,
                   const std::shared_ptr<rule> _to_check_source) :
-        solver(_solver),
-        policy(_policy),
-        target_rule(_to_check_source),
-        target_expr(_to_check),
-        zero(solver->createFalse()), one(solver->createTrue()),
-        pc_size(get_pc_size(target_expr->atoms())) {
+            solver(_solver),
+            policy(_policy),
+            target_rule(_to_check_source),
+            target_expr(_to_check),
+            free(_free),
+            zero(solver->createFalse()), one(solver->createTrue()),
+            pc_size(get_pc_size(target_expr->atoms())) {
         solver->deep_clean();
         allocate_core_role_array_set_pc_size();
         generate_variables();
@@ -547,11 +551,12 @@ class R6Transformer {
     bool apply_r6(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
                   const std::shared_ptr<arbac_policy>& policy,
                   const Expr& to_check,
+                  const std::set<Expr>& free,
                   const std::shared_ptr<rule>& to_check_source) {
         if (is_constant_true(to_check)) {
             return false;
         }
-        R6Transformer<TVar, TExpr> transf(solver, policy, to_check, to_check_source);
+        R6Transformer<TVar, TExpr> transf(solver, policy, to_check, free, to_check_source);
         // std::shared_ptr<SMTFactory<expr, expr>> solver(new Z3Solver());
         // R6Transformer<expr, expr> transf(solver, rule_index, is_ca);
         bool res = transf.apply_r6();
@@ -564,10 +569,12 @@ class R6Transformer {
     template bool apply_r6<term_t, term_t>(const std::shared_ptr<SMTFactory<term_t, term_t>>& solver,
                                            const std::shared_ptr<arbac_policy>& policy,
                                            const Expr& to_check,
+                                           const std::set<Expr>& free,
                                            const std::shared_ptr<rule>& to_check_source);
     template bool apply_r6<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>>& solver,
                                        const std::shared_ptr<arbac_policy>& policy,
                                        const Expr& to_check,
+                                       const std::set<Expr>& free,
                                        const std::shared_ptr<rule>& to_check_source);
 
 }

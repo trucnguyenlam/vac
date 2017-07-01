@@ -549,12 +549,12 @@ namespace SMT {
     }
 
 
-    template <typename TVar, typename TExpr, typename TLookup>
+    template <typename TVar, typename TExpr, typename TLookup, typename TLookup2>
     TExpr generateSMTFunction2(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
                                const Expr& expr,
                                const std::set<Expr>& lookup2_exprs,
                                TLookup& lookup1,
-                               TLookup& lookup2,
+                               TLookup2& lookup2,
                                const std::string& suffix1,
                                const std::string& suffix2) {
         if (expr->get_value() != nullptr) {
