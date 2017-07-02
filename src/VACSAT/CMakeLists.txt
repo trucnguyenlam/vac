@@ -84,7 +84,7 @@ FIND_PACKAGE( Boost COMPONENTS program_options REQUIRED )
 INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 
 # Add include directories for local libraries
-include_directories( "${YICES_INCLUDE_DIR}" "${Z3_INCLUDE_DIR}" "${CCL_INCLUDE_DIR}")
+include_directories( "${YICES_INCLUDE_DIR}" "${Z3_INCLUDE_DIR}" "${CCL_INCLUDE_DIR}" ${ANTLR3C_INCLUDE_DIR})
 
 # Add OpenMP (used by Z3)
 find_package(OpenMP REQUIRED)
@@ -92,7 +92,7 @@ find_package(OpenMP REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 # Add local libraries linking directories
-link_directories(${YICES_LIBRARY_DIR} ${Z3_LIBRARY_DIR} ${CCL_LIBRARY_DIR})
+link_directories(${YICES_LIBRARY_DIR} ${Z3_LIBRARY_DIR} ${CCL_LIBRARY_DIR} ${ANTLR3C_LIBRARY_DIR})
 
 set(PARSER_SOURCES
     ${PROJECT_SOURCE_DIR}/src/parser/Logics.cpp

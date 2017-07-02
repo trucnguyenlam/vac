@@ -1,16 +1,16 @@
-//
-// Created by esteffin on 25/05/17.
-//
+    //
+    // Created by esteffin on 25/05/17.
+    //
 
-#ifndef VACSAT_SMT_CONFIGURATION_H
-#define VACSAT_SMT_CONFIGURATION_H
+    #ifndef VACSAT_SMT_CONFIGURATION_H
+    #define VACSAT_SMT_CONFIGURATION_H
 
-class Logging {
+    class Logging {
 
-};
+    };
 
-class cfg {
-    
-};
+    class cfg {
 
-#endif //VACSAT_SMT_CONFIGURATION_H
+    };
+
+    #endif //VACSAT_SMT_CONFIGURATION_H
