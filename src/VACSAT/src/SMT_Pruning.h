@@ -113,6 +113,7 @@ namespace SMT {
     bool apply_r6(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
                   const std::shared_ptr<arbac_policy>& policy,
                   const Expr& to_check,
+                  const std::set<Expr>& free,
                   const std::shared_ptr<rule>& to_check_source);
 
     template <typename TVar, typename TExpr>
