@@ -70,11 +70,11 @@ find_package(ANTLR3C REQUIRED)
 
 
 # Add include directories for local libraries
-include_directories( "${CCL_INCLUDE_DIR}" )
+include_directories( "${CCL_INCLUDE_DIR}" "${ANTLR3C_INCLUDE_DIR}" )
 
 
 # Add local libraries linking directories
-link_directories(${CCL_LIBRARY_DIR})
+link_directories(${CCL_LIBRARY_DIR} ${ANTLR3C_LIBRARY_DIR})
 
 
 add_library(vacsat_old STATIC ${SOURCE_FILES} )
