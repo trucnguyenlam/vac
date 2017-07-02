@@ -1980,9 +1980,8 @@ namespace SMT {
 //                        simplify_toplevel_or_res = simplify_toplevel_or_res || simplify_expression_res;
 //                    }
 
-                    this->with_tampone = true;
 
-                    fixpoint =
+                    fixpoint = with_tampone &&
                             !(
                                     backward_slicing_res ||
                                     easy_pruning_res ||
@@ -1992,6 +1991,7 @@ namespace SMT {
                                     merge_rules_res ||
                                     prune_rule_6_res
                             );
+                    this->with_tampone = true;
                 }
 
                 if (!Config::no_infinity_bmc) {
