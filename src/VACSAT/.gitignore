@@ -9,3 +9,6 @@ compile_commands.json
 CTestTestfile.cmake
 
 build/
+
+# Keep dependecies even if .a or .so
+!deps/
