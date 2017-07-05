@@ -1369,7 +1369,8 @@ namespace SMT {
 
         bool always_false(const Expr& expr, const rulep& rule) {
             if (with_tampone) {
-                return apply_r6<TVar, TExpr>(solver, policy, expr, rule);
+//                return apply_r6<TVar, TExpr>(solver, policy, expr, rule);
+                return overapprox<TVar, TExpr>(solver, policy, expr, rule);
             } else {
                 return check_sat(expr);
             }
@@ -1839,10 +1840,17 @@ namespace SMT {
 
 //            log->debug("Applying prune_rule_6 on {}", policy->rules().size());
 //            bool prune_rule_6_res = this->prune_rule_6();
+
+#ifndef NDEBUG
 //
-//            log->info("{}", *policy);
-//
-//            exit(0);
+            log->info("{}", *policy);
+            this->with_tampone = true;
+            rulep target = (*policy->per_role_can_assign_rule(policy->goal_role).begin());
+            bool res = overapprox(solver, policy, target->prec, target);
+            log->info("reachable: {}", !res);
+
+            exit(0);
+#endif
 
             auto global_start = std::chrono::high_resolution_clock::now();
 
@@ -1945,6 +1953,8 @@ namespace SMT {
 
                     this->with_tampone = true;
 
+//                    log->info("{}", *policy);
+
                     log->debug("Applying prune_rule_6 on {}", policy->rules().size());
                     bool prune_rule_6_res = this->prune_rule_6();
                     prune_rule_6_res = reduce_roles() || prune_rule_6_res;
@@ -1978,8 +1988,7 @@ namespace SMT {
 
                 log->debug("Iteration: {}", fixpoint_iteration++);
                 auto step_end = std::chrono::high_resolution_clock::now();
-                auto step_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(
-                        step_end - step_start);
+                auto step_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(step_end - step_start);
                 log->debug(" done in {} ms.", step_milliseconds.count());
             }
 

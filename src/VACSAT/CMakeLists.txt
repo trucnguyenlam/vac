@@ -53,7 +53,8 @@ set(SOURCE_FILES
         src/ARBAC_to_SMT_BMC.h
         src/config.cpp
         src/SMT_Configuration.h
-        src/SMT_Infini_admin_bmc.cpp)
+        src/SMT_Infini_admin_bmc.cpp
+        src/SMT_Overapprox.cpp)
 
 # Add path for custom modules
 list (APPEND CMAKE_MODULE_PATH
