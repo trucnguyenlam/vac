@@ -91,7 +91,9 @@ class OverapproxTransformer {
         variables state;
         std::set<rulep> target_rules;
         Expr target_expr;
+        std::vector<bool> tracked_roles;
         std::vector<bool> core_roles;
+        int tracked_roles_size;
         int core_roles_size;
         int pc_size;
         int deep;
@@ -100,7 +102,9 @@ class OverapproxTransformer {
         std::stack<variables> saved_state;
         std::stack<std::set<rulep>> saved_target_rules;
         std::stack<Expr> saved_target_expr;
+        std::stack<std::vector<bool>> saved_tracked_roles;
         std::stack<std::vector<bool>> saved_core_roles;
+        std::stack<int> saved_tracked_roles_size;
         std::stack<int> saved_core_roles_size;
         std::stack<int> saved_pc_size;
         std::stack<int> saved_deep;
@@ -113,8 +117,12 @@ class OverapproxTransformer {
             saved_target_rules.push(old_target_rules);
             Expr old_target_expr = target_expr;
             saved_target_expr.push(old_target_expr);
+            std::vector<bool> old_tracked_roles = tracked_roles;
+            saved_tracked_roles.push(old_tracked_roles);
             std::vector<bool> old_core_roles = core_roles;
             saved_core_roles.push(old_core_roles);
+            int old_tracked_roles_size = tracked_roles_size;
+            saved_tracked_roles_size.push(old_tracked_roles_size);
             int old_core_roles_size = core_roles_size;
             saved_core_roles_size.push(old_core_roles_size);
             int old_pc_size = pc_size;
@@ -129,8 +137,12 @@ class OverapproxTransformer {
             saved_target_rules.pop();
             target_expr = saved_target_expr.top();
             saved_target_expr.pop();
+            tracked_roles = saved_tracked_roles.top();
+            saved_tracked_roles.pop();
             core_roles = saved_core_roles.top();
             saved_core_roles.pop();
+            tracked_roles_size = saved_tracked_roles_size.top();
+            saved_tracked_roles_size.pop();
             core_roles_size = saved_core_roles_size.top();
             saved_core_roles_size.pop();
             pc_size = saved_pc_size.top();
@@ -196,7 +208,17 @@ class OverapproxTransformer {
             saved_state.pop();
         }
 
-        void update_core_role_array_set_pc_size(const Expr& target_expr) {
+        void update_tracked_core_role_array_set_pc_size(const Expr &target_expr) {
+            tracked_roles_size = 0;
+            for (auto &&tracked_i : policy->atoms()) {
+                if (contains(target_expr->atoms(), tracked_i)) {
+                    tracked_roles_size++;
+                    tracked_roles[tracked_i->role_array_index] = true;
+                } else {
+                    tracked_roles[tracked_i->role_array_index] = false;
+                }
+            }
+
             for (auto &&core_i : target_expr->atoms()) {
                 if (core_roles[core_i->role_array_index] == false) {
                     core_roles_size++;
@@ -217,13 +239,31 @@ class OverapproxTransformer {
         }
 
         void update_program_counter() {
-            state.program_counter = variable(state.program_counter.name, state.program_counter.idx + 1, pc_size, solver, BIT_VECTOR);
+            if (pc_size == 0) {
+                log->warn("pc is zero!");
+                state.program_counter = variable(state.program_counter.name,
+                                                 state.program_counter.idx + 1,
+                                                 pc_size + 1,
+                                                 solver,
+                                                 BIT_VECTOR);
+            } else {
+                state.program_counter = variable(state.program_counter.name,
+                                                 state.program_counter.idx + 1,
+                                                 pc_size,
+                                                 solver,
+                                                 BIT_VECTOR);
+            }
         }
         
         void clean_true_false_memory() {
             for (int i = 0; i < policy->atom_count(); ++i) {
-                this->emit_assignment(state.core_value_true[i], solver->createFalse());
-                this->emit_assignment(state.core_value_false[i], solver->createFalse());
+                variable new_core_value_true = state.core_value_true[i].createFrom();
+                this->emit_assignment(new_core_value_true, solver->createFalse());
+                state.core_value_true[i] = new_core_value_true;
+
+                variable new_core_value_false = state.core_value_false[i].createFrom();
+                this->emit_assignment(new_core_value_false, solver->createFalse());
+                state.core_value_false[i] = new_core_value_false;
             }
         }
 
@@ -231,7 +271,7 @@ class OverapproxTransformer {
             deep = deep - 1;
             target_rules.insert(_target_rule);
             target_expr = _target_expr;
-            update_core_role_array_set_pc_size(target_expr);
+            update_tracked_core_role_array_set_pc_size(target_expr);
             update_program_counter();
             clean_true_false_memory();
         }
@@ -270,7 +310,9 @@ class OverapproxTransformer {
                 state(policy, solver),
                 target_rules(std::set<rulep>()),
                 target_expr(nullptr),
+                tracked_roles((ulong) policy->atom_count()),
                 core_roles((ulong) policy->atom_count()),
+                tracked_roles_size(0),
                 core_roles_size(0),
                 pc_size(0),
                 deep(_deep) {
@@ -294,14 +336,19 @@ class OverapproxTransformer {
         }
 
         void push(Expr _target_expr, rulep _target_rule, TExpr guard) {
+            log->warn("Pushing {}", *_target_expr);
+            solver->assertLater(solver->createBoolVar("PUSH" + _target_expr->to_string()));
             save_all();
-            init_new_frame(_target_expr, _target_rule);
             set_guard(guard);
+            init_new_frame(_target_expr, _target_rule);
         }
 
         void pop() {
+            log->warn("Popping {}", *target_expr);
+            Expr tgt = target_expr;
             restore_all_but_state();
             restore_state();
+            solver->assertLater(solver->createBoolVar("POP" + tgt->to_string()));
         }
 
     };
@@ -455,7 +502,7 @@ class OverapproxTransformer {
 
         if (state.deep > 0) {
             //TODO: recursion!!
-            state.push(ca_expr, *state.target_rules.begin(), ca_guards);
+            state.push(ca_expr, *state.target_rules.begin(), if_prelude);
             generate_main();
             state.pop();
         }
@@ -485,7 +532,7 @@ class OverapproxTransformer {
 
         if (state.deep > 0) {
             //TODO: recursion!!
-            state.push(cr_expr, *state.target_rules.begin(), cr_guards);
+            state.push(cr_expr, *state.target_rules.begin(), if_prelude);
             generate_main();
             state.pop();
         }
@@ -606,7 +653,7 @@ class OverapproxTransformer {
 //        for (auto &&user : policy->unique_configurations()) {
             TExpr inner_and = one;
             for (int i = 0; i < policy->atom_count(); i++) {
-                if (state.core_roles[i]) {
+                if (state.tracked_roles[i]) {
                     TExpr impl_r_ui = generate_check_implication(i, origs[i]);
                     inner_and = solver->createAndExpr(inner_and, impl_r_ui);
                 }
@@ -672,7 +719,7 @@ class OverapproxTransformer {
 
         // fprintf(outputFile, "    /*---------- CAN ASSIGN SIMULATION ---------*/\n");
         for (auto &&atom :policy->atoms()) {
-            if (state.core_roles[atom->role_array_index] && policy->per_role_can_assign_rule(atom).size() > 0) {
+            if (state.tracked_roles[atom->role_array_index] && policy->per_role_can_assign_rule(atom).size() > 0) {
 //                int exclude = target_rule->is_ca ? exclude_idx : -1;
                 simulate_can_assigns_by_role(atom, label_idx++);
             }
@@ -683,7 +730,7 @@ class OverapproxTransformer {
         // fprintf(outputFile, "    /*---------- CAN REVOKE SIMULATION ---------*/\n");
         for (auto &&atom :policy->atoms()) {
             // printf("CR idx: %d, role: %s: count: %d\n", i, role_array[i], roles_cr_counts[i]);
-            if (state.core_roles[atom->role_array_index] && policy->per_role_can_revoke_rule(atom).size() > 0) {
+            if (state.tracked_roles[atom->role_array_index] && policy->per_role_can_revoke_rule(atom).size() > 0) {
 //                int exclude = !excluded_is_ca ? exclude_idx : -1;
                 simulate_can_revokes_by_role(atom, label_idx++);
             }
@@ -696,7 +743,7 @@ class OverapproxTransformer {
     void generate_main() {
         // fprintf(outputFile, "int main(void) {\n\n");
 
-        for (int i = 0; i < state.core_roles_size; ++i) {
+        for (int i = 0; i < state.tracked_roles_size; ++i) {
             generate_round();
         }
         generate_check();
@@ -736,7 +783,6 @@ class OverapproxTransformer {
         zero(solver->createFalse()), one(solver->createTrue()) {
 //        solver->deep_clean();
         init_threads();
-        state.push(_to_check, _to_check_source, one);
         state.push(_to_check, _to_check_source, one);
     }
 
