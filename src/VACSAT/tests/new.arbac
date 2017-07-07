@@ -21,6 +21,7 @@ RULES
 <a.rc=1, t.ra=1: t.rb=1>
 //<a.rc=1, t.ra=1: t.rc=1>
 <1, t.rb=1&t.rc=1: t.rt=1>
+<1, t.rb=1&t.rc=1: t.rt=1>
 ;
 
 QUERY
