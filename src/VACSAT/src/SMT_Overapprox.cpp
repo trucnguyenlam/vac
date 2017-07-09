@@ -382,6 +382,12 @@ class OverapproxTransformer {
         state.emit_assumption(expr);
     }
 
+    void emit_comment(std::string comment) {
+        //Working only in Z3
+        solver->assertNow(solver->createBoolVar(comment));
+        log->critical("Emitting comment...");
+    }
+
 
 //    void generate_header(char *inputFile, int rule_id, int is_ca) {
 //        time_t mytime;
@@ -502,7 +508,9 @@ class OverapproxTransformer {
 
         if (state.deep > 0) {
             //TODO: recursion!!
+            solver->printExpr(state.state.role_vars[0].get_solver_var());
             state.push(ca_expr, *state.target_rules.begin(), if_prelude);
+            solver->printExpr(state.state.role_vars[0].get_solver_var());
             generate_main();
             state.pop();
         }
@@ -637,6 +645,8 @@ class OverapproxTransformer {
     void generate_check() {
         // fprintf(outputFile, "    /*--------------- ERROR CHECK ------------*/\n");
         // fprintf(outputFile, "    /*--------------- assume(\\phi) ------------*/\n");
+        emit_comment("CHECK_BEGIN" + state.target_expr->to_string());
+
         std::vector<variable> origs = state.saved_state.top().role_vars;
 
         TExpr rule_assumption = generate_from_prec(state.target_expr);
@@ -661,6 +671,9 @@ class OverapproxTransformer {
             impl_assumption = solver->createOrExpr(impl_assumption, inner_and);
 //        }
         emit_assumption(impl_assumption);
+
+        emit_comment("CHECK_END" + state.target_expr->to_string());
+
         // fprintf(outputFile, "    assert(0);\n");
     }
 
@@ -671,6 +684,10 @@ class OverapproxTransformer {
                 variable new_core = state.state.role_vars[i].createFrom();
                 // COULD BE REMOVED
                 state.state.nondet_bool = state.state.nondet_bool.createFrom();
+
+                solver->printExpr(state.state.role_vars[i].get_solver_var());
+                log->warn(" -->");
+                solver->printExpr(new_core.get_solver_var());
 
                 TExpr new_val = solver->createCondExpr(state.state.core_sets[i].get_solver_var(),
                                                        state.state.role_vars[i].get_solver_var(),
