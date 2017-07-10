@@ -845,9 +845,9 @@ namespace SMT {
     }
     const std::string arbac_policy::to_new_string() const {
         std::stringstream stream;
-        stream << "/*" << std::endl;
-        stream << " * " << "Policy generated from: " << this->filename << std::endl;
-        stream << "*/" << std::endl << std::endl;
+        stream << "// *" << std::endl;
+        stream << "// * " << "Policy generated from: " << this->filename << std::endl;
+        stream << "// *" << std::endl << std::endl;
         stream << "USERS " << std::endl;
         for (auto &&user : this->_users) {
             stream << "\t" << user->to_string() << std::endl;
