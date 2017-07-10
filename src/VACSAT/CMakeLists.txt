@@ -40,7 +40,7 @@ set(SOURCE_FILES
         src/SMT_Pruning_R6_LazyCSeq.cpp
         src/SMT_Pruning_R6_SSA.cpp
 #        src/ARBAC_to_smt.cpp
-        src/ARBAC_to_SMT_BMC.cpp
+        src/SMT_BMC.cpp
         src/ARBACTransform.h
         src/ARBACTransform.cpp
         src/Policy.h
@@ -50,7 +50,7 @@ set(SOURCE_FILES
         src/SMT_Analysis.cpp
         src/config.h
         src/BMC_Struct.h
-        src/ARBAC_to_SMT_BMC.h
+        src/SMT_Analysis_functions.h
         src/config.cpp
         src/SMT_Configuration.h
         src/SMT_Infini_admin_bmc.cpp
