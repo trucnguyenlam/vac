@@ -26,8 +26,9 @@ namespace SMT {
         };
         static bool experimental;
         static Verbosity verbosity;
-        static bool merge;
+        static bool do_not_merge;
         static int rule_6_max_depth;
+        static int overapprox_depth;
         static bool simplify_toplevel_or;
         static std::string dump_smt_formula;
 

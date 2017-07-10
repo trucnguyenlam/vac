@@ -55,8 +55,9 @@ public:
     const bool old_parser;
     const bool new_prune_only;
     const bool new_reachability_only;
-    const bool experimental_use_merge;
+    const bool do_not_merge;
     const int rule_6_max_depth;
+    const int overapprox_depth;
     const bool experimental_simplify_toplevel_or;
     const int bmc_rounds_count;
     const int bmc_steps_count;
@@ -81,8 +82,9 @@ public:
             bool _old_parser,
             bool _new_prune_only,
             bool _new_reachability_only,
-            bool _experimental_use_merge,
+            bool _do_not_merge,
             int _rule_6_max_depth,
+            int _overapprox_depth,
             bool _experimental_simplify_toplevel_or,
             int _bmc_rounds_count,
             int _bmc_steps_count,
@@ -104,8 +106,9 @@ public:
         old_parser(_old_parser),
         new_prune_only(_new_prune_only),
         new_reachability_only(_new_reachability_only),
-        experimental_use_merge(_experimental_use_merge),
+        do_not_merge(_do_not_merge),
         rule_6_max_depth(_rule_6_max_depth),
+        overapprox_depth(_overapprox_depth),
         experimental_simplify_toplevel_or(_experimental_simplify_toplevel_or),
         bmc_rounds_count(_bmc_rounds_count),
         bmc_steps_count(_bmc_steps_count),
@@ -213,13 +216,14 @@ static options parse_args(int ac, const char* const* av) {
     arg_obj<bool> old_parser = create_arg_obj_bool("old-parser,O", "Prune the policy using sat based approaches only");
     arg_obj<bool> new_prune_only = create_arg_obj_bool("prune-only,p", "Prune the policy using sat based approaches only");
     arg_obj<bool> new_reachability_only = create_arg_obj_bool("reachability-only,q", "Check reachability with bmc only");
-    arg_obj<bool> experimental_use_merge = create_arg_obj_bool("merge,m", "Use the pruning merge rule");
-    arg_obj<int> rule_6_max_depth = create_arg_obj_int("rule6-max-depth,6", -1, "Set the max depth of or that should be tested in rule 6. (< 0 for any)");
+    arg_obj<bool> do_not_merge = create_arg_obj_bool("do-not-merge", "Do not use the pruning merge rule");
+    arg_obj<int> rule_6_max_depth = create_arg_obj_int("rule6-max-depth", -1, "Set the max depth of expression that should be tested in rule 6. (< 0 for any)");
+    arg_obj<int> overapprox_depth = create_arg_obj_int("overapprox-depth,d", 3, "Set the max depth of over approximation.");
     arg_obj<bool> experimental_simplify_toplevel_or = create_arg_obj_bool("simplify-or,X", "Simplify toplevel or expressions");
     arg_obj<int> bmc_rounds_count = create_arg_obj_int("rounds,r", "Number of rounds for the bmc");
     arg_obj<int> bmc_steps_count = create_arg_obj_int("steps,s", "Number of steps per round for the bmc");
     arg_obj<int> bmc_thread_count = create_arg_obj_int("threads,t", "Number of threads (tracked users) for the bmc");
-    arg_obj<bool> no_infinity_bmc = create_arg_obj_bool("no-infinity-bmc,-I", "Do not apply infinity bmc during pruning phase");
+    arg_obj<bool> no_infinity_bmc = create_arg_obj_bool("no-infinity-bmc,I", "Do not apply infinity bmc during pruning phase");
     arg_obj<int> infinity_bmc_rounds_count = create_arg_obj_int("infinity-rounds", 10, "Number of rounds for the infinity bmc");
     arg_obj<int> infinity_bmc_steps_count = create_arg_obj_int("infinity-steps", 2, "Number of steps per round for the infinity bmc");
     arg_obj<int> verbosity = create_arg_obj_int("verbose,v", 2, "Verbosity level (1=info, 2=debug, 3=trace)");
@@ -229,7 +233,7 @@ static options parse_args(int ac, const char* const* av) {
     arg_obj<std::string> memory_limit = create_arg_obj_string("memlimit,M", "10G", "Set a specific memory limit for the process");
     arg_obj<bool> show_help = create_arg_obj_bool("help,h", "Show this message");
     arg_obj<std::string> input_file = create_arg_obj_string("input-file", "FILE is the input ARBAC file format");
-    arg_obj<std::string> dump_smt_formula = create_arg_obj_string("dump-smt,d", "Dump the SMT formula to file");
+    arg_obj<std::string> dump_smt_formula = create_arg_obj_string("dump-smt,D", "Dump the SMT formula to file");
 
     add_option_description(desc, output_file);
     add_option_description(desc, old_inline);
@@ -237,8 +241,9 @@ static options parse_args(int ac, const char* const* av) {
     add_option_description(desc, old_parser);
     add_option_description(desc, new_prune_only);
     add_option_description(desc, new_reachability_only);
-    add_option_description(desc, experimental_use_merge);
+    add_option_description(desc, do_not_merge);
     add_option_description(desc, rule_6_max_depth);
+    add_option_description(desc, overapprox_depth);
     add_option_description(desc, experimental_simplify_toplevel_or);
     add_option_description(desc, bmc_rounds_count);
     add_option_description(desc, bmc_steps_count);
@@ -276,8 +281,9 @@ static options parse_args(int ac, const char* const* av) {
                     old_parser.result,
                     new_prune_only.result,
                     new_reachability_only.result,
-                    experimental_use_merge.result,
+                    do_not_merge.result,
                     rule_6_max_depth.result,
+                    overapprox_depth.result,
                     experimental_simplify_toplevel_or.result,
                     bmc_rounds_count.result,
                     bmc_steps_count.result,
@@ -381,6 +387,7 @@ int main(int argc, const char * const *argv) {
         options config = parse_args(argc, argv);
 
         SMT::Config::rule_6_max_depth = config.rule_6_max_depth;
+        SMT::Config::overapprox_depth = config.overapprox_depth;
         SMT::Config::no_infinity_bmc = config.no_infinity_bmc;
         SMT::Config::infinity_bmc_rounds_count = config.infinity_bmc_rounds_count;
         SMT::Config::infinity_bmc_steps_count = config.infinity_bmc_steps_count;
@@ -427,9 +434,7 @@ int main(int argc, const char * const *argv) {
             an_ty = SMT::FULL_ANALYSIS;
         }
 
-        if (config.experimental_use_merge) {
-            SMT::Config::merge = true;
-        }
+        SMT::Config::do_not_merge = config.do_not_merge;
 
         if (config.dump_smt_formula != "") {
             SMT::Config::dump_smt_formula = config.dump_smt_formula;

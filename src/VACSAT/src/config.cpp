@@ -11,8 +11,9 @@ namespace SMT {
     bool Config::experimental = false;
 
     Config::Verbosity Config::verbosity = Config::TRACE;
-    bool Config::merge = false;
+    bool Config::do_not_merge = false;
     int Config::rule_6_max_depth = -1;
+    int Config::overapprox_depth = 3;
     bool Config::simplify_toplevel_or = false;
 
 
