@@ -116,12 +116,6 @@ namespace SMT {
                   const std::shared_ptr<rule>& to_check_source);
 
     template <typename TVar, typename TExpr>
-    bool overapprox(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
-                    const std::shared_ptr<arbac_policy>& policy,
-                    const Expr& to_check,
-                    const std::shared_ptr<rule>& to_check_source);
-
-    template <typename TVar, typename TExpr>
     void prune_policy(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
                       const std::shared_ptr<arbac_policy>& policy);
 

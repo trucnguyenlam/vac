@@ -18,6 +18,12 @@ namespace SMT {
                           int steps,
                           int rounds,
                           int wanted_threads_count);
+
+    template <typename TVar, typename TExpr>
+    bool overapprox(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+                    const std::shared_ptr<arbac_policy>& policy,
+                    const Expr& to_check,
+                    const std::set<rulep>& to_check_source);
 }
 
 #endif //VACSAT_ARBAC_TO_SMT_BMC_H
