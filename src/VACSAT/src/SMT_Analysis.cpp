@@ -6,7 +6,7 @@
 #include "Policy.h"
 #include "SMT_Pruning.h"
 #include "parser/translator.h"
-#include "ARBAC_to_SMT_BMC.h"
+#include "SMT_Analysis_functions.h"
 
 namespace SMT {
 
@@ -37,6 +37,18 @@ namespace SMT {
                 break;
             default:
                 throw std::runtime_error("Uh?");
+        }
+        log->debug("Performing underapproximated analysis");
+
+        std::list<rulep> assigning_target = policy->per_role_can_assign_rule(policy->goal_role);
+        Expr to_check = createConstantFalse();
+        for (auto &&rule : assigning_target) {
+            to_check = createOrExpr(to_check, rule->prec);
+        }
+
+        bool over_result = overapprox(solver, policy, to_check, std::set<rulep>(assigning_target.begin(), assigning_target.end()));
+        if (!over_result) {
+            return false;
         }
         return arbac_to_smt_bmc(solver, policy, config.rounds, config.steps, config.wanted_threads_count);
     };
