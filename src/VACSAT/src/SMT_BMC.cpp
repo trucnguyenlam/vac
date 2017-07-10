@@ -8,7 +8,7 @@
 
 #include "Logics.h"
 #include "BMC_Struct.h"
-#include "ARBAC_to_SMT_BMC.h"
+#include "SMT_Analysis_functions.h"
 #include "SMT.h"
 #include "SMTSolvers/yices.h"
 #include "SMTSolvers/Z3.h"
@@ -808,16 +808,16 @@ namespace SMT {
         return ret;
     }
 
-        template bool arbac_to_smt_bmc<term_t, term_t>(const std::shared_ptr<SMTFactory<term_t, term_t>>& solver,
-                                                       const std::shared_ptr<arbac_policy>& policy,
-                                                       int steps,
-                                                       int rounds,
-                                                       int wanted_threads_count);
-
-        template bool arbac_to_smt_bmc<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>>& solver,
+    template bool arbac_to_smt_bmc<term_t, term_t>(const std::shared_ptr<SMTFactory<term_t, term_t>>& solver,
                                                    const std::shared_ptr<arbac_policy>& policy,
                                                    int steps,
                                                    int rounds,
                                                    int wanted_threads_count);
+
+    template bool arbac_to_smt_bmc<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>>& solver,
+                                               const std::shared_ptr<arbac_policy>& policy,
+                                               int steps,
+                                               int rounds,
+                                               int wanted_threads_count);
 
 }

@@ -5,6 +5,7 @@ user2
 ;
 
 ATTRIBUTES
+r0[1]
 ra[1]
 rb[1]
 rc[1]
@@ -12,15 +13,16 @@ rt[1]
 ;
 
 INIT
-<user0: ra=0, rb=0, rc=0, rt=0>
-<user1: ra=0, rb=0, rc=0, rt=0>
-<user2: ra=0, rb=0, rc=0, rt=0>
+<user0: r0=0, ra=0, rb=0, rc=0, rt=0>
+<user1: r0=0, ra=0, rb=0, rc=0, rt=0>
+<user2: r0=0, ra=0, rb=0, rc=0, rt=0>
 ;
 
 RULES
+<1, t.r0=1: t.ra=1>
 <1, t.ra=1: t.rb=1>
 //<a.rc=1, t.ra=1: t.rc=1>
-//<1, t.ra=1: t.rc=1>
+<1, t.ra=1: t.rc=1>
 <1, t.rb=1&t.rc=1: t.rt=1>
 ;
 
