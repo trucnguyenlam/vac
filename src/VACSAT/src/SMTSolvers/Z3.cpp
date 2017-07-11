@@ -181,7 +181,10 @@ namespace SMT {
         return ERROR;
     }
 
-
+    void Z3Solver::print_statistics() {
+        auto state = this->solver.statistics();
+        std::cout << state << std::endl;
+    }
     void Z3Solver::printExpr(expr e) {
         std::cout << e << std::endl;
     }
@@ -199,32 +202,7 @@ namespace SMT {
         }
     }
     
-    void Z3Solver::loadToSolver() {
-    //     //TODO: consider using 
-    //     /*
-    //     int count = assertions.size();
-    //     expr arr = new expr[count];
-    //     std::copy(assertions.begin(), assertions.end(), arr);
-    //     yices_assert_formulas(context, count, arr);
-    //     delete[] arr;
-    //     */
-
-    //     if (to_be_asserted.empty()) {
-    //         return;
-    //     }
-    //     else {
-    //         auto ite = to_be_asserted.begin();
-    //         expr body = *ite;
-    //         asserted.push_back(body);
-    //         for ( ; ite != to_be_asserted.end(); ++ite) {
-    //             body = yices_and2(body, *ite);
-    //             asserted.push_back(body);
-    //         }
-    //         yices_assert_formula(context, body);
-    //         // yices_pp_term(stderr, body, 120, 40, 0);
-    //         this->to_be_asserted.clear();
-    //     }
-    }
+    void Z3Solver::loadToSolver() { }
 
     void Z3Solver::clean() {
         //TODO: both var_counter and context should be cleaned

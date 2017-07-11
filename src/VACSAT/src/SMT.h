@@ -63,6 +63,7 @@ namespace SMT {
         virtual SMTResult solve() = 0;
         virtual void printExpr(TExpr expr) = 0;
         virtual void printModel() = 0;
+        virtual void print_statistics() = 0;
 
         virtual void loadToSolver() = 0;
         virtual void clean() = 0;

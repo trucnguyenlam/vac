@@ -319,7 +319,7 @@ namespace SMT {
     void YicesSolver::printExpr(term_t expr) {
         yices_pp_term(stdout, expr, 120, 40, 0);
     }
-    
+
     void YicesSolver::loadToSolver() {
         //TODO: consider using 
         /*
@@ -375,7 +375,9 @@ namespace SMT {
         }
         fclose(out);
     }
-
+    void YicesSolver::print_statistics() {
+        std::cout << "(:assertions\t" << to_be_asserted.size() << ")" << std::endl;
+    }
     // void YicesSolver::push() { 
     //     // loadToSolver();
     //     // int res = yices_push(context);

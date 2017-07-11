@@ -54,6 +54,7 @@ namespace SMT {
 
         SMTResult solve() override;
         void printModel() override;
+        void print_statistics() override;
         void loadToSolver() override;
         void clean() override;
         void deep_clean() override;
