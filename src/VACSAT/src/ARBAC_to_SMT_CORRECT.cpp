@@ -7,7 +7,7 @@
 #include <memory>
 
 #include "Logics.h"
-#include "BMC_Struct.h"
+#include "SMT_BMC_Struct.h"
 #include "SMT_Analysis_functions.h"
 #include "SMT.h"
 #include "SMTSolvers/yices.h"
@@ -691,6 +691,10 @@ namespace SMT {
 
         bool solve_program() const {
             auto start = std::chrono::high_resolution_clock::now();
+
+            if (Config::show_solver_statistics) {
+                solver->print_statistics();
+            }
 
             SMTResult res = solver->solve();
 

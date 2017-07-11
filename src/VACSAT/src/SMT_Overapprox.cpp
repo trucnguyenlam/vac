@@ -11,7 +11,7 @@
 #include "SMTSolvers/yices.h"
 #include "SMTSolvers/Z3.h"
 #include "Logics.h"
-#include "BMC_Struct.h"
+#include "SMT_BMC_Struct.h"
 #include "Policy.h"
 
 #include <chrono>
@@ -809,6 +809,10 @@ class OverapproxTransformer {
         generate_main();
 
         auto start = std::chrono::high_resolution_clock::now();
+
+        if (Config::show_solver_statistics) {
+            solver->print_statistics();
+        }
 
         SMTResult res = solver->solve();
 

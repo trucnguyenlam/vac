@@ -69,6 +69,7 @@ public:
     const int verbosity;
     const bool profile;
     const bool update_model;
+    const bool solver_statistics;
     const bool show_statistics;
     const bool show_help;
     const std::string input_file;
@@ -96,6 +97,7 @@ public:
             int _verbosity,
             bool _profile,
             bool _update_model,
+            bool _solver_statistics,
             bool _show_statistics,
             bool _show_help,
             std::string _input_file,
@@ -120,6 +122,7 @@ public:
         verbosity(_verbosity),
         profile(_profile),
         update_model(_update_model),
+        solver_statistics(_solver_statistics),
         show_statistics(_show_statistics),
         show_help(_show_help),
         input_file(_input_file),
@@ -229,6 +232,7 @@ static options parse_args(int ac, const char* const* av) {
     arg_obj<int> verbosity = create_arg_obj_int("verbose,v", 2, "Verbosity level (1=info, 2=debug, 3=trace)");
     arg_obj<bool> profile = create_arg_obj_bool("profile,P", "Show times");
     arg_obj<bool> update_model = create_arg_obj_bool("update-model,U", "Update the model from VAC syntax to VAC2 one");
+    arg_obj<bool> solver_statistics = create_arg_obj_bool("solver-statistics,T", "Print solver stetistics (over/under-approximation)");
     arg_obj<bool> show_statistics = create_arg_obj_bool("show-statistics,S", "Print policy stetistics");
     arg_obj<std::string> memory_limit = create_arg_obj_string("memlimit,M", "10G", "Set a specific memory limit for the process");
     arg_obj<bool> show_help = create_arg_obj_bool("help,h", "Show this message");
@@ -254,6 +258,7 @@ static options parse_args(int ac, const char* const* av) {
     add_option_description(desc, verbosity);
     add_option_description(desc, profile);
     add_option_description(desc, update_model);
+    add_option_description(desc, solver_statistics);
     add_option_description(desc, show_statistics);
     add_option_description(desc, memory_limit);
     add_option_description(desc, input_file);
@@ -295,6 +300,7 @@ static options parse_args(int ac, const char* const* av) {
                     verbosity.result,
                     profile.result,
                     update_model.result,
+                    solver_statistics.result,
                     show_statistics.result,
                     show_help.result,
                     input_file.result,
@@ -391,6 +397,7 @@ int main(int argc, const char * const *argv) {
         SMT::Config::no_infinity_bmc = config.no_infinity_bmc;
         SMT::Config::infinity_bmc_rounds_count = config.infinity_bmc_rounds_count;
         SMT::Config::infinity_bmc_steps_count = config.infinity_bmc_steps_count;
+        SMT::Config::show_solver_statistics = config.solver_statistics;
 
         if (config.output_file != "") {
             SMT::log = spdlog::basic_logger_mt("log", config.output_file, true);
