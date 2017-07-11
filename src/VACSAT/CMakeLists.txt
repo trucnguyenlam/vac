@@ -49,7 +49,7 @@ set(SOURCE_FILES
         src/SMT_Analysis.h
         src/SMT_Analysis.cpp
         src/config.h
-        src/BMC_Struct.h
+        src/SMT_BMC_Struct.h
         src/SMT_Analysis_functions.h
         src/config.cpp
         src/SMT_Configuration.h
