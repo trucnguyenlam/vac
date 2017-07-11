@@ -7,7 +7,7 @@
 #include <memory>
 
 #include "Logics.h"
-#include "BMC_Struct.h"
+#include "SMT_BMC_Struct.h"
 #include "SMT_Analysis_functions.h"
 #include "SMTSolvers/yices.h"
 #include "SMTSolvers/Z3.h"
