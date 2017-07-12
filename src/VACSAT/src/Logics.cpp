@@ -52,6 +52,34 @@ namespace SMT {
         return fmt.str();
     }
 
+/*AUXILIARY FUNCTIONS*/
+    bool is_lit_const_eq(const EqExpr& eq_expr) {
+        return (eq_expr.lhs->type == Exprv::LITERAL && eq_expr.rhs->type == Exprv::CONSTANT) ||
+               (eq_expr.lhs->type == Exprv::CONSTANT && eq_expr.rhs->type == Exprv::LITERAL);
+    }
+    inline bool is_lit_const_eq(const std::shared_ptr<EqExpr>& eq_expr) {
+        return is_lit_const_eq(*eq_expr);
+    }
+    std::pair<Literalp, std::shared_ptr<Constant>> eq_to_lit_const(const EqExpr& eq_expr) {
+        if (!is_lit_const_eq(eq_expr)) {
+            log->error("Cannot extract literal and constant from a formula not of the (lit = const) form: {}", eq_expr);
+            throw std::runtime_error("Cannot extract literal and constant from a formula not of the (lit = const) form: " + eq_expr.to_string());
+        }
+        Literalp r1;
+        std::shared_ptr<Constant> r2;
+
+        if (eq_expr.lhs->type == Exprv::LITERAL) {
+            r1 = std::dynamic_pointer_cast<Literal>(eq_expr.lhs);
+            r2 = std::dynamic_pointer_cast<Constant>(eq_expr.rhs);
+        } else {
+            r2 = std::dynamic_pointer_cast<Constant>(eq_expr.lhs);
+            r1 = std::dynamic_pointer_cast<Literal>(eq_expr.rhs);
+        }
+        return std::pair<Literalp, std::shared_ptr<Constant>>(r1, r2);
+    }
+    inline std::pair<Literalp, std::shared_ptr<Constant>> eq_to_lit_const(const std::shared_ptr<EqExpr>& eq_expr) {
+        return eq_to_lit_const(*eq_expr);
+    };
 
 /*ATOMS OPS*/
     Atom::Atom(const std::string _name, int _role_array_index, int _bv_size, Expr _value):
@@ -117,9 +145,7 @@ namespace SMT {
         return fmt.str();
     }
     std::string Atom::to_arbac_string() const {
-        std::stringstream fmt;
-        fmt << this->name;
-        return fmt.str();
+        return this->name;
     }
     std::string Atom::to_new_string(std::string& uname) const {
         return uname + "." + this->name + "=1";
@@ -239,31 +265,23 @@ namespace SMT {
 //    }
 
     const std::string Literal::getSMTName() const {
-        //FIXME: remove ~
-        return "~" + this->atom->getSMTName();
+        return this->atom->getSMTName();
     }
-
     const std::string Literal::fullName() const {
-        //FIXME: remove ~
-        return "~" + this->atom->fullName();
+        return this->atom->fullName();
     }
-
     const std::string Literal::nameWithSuffix(std::string suffix) const {
-        //FIXME: remove ~
-        return "~" + this->atom->nameWithSuffix(suffix);
+        return this->atom->nameWithSuffix(suffix);
     }
 
     std::string Literal::to_string() const {
-        //FIXME: remove ~
-        return "~" + this->atom->to_string();
+        return this->atom->to_string();
     }
     std::string Literal::to_arbac_string() const {
-        //FIXME: remove ~
-        return "~" + this->atom->to_arbac_string();
+        return this->atom->to_arbac_string();
     }
     std::string Literal::to_new_string(std::string& uname) const {
-        //FIXME: remove ~
-        return "~" + this->atom->to_new_string(uname);
+        return this->atom->to_new_string(uname);
     }
 
 /*CONSTANT OPS*/
@@ -406,6 +424,15 @@ namespace SMT {
         return fmt.str();
     }
     std::string EqExpr::to_arbac_string() const {
+        std::pair<Literalp, std::shared_ptr<Constant>> parts = eq_to_lit_const(*this);
+        if (parts.second->value == 0) {
+            return "-" + parts.first->to_arbac_string();
+        } else if (parts.second->value == 1) {
+            return parts.first->to_arbac_string();
+        } else {
+            log->error("NOT SUPPORTED: Eq expression is a comparison with a value different than 0 or 1.");
+            throw std::runtime_error("NOT SUPPORTED: Eq expression is a comparison with a value different than 0 or 1.");
+        }
         log->error("Cannot print in ARBAC grammar EQ_EXPR: {}", *this);
         throw std::runtime_error("UNSUPPORTED ARBAC STYLE PRINT: EQ_EXPR");
     }
@@ -474,9 +501,32 @@ namespace SMT {
         return fmt.str();
     }
     std::string NotExpr::to_arbac_string() const {
-        std::stringstream fmt;
-        fmt << "-" << expr->to_arbac_string();
-        return fmt.str();
+        switch (this->expr->type) {
+            case Exprv::LITERAL:
+                return "-" + expr->to_arbac_string();
+            case Exprv::EQ_EXPR: {
+                EqExprp eq_expr = std::dynamic_pointer_cast<EqExpr>(expr);
+                std::pair<Literalp, std::shared_ptr<Constant>> parts = eq_to_lit_const(eq_expr);
+                if (parts.second->value == 1) {
+                    return "-" + parts.first->to_arbac_string();
+                } else if (parts.second->value == 0) {
+                    return parts.first->to_arbac_string();
+                } else {
+                    log->error("NOT SUPPORTED: Eq expression is a comparison with a value different than 0 or 1.");
+                    throw std::runtime_error("NOT SUPPORTED: Eq expression is a comparison with a value different than 0 or 1.");
+                }
+            }
+            case Exprv::CONSTANT:
+                log->error("Negated const expr should be already removed.");
+                throw std::runtime_error("Negated const expr should be already removed.");
+            case Exprv::OR_EXPR:
+            case Exprv::AND_EXPR:
+                log->error("Negated and/or expr should be already normalized.");
+                throw std::runtime_error("Negated and/or expr should be already normalized.");
+            default:
+                log->error("Not inner expression type not supported.");
+                throw std::runtime_error("Not inner expression type not supported.");
+        }
     }
     std::string NotExpr::to_new_string(std::string& uname) const {
         std::stringstream fmt;
@@ -880,28 +930,6 @@ namespace SMT {
         }
         throw std::runtime_error("Cannot translate expression to SMT");
         fprintf(stderr, "Cannot translate expression to SMT:\n    %s\n", expr->to_string().c_str());
-    }
-
-    bool is_lit_const_eq(const std::shared_ptr<EqExpr>& eq_expr) {
-        return (eq_expr->lhs->type == Exprv::LITERAL && eq_expr->rhs->type == Exprv::CONSTANT) ||
-               (eq_expr->lhs->type == Exprv::CONSTANT && eq_expr->rhs->type == Exprv::LITERAL);
-    }
-    std::pair<Literalp, std::shared_ptr<Constant>> eq_to_lit_const(const std::shared_ptr<EqExpr>& eq_expr) {
-        if (!is_lit_const_eq(eq_expr)) {
-            log->error("Cannot extract literal and constant from a formula not of the (lit = const) form: {}", *eq_expr);
-            throw std::runtime_error("Cannot extract literal and constant from a formula not of the (lit = const) form: " + eq_expr->to_string());
-        }
-        Literalp r1;
-        std::shared_ptr<Constant> r2;
-
-        if (eq_expr->lhs->type == Exprv::LITERAL) {
-            r1 = std::dynamic_pointer_cast<Literal>(eq_expr->lhs);
-            r2 = std::dynamic_pointer_cast<Constant>(eq_expr->rhs);
-        } else {
-            r2 = std::dynamic_pointer_cast<Constant>(eq_expr->lhs);
-            r1 = std::dynamic_pointer_cast<Literal>(eq_expr->rhs);
-        }
-        return std::pair<Literalp, std::shared_ptr<Constant>>(r1, r2);
     }
 
     Expr delete_atom(Expr expr, Atomp atom) {
