@@ -5,7 +5,8 @@ project(vacsat)
 set(CMAKE_CXX_STANDARD 11)  # enable C++11 standard
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -fpermissive -Wwrite-strings")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused -Wno-comment -Wno-sign-compare -static")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused -Wno-unused-parameter -Wno-comment -Wno-sign-compare -Wno-c++1z-extensions -static")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused -Wno-unused-parameter -Wno-comment -Wno-sign-compare -static")
 
 find_program(GOLD_FOUND gold)
 if (GOLD_FOUND)
@@ -54,7 +55,9 @@ set(SOURCE_FILES
         src/config.cpp
         src/SMT_Configuration.h
         src/SMT_Infini_admin_bmc.cpp
-        src/SMT_Overapprox.cpp)
+        src/SMT_Overapprox.cpp
+#        src/SMT_Overapprox_Admin.cpp
+        )
 
 # Add path for custom modules
 list (APPEND CMAKE_MODULE_PATH
@@ -91,6 +94,8 @@ include_directories( "${YICES_INCLUDE_DIR}" "${Z3_INCLUDE_DIR}" "${CCL_INCLUDE_D
 find_package(OpenMP REQUIRED)
 # Set OpenMP flags (BLACK MAGIC)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+# Otherwise use this
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 
 # Add local libraries linking directories
 link_directories(${YICES_LIBRARY_DIR} ${Z3_LIBRARY_DIR} ${CCL_LIBRARY_DIR} ${ANTLR3C_LIBRARY_DIR})
