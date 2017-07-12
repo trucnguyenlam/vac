@@ -806,7 +806,18 @@ namespace SMT {
 
         return stream.str();
     }
-    const std::string arbac_policy::to_arbac_string() const {
+    const std::string arbac_policy::to_arbac_string() {
+        bool has_TRUE_admin = false;
+        for (auto &&rule : _rules) {
+            if (is_constant_true(simplifyExpr(rule->admin))) {
+                has_TRUE_admin = true;
+                break;
+            }
+        }
+        if (has_TRUE_admin) {
+            this->preprocess_to_vac1();
+        }
+
         std::stringstream stream;
         stream << "Users " << std::endl;
         for (auto &&user : this->_users) {
@@ -887,6 +898,21 @@ namespace SMT {
     std::ostream& operator<< (std::ostream& stream, const arbac_policy& self) {
         stream << self.to_string();
         return stream;
+    }
+
+    void arbac_policy::preprocess_to_vac1() {
+        atomp true_role(new Atom("TRUE_ADM", -1, 1));
+        this->add_atom(true_role);
+        for (auto &&rule : _rules) {
+            if (is_constant_true(simplifyExpr(rule->admin))) {
+                rule->admin = createLiteralp(true_role);
+            }
+        }
+        for (auto &&user : _users) {
+            user->add_atom(true_role);
+        }
+
+        update();
     }
 
 }

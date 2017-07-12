@@ -171,7 +171,7 @@ namespace SMT {
         void remove_user(const userp& user);
 
         const std::string to_string() const;
-        const std::string to_arbac_string() const;
+        const std::string to_arbac_string();
         const std::string to_new_string() const;
 
         void print_cache();
@@ -267,6 +267,7 @@ namespace SMT {
 
         std::shared_ptr<policy_cache> _cache = nullptr;
 
+        void preprocess_to_vac1();
     };
 
 }

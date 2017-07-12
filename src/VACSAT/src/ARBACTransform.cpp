@@ -234,7 +234,7 @@ static options parse_args(int ac, const char* const* av) {
     arg_obj<int> infinity_bmc_steps_count = create_arg_obj_int("infinity-steps", 2, "Number of steps per round for the infinity bmc");
     arg_obj<int> verbosity = create_arg_obj_int("verbose,v", 2, "Verbosity level (1=info, 2=debug, 3=trace)");
     arg_obj<bool> profile = create_arg_obj_bool("profile,P", "Show times");
-    arg_obj<bool> print_old_model = create_arg_obj_bool("print-old-model,M", "Print using the VAC1 syntax");
+    arg_obj<bool> print_old_model = create_arg_obj_bool("print-old-model,m", "Print using the VAC1 syntax");
     arg_obj<bool> update_model = create_arg_obj_bool("update-model,U", "Update the model from VAC syntax to VAC2 one");
     arg_obj<bool> solver_statistics = create_arg_obj_bool("solver-statistics,T", "Print solver stetistics (over/under-approximation)");
     arg_obj<bool> show_statistics = create_arg_obj_bool("show-statistics,S", "Print policy stetistics");
