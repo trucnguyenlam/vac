@@ -27,7 +27,11 @@ namespace SMT {
                 return true;
             case PRUNE_ONLY:
                 prune_policy(solver, policy);
-                log->info(policy->to_new_string());
+                if (Config::print_old_model) {
+                    log->info(policy->to_arbac_string());
+                } else {
+                    log->info(policy->to_new_string());
+                }
                 return true;
             case BMC_ONLY:
 //                std::cout << *policy;
@@ -46,7 +50,11 @@ namespace SMT {
             to_check = createOrExpr(to_check, rule->prec);
         }
 
+//#ifndef NDEBUG
+//        bool over_result = overapprox_multi(solver, policy, to_check, std::set<rulep>(assigning_target.begin(), assigning_target.end()));
+//#else
         bool over_result = overapprox(solver, policy, to_check, std::set<rulep>(assigning_target.begin(), assigning_target.end()));
+//#endif
         if (!over_result) {
             return false;
         }
