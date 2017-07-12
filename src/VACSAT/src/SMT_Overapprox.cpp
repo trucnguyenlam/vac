@@ -827,11 +827,11 @@ class OverapproxTransformer {
 
         switch (res) {
             case SAT:
-                log->debug("UNSAT\n");
+                log->debug("SAT\n");
                 return true;
                 break;
             case UNSAT:
-                log->debug("SAT\n");
+                log->debug("UNSAT\n");
                 return false;
                 break;
             case UNKNOWN:
