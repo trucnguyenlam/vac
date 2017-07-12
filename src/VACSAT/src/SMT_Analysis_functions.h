@@ -13,17 +13,24 @@
 namespace SMT {
 
     template <typename TVar, typename TExpr>
-    bool arbac_to_smt_bmc(const std::shared_ptr<SMTFactory<TVar, TExpr>> &solver,
+    bool arbac_to_smt_bmc(const std::shared_ptr<SMT::SMTFactory<TVar, TExpr>> &solver,
                           const std::shared_ptr<arbac_policy> &policy,
                           int steps,
                           int rounds,
                           int wanted_threads_count);
 
     template <typename TVar, typename TExpr>
-    bool overapprox(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+    bool overapprox(const std::shared_ptr<SMT::SMTFactory<TVar, TExpr>>& solver,
                     const std::shared_ptr<arbac_policy>& policy,
                     const Expr& to_check,
                     const std::set<rulep>& to_check_source);
+
+    template <typename TVar, typename TExpr>
+    bool overapprox_multi(const std::shared_ptr<SMT::SMTFactory<TVar, TExpr>>& solver,
+                          const std::shared_ptr<arbac_policy>& policy,
+                          const Expr& to_check,
+                          const std::set<rulep>& to_check_source);
+
 }
 
 #endif //VACSAT_ARBAC_TO_SMT_BMC_H
