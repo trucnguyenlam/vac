@@ -73,9 +73,9 @@ class Literal : public Exprv {
     std::string nameWithSuffix(std::string suffix) const;
 
     void setLiterals(Literalp &self);
-    void setSuffix(std::string suffix);
-    void setSuffix(int idx);
-    void resetSuffix();
+    void setSuffix(std::string suffix) override;
+    void setSuffix(int idx) override;
+    void resetSuffix() override;
     void setValue(Expr  value);
     void resetValue();
 
