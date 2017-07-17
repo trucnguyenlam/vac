@@ -12,8 +12,9 @@ namespace SMT {
 #else
 //        log->warn("Mk config!");
 //        log->warn("enabling model generation for boolector");
-        boolector_set_opt(this->context, BTOR_OPT_MODEL_GEN, 1);
 #endif
+        boolector_set_opt(this->context, BTOR_OPT_MODEL_GEN, 0);
+        boolector_set_opt(this->context, BTOR_OPT_ENGINE, 2);
         boolector_set_opt(this->context, BTOR_OPT_AUTO_CLEANUP, 1);
     }
 
