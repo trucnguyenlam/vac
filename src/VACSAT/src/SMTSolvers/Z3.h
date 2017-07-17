@@ -17,6 +17,7 @@ namespace SMT {
         static inline const std::string solver_name() {
             return "Z3";
         };
+        static std::shared_ptr<z3::config> config;
 
         Z3Solver();
         ~Z3Solver();

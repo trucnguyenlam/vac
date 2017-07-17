@@ -149,6 +149,23 @@ namespace z3 {
         context(context const & s);
         context & operator=(context const & s);
     public:
+
+        inline void init(config& c, bool useless) {
+            m_ctx = Z3_mk_context_rc(c);
+            Z3_set_error_handler(m_ctx, error_handler);
+            Z3_set_ast_print_mode(m_ctx, Z3_PRINT_SMTLIB2_COMPLIANT);
+//            check_error();
+
+//            // jmorse
+//            if (int_encoding) {
+//                Z3_sort s = Z3_mk_int_sort(m_ctx);
+//                check_error();
+//                m_esbmc_int_sort = new sort(*this, s);
+//            } else {
+//                Z3_sort s = Z3_mk_bv_sort(m_ctx, ::config.ansi_c.int_width);
+//                m_esbmc_int_sort = new sort(*this, s);
+//            }
+        }
         struct interpolation {};
         context() { config c; init(c); }
         context(config & c) { init(c); }
@@ -1709,7 +1726,8 @@ namespace z3 {
         operator Z3_solver() const { return m_solver; }
         solver & operator=(solver const & s) {
             Z3_solver_inc_ref(s.ctx(), s.m_solver);
-            Z3_solver_dec_ref(ctx(), m_solver);
+            if (m_solver)
+                Z3_solver_dec_ref(ctx(), m_solver);
             m_ctx = s.m_ctx;
             m_solver = s.m_solver;
             return *this;

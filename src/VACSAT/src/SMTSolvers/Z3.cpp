@@ -6,7 +6,50 @@
 
 namespace SMT {
     static unsigned int var_counter = 0;
-    Z3Solver::Z3Solver() : /*context(new z3::context()),*/ solver(context) { }
+//    static std::shared_ptr<z3::config> default_config() {
+////        - proof  (Boolean)           Enable proof generation
+////        - debug_ref_count (Boolean)  Enable debug support for Z3_ast reference counting
+////        - trace  (Boolean)           Tracing support for VCC
+////        - trace_file_name (String)   Trace out file for VCC traces
+////        - timeout (unsigned)         default timeout (in milliseconds) used for solvers
+////        - well_sorted_check          type checker
+////        - auto_config                use heuristics to automatically select solver and configure it
+////        - model                      model generation for solvers, this parameter can be overwritten when creating a solver
+////        - model_validate             validate models produced by solvers
+////        - unsat_core                 unsat-core generation for solvers, this parameter can be overwritten when creating a solver
+//        std::shared_ptr<z3::config> conf(new z3::config());
+//
+////        conf->set("proof", false);
+////        conf->set("debug_ref_count", );
+////        conf->set("trace", false);
+////        conf->set("trace_file_name", );
+////        conf->set("timeout", );
+////        conf->set("well_sorted_check", false);
+////        conf->set("auto_config", true);
+////        conf->set("model", );
+////        conf->set("model_validate", false);
+////        conf->set("unsat_core", false);
+//
+//        return conf;
+//
+//    }
+
+//    std::shared_ptr<z3::config> Z3Solver::config = default_config();
+    Z3Solver::Z3Solver() /*context(new z3::context()),*/  {
+        z3::config cfg;
+        cfg.set("proof", false);
+//        cfg.set("debug_ref_count", false);
+        cfg.set("trace", false);
+//        cfg.set("trace_file_name", false);
+//        cfg.set("timeout", false);
+        cfg.set("well_sorted_check", false);
+        cfg.set("auto_config", false);
+        cfg.set("model", false);
+        cfg.set("model_validate", false);
+        cfg.set("unsat_core", false);
+        context.init(cfg, false);
+        solver = z3::solver(context);
+    }
     Z3Solver::~Z3Solver() { /*delete context;*/ }
 
     // expr YicesSolver::createBoolType() {
@@ -206,14 +249,14 @@ namespace SMT {
 
     void Z3Solver::clean() {
         //TODO: both var_counter and context should be cleaned
-        this->solver = z3::solver(context);
+        this->solver = z3::solver(context, "QF_BV");
     }
     void Z3Solver::deep_clean() {
         var_counter = 0;
         //FIXME: nondtext should be regenerated
         /*delete context;
         context = new z3::context();*/
-        this->solver = z3::solver(context);
+        this->solver = z3::solver(context, "QF_BV");
     }
     void Z3Solver::printContext() {
         std::cout << this->solver << std::endl;
