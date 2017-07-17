@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 11)  # enable C++11 standard
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -fpermissive -Wwrite-strings")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused -Wno-unused-parameter -Wno-comment -Wno-sign-compare -Wno-c++1z-extensions -static")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused -Wno-unused-parameter -Wno-comment -Wno-sign-compare -static")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-write-strings -Wall -Wextra -Werror -Wno-unused -Wno-unused-parameter -Wno-comment -Wno-sign-compare -static")
 
 find_program(GOLD_FOUND gold)
 if (GOLD_FOUND)
@@ -34,6 +34,8 @@ set(SOURCE_FILES
         src/SMTSolvers/yices.cpp
         src/SMTSolvers/Z3.h
         src/SMTSolvers/Z3.cpp
+        src/SMTSolvers/boolector.h
+        src/SMTSolvers/boolector.cpp
         src/Logics.h
         src/Logics.cpp
         src/SMT_Pruning.h
@@ -55,9 +57,9 @@ set(SOURCE_FILES
         src/config.cpp
         src/SMT_Configuration.h
         src/SMT_Infini_admin_bmc.cpp
-        src/SMT_Overapprox.cpp
-#        src/SMT_Overapprox_Admin.cpp
-        )
+        src/SMT_Overapprox.cpp)
+
+#        src/SMT_Overapprox_Admin.cpp)
 
 # Add path for custom modules
 list (APPEND CMAKE_MODULE_PATH
@@ -70,6 +72,7 @@ set(ANTLR3C_PREFIX ${DEPS_DIR}/antlr3c)
 set(YICES_PREFIX ${DEPS_DIR}/yices_2.5.2_static)
 set(Z3_PREFIX ${DEPS_DIR}/z3_static)
 set(CCL_PREFIX ${DEPS_DIR}/ccl)
+set(BOOLECTOR_PREFIX ${DEPS_DIR}/boolector)
 
 # For each required library call its find macro
 find_package(ANTLR3C REQUIRED)
@@ -77,6 +80,7 @@ find_package(GMP REQUIRED)
 find_package(YICES REQUIRED)
 find_package(Z3 REQUIRED)
 find_package(CCL REQUIRED)
+find_package(BOOLECTOR REQUIRED)
 
 # Add spdlog library for logging
 set(CMAKE_PREFIX_PATH ${DEPS_DIR}/spdlog)
@@ -88,7 +92,11 @@ FIND_PACKAGE( Boost COMPONENTS program_options REQUIRED )
 INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 
 # Add include directories for local libraries
-include_directories( "${YICES_INCLUDE_DIR}" "${Z3_INCLUDE_DIR}" "${CCL_INCLUDE_DIR}" ${ANTLR3C_INCLUDE_DIR})
+include_directories("${YICES_INCLUDE_DIR}"
+                    "${Z3_INCLUDE_DIR}"
+                    "${BOOLECTOR_INCLUDE_DIR}"
+                    "${CCL_INCLUDE_DIR}"
+                    "${ANTLR3C_INCLUDE_DIR}")
 
 # Add OpenMP (used by Z3)
 find_package(OpenMP REQUIRED)
@@ -98,7 +106,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 
 # Add local libraries linking directories
-link_directories(${YICES_LIBRARY_DIR} ${Z3_LIBRARY_DIR} ${CCL_LIBRARY_DIR} ${ANTLR3C_LIBRARY_DIR})
+link_directories(${YICES_LIBRARY_DIR}
+                 ${Z3_LIBRARY_DIR}
+                 ${CCL_LIBRARY_DIR}
+                 ${ANTLR3C_LIBRARY_DIR}
+                 ${BOOLECTOR_LIBRARY})
 
 set(PARSER_SOURCES
     ${PROJECT_SOURCE_DIR}/src/parser/Logics.cpp
@@ -113,7 +125,8 @@ add_executable(vacsat ${SOURCE_FILES} ${PARSER_SOURCES})
 add_subdirectory(src/old_parser)
 # Set the link libraries (GMP MUST BE THE LAST)
 target_link_libraries(vacsat PRIVATE vacsat_old)
-target_link_libraries(vacsat PUBLIC yices z3 ccl antlr3c gmp ${Boost_LIBRARIES} spdlog::spdlog ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(vacsat PUBLIC yices z3 boolector lgl)
+target_link_libraries(vacsat PUBLIC ccl antlr3c gmp ${Boost_LIBRARIES} spdlog::spdlog ${CMAKE_THREAD_LIBS_INIT})
 
 
 install (TARGETS vacsat DESTINATION bin)
