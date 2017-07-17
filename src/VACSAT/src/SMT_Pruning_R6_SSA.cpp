@@ -13,6 +13,7 @@
 #include "Logics.h"
 #include "SMT_BMC_Struct.h"
 #include "Policy.h"
+#include "SMTSolvers/boolector.h"
 
 #include <chrono>
 
@@ -506,6 +507,11 @@ class R6Transformer {
         set_globals();
         generate_main();
 
+
+        if (Config::dump_smt_formula != "") {
+            solver->printContext(Config::dump_smt_formula);
+            log->info("BMC SMT formula dumped at: {}", Config::dump_smt_formula);
+        }
         SMTResult res = solver->solve();
 
 //        std::cout << *target_rule << std::endl;
@@ -525,9 +531,10 @@ class R6Transformer {
         policy(_policy),
         target_rule(_to_check_source),
         target_expr(_to_check),
-        zero(solver->createFalse()), one(solver->createTrue()),
         pc_size(get_pc_size(target_expr->atoms())) {
         solver->deep_clean();
+        zero = solver->createFalse();
+        one = solver->createTrue();
         allocate_core_role_array_set_pc_size();
         generate_variables();
     }
@@ -569,5 +576,9 @@ class R6Transformer {
                                        const std::shared_ptr<arbac_policy>& policy,
                                        const Expr& to_check,
                                        const std::shared_ptr<rule>& to_check_source);
+    template bool apply_r6<BoolectorExpr, BoolectorExpr>(const std::shared_ptr<SMTFactory<BoolectorExpr, BoolectorExpr>>& solver,
+                                                         const std::shared_ptr<arbac_policy>& policy,
+                                                         const Expr& to_check,
+                                                         const std::shared_ptr<rule>& to_check_source);
 
 }

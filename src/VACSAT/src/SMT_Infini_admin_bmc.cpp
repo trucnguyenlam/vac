@@ -13,6 +13,7 @@
 #include "SMTSolvers/Z3.h"
 #include "Policy.h"
 #include "SMT_Pruning.h"
+#include "SMTSolvers/boolector.h"
 
 #include <chrono>
 
@@ -257,6 +258,7 @@ namespace SMT {
             solver->assertNow(final);
 
             bool res = solver->solve() == UNSAT;
+            solver->clean();
 
 //            for (auto &&trackedUser : tracked_users) {
 //                log->info("{} user: {}", trackedUser.second ? "INFINITE" : "FINITE", trackedUser.first->to_full_string());
@@ -902,11 +904,12 @@ namespace SMT {
         InfiniBMCTransformer(const std::shared_ptr<SMTFactory<TVar, TExpr>>& _solver,
                              const std::shared_ptr<arbac_policy>& _policy,
                              const Expr& _to_check,
-                             const std::vector<std::shared_ptr<atom_status>>& _atom_statuses) : solver(_solver),
-                                                                                                policy(_policy->clone_but_expr()),
-                                                                                                to_check_infinite(nullptr),
-                                                                                                to_check_finite(nullptr),
-                                                                                                atom_statuses(_atom_statuses) {
+                             const std::vector<std::shared_ptr<atom_status>>& _atom_statuses) :
+                solver(_solver),
+                policy(_policy->clone_but_expr()),
+                to_check_infinite(nullptr),
+                to_check_finite(nullptr),
+                atom_statuses(_atom_statuses) {
             to_check_infinite = _to_check;
             to_check_finite = infinite_to_finite(_to_check);
 
@@ -915,6 +918,7 @@ namespace SMT {
         bool transform_2_bounded_smt(int rounds, int _steps, int wanted_threads_count) {
 //        solver->deep_clean();
             // solver = _solver;
+
             clean_precompute();
 
 
@@ -1026,5 +1030,13 @@ namespace SMT {
                                                  int steps,
                                                  int rounds,
                                                  int wanted_threads_count);
+
+    template bool apply_infini_admin<BoolectorExpr, BoolectorExpr>(const std::shared_ptr<SMTFactory<BoolectorExpr, BoolectorExpr>>& solver,
+                                                                   const std::shared_ptr<arbac_policy>& policy,
+                                                                   const Expr& query,
+                                                                   const std::vector<std::shared_ptr<atom_status>>& atom_statuses,
+                                                                   int steps,
+                                                                   int rounds,
+                                                                   int wanted_threads_count);
 
 }

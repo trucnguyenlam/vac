@@ -14,6 +14,7 @@
 #include "Policy.h"
 #include "SMTSolvers/yices.h"
 #include "SMTSolvers/Z3.h"
+#include "SMTSolvers/boolector.h"
 
 namespace SMT {
 
@@ -422,7 +423,7 @@ namespace SMT {
         }
 
         /* IMMATERIAL ADMIN FUNCTIONS */
-        //TODO: remove this one
+        /*//TODO: remove this one
         bool immaterial_not_interfere(const Expr& adm) {
             // Check if the administrative expression interfere (cause false) in other expressions
             // TODO: consider changing with set to reduce equals checks
@@ -468,20 +469,36 @@ namespace SMT {
             }
 
             return true;
-        }
+        }*/
 
         bool satisfies_using_set(const Expr& adm, const userp& user, std::vector<std::shared_ptr<atom_status>>& _atom_status) {
             auto lits = adm->atoms();
             for (auto &&atom : adm->atoms()) {
                 std::vector<std::shared_ptr<TExpr>> var_vect((ulong) policy->atom_count());
+
+                bool set_true = false, set_false = false;
 //                std::shared_ptr<atom_status>& status = _atom_status[lit->role_array_index];
                 if (contains(user->config(), atom) && !atom_used_as_value(atom, false, _atom_status)) {
-                    var_vect[atom->role_array_index] = std::make_shared<TExpr>(solver->createTrue());
+                    set_true = true;
                 } else if (!contains(user->config(), atom) && !atom_used_as_value(atom, true, _atom_status)) {
-                    var_vect[atom->role_array_index] = std::make_shared<TExpr>(solver->createFalse());
+                    set_false = true;
                 }
 
                 solver->clean();
+
+                if (set_false && set_true) {
+                    log->critical("cannot set the atom to both true and false!");
+                    throw unexpected_error("cannot set the atom to both true and false!");
+                } else if (set_true) {
+                    var_vect[atom->role_array_index] = std::make_shared<TExpr>(solver->createTrue());
+                } else if (set_false) {
+                    var_vect[atom->role_array_index] = std::make_shared<TExpr>(solver->createFalse());
+                } else {
+                    //do nothing
+                }
+
+
+
                 TExpr inner_expr = generateSMTFunction(solver, adm, var_vect, "C");
                 TExpr solver_expr = solver->createNotExpr(inner_expr);
                 solver->assertNow(solver_expr);
@@ -973,12 +990,10 @@ namespace SMT {
         /* IMPLIED RULE FUNCTIONS */
         int implied(const std::shared_ptr<rule>& ca1, const std::shared_ptr<rule>& ca2) {
             //FIXME: tampone
-            std::vector<std::shared_ptr<TVar>> c_vect((ulong) policy->atom_count());
+            solver->clean();
             std::vector<std::shared_ptr<TVar>> adm_vect((ulong) policy->atom_count());
             std::string c_suff("C");
             std::string adm_suff("admin");
-
-            solver->clean();
 
             TExpr phi1_adm = generateSMTFunction(solver, ca1->admin, adm_vect, adm_suff);
             TExpr phi2_adm = generateSMTFunction(solver, ca2->admin, adm_vect, adm_suff);
@@ -1000,6 +1015,8 @@ namespace SMT {
 //            std::cout << *ca1 << std::endl;
 //            std::cout << *ca2 << std::endl;
             solver->clean();
+
+            std::vector<std::shared_ptr<TVar>> c_vect((ulong) policy->atom_count());
 
             TExpr phi1_pn = generateSMTFunction(solver, ca1->prec, c_vect, c_suff);
             TExpr phi2_pn = generateSMTFunction(solver, ca2->prec, c_vect, c_suff);
@@ -2018,4 +2035,6 @@ namespace SMT {
                                                const std::shared_ptr<arbac_policy>& policy);
     template void prune_policy<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>>& solver,
                                            const std::shared_ptr<arbac_policy>& policy);
+    template void prune_policy<BoolectorExpr, BoolectorExpr>(const std::shared_ptr<SMTFactory<BoolectorExpr, BoolectorExpr>>& solver,
+                                                             const std::shared_ptr<arbac_policy>& policy);
 }

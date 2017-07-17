@@ -77,6 +77,11 @@ namespace SMT {
             std::shared_ptr<SMTFactory<expr, expr>> solver(new Z3Solver());
             return execute(filename, analysis_type,solver, policy, config);
         }
+        else if (str_to_lower(solver_name) == str_to_lower(BoolectorSolver::solver_name())) {
+            log->debug("Using {} as backend", solver_name);
+            std::shared_ptr<SMTFactory<BoolectorExpr, BoolectorExpr>> solver(new BoolectorSolver());
+            return execute(filename, analysis_type,solver, policy, config);
+        }
         else {
             log->error("Backend {} is not supported.", solver_name);
             throw std::runtime_error("Backend " + solver_name + " is not supported.");

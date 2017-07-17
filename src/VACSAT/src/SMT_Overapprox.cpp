@@ -13,6 +13,7 @@
 #include "Logics.h"
 #include "SMT_BMC_Struct.h"
 #include "Policy.h"
+#include "SMTSolvers/boolector.h"
 
 #include <chrono>
 #include <stack>
@@ -908,5 +909,9 @@ class OverapproxTransformer {
                                          const std::shared_ptr<arbac_policy>& policy,
                                          const Expr& to_check,
                                          const std::set<rulep>& to_check_source);
+    template bool overapprox<BoolectorExpr, BoolectorExpr>(const std::shared_ptr<SMTFactory<BoolectorExpr, BoolectorExpr>>& solver,
+                                                           const std::shared_ptr<arbac_policy>& policy,
+                                                           const Expr& to_check,
+                                                           const std::set<rulep>& to_check_source);
 
 }
