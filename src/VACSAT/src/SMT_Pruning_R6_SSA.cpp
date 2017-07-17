@@ -508,10 +508,10 @@ class R6Transformer {
         generate_main();
 
 
-        if (Config::dump_smt_formula != "") {
-            solver->printContext(Config::dump_smt_formula);
-            log->info("BMC SMT formula dumped at: {}", Config::dump_smt_formula);
-        }
+//        if (Config::dump_smt_formula != "") {
+//            solver->printContext(Config::dump_smt_formula);
+//            log->info("BMC SMT formula dumped at: {}", Config::dump_smt_formula);
+//        }
         SMTResult res = solver->solve();
 
 //        std::cout << *target_rule << std::endl;
