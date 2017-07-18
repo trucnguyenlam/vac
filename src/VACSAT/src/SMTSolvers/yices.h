@@ -60,8 +60,8 @@ namespace SMT {
         // void pop() override;
 
         private:
-        std::vector<term_t> to_be_asserted;
-        std::vector<term_t> asserted;
+        std::list<term_t> to_be_asserted;
+        std::list<term_t> asserted;
         context_t* context;
     };
 }
