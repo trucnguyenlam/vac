@@ -162,6 +162,15 @@ class OverapproxTransformer {
 
         void restore_state() {
             variables old_state = saved_state.top();
+
+            //RESTORE GUARDS
+            TVar old_guard = old_state.guard.get_solver_var();
+            TVar frame_guard = state.guard.get_solver_var();
+            variable new_guard = state.guard.createFrom();
+//            this->emit_assignment(new_guard, old_guard);
+            solver->assertLater(solver->createEqExpr(new_guard.get_solver_var(), old_guard));
+            state.guard = new_guard;
+
             // RESTORING OLD STEP SET STATE
             for (int i = 0; i < core_roles.size(); ++i) {
                 bool c_status = core_roles[i];
@@ -184,14 +193,6 @@ class OverapproxTransformer {
             variable new_skip = state.skip.createFrom();
             this->emit_assignment(new_skip, old_skip);
             state.skip = new_skip;
-
-            //RESTORE GUARDS
-            TVar old_guard = old_state.guard.get_solver_var();
-            TVar frame_guard = state.guard.get_solver_var();
-            variable new_guard = state.guard.createFrom();
-//            this->emit_assignment(new_guard, old_guard);
-            solver->assertLater(solver->createEqExpr(new_guard.get_solver_var(), old_guard));
-            state.guard = new_guard;
 
             //UPDATING TRUE FALSE MEMORY
             for (int i = 0; i < policy->atom_count(); ++i) {
@@ -217,7 +218,7 @@ class OverapproxTransformer {
                                                                   old_state.role_vars[i].get_solver_var());
                 emit_assignment(sync_role_var, cond_sync_role_var);
                 state.role_vars[i] = sync_role_var;
-                // core_value_true
+                /*// core_value_true
                 variable sync_core_value_true = state.core_value_true[i].createFrom();
                 TExpr cond_sync_core_value_true = solver->createCondExpr(frame_guard,
                                                                          state.core_value_true[i].get_solver_var(),
@@ -237,7 +238,7 @@ class OverapproxTransformer {
                                                                   state.core_sets[i].get_solver_var(),
                                                                   old_state.core_sets[i].get_solver_var());
                 emit_assignment(sync_core_set, cond_sync_core_set);
-                state.core_sets[i] = sync_core_set;
+                state.core_sets[i] = sync_core_set;*/
             }
 
 
@@ -373,9 +374,9 @@ class OverapproxTransformer {
         }
 
         inline void emit_comment(const std::string& comment) {
-//            //Working only in Z3
-//            solver->assertNow(solver->createBoolVar(comment));
-//            log->critical("Emitting comment...");
+            //Working only in Z3
+            solver->assertNow(solver->createBoolVar(comment));
+            log->critical("Emitting comment...");
         }
 
         void push(Expr _target_expr, std::set<rulep> _target_rule, TExpr guard) {
@@ -533,18 +534,23 @@ class OverapproxTransformer {
         // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
         // fprintf(outputFile, "    /* --- ASSIGNMENT RULES FOR ROLE %s --- */\n", role_array[target_role_index]);
         TExpr if_prelude = generate_if_SKIP_PC(label_index);
-        TExpr ca_guards = solver->createFalse();
-        Expr ca_expr = createConstantFalse();
-
-        for (auto &&rule :policy->per_role_can_assign_rule(target_role)) {
-            if (contains(state.target_rules, rule)) {
-                // EXCLUDE THE TARGET RULE FROM ASSIGNMENT
-                continue;
+        Expr ca_expr;
+        if (policy->per_role_can_assign_rule(target_role).size() < 1) {
+            ca_expr = createConstantFalse();
+        } else {
+            policy->per_role_can_assign_rule(target_role);
+            auto ite = policy->per_role_can_assign_rule(target_role).begin();
+            ca_expr = (*ite)->prec;
+            for (++ite; ite != policy->per_role_can_assign_rule(target_role).end(); ++ite) {
+                rulep rule = *ite;
+                if (contains(state.target_rules, rule)) {
+                    // EXCLUDE THE TARGET RULE FROM ASSIGNMENT
+                    continue;
+                }
+                // print_ca_comment(outputFile, ca_idx);
+                ca_expr = createOrExpr(ca_expr, rule->prec);
+                // fprintf(outputFile, "        ||\n");
             }
-            // print_ca_comment(outputFile, ca_idx);
-            ca_guards = solver->createOrExpr(ca_guards, generate_CA_cond(rule->prec));
-            ca_expr = createOrExpr(ca_expr, rule->prec);
-            // fprintf(outputFile, "        ||\n");
         }
 
         if (state.deep > 0) {
@@ -552,6 +558,7 @@ class OverapproxTransformer {
             generate_main();
             state.pop();
         }
+        TExpr ca_guards = generate_CA_cond(ca_expr);
 
         // This user is not in this target role yet
         // fprintf(outputFile, "        /* Role not SET yet */\n");
@@ -564,16 +571,21 @@ class OverapproxTransformer {
         // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
         // fprintf(outputFile, "    /* --- REVOKE RULES FOR ROLE %s --- */\n", role_array[target_role_index]);
         TExpr if_prelude = generate_if_SKIP_PC(label_index);
-        TExpr cr_guards = solver->createFalse();
-        Expr cr_expr = createConstantFalse();
+        Expr cr_expr;
 
-        for (auto &&rule :policy->per_role_can_revoke_rule(target_role)) {
-            if (contains(state.target_rules, rule)) {
-                // EXCLUDE THE TARGET RULE FROM ASSIGNMENT
-                continue;
+        if (policy->per_role_can_revoke_rule(target_role).size() < 1) {
+            cr_expr = createConstantFalse();
+        } else {
+            auto ite = policy->per_role_can_revoke_rule(target_role).begin();
+            cr_expr = (*ite)->prec;
+            for (++ite; ite != policy->per_role_can_revoke_rule(target_role).end(); ++ite) {
+                rulep rule = *ite;
+                if (contains(state.target_rules, rule)) {
+                    // EXCLUDE THE TARGET RULE FROM ASSIGNMENT
+                    continue;
+                }
+                cr_expr = createOrExpr(cr_expr, rule->prec);
             }
-            cr_guards = solver->createOrExpr(cr_guards, generate_CR_cond(rule->prec));
-            cr_expr = createOrExpr(cr_expr, rule->prec);
         }
 
         if (state.deep > 0) {
@@ -582,6 +594,9 @@ class OverapproxTransformer {
             generate_main();
             state.pop();
         }
+
+        TExpr cr_guards = generate_CR_cond(cr_expr);
+
 
         // This user is not in this target role yet
         // fprintf(outputFile, "        /* Role not SET yet */\n");
