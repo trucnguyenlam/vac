@@ -15,6 +15,19 @@ namespace SMT {
 #endif
         boolector_set_opt(this->context, BTOR_OPT_MODEL_GEN, 0);
         boolector_set_opt(this->context, BTOR_OPT_ENGINE, 2);
+        // Simplifier options
+        boolector_set_opt(this->context, BTOR_OPT_REWRITE_LEVEL, 1);
+        boolector_set_opt(this->context, BTOR_OPT_SKELETON_PREPROC, 1);
+        boolector_set_opt(this->context, BTOR_OPT_ACKERMANN, 0);
+        boolector_set_opt(this->context, BTOR_OPT_BETA_REDUCE_ALL, 0);
+        boolector_set_opt(this->context, BTOR_OPT_ELIMINATE_SLICES, 1);
+        boolector_set_opt(this->context, BTOR_OPT_VAR_SUBST, 1);
+        boolector_set_opt(this->context, BTOR_OPT_UCOPT, 1);
+        boolector_set_opt(this->context, BTOR_OPT_MERGE_LAMBDAS, 0);
+        boolector_set_opt(this->context, BTOR_OPT_EXTRACT_LAMBDAS, 0);
+        boolector_set_opt(this->context, BTOR_OPT_NORMALIZE_ADD, 0);
+
+
         boolector_set_opt(this->context, BTOR_OPT_AUTO_CLEANUP, 1);
     }
 
@@ -166,7 +179,7 @@ namespace SMT {
     }
 
     void BoolectorSolver::assertLater(BoolectorExpr expr) {
-        boolector_assert(context, expr);
+        to_be_asserted.push_back(expr);
     }
 
     void BoolectorSolver::assertNow(BoolectorExpr expr) {
@@ -178,6 +191,7 @@ namespace SMT {
 //        if (i == 80) {
 //            log->warn("Break");
 //        }
+        this->loadToSolver();
         int boolector_res = boolector_sat(context);
         if (boolector_res == BOOLECTOR_SAT) {
             return SAT;
@@ -202,7 +216,21 @@ namespace SMT {
     }
 
     void BoolectorSolver::loadToSolver() {
-
+        if (to_be_asserted.empty()) {
+            return;
+        }
+        else {
+            auto ite = to_be_asserted.begin();
+            BoolectorExpr body = *ite;
+            asserted.push_back(body);
+            for (++ite; ite != to_be_asserted.end(); ++ite) {
+                body = boolector_and(context, body, *ite);
+                asserted.push_back(body);
+            }
+            boolector_assert(context, body);
+            // yices_pp_term(stderr, body, 120, 40, 0);
+            this->to_be_asserted.clear();
+        }
     }
 
     void BoolectorSolver::clean() {
