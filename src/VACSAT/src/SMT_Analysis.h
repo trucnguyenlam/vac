@@ -13,6 +13,7 @@
 #include "SMTSolvers/Z3.h"
 #include "SMTSolvers/yices.h"
 #include "SMTSolvers/boolector.h"
+#include "SMTSolvers/mathsat.h"
 #include "prelude.h"
 
 namespace SMT {

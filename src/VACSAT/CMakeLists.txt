@@ -36,6 +36,8 @@ set(SOURCE_FILES
         src/SMTSolvers/Z3.cpp
         src/SMTSolvers/boolector.h
         src/SMTSolvers/boolector.cpp
+        src/SMTSolvers/mathsat.h
+        src/SMTSolvers/mathsat.cpp
         src/Logics.h
         src/Logics.cpp
         src/SMT_Pruning.h
@@ -57,7 +59,7 @@ set(SOURCE_FILES
         src/config.cpp
         src/SMT_Configuration.h
         src/SMT_Infini_admin_bmc.cpp
-        src/SMT_Overapprox.cpp)
+        src/SMT_Overapprox.cpp )
 
 #        src/SMT_Overapprox_Admin.cpp)
 
@@ -73,14 +75,16 @@ set(YICES_PREFIX ${DEPS_DIR}/yices_2.5.2_static)
 set(Z3_PREFIX ${DEPS_DIR}/z3_static)
 set(CCL_PREFIX ${DEPS_DIR}/ccl)
 set(BOOLECTOR_PREFIX ${DEPS_DIR}/boolector)
+set(MATHSAT_PREFIX ${DEPS_DIR}/mathsat)
 
 # For each required library call its find macro
 find_package(ANTLR3C REQUIRED)
 find_package(GMP REQUIRED)
 find_package(YICES REQUIRED)
+find_package(MATHSAT REQUIRED)
 find_package(Z3 REQUIRED)
-find_package(CCL REQUIRED)
 find_package(BOOLECTOR REQUIRED)
+find_package(CCL REQUIRED)
 
 # Add spdlog library for logging
 set(CMAKE_PREFIX_PATH ${DEPS_DIR}/spdlog)
@@ -95,6 +99,7 @@ INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 include_directories("${YICES_INCLUDE_DIR}"
                     "${Z3_INCLUDE_DIR}"
                     "${BOOLECTOR_INCLUDE_DIR}"
+                    "${MATHSAT_INCLUDE_DIR}"
                     "${CCL_INCLUDE_DIR}"
                     "${ANTLR3C_INCLUDE_DIR}")
 
@@ -108,9 +113,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 # Add local libraries linking directories
 link_directories(${YICES_LIBRARY_DIR}
                  ${Z3_LIBRARY_DIR}
+                 ${BOOLECTOR_LIBRARY}
+                 ${MATHSAT_LIBRARY}
                  ${CCL_LIBRARY_DIR}
-                 ${ANTLR3C_LIBRARY_DIR}
-                 ${BOOLECTOR_LIBRARY})
+                 ${ANTLR3C_LIBRARY_DIR})
 
 set(PARSER_SOURCES
     ${PROJECT_SOURCE_DIR}/src/parser/Logics.cpp
@@ -125,8 +131,8 @@ add_executable(vacsat ${SOURCE_FILES} ${PARSER_SOURCES})
 add_subdirectory(src/old_parser)
 # Set the link libraries (GMP MUST BE THE LAST)
 target_link_libraries(vacsat PRIVATE vacsat_old)
-target_link_libraries(vacsat PUBLIC yices z3 boolector lgl)
-target_link_libraries(vacsat PUBLIC ccl antlr3c gmp ${Boost_LIBRARIES} spdlog::spdlog ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(vacsat PUBLIC yices z3 boolector lgl mathsat gmpxx gmp stdc++)
+target_link_libraries(vacsat PUBLIC ccl antlr3c ${Boost_LIBRARIES} spdlog::spdlog ${CMAKE_THREAD_LIBS_INIT})
 
 
 install (TARGETS vacsat DESTINATION bin)

@@ -2,11 +2,13 @@
 // Created by esteffin on 11/05/17.
 //
 
+#include <mathsat.h>
 #include "SMT_Analysis.h"
 #include "Policy.h"
 #include "SMT_Pruning.h"
 #include "parser/translator.h"
 #include "SMT_Analysis_functions.h"
+#include "SMTSolvers/mathsat.h"
 
 namespace SMT {
 
@@ -80,6 +82,11 @@ namespace SMT {
         else if (str_to_lower(solver_name) == str_to_lower(BoolectorSolver::solver_name())) {
             log->debug("Using {} as backend", solver_name);
             std::shared_ptr<SMTFactory<BoolectorExpr, BoolectorExpr>> solver(new BoolectorSolver());
+            return execute(filename, analysis_type,solver, policy, config);
+        }
+        else if (str_to_lower(solver_name) == str_to_lower(MathsatSolver::solver_name())) {
+            log->debug("Using {} as backend", solver_name);
+            std::shared_ptr<SMTFactory<msat_term, msat_term>> solver(new MathsatSolver());
             return execute(filename, analysis_type,solver, policy, config);
         }
         else {

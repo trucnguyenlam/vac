@@ -12,8 +12,9 @@
 #include "SMT.h"
 #include "SMTSolvers/yices.h"
 #include "SMTSolvers/Z3.h"
-#include "Policy.h"
 #include "SMTSolvers/boolector.h"
+#include "SMTSolvers/mathsat.h"
+#include "Policy.h"
 
 #include <chrono>
 
@@ -830,5 +831,11 @@ namespace SMT {
                                                                  int steps,
                                                                  int rounds,
                                                                  int wanted_threads_count);
+
+    template bool arbac_to_smt_bmc<msat_term, msat_term>(const std::shared_ptr<SMTFactory<msat_term, msat_term>>& solver,
+                                                         const std::shared_ptr<arbac_policy>& policy,
+                                                         int steps,
+                                                         int rounds,
+                                                         int wanted_threads_count);
 
 }

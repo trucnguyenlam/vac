@@ -6,6 +6,7 @@
 #include <iostream>
 #include <utility>
 #include <algorithm>
+#include <mathsat.h>
 
 //#include "old_parser/ARBACExact.h"
 #include "SMT_Pruning.h"
@@ -2033,8 +2034,13 @@ namespace SMT {
 
     template void prune_policy<term_t, term_t>(const std::shared_ptr<SMTFactory<term_t, term_t>>& solver,
                                                const std::shared_ptr<arbac_policy>& policy);
+
     template void prune_policy<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>>& solver,
                                            const std::shared_ptr<arbac_policy>& policy);
+
     template void prune_policy<BoolectorExpr, BoolectorExpr>(const std::shared_ptr<SMTFactory<BoolectorExpr, BoolectorExpr>>& solver,
                                                              const std::shared_ptr<arbac_policy>& policy);
+
+    template void prune_policy<msat_term, msat_term>(const std::shared_ptr<SMTFactory<msat_term, msat_term>>& solver,
+                                                     const std::shared_ptr<arbac_policy>& policy);
 }

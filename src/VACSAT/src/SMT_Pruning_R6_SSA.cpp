@@ -16,6 +16,7 @@
 #include "SMTSolvers/boolector.h"
 
 #include <chrono>
+#include <mathsat.h>
 
 namespace SMT {
 
@@ -572,13 +573,20 @@ class R6Transformer {
                                            const std::shared_ptr<arbac_policy>& policy,
                                            const Expr& to_check,
                                            const std::shared_ptr<rule>& to_check_source);
+
     template bool apply_r6<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>>& solver,
                                        const std::shared_ptr<arbac_policy>& policy,
                                        const Expr& to_check,
                                        const std::shared_ptr<rule>& to_check_source);
+
     template bool apply_r6<BoolectorExpr, BoolectorExpr>(const std::shared_ptr<SMTFactory<BoolectorExpr, BoolectorExpr>>& solver,
                                                          const std::shared_ptr<arbac_policy>& policy,
                                                          const Expr& to_check,
                                                          const std::shared_ptr<rule>& to_check_source);
+
+    template bool apply_r6<msat_term, msat_term>(const std::shared_ptr<SMTFactory<msat_term, msat_term>>& solver,
+                                                 const std::shared_ptr<arbac_policy>& policy,
+                                                 const Expr& to_check,
+                                                 const std::shared_ptr<rule>& to_check_source);
 
 }

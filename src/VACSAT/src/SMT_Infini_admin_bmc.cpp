@@ -16,6 +16,7 @@
 #include "SMTSolvers/boolector.h"
 
 #include <chrono>
+#include <mathsat.h>
 
 // #include "Templated.h"
 // #include "dummy_esbmc.h"
@@ -1038,5 +1039,13 @@ namespace SMT {
                                                                    int steps,
                                                                    int rounds,
                                                                    int wanted_threads_count);
+
+    template bool apply_infini_admin<msat_term, msat_term>(const std::shared_ptr<SMTFactory<msat_term, msat_term>>& solver,
+                                                           const std::shared_ptr<arbac_policy>& policy,
+                                                           const Expr& query,
+                                                           const std::vector<std::shared_ptr<atom_status>>& atom_statuses,
+                                                           int steps,
+                                                           int rounds,
+                                                           int wanted_threads_count);
 
 }

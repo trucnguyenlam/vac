@@ -17,6 +17,7 @@
 
 #include <chrono>
 #include <stack>
+#include <mathsat.h>
 
 namespace SMT {
 
@@ -374,9 +375,9 @@ class OverapproxTransformer {
         }
 
         inline void emit_comment(const std::string& comment) {
-            //Working only in Z3
-            solver->assertNow(solver->createBoolVar(comment));
-            log->critical("Emitting comment...");
+//            //Working only in Z3
+//            solver->assertNow(solver->createBoolVar(comment));
+//            log->critical("Emitting comment...");
         }
 
         void push(Expr _target_expr, std::set<rulep> _target_rule, TExpr guard) {
@@ -920,13 +921,20 @@ class OverapproxTransformer {
                                              const std::shared_ptr<arbac_policy>& policy,
                                              const Expr& to_check,
                                              const std::set<rulep>& to_check_source);
+
     template bool overapprox<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>>& solver,
                                          const std::shared_ptr<arbac_policy>& policy,
                                          const Expr& to_check,
                                          const std::set<rulep>& to_check_source);
+
     template bool overapprox<BoolectorExpr, BoolectorExpr>(const std::shared_ptr<SMTFactory<BoolectorExpr, BoolectorExpr>>& solver,
                                                            const std::shared_ptr<arbac_policy>& policy,
                                                            const Expr& to_check,
                                                            const std::set<rulep>& to_check_source);
+
+    template bool overapprox<msat_term, msat_term>(const std::shared_ptr<SMTFactory<msat_term, msat_term>>& solver,
+                                                   const std::shared_ptr<arbac_policy>& policy,
+                                                   const Expr& to_check,
+                                                   const std::set<rulep>& to_check_source);
 
 }

@@ -218,7 +218,7 @@ static options parse_args(int ac, const char* const* av) {
 
     arg_obj<std::string> output_file = create_arg_obj_string("out,o", "Specify the output file");
     arg_obj<bool> old_inline = create_arg_obj_bool("inline", "Inline the program (lazycseq only)");
-    arg_obj<std::string> new_backend = create_arg_obj_string("backend,b", "yices", "SMT backend (Z3, YICES, BOOLECTOR)");
+    arg_obj<std::string> new_backend = create_arg_obj_string("backend,b", "yices", "SMT backend (Z3, YICES, BOOLECTOR, MATHSAT)");
     arg_obj<bool> old_parser = create_arg_obj_bool("old-parser,O", "Prune the policy using sat based approaches only");
     arg_obj<bool> new_prune_only = create_arg_obj_bool("prune-only,p", "Prune the policy using sat based approaches only");
     arg_obj<bool> new_reachability_only = create_arg_obj_bool("reachability-only,q", "Check reachability with bmc only");
