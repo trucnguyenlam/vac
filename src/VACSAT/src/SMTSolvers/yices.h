@@ -3,7 +3,7 @@
 
 #include "../SMT.h"
 #include <yices.h>
-#include <vector>
+#include <list>
 
 namespace SMT {
     class YicesSolver : public SMTFactory<term_t, term_t> {

@@ -1,4 +1,5 @@
 #include "yices.h"
+#include "../config.h"
 #include <stdexcept>
 #include <iostream>
 #include <sstream>
@@ -376,7 +377,7 @@ namespace SMT {
         fclose(out);
     }
     void YicesSolver::print_statistics() {
-        std::cout << "(:assertions\t" << to_be_asserted.size() << ")" << std::endl;
+        log->info("(:assertions\t{})", to_be_asserted.size());
     }
     // void YicesSolver::push() { 
     //     // loadToSolver();

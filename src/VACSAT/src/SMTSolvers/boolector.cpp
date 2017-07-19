@@ -252,6 +252,7 @@ namespace SMT {
     void BoolectorSolver::printContext(std::string filename) {
         FILE* out = fopen(filename.c_str(), "w");
         boolector_dump_smt2(context, out);
+        fclose(out);
     }
 
 }
