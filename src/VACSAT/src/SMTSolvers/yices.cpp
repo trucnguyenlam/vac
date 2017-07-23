@@ -31,9 +31,60 @@ namespace SMT {
         throw std::runtime_error(fmt.str());
     }
 
+    ctx_config_t* mk_config() {
+        int res_code = 0;
+        ctx_config_t* res = yices_new_config();
+        res_code = yices_default_config_for_logic(res, "QF_BV");
+        res_code = res_code < 0 ? res_code : yices_set_config(res, "mode", "one-shot");
+        res_code = res_code < 0 ? res_code : yices_set_config(res, "solver-type", "dpllt");
+        res_code = res_code < 0 ? res_code : yices_set_config(res, "uf-solver", "none");
+        res_code = res_code < 0 ? res_code : yices_set_config(res, "bv-solver", "default");
+        res_code = res_code < 0 ? res_code : yices_set_config(res, "array-solver", "none");
+        res_code = res_code < 0 ? res_code : yices_set_config(res, "arith-solver", "none");
+        if (res_code < 0) {
+            yices_print_error(stdout);
+            log->error("Got code < 1 in yices_set_config");
+            throw std::runtime_error("Got code < 1 in yices_set_config");
+        }
+        return res;
+    }
+
+    context_t* mk_context() {
+        int res_code = 0;
+        ctx_config_t* cfg = mk_config();
+        context_t* ctx = yices_new_context(cfg);
+        yices_free_config(cfg);
+        res_code = yices_context_enable_option(ctx, "var-elim");
+        res_code = res_code < 0 ? res_code : yices_context_enable_option(ctx, "flatten");
+        res_code = res_code < 0 ? res_code : yices_context_enable_option(ctx, "learn-eq");
+
+        res_code = res_code < 0 ? res_code : yices_context_disable_option(ctx, "keep-ite");
+//        : whether to eliminate term if-then-else or keep them as terms
+
+        res_code = res_code < 0 ? res_code : yices_context_disable_option(ctx, "arith-elim");
+        res_code = res_code < 0 ? res_code : yices_context_disable_option(ctx, "bvarith-elim");
+        res_code = res_code < 0 ? res_code : yices_context_disable_option(ctx, "eager-arith-lemmas");
+        res_code = res_code < 0 ? res_code : yices_context_disable_option(ctx, "break-symmetries");
+        res_code = res_code < 0 ? res_code : yices_context_disable_option(ctx, "assert-ite-bounds");
+//        : try to determine upper and lower bound on if-then-else
+//            *   terms and assert these bounds. For example, if term t is defined as
+//        *   (ite c 10 (ite d 3 20)), then the context with include the assertion
+//        *   3 <= t <= 20.
+
+        if (res_code < 0) {
+            log->error("Got code < 1 in yices_set_config");
+            throw std::runtime_error("Got code < 1 in yices_set_config");
+        }
+        return ctx;
+
+    }
+
+
     YicesSolver::YicesSolver() {
         yices_init();
-        context = yices_new_context(NULL);
+
+        context = mk_context();
+//        context = yices_new_context(NULL);
     }
     YicesSolver::~YicesSolver() {
         yices_exit();
@@ -350,14 +401,17 @@ namespace SMT {
     }
     void YicesSolver::clean() {
         yices_free_context(this->context);
-        this->context = yices_new_context(NULL);
+//        this->context = yices_new_context(NULL);
+        this->context = mk_context();
         this->to_be_asserted.clear();
         this->asserted.clear();
     }
     void YicesSolver::deep_clean() {
         yices_free_context(this->context);
-        this->context = yices_new_context(NULL);
+//        this->context = yices_new_context(NULL);
+        this->context = mk_context();
         yices_garbage_collect(NULL, 0, NULL, 0, 0);
+//        yices_reset();
         this->to_be_asserted.clear();
         this->asserted.clear();
     }
