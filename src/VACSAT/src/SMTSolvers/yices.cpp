@@ -409,9 +409,9 @@ namespace SMT {
     void YicesSolver::deep_clean() {
         yices_free_context(this->context);
 //        this->context = yices_new_context(NULL);
+        yices_reset();
         this->context = mk_context();
-        yices_garbage_collect(NULL, 0, NULL, 0, 0);
-//        yices_reset();
+//        yices_garbage_collect(NULL, 0, NULL, 0, 0);
         this->to_be_asserted.clear();
         this->asserted.clear();
     }
