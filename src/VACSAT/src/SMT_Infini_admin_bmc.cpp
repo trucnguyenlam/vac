@@ -843,12 +843,12 @@ namespace SMT {
         bool solve_program() const {
             auto start = std::chrono::high_resolution_clock::now();
 
-            SMTResult res = solver->solve();
-
             if (Config::dump_smt_formula != "") {
                 solver->printContext(Config::dump_smt_formula);
                 log->info("BMC SMT formula dumped at: {}", Config::dump_smt_formula);
             }
+
+            SMTResult res = solver->solve();
 
 //            auto end = std::chrono::high_resolution_clock::now();
 //            auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
