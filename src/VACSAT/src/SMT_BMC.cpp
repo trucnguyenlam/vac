@@ -405,6 +405,16 @@ namespace SMT {
             return res;
         }
 
+        // FUNCTION USED IF GLOBALS ARE NOT USED
+        TExpr generate_admin_disjunction(const Expr& cond) {
+            TExpr res = solver->createFalse();
+            for (int thread_id = 0; thread_id < locals.size(); ++thread_id) {
+                TExpr thread_cond = generateSMTFunction(solver, cond, locals[thread_id], "");
+                res = solver->createOrExpr(res, thread_cond);
+            }
+            return res;
+        }
+
         TExpr generate_rule_cond(int thread_id, const rulep& rule) {
             int j;
             // TExpr cond = -1;
@@ -413,6 +423,7 @@ namespace SMT {
             Expr globals_map_key = per_rule_admin_expr[rule->original_idx];
 
             TExpr admin_cond = globals_map[globals_map_key].get_solver_var();
+//            TExpr admin_cond = generate_admin_disjunction(rule->admin);
 
             // Precondition must be satisfied
             TExpr prec_cond = generate_from_prec(thread_id, rule->prec);
