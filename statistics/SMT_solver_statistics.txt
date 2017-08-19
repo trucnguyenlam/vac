@@ -1,0 +1,77 @@
+SAT (over):
+	mathsat (application): 0:09.31
+	mathsat (main): 0:18.31
+	mathsat (default): 0:35.31
+
+	boolector-lingeling (default): 0:14.75
+
+	stp-minisat (--disable-cbitp --disable-equality --disable-opt-inc): 0:15.92
+	stp-minisat (--disable-cbitp --disable-equality): 0:15.92
+	stp-minisat (default): 0:28.49
+	stp-minisat (default): 0:41.17
+	stp-cryptominisat (--disable-cbitp --disable-equality --disable-opt-inc): 0:16.08
+	stp-cryptominisat 4threads (--disable-cbitp --disable-equality --disable-opt-inc): 0:18.05
+
+	yices (default): 0:28.16
+
+	z3 (default): 1:01.27
+
+SAT (under parallel12 r30 s2):
+	mathsat (application): 0:48.28
+	mathsat (main): 0:47.60
+	mathsat (default): 0:44.29
+
+	boolector-lingeling (default): 1:41.91
+	boolector-picosat (default): 1:38.21
+	boolector-minisat (default): 2:21.72
+
+	stp (--disable-cbitp --disable-equality --disable-opt-inc): 2:25.08
+	stp (--disable-cbitp --disable-equality): 1:43.68
+	stp (default): 2:30.47
+	stp-minisat (--disable-cbitp --disable-equality --disable-opt-inc): 3:08.39
+	stp-minisat (--disable-cbitp --disable-equality): 2:58.71
+	stp-minisat (default): 1:00.22
+	stp-cryptominisat (--disable-cbitp --disable-equality --disable-opt-inc): 2:30.62
+	stp-cryptominisat (default): 2:29.65
+	stp-cryptominisat 4threads (--disable-cbitp --disable-equality --disable-opt-inc): 4:13.59
+	stp-cryptominisat 4threads (default): 3:28.71
+	stp-cryptominisat 4threads (default DaffyDuck): 2:38.67
+
+	yices (default): 0:04.54
+
+	z3 (default): 17:10.80
+
+
+UNSAT (under csf/S3 r20 s2):
+	mathsat (application): 0:15.93
+	mathsat (main): 0:18.40
+	mathsat (default): 0:15.72
+
+	boolector-lingeling (default): 0:44.15
+
+	stp-minisat (--disable-cbitp --disable-equality --disable-opt-inc): 0:30.37
+	stp-minisat (--disable-cbitp --disable-equality): 0:38.09
+	stp-minisat (default): 0:37.00
+	stp-cryptominisat (--disable-cbitp --disable-equality --disable-opt-inc): 0:23.80
+	stp-cryptominisat 4threads (--disable-cbitp --disable-equality --disable-opt-inc): 0:29.96
+	stp-cryptominisat 4threads (--disable-cbitp --disable-equality --disable-opt-inc): 0:43.80
+
+	yices (default): 0:03.07
+
+	z3 (default): 0:11.79
+
+SAT (over bank4 d3):
+	boolector (default): 0:28.66
+	mathsat (default): 
+	mathsat (smtcomp-main): 0:40.61
+	stp (default): 2:56.77
+	stp (--disable-cbitp --disable-equality --disable-opt-inc): 2:20.77
+	stp-minisat (default): 1:05.87
+	stp-minisat (--disable-cbitp --disable-equality --disable-opt-inc): 0:26.77
+	stp-cryptominisat (default): 2:46.85
+	stp-cryptominisat (--disable-cbitp --disable-equality --disable-opt-inc): 2:41.82
+	stp-cryptominisat (30 threads) (default): 5:11.03
+	stp-cryptominisat (30 threads) (--disable-cbitp --disable-equality --disable-opt-inc): 5:13.88
+	yices (default): 0:52.20
+	yices-smtcomp2017 (default): 0:50.00
+	z3 (default): 0:43.32
