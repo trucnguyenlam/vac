@@ -436,7 +436,7 @@ int main(int argc, const char * const *argv) {
             throw std::runtime_error("update-model option is incompatible with prune-only, reachability-only, and show-statistics.");
         } else if (config.update_model) {
             an_ty = SMT::UPDATE_MODEL;
-        } else if (config.new_prune_only) {
+        } else if (config.new_prune_only && !config.show_statistics) {
             an_ty = SMT::PRUNE_ONLY;
         } else if (config.new_reachability_only) {
             an_ty = SMT::BMC_ONLY;
