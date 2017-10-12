@@ -1,8 +1,10 @@
 #include "Parser.h"
 #include <algorithm>
-/**
- * TODO: improve ParserError
- */
+
+// TODO:
+//
+// ChangeLog
+//    2017.10.12  Change grammar of init rule
 
 using namespace Parser;
 
@@ -116,9 +118,9 @@ void HandParser::attr_element(void) {
 }
 
 void HandParser::r_init(void) {
-    do {
+    while (check(LEFTTUPLE)) {
         init_element();
-    } while (check(LEFTTUPLE));
+    }
     checkConsume(SEMI, "Line " + std::to_string(peek()->getLine()) + ": expect ;.");
 }
 
@@ -404,18 +406,33 @@ bool HandParser::match(TokenType type) {
 //     return false;
 // }
 
-
+/**
+ * Check type of token and return the next token
+ * @param
+ * @param
+ * @return
+ */
 Token* HandParser::consume(TokenType type, std::string message) {
     if (check(type)) return advance();
     throw ParserError(message);
 }
 
+/**
+ * Check type of this token and consume it
+ * @param
+ * @param
+ */
 void HandParser::checkConsume(TokenType type, std::string message) {
     if (check(type)) {advance(); return;}
     throw ParserError(message);
 }
 
 
+/**
+ * Only check the type of this token
+ * @param
+ * @return
+ */
 bool HandParser::check(TokenType type) {
     if (isAtEnd()) return false;
     return peek()->getType() == type;
@@ -431,7 +448,10 @@ Token * HandParser::previous(void) const {
     return tokens.at(current - 1);
 }
 
-
+/**
+ * Move to next token
+ * @return
+ */
 Token * HandParser::advance(void) {
     if (!isAtEnd()) current++;
     return previous();

@@ -4,6 +4,10 @@
 #include "Tokens.h"
 #include <exception>
 
+// ChangeLog
+//    2017.10.12  Change grammar of init rule
+
+
 /*
 grammar vacgrammar;
 
@@ -36,7 +40,7 @@ attr_element
     ;
 
 r_init
-    :   INIT init_element+ SEMI
+    :   INIT init_element* SEMI
     ;
 
 init_element
