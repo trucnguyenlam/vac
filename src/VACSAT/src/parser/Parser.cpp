@@ -296,7 +296,6 @@ Expr HandParser::conditionalExpression(std::map<std::string, int>& luser_map, in
     Expr _cond = implyExpression(luser_map, const_size);
     if (match(QUESTION)) {
         // std::cout << "DEBUG: got conditionalExpression" << std::endl;
-
         Expr _choice1 = expression(luser_map, const_size);
         checkConsume(COLON, "Line " + std::to_string(peek()->getLine()) + ": expect :.");
         Expr _choice2 = expression(luser_map, const_size);
@@ -460,7 +459,4 @@ Token * HandParser::advance(void) {
 
 Token * HandParser::peek(void) const {
     return tokens.at(current);
-
 }
-
-
