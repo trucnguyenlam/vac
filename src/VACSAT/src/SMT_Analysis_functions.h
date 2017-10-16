@@ -26,10 +26,9 @@ namespace SMT {
                     const std::set<rulep>& to_check_source);
 
     template <typename TVar, typename TExpr>
-    bool overapprox_multi(const std::shared_ptr<SMT::SMTFactory<TVar, TExpr>>& solver,
-                          const std::shared_ptr<arbac_policy>& policy,
-                          const Expr& to_check,
-                          const std::set<rulep>& to_check_source);
+    bool extended_overapprox(const std::shared_ptr<SMT::SMTFactory<TVar, TExpr>>& solver,
+                             const std::shared_ptr<arbac_policy>& policy,
+                             const Expr& to_check);
 
 }
 
