@@ -87,6 +87,11 @@ namespace SMT {
         return ret;
     }
 
+    BoolectorExpr BoolectorSolver::createXorExpr(BoolectorExpr lhs, BoolectorExpr rhs) {
+        BoolectorExpr ret = boolector_xor(context, lhs, rhs);
+        return ret;
+    }
+
     BoolectorExpr BoolectorSolver::createAndExpr(BoolectorExpr lhs, BoolectorExpr rhs) {
         BoolectorExpr ret = boolector_and(context, lhs, rhs);
         return ret;

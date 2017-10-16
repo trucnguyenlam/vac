@@ -31,6 +31,7 @@ namespace SMT {
         msat_term createTrue() override;
         msat_term createFalse() override;
         msat_term createOrExpr(msat_term lhs, msat_term rhs) override;
+        msat_term createXorExpr(msat_term lhs, msat_term rhs) override;
         msat_term createAndExpr(msat_term lhs, msat_term rhs) override;
         msat_term createNotExpr(msat_term expr) override;
         msat_term createCondExpr(msat_term cond, msat_term choice1, msat_term choice2) override;

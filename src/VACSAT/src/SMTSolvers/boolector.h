@@ -34,6 +34,7 @@ namespace SMT {
         BoolectorExpr createTrue() override;
         BoolectorExpr createFalse() override;
         BoolectorExpr createOrExpr(BoolectorExpr lhs, BoolectorExpr rhs) override;
+        BoolectorExpr createXorExpr(BoolectorExpr lhs, BoolectorExpr rhs) override;
         BoolectorExpr createAndExpr(BoolectorExpr lhs, BoolectorExpr rhs) override;
         BoolectorExpr createNotExpr(BoolectorExpr expr) override;
         BoolectorExpr createCondExpr(BoolectorExpr cond, BoolectorExpr choice1, BoolectorExpr choice2) override;

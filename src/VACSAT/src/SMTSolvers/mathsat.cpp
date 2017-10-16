@@ -137,6 +137,14 @@ namespace SMT {
         }
         return res;
     }
+    msat_term MathsatSolver::createXorExpr(msat_term lhs, msat_term rhs) {
+        //FIXME: check this, or use the logic circuit for XOR
+        msat_term res = msat_make_bv_xor(context, lhs, rhs);
+        if (MSAT_ERROR_TERM(res)) {
+            mathsat_fail("Invalid term in MathsatSolver::createOrExpr...");
+        }
+        return res;
+    }
     msat_term MathsatSolver::createAndExpr(msat_term lhs, msat_term rhs) {
         msat_term res = msat_make_and(context, lhs, rhs);
         if (MSAT_ERROR_TERM(res)) {

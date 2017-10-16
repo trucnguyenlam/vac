@@ -43,6 +43,7 @@ namespace SMT {
         virtual TExpr createTrue() = 0;
         virtual TExpr createFalse() = 0;
         virtual TExpr createOrExpr(TExpr lhs, TExpr rhs) = 0;
+        virtual TExpr createXorExpr(TExpr lhs, TExpr rhs) = 0;
         virtual TExpr createAndExpr(TExpr lhs, TExpr rhs) = 0;
         virtual TExpr createNotExpr(TExpr expr) = 0;
         virtual TExpr createCondExpr(TExpr cond, TExpr choice1, TExpr choice2) = 0;

@@ -95,6 +95,11 @@ namespace SMT {
         expr res =  lhs || rhs;
         return res;
     }
+    expr Z3Solver::createXorExpr(expr lhs, expr rhs) {
+        //FIXME: check this, or use the logic circuit for XOR
+        expr res = lhs ^ rhs;
+        return res;
+    }
     expr Z3Solver::createAndExpr(expr lhs, expr rhs) {
         expr res = lhs && rhs;
         return res;

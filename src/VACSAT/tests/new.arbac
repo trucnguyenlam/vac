@@ -1,23 +1,19 @@
 USERS
 user0
-user1
-user2
 ;
 
 ATTRIBUTES
 ra[1]
 rt[1]
-rb[1]
 ;
 
 INIT
 <user0: ra=0, rt=0>
-<user1: ra=0, rt=0>
-<user2: ra=0, rt=0>
 ;
 
 RULES
-<1, (t.ra=1 & t.rt=1) | (t.rb=1&t.rt=0): t.rt=1>
+<1, (t.ra=1): t.rt=1>
+<1, 1: t.ra=1>
 ;
 
 QUERY

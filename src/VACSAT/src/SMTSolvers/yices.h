@@ -27,6 +27,7 @@ namespace SMT {
         term_t createTrue() override;
         term_t createFalse() override;
         term_t createOrExpr(term_t lhs, term_t rhs) override;
+        term_t createXorExpr(term_t lhs, term_t rhs) override;
         term_t createAndExpr(term_t lhs, term_t rhs) override;
         term_t createNotExpr(term_t expr) override;
         term_t createCondExpr(term_t cond, term_t choice1, term_t choice2) override;

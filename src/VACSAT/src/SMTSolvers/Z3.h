@@ -34,6 +34,7 @@ namespace SMT {
         expr createTrue() override;
         expr createFalse() override;
         expr createOrExpr(expr lhs, expr rhs) override;
+        expr createXorExpr(expr lhs, expr rhs) override;
         expr createAndExpr(expr lhs, expr rhs) override;
         expr createNotExpr(expr _expr) override;
         expr createCondExpr(expr cond, expr choice1, expr choice2) override;

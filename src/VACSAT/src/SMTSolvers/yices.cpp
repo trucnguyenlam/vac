@@ -154,6 +154,16 @@ namespace SMT {
         }
         return res;
     }
+    term_t YicesSolver::createXorExpr(term_t lhs, term_t rhs) {
+        term_t res = yices_xor2(lhs, rhs);
+        if (res < 0) {
+            std::list<term_t> parts;
+            parts.push_back(lhs);
+            parts.push_back(rhs);
+            yices_fail("YicesSolver::createOrExpr", parts);
+        }
+        return res;
+    }
     term_t YicesSolver::createAndExpr(term_t lhs, term_t rhs) {
         term_t res = yices_and2(lhs, rhs);
         if (res < 0) {
