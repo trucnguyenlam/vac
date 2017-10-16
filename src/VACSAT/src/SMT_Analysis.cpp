@@ -55,7 +55,9 @@ namespace SMT {
 //#ifndef NDEBUG
 //        bool over_result = overapprox_multi(solver, policy, to_check, std::set<rulep>(assigning_target.begin(), assigning_target.end()));
 //#else
-        bool over_result = overapprox(solver, policy, to_check, std::set<rulep>(assigning_target.begin(), assigning_target.end()));
+        bool over_result = overapprox(solver, policy, createEqExpr(createLiteralp(policy->goal_role), createConstantTrue()), std::set<rulep>(assigning_target.begin(), assigning_target.end()));
+//        bool over_result = extended_overapprox(solver, policy, createEqExpr(createLiteralp(policy->goal_role), createConstantTrue()));
+//        bool over_result = extended_overapprox(solver, policy, to_check); //, std::set<rulep>(assigning_target.begin(), assigning_target.end()));
 //#endif
         if (!over_result) {
             return false;
