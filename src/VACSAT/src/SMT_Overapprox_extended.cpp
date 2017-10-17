@@ -57,6 +57,7 @@ class ExtendedOverapproxTransformer {
 
         variable program_counter;
         variable skip;
+        variable update_guard;
         variable nondet_bool;
 
         variables() = default;
@@ -72,6 +73,7 @@ class ExtendedOverapproxTransformer {
             skip = variable("skip", 0, 1, solver, BOOLEAN);
 
             guard = variable("guard", 0, 1, solver, BOOLEAN);
+            update_guard = variable("update_guard", 0, 1, solver, BOOLEAN);
 
             for (int i = 0; i < policy->atom_count(); i++) {
                 if (tracked_roles[i]) {
@@ -335,8 +337,8 @@ class ExtendedOverapproxTransformer {
                                                                    _false);
                     solver->assertLater(init_role_changed);
 
-                    TExpr init_core_sets = solver->createEqExpr(state.core_sets[i].get_solver_var(), _false);
-                    solver->assertLater(init_core_sets);
+                    TExpr init_role_sets = solver->createEqExpr(state.role_sets[i].get_solver_var(), _false);
+                    solver->assertLater(init_role_sets);
                 }
             }
 
@@ -344,6 +346,8 @@ class ExtendedOverapproxTransformer {
             solver->assertLater(init_skip);
             TExpr init_guard = solver->createEqExpr(state.guard.get_solver_var(), _true);
             solver->assertLater(init_guard);
+            TExpr init_update_guard = solver->createEqExpr(state.update_guard.get_solver_var(), _true);
+            solver->assertLater(init_update_guard);
         }
 
     public:
@@ -362,13 +366,13 @@ class ExtendedOverapproxTransformer {
 //                target_rules(std::set<rulep>()),
                 target_expr(nullptr),
                 tracked_roles(std::get<0>(tracked_and_pc)),
-//                core_roles((ulong) policy->atom_count()),
+//                role_roles((ulong) policy->atom_count()),
                 tracked_roles_count(std::get<1>(tracked_and_pc)),
-//                core_roles_count(0),
+//                role_roles_count(0),
                 pc_size(std::get<2>(tracked_and_pc)),
                 deep(_deep) {
 //            for (int i = 0; i < policy->atom_count(); ++i) {
-//                core_roles[i] = false;
+//                role_roles[i] = false;
 //            }
             internal_init();
         }
@@ -393,6 +397,11 @@ class ExtendedOverapproxTransformer {
                 solver->assertNow(solver->createBoolVar(comment));
                 log->critical("Emitting comment...");
             }
+        }
+
+        inline variable create_get_nondet_bool_var() {
+            state.nondet_bool = state.nondet_bool.createFrom();
+            return state.nondet_bool;
         }
 
         void push(Expr _target_expr, /*std::set<rulep> _target_rule, */TExpr guard) {
@@ -507,7 +516,7 @@ class ExtendedOverapproxTransformer {
 //        fprintf(stdout, "*  %s\n", ctime(&mytime));
 //        fprintf(stdout, "*\n");
 //        fprintf(stdout, "*  params:\n");
-//        fprintf(stdout, "*    %s, --rounds %d\n", inputFile, core_roles_count + 1);
+//        fprintf(stdout, "*    %s, --rounds %d\n", inputFile, role_roles_count + 1);
 //        fprintf(stdout, "* MERGE_RULES\n");
 //        fprintf(stdout, "*\n");
 //        fprintf(stdout, "*  users: %d\n", (int)policy->users().size());
@@ -538,9 +547,9 @@ class ExtendedOverapproxTransformer {
 //
 ////        for (int i = 0; i < policy->atom_count(); i++) {
 ////            // fprintf(outputFile, "/*---------- SET CHECKS = 1 ---------*/\n");
-////            emit_assignment(state.state.core_sets[i], zero);
-////            emit_assignment(state.state.core_value_true[i], zero);
-////            emit_assignment(state.state.core_value_false[i], zero);
+////            emit_assignment(state.state.role_sets[i], zero);
+////            emit_assignment(state.state.role_value_true[i], zero);
+////            emit_assignment(state.state.role_value_false[i], zero);
 ////        }
 //    }
 
@@ -621,17 +630,17 @@ class ExtendedOverapproxTransformer {
             }
         }
 
-        if (state.deep > 0) {
-//            log->warn("pushing rule {} with depth {}", *ca_expr, state.deep);
-            state.push(ca_expr/*, state.target_rules*/, if_prelude);
-            generate_main();
-            state.pop();
-        }
+//        if (state.deep > 0) {
+////            log->warn("pushing rule {} with depth {}", *ca_expr, state.deep);
+//            state.push(ca_expr/*, state.target_rules*/, if_prelude);
+//            generate_main();
+//            state.pop();
+//        }
         TExpr ca_guards = generate_CA_cond(ca_expr);
 
         // This user is not in this target role yet
         // fprintf(outputFile, "        /* Role not SET yet */\n");
-        TExpr not_set = solver->createNotExpr(state.state.core_sets[target_role->role_array_index].get_solver_var());
+        TExpr not_set = solver->createNotExpr(state.state.role_sets[target_role->role_array_index].get_solver_var());
         TExpr cond = solver->createAndExpr(solver->createAndExpr(if_prelude, ca_guards), not_set);
         return cond;
     }
@@ -657,19 +666,19 @@ class ExtendedOverapproxTransformer {
             }
         }
 
-        if (state.deep > 0) {
-//            log->warn("pushing rule {} with depth {}", *cr_expr, state.deep);
-            state.push(cr_expr, /*state.target_rules,*/ if_prelude);
-            generate_main();
-            state.pop();
-        }
+//        if (state.deep > 0) {
+////            log->warn("pushing rule {} with depth {}", *cr_expr, state.deep);
+//            state.push(cr_expr, /*state.target_rules,*/ if_prelude);
+//            generate_main();
+//            state.pop();
+//        }
 
         TExpr cr_guards = generate_CR_cond(cr_expr);
 
 
         // This user is not in this target role yet
         // fprintf(outputFile, "        /* Role not SET yet */\n");
-        TExpr not_set = solver->createNotExpr(state.state.core_sets[target_role->role_array_index].get_solver_var());
+        TExpr not_set = solver->createNotExpr(state.state.role_sets[target_role->role_array_index].get_solver_var());
         TExpr cond = solver->createAndExpr(solver->createAndExpr(if_prelude, cr_guards), not_set);
         return cond;
     }
@@ -681,19 +690,19 @@ class ExtendedOverapproxTransformer {
         int target_role_index = target_role->role_array_index;
 
         TExpr new_role_val = solver->createCondExpr(cond, one, state.state.role_vars[target_role_index].get_solver_var());
-        TExpr new_set_val = solver->createCondExpr(cond, one, state.state.core_sets[target_role_index].get_solver_var());
+        TExpr new_set_val = solver->createCondExpr(cond, one, state.state.role_sets[target_role_index].get_solver_var());
 
 
-        // fprintf(outputFile, "            core_%s = 1;\n", role_array[target_role_index]);
+        // fprintf(outputFile, "            role_%s = 1;\n", role_array[target_role_index]);
         variable new_role_var = state.state.role_vars[target_role_index].createFrom();
         emit_assignment(new_role_var, new_role_val);
         state.state.role_vars[target_role_index] = new_role_var;
 
 
         // fprintf(outputFile, "            set_%s = 1;\n", role_array[target_role_index]);
-        variable new_set_var = state.state.core_sets[target_role_index].createFrom();
+        variable new_set_var = state.state.role_sets[target_role_index].createFrom();
         emit_assignment(new_set_var, new_set_val);
-        state.state.core_sets[target_role_index] = new_set_var;
+        state.state.role_sets[target_role_index] = new_set_var;
     }
 
     void simulate_can_revokes_by_role(const atomp& target_role, int label_index) {
@@ -703,18 +712,18 @@ class ExtendedOverapproxTransformer {
         int target_role_index = target_role->role_array_index;
 
         TExpr new_role_val = solver->createCondExpr(cond, zero, state.state.role_vars[target_role_index].get_solver_var());
-        TExpr new_set_val = solver->createCondExpr(cond, one, state.state.core_sets[target_role_index].get_solver_var());
+        TExpr new_set_val = solver->createCondExpr(cond, one, state.state.role_sets[target_role_index].get_solver_var());
 
 
-        // fprintf(outputFile, "            core_%s = 0;\n", role_array[target_role_index]);
+        // fprintf(outputFile, "            role_%s = 0;\n", role_array[target_role_index]);
         variable new_role_var = state.state.role_vars[target_role_index].createFrom();
         emit_assignment(new_role_var, new_role_val);
         state.state.role_vars[target_role_index] = new_role_var;
 
         // fprintf(outputFile, "            set_%s = 1;\n", role_array[target_role_index]);
-        variable new_set_var = state.state.core_sets[target_role_index].createFrom();
+        variable new_set_var = state.state.role_sets[target_role_index].createFrom();
         emit_assignment(new_set_var, new_set_val);
-        state.state.core_sets[target_role_index] = new_set_var;
+        state.state.role_sets[target_role_index] = new_set_var;
     }
 
     void simulate_skip(int label_index) {
@@ -733,7 +742,8 @@ class ExtendedOverapproxTransformer {
     }
 
     TExpr generate_check_implication(int role_index, const variable& init_r_i_var) {
-        //((core_r_i != init_r_i) \/ ((set_false_r_i /\ init_r_i = 1) \/ (set_true_r_i /\ init_r_i = 0)) ==> set_r_i))
+        //(changeed_r_i ==> set_r_i)
+        ////((role_r_i != init_r_i) \/ ((set_false_r_i /\ init_r_i = 1) \/ (set_true_r_i /\ init_r_i = 0)) ==> set_r_i))
 //        TExpr init_r_i = zero;
 //        for (auto &&atom : user->config()) {
 //            if (atom->role_array_index == role_index) {
@@ -745,22 +755,21 @@ class ExtendedOverapproxTransformer {
         TExpr init_r_i = init_r_i_var.get_solver_var();
 
         TVar role_var = state.state.role_vars[role_index].get_solver_var();
-        TVar role_set = state.state.core_sets[role_index].get_solver_var();
-        TVar set_false_r_i = state.state.core_value_false[role_index].get_solver_var();
-        TVar set_true_r_i = state.state.core_value_true[role_index].get_solver_var();
+        TVar role_set = state.state.role_sets[role_index].get_solver_var();
+        TVar role_changed = state.state.role_changed[role_index].get_solver_var();
 
-        TExpr impl_prec =
-            solver->createOrExpr(
-                solver->createNotExpr(solver->createEqExpr(role_var, init_r_i)),
-                solver->createOrExpr(
-                    solver->createAndExpr(set_false_r_i, solver->createEqExpr(init_r_i, one)),
-                    solver->createAndExpr(set_true_r_i, solver->createEqExpr(init_r_i, zero))
-                ));
+//        TExpr impl_prec =
+//            solver->createOrExpr(
+//                solver->createNotExpr(solver->createEqExpr(role_var, init_r_i)),
+//                solver->createOrExpr(
+//                    solver->createAndExpr(set_false_r_i, solver->createEqExpr(init_r_i, one)),
+//                    solver->createAndExpr(set_true_r_i, solver->createEqExpr(init_r_i, zero))
+//                ));
 
-        TExpr cond = solver->createImplExpr(impl_prec,
+        TExpr cond = solver->createImplExpr(role_changed,
                                             role_set);
 
-        // fprintf(outputFile, "((core_%s != %d) => set_%s))", role, init_r_i, role);
+        // fprintf(outputFile, "((role_%s != %d) => set_%s))", role, init_r_i, role);
         return cond;
     }
 
@@ -776,11 +785,11 @@ class ExtendedOverapproxTransformer {
 
         int user_id = 0;
         //          /\
-        // assume( /  \          ((core_r_i != init_r_i) \/ ((set_false_r_i /\ init_r_i = 1) \/ (set_true_r_i /\ init_r_i = 0)) => set_r_i))
-        //        r_i \in \phi
+        // assume( /  \          (changed_r_i ==> set_r_i)
+        //        r_i \in Track
         // fprintf(outputFile, "//          /\\\n");
-        // fprintf(outputFile, "// assume( /  \\          ((core_r_i != init_r_i) \\/ ((set_false_r_i /\\ init_r_i = 1) \\/ (set_true_r_i /\\ init_r_i = 0)) => set_r_i)))";
-        // fprintf(outputFile, "//        r_i \\in \\phi\n");
+        // fprintf(outputFile, "// assume( /  \\          (changed_r_i ==> set_r_i)\n";
+        // fprintf(outputFile, "//        r_i \\in Track\n");
         TExpr impl_assumption = zero;
 //        for (auto &&user : policy->unique_configurations()) {
             TExpr inner_and = one;
@@ -803,64 +812,101 @@ class ExtendedOverapproxTransformer {
         state.state.program_counter = state.state.program_counter.createFrom();
     }
 
-    void assign_constrained_value(atomp atom) {
+    void update_constrained_value(const atomp& atom) {
+        /*
+         * if (!set(r) && *) { //Do update iff exists at least a ca and a cr
+         *      r = *
+         *      changed = true
+         * }
+         * */
 
+        emit_comment("updating role " + atom->name);
 
+        if (policy->per_role_can_assign_rule(atom).empty() &&
+            policy->per_role_can_revoke_rule(atom).empty()) {
+            // Cannot be changed
+            emit_comment("role " + atom->name + " cannot be changed");
+            return;
+        }
 
-        // COULD BE REMOVED
-        state.state.nondet_bool = state.state.nondet_bool.createFrom();
+        variable role_var = state.state.role_vars[atom->role_array_index];
+        variable new_role_var = state.state.role_vars[atom->role_array_index].createFrom();
 
-        TExpr new_val = solver->createCondExpr(state.state.core_sets[i].get_solver_var(),
-                                               state.state.role_vars[i].get_solver_var(),
-                                               state.state.nondet_bool.get_solver_var());
-        emit_assignment(new_role_value, new_val);
+        variable update_guard_var = state.state.update_guard.createFrom();
+        state.state.update_guard = update_guard_var;
+        variable do_update = state.create_get_nondet_bool_var();
+        TExpr update_guard = solver->createAndExpr(role_var.get_solver_var(),
+                                                   do_update.get_solver_var());
 
-        state.state.role_vars[i] = new_role_value;
+        TExpr updated_value = state.create_get_nondet_bool_var().get_solver_var();
 
-        if (policy->per_role_can_assign_rule(atom).)
-        state.state.nondet_bool
+        //Variable has really changed
+        TExpr constraints = solver->createNotExpr(solver->createEqExpr(role_var.get_solver_var(),
+                                                                       updated_value));
+
+        // Updated value can be TRUE if |CA(r)| > 0
+        // Take the negation: if |CA(r)| = 0 then updated value cannot be TRUE (this works only if it must be changed)
+        if (policy->per_role_can_assign_rule(atom).empty()) {
+            constraints = solver->createAndExpr(constraints,
+                                                solver->createNotExpr(solver->createEqExpr(updated_value,
+                                                                                           one)));
+        }
+        // Updated value can be FALSE if |CR(r)| > 0
+        // Take the negation: if |CR(r)| = 0 then updated value cannot be FALSE (this works only if it must be changed)
+        if (policy->per_role_can_revoke_rule(atom).empty()) {
+            constraints = solver->createAndExpr(constraints,
+                                                solver->createNotExpr(solver->createEqExpr(updated_value,
+                                                                                           zero)));
+        }
+
+        //assert the constraint guarded by the fact the update must take place
+        // TODO: consider using XOR
+        emit_assumption(solver->createImplExpr(update_guard, constraints));
+
+        // Perform update guarded by "update_guard"
+        // on role_value
+        TExpr new_val = solver->createCondExpr(update_guard,
+                                               updated_value,
+                                               role_var.get_solver_var());
+        emit_assignment(new_role_var, new_val);
+        state.state.role_vars[atom->role_array_index] = new_role_var;
+
+        // on role_changed
+        variable old_changed_var = state.state.role_changed[atom->role_array_index];
+        variable new_changed_var = state.state.role_changed[atom->role_array_index].createFrom();
+        TExpr new_changed = solver->createCondExpr(update_guard,
+                                                   one,
+                                                   old_changed_var.get_solver_var());
+        emit_assignment(new_changed_var, new_changed);
+        state.state.role_changed[atom->role_array_index] = new_changed_var;
+
+        emit_comment("role " + atom->name + " updated");
     }
 
     void generate_update_state() {
         // IF NOT IN BASE CASE DO NOT GENERATE INITIALIZATION
+        emit_comment("Start updating phase");
         if (state.deep > 0) {
             //FIXME: put here recursion!
+//            state.push(createConstantTrue(), );
+//            generate_main();
+//            state.pop();
         }
         // fprintf(outputFile, "    /*---------- UPDATE STATE ---------*/\n");
         for (int i = 0; i < policy->atom_count(); i++) {
             if (state.tracked_roles[i]) {
                 atomp atom = policy->atoms(i);
-                if (policy->per_role_can_assign_rule(atom).empty() &&
-                    policy->per_role_can_revoke_rule(atom).empty()) {
-                    // cannot change atom value
-                    continue;
-                } else {
-                    // atom can be changed
-                    variable old_role_value = state.state.role_vars[i];
-                    variable new_role_value = state.state.role_vars[i].createFrom();
-                    if (policy->per_role_can_assign_rule(atom).empty()) {
-                        // atom can be only set to 0
+                update_constrained_value(atom);
 
-                    }
-                }
-
-                assign_constrained_value(policy->atoms(i));
-
-                // UPDATE ROLE_CHANGED
-                variable new_role_changed = state.state.role_changed[i].createFrom();
-                TExpr new_role_changed_val = solver->createOrExpr(state.state.role_changed[i],
-                                                                  solver->createNotExpr(solver->createEqExpr(old_role_value,
-                                                                                                             new_role_value)));
-                emit_assignment(new_role_changed, new_role_changed_val);
-                state.state.role_changed[i] = new_role_changed;
-
-                // fprintf(outputFile, "    core_%s = set_%s ? core_%s : nondet_bool();\n", role, role, role);
+                // fprintf(outputFile, "    role_%s = set_%s ? role_%s : nondet_bool();\n", role, role, role);
             }
 //            else {
 //                variable nvar = state.state.role_vars[i].createFrom();
 //                state.state.role_vars[i] = nvar;
 //            }
         }
+
+        emit_comment("End updating phase");
         // fprintf(outputFile, "    __cs_pc = nondet_bv();\n");
 
     }
@@ -870,12 +916,15 @@ class ExtendedOverapproxTransformer {
         // fprintf(outputFile, "    /*---------- UPDATE ---------*/\n");
         generate_pc_update();
 
+        //TODO: everything can be guarded by (!skip)
+
         generate_update_state();
 
 
         // fprintf(outputFile, "    /*---------- CAN ASSIGN SIMULATION ---------*/\n");
         for (auto &&atom :policy->atoms()) {
-            if (state.tracked_roles[atom->role_array_index] && policy->per_role_can_assign_rule(atom).size() > 0) {
+            if (state.tracked_roles[atom->role_array_index] &&
+                policy->per_role_can_assign_rule(atom).size() > 0) {
 //                int exclude = target_rule->is_ca ? exclude_idx : -1;
                 simulate_can_assigns_by_role(atom, label_idx++);
             }
@@ -886,7 +935,8 @@ class ExtendedOverapproxTransformer {
         // fprintf(outputFile, "    /*---------- CAN REVOKE SIMULATION ---------*/\n");
         for (auto &&atom :policy->atoms()) {
             // printf("CR idx: %d, role: %s: count: %d\n", i, role_array[i], roles_cr_counts[i]);
-            if (state.tracked_roles[atom->role_array_index] && policy->per_role_can_revoke_rule(atom).size() > 0) {
+            if (state.tracked_roles[atom->role_array_index] &&
+                policy->per_role_can_revoke_rule(atom).size() > 0) {
 //                int exclude = !excluded_is_ca ? exclude_idx : -1;
                 simulate_can_revokes_by_role(atom, label_idx++);
             }
