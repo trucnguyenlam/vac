@@ -1247,6 +1247,14 @@ namespace z3 {
 
     inline expr operator~(expr const & a) { Z3_ast r = Z3_mk_bvnot(a.ctx(), a); return expr(a.ctx(), r); }
 
+    inline expr z3_xor(expr const & a, expr const & b) { // ADDED BY ENRICO STEFFINLONGO
+        check_context(a, b);
+        assert(a.is_bool() && b.is_bool());
+        Z3_ast r = Z3_mk_xor(a.ctx(), a, b);
+        a.check_error();
+        return expr(a.ctx(), r);
+    }
+
 
 
 
