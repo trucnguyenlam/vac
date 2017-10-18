@@ -3,12 +3,12 @@ Roles r0 r1 r2 r3 rt rs ;
 Users u1;
 
 UA
+    <u1, r0>
+
 
     ;
 
 CR
-    <r0, r1>
-    <r0, r2>
     <r0, r3>
     <r0, rs>
     ;
@@ -19,9 +19,8 @@ CA
 
     <r0, r1&r2, r3>
 
-    <r0, r3, rs>
 
-    <r0, rs&-r3, rt>
+    <r0, r3&-r1&-r2, rt>
 
 
 	;

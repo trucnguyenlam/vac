@@ -88,6 +88,16 @@ namespace SMT {
             final_assertions.push_back(assertion);
         }
 
+        inline void emit_comment(const std::string& comment) {
+            //Working automatically and only in Z3
+            if (std::is_same<z3::expr, TExpr>::value) {
+                if (Config::dump_smt_formula == "")
+                    return;
+                solver->assertNow(solver->createBoolVar(comment));
+                log->critical("Emitting comment... {}", comment);
+            }
+        }
+
         /* ANALYSIS INFOS */
         int get_pc_count() const {
             int n = 0;
@@ -131,10 +141,6 @@ namespace SMT {
 
             pc_size = get_pc_count();
             thread_pc_size = bits_count(threads_count);
-        }
-
-        void emitComment(const std::string& comment) {
-            // ssa_prog.addComment(createComment(comment));
         }
 
         bool equivalent_exprs(const Expr& e1, const Expr& e2) {
@@ -256,7 +262,7 @@ namespace SMT {
         }
 
         void generate_globals() {
-            emitComment("---------- INIT GLOBAL VARIABLES ---------");
+            emit_comment("---------- INIT GLOBAL VARIABLES ---------");
             for (auto &&global_pair : globals_map) {
                 Expr adm_expr = global_pair.first;
                 variable global_var = global_pair.second;
@@ -264,9 +270,13 @@ namespace SMT {
                 for (auto &&user : policy->unique_configurations()) {
                     std::vector<std::shared_ptr<TVar>> var_vect = user_to_lookup_vect(user);
                     TExpr sadm_expr = generateSMTFunction(solver, adm_expr, var_vect, user->name);
-                    //FIXME: added just for debug purposes
-                    TVar user_name = solver->createBoolVar(user->name);
-                    TExpr final_expr = solver->createAndExpr(user_name, sadm_expr);
+
+                    TExpr final_expr = sadm_expr;
+                    if (Config::dump_smt_formula != "") {
+                        //FIXME: add user->name just for debug purposes
+                        TVar user_name = solver->createBoolVar(user->name);
+                        final_expr = solver->createAndExpr(user_name, sadm_expr);
+                    }
                     global_value = solver->createOrExpr(global_value, final_expr);
                 }
 
@@ -280,7 +290,7 @@ namespace SMT {
         void generate_thread_locals(int thread_id) {
             clean_fmt();
             fmt << "---------- THREAD " << thread_id << " LOCAL VARIABLES ---------";
-            emitComment(fmt.str());
+            emit_comment(fmt.str());
             for (int i = 0; i < policy->atom_count(); i++) {
                 clean_fmt();
                 fmt << "local_Thread_" << thread_id << "_loc_" << policy->atoms(i)->name;
@@ -299,14 +309,14 @@ namespace SMT {
         }
 
         void generate_locals() {
-            emitComment("---------- THREADS LOCAL VARIABLES ---------");
+            emit_comment("---------- THREADS LOCAL VARIABLES ---------");
             for (int i = 0; i < threads_count; ++i) {
                 generate_thread_locals(i);
             }
         }
 
         void generate_thread_assigned_locals() {
-            emitComment("--------------- THREAD ASSIGNMENT LOCAL VARIABLES ------------");
+            emit_comment("--------------- THREAD ASSIGNMENT LOCAL VARIABLES ------------");
             for (int i = 0; i < threads_count; ++i) {
                 clean_fmt();
                 fmt << "thread_" << i << "_assigned";
@@ -319,7 +329,7 @@ namespace SMT {
         void thread_assignment_if(int thread_id, int user_id) {
             clean_fmt();
             fmt << "-------THREAD " << thread_id << " TO USER " << user_id << " (" << policy->users(user_id) << ")-------";
-            emitComment(fmt.str());
+            emit_comment(fmt.str());
 
             TExpr con_e = solver->createBVConst(thread_id, thread_pc_size);
             TExpr eq_e = solver->createEqExpr(thread_assignment_nondet_int.get_solver_var(), con_e);
@@ -353,7 +363,7 @@ namespace SMT {
         void assign_thread_to_user(int user_id) {
             clean_fmt();
             fmt << "--------------- CONFIGURATION OF USER " << user_id << " (" << policy->users(user_id) << ") ------------";
-            emitComment(fmt.str());
+            emit_comment(fmt.str());
 
             thread_assignment_nondet_int = thread_assignment_nondet_int.createFrom();
 
@@ -379,7 +389,7 @@ namespace SMT {
         }
 
         void generate_updates(int thread_id) {
-            emitComment("---- GLOBAL ROLE CONSISTENCY UPDATE ----");
+            emit_comment("---- GLOBAL ROLE CONSISTENCY UPDATE ----");
             for (auto &&global_pair :globals_map) {
                 Expr global_expr = global_pair.first;
                 variable global_var = global_pair.second;
@@ -456,12 +466,12 @@ namespace SMT {
             //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
             clean_fmt();
             fmt << "--- ASSIGNMENT RULES FOR ROLE " << *target << " ---";
-            emitComment(fmt.str());
+            emit_comment(fmt.str());
 
             if (policy->per_role_can_assign_rule(target).size() < 1) {
                 clean_fmt();
                 log->warn("--- ATOM {} IS NOT ASSIGNABLE... SHOULD CRASH ---", target->to_string());
-    //            emitComment(msg);
+    //            emit_comment(msg);
                 return;
             }
 
@@ -511,12 +521,12 @@ namespace SMT {
             //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
             clean_fmt();
             fmt << "--- REVOKE RULES FOR ROLE " << *target << " ---";
-            emitComment(fmt.str());
+            emit_comment(fmt.str());
 
             if (policy->per_role_can_revoke_rule(target).size() < 1) {
                 log->warn("--- ROLE {} IS NOT REVOKABLE... SHOULD CRASH ---", target->to_string());
     //            string msg = fmt.str();
-    //            emitComment(msg);
+    //            emit_comment(msg);
     //            fprintf(stderr, "%s", msg.c_str());
                 return;
             }
@@ -564,7 +574,7 @@ namespace SMT {
             //TODO: Could be optimized here
     //        clean_fmt();
     //        fmt << "---------------ERROR CHECK THREAD " << thread_id << " ROLE " << role_array[goal_role_index] << "------------";
-    //        emitComment(fmt.str());
+    //        emit_comment(fmt.str());
             TExpr term_cond = locals[thread_id][policy->goal_role->role_array_index].get_solver_var();
             variable term_guard = guard.createFrom();
             emit_assignment(term_guard, term_cond);
@@ -576,16 +586,16 @@ namespace SMT {
         void simulate_thread(int thread_id) {
     //        clean_fmt();
     //        fmt << "--------------- APPLICATION OF THREAD " << thread_id << " ------------";
-    //        emitComment(fmt.str());
+    //        emit_comment(fmt.str());
 
             generate_updates(thread_id);
 
             int label_idx = 0;
-            emitComment("---------- IDLE ROUND REMOVED SINCE PC MAY BE GREATER THAN PC_MAX ---------");
+            emit_comment("---------- IDLE ROUND REMOVED SINCE PC MAY BE GREATER THAN PC_MAX ---------");
 
             int i;
-            emitComment("---------- CAN ASSIGN SIMULATION ---------");
-            emitComment("---------- MERGED PER ROLE ---------");
+            emit_comment("---------- CAN ASSIGN SIMULATION ---------");
+            emit_comment("---------- MERGED PER ROLE ---------");
             for (auto &&atom : policy->atoms()) {
                 // printf("CA idx: %d, role: %s: count: %d\n", i, role_array[i], roles_ca_counts[i]);
                 if (policy->per_role_can_assign_rule(atom).size() > 0) {
@@ -593,8 +603,8 @@ namespace SMT {
                 }
             }
 
-            emitComment("---------- CAN REVOKE SIMULATION ---------");
-            emitComment("---------- MERGED PER ROLE ---------");
+            emit_comment("---------- CAN REVOKE SIMULATION ---------");
+            emit_comment("---------- MERGED PER ROLE ---------");
             for (auto &&atom : policy->atoms()) {
                 // printf("CR idx: %d, role: %s: count: %d\n", i, role_array[i], roles_cr_counts[i]);
                 if (policy->per_role_can_revoke_rule(atom).size() > 0) {
@@ -608,7 +618,7 @@ namespace SMT {
         void assign_PCs(int thread_id, int round) {
             clean_fmt();
             fmt << "---------- ASSIGNING PC FOR THREAD " << thread_id << " ROUND " << round << " ---------";
-            emitComment(fmt.str());
+            emit_comment(fmt.str());
             for (int step = 0; step < steps; step++) {
     //            variable nondet_res = createFrom(nondet_int);
     //            emitAssignment(nondet_res);
@@ -631,7 +641,7 @@ namespace SMT {
             for (int r = 0; r < rounds; r++) {
                 clean_fmt();
                 fmt << "--------------- SIMULATION OF ROUND " << r << " ------------";
-                emitComment(fmt.str());
+                emit_comment(fmt.str());
                 simulate_threads(r);
             }
         }
@@ -737,7 +747,7 @@ namespace SMT {
         bool transform_2_bounded_smt(int rounds, int _steps, int wanted_threads_count) {
     //        solver->deep_clean();
             // solver = _solver;
-             solver->deep_clean();
+            solver->deep_clean();
 
             steps = _steps;
 

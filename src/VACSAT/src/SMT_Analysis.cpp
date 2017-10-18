@@ -55,8 +55,20 @@ namespace SMT {
 //#ifndef NDEBUG
 //        bool over_result = overapprox_multi(solver, policy, to_check, std::set<rulep>(assigning_target.begin(), assigning_target.end()));
 //#else
+        bool under_result = arbac_to_smt_bmc(solver, policy, config.rounds, config.steps, config.wanted_threads_count);
+
         bool over_result = overapprox(solver, policy, createEqExpr(createLiteralp(policy->goal_role), createConstantTrue()), std::set<rulep>(assigning_target.begin(), assigning_target.end()));
-//        bool over_result = extended_overapprox(solver, policy, createEqExpr(createLiteralp(policy->goal_role), createConstantTrue()));
+        solver->deep_clean();
+        bool ext_over_result = extended_overapprox(solver, policy, createEqExpr(createLiteralp(policy->goal_role), createConstantTrue()));
+        solver->deep_clean();
+
+
+        log->info("old over: {}", over_result);
+        log->info("new over: {}", ext_over_result);
+        log->info("under: {}", under_result);
+
+        exit(0);
+
 //        bool over_result = extended_overapprox(solver, policy, to_check); //, std::set<rulep>(assigning_target.begin(), assigning_target.end()));
 //#endif
         if (!over_result) {

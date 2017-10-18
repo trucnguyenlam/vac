@@ -1,21 +1,32 @@
 USERS
-user0
-;
+	u1
+	;
 
 ATTRIBUTES
-ra[1]
-rt[1]
-;
+	r0[1]
+	r1[1]
+	r2[1]
+	r3[1]
+	rt[1]
+	rs[1]
+	;
 
 INIT
-<user0: ra=0, rt=0>
-;
+	<u1: r0=1>
+	;
 
 RULES
-<1, (t.ra=1): t.rt=1>
-<1, 1: t.ra=1>
-;
+	<a.r0=1, 1: t.r1=0>
+	<a.r0=1, 1: t.r2=0>
+	<a.r0=1, 1: t.r3=0>
+	<a.r0=1, 1: t.rs=0>
+
+	<a.r0=1, 0: t.r1=1>
+	<a.r0=1, 0: t.r2=1>
+	<a.r0=1, (t.r1=1 & t.r2=1): t.r3=1>
+	<a.r0=1, t.r3=1: t.rt=1>
+	;
 
 QUERY
-_.rt=1;
-
+	__any__.rt=1
+	;
