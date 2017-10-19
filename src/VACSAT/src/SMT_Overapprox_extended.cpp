@@ -184,6 +184,13 @@ class ExtendedOverapproxTransformer {
             solver->assertLater(solver->createEqExpr(new_guard.get_solver_var(), old_guard));
             state.guard = new_guard;
 
+            //RESTORE PC
+            TVar old_program_counter = old_state.program_counter.get_solver_var();
+            variable new_program_counter = state.program_counter.createFrom();
+//            this->emit_assignment(new_guard, old_guard);
+            solver->assertLater(solver->createEqExpr(new_program_counter.get_solver_var(), old_program_counter));
+            state.program_counter = new_program_counter;
+
             // RESTORING OLD STEP SET STATE
             for (int i = 0; i < tracked_roles.size(); ++i) {
                 if (tracked_roles[i]) {
@@ -199,7 +206,7 @@ class ExtendedOverapproxTransformer {
                 }
             }
 
-            update_program_counter();
+//            update_program_counter();
             //RESTORE OLD SKIP
             TVar old_skip = old_state.skip.get_solver_var();
             variable new_skip = state.skip.createFrom();
@@ -288,7 +295,7 @@ class ExtendedOverapproxTransformer {
 //
 //        }
 
-        void update_program_counter() {
+        void create_program_counter() {
             if (pc_size == 0) {
                 log->critical("pc is zero in overapprox...");
 //                state.program_counter = variable(state.program_counter.name,
@@ -321,7 +328,7 @@ class ExtendedOverapproxTransformer {
 //            target_rules.insert(_target_rule.begin(), _target_rule.end());
             target_expr = _target_expr;
 //            update_tracked_core_role_array_set_pc_size(target_expr);
-            update_program_counter();
+//            update_program_counter();
             clean_changed_memory();
         }
 
@@ -342,7 +349,8 @@ class ExtendedOverapproxTransformer {
                                                                    _false);
                     solver->assertLater(init_role_changed);
 
-                    TExpr init_role_sets = solver->createEqExpr(state.role_sets[i].get_solver_var(), _false);
+                    TExpr init_role_sets = solver->createEqExpr(state.role_sets[i].get_solver_var(),
+                                                                _false);
                     solver->assertLater(init_role_sets);
                 }
             }
@@ -353,6 +361,7 @@ class ExtendedOverapproxTransformer {
             solver->assertLater(init_guard);
             TExpr init_update_guard = solver->createEqExpr(state.update_guard.get_solver_var(), _true);
             solver->assertLater(init_update_guard);
+            create_program_counter();
         }
 
     public:
@@ -386,15 +395,16 @@ class ExtendedOverapproxTransformer {
 
         inline void emit_assignment(const variable& var, const TVar& value) {
             TExpr ass = solver->createEqExpr(var.get_solver_var(), value);
-            //TODO: maybe put a XOR instead of OR
-            TExpr guarded_ass = solver->createXorExpr(solver->createNotExpr(state.guard.get_solver_var()), ass);
+            //NOTICE: Do NOT put XOR, IMPLICATION or OR are OK, but NO XOR for the god sake! Otherwise the aserted statement MUST be false!
+            TExpr guarded_ass = solver->createImplExpr(state.guard.get_solver_var(),
+                                                       ass);
             solver->assertLater(guarded_ass);
 
         }
 
         inline void emit_assumption(const TExpr& value) {
-            //TODO: maybe put a XOR instead of OR
-            TExpr guarded_ass = solver->createXorExpr(solver->createNotExpr(state.guard.get_solver_var()),
+            //NOTICE: Do NOT put XOR, IMPLICATION or OR are OK, but NO XOR for the god sake! Otherwise the aserted statement MUST be false!
+            TExpr guarded_ass = solver->createImplExpr(state.guard.get_solver_var(),
                                                       value);
             solver->assertLater(guarded_ass);
         }
@@ -403,7 +413,7 @@ class ExtendedOverapproxTransformer {
             //Working automatically and only in Z3
             if (std::is_same<z3::expr, TExpr>::value) {
                 solver->assertNow(solver->createBoolVar(comment));
-                log->critical("Emitting comment...");
+                log->debug("Emitting comment: " + comment);
             }
         }
 
@@ -413,7 +423,7 @@ class ExtendedOverapproxTransformer {
         }
 
         void push(Expr _target_expr, /*std::set<rulep> _target_rule, */TExpr guard) {
-            log->critical(++ext_porr);
+            log->warn(++ext_porr);
 //            log->warn("pushing");
 //            log->warn("Pushing {}", *_target_expr);
             emit_comment("PUSH" + _target_expr->to_string());
@@ -471,6 +481,7 @@ class ExtendedOverapproxTransformer {
 //                        print_collection(rule->prec->literals());
                     auto old_size = to_track.size();
 
+                    //FIXME: absolutely remove the following if working with admin!
                     to_track.insert(rule->admin->atoms().begin(), rule->admin->atoms().end());
                     to_track.insert(rule->prec->atoms().begin(), rule->prec->atoms().end());
                     if (old_size - to_track.size() != 0) {
@@ -665,6 +676,7 @@ class ExtendedOverapproxTransformer {
         int target_role_index = target_role->role_array_index;
 
         TExpr new_role_val = solver->createCondExpr(pc_precondition, one, state.state.role_vars[target_role_index].get_solver_var());
+        TExpr new_changed_val = solver->createCondExpr(pc_precondition, one, state.state.role_changed[target_role_index].get_solver_var());
         TExpr new_set_val = solver->createCondExpr(pc_precondition, one, state.state.role_sets[target_role_index].get_solver_var());
 
 
@@ -672,6 +684,11 @@ class ExtendedOverapproxTransformer {
         variable new_role_var = state.state.role_vars[target_role_index].createFrom();
         emit_assignment(new_role_var, new_role_val);
         state.state.role_vars[target_role_index] = new_role_var;
+
+        // fprintf(outputFile, "            changed_%s = 1;\n", role_array[target_role_index]);
+        variable new_changed_var = state.state.role_changed[target_role_index].createFrom();
+        emit_assignment(new_changed_var, new_changed_val);
+        state.state.role_changed[target_role_index] = new_changed_var;
 
 
         // fprintf(outputFile, "            set_%s = 1;\n", role_array[target_role_index]);
@@ -821,10 +838,13 @@ class ExtendedOverapproxTransformer {
         variable update_guard_var = state.state.update_guard.createFrom();
         state.state.update_guard = update_guard_var;
         variable do_update = state.create_get_nondet_bool_var();
-        TExpr update_guard = solver->createAndExpr(role_set.get_solver_var(),
-                                                   do_update.get_solver_var());
+        TExpr not_skipping = solver->createNotExpr(state.state.skip.get_solver_var());
+        TExpr update_guard = solver->createAndExpr(not_skipping,
+                                                   solver->createAndExpr(solver->createNotExpr(role_set.get_solver_var()),
+                                                                         do_update.get_solver_var()));
 
         emit_assignment(update_guard_var, update_guard);
+
 
         TExpr updated_value = state.create_get_nondet_bool_var().get_solver_var();
 
@@ -873,9 +893,9 @@ class ExtendedOverapproxTransformer {
 
     void generate_update_state() {
         // IF NOT IN BASE CASE DO NOT GENERATE INITIALIZATION
-        emit_comment("Start updating phase");
+        emit_comment("S updating at: " + std::to_string(state.deep) + " ");
         if (state.deep > 0) {
-            state.push(createConstantTrue(), state.state.skip.get_solver_var());
+            state.push(createConstantTrue(), solver->createNotExpr(state.state.skip.get_solver_var()));
             generate_main();
             state.pop();
         } else {
@@ -889,7 +909,7 @@ class ExtendedOverapproxTransformer {
             }
         }
 
-        emit_comment("End updating phase");
+        emit_comment("E updating at: " + std::to_string(state.deep) + " ");
         // fprintf(outputFile, "    __cs_pc = nondet_bv();\n");
 
     }
@@ -901,7 +921,7 @@ class ExtendedOverapproxTransformer {
 
         simulate_skip();
 
-        //TODO: everything can be guarded by (!skip)
+        //TODO: everything MUST be guarded by (!skip)
 
         generate_update_state();
 

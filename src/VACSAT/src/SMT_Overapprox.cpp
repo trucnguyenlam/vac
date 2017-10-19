@@ -366,13 +366,14 @@ class OverapproxTransformer {
 
         inline void emit_assignment(const variable& var, const TVar& value) {
             TExpr ass = solver->createEqExpr(var.get_solver_var(), value);
-            //TODO: maybe put a XOR instead of OR
+            //NOTICE: Do NOT put XOR, IMPLICATION or OR are OK, but NO XOR for the god sake! Otherwise the aserted statement MUST be false!
             TExpr guarded_ass = solver->createOrExpr(solver->createNotExpr(state.guard.get_solver_var()), ass);
             solver->assertLater(guarded_ass);
 
         }
 
         inline void emit_assumption(const TExpr& value) {
+            //NOTICE: Do NOT put XOR, IMPLICATION or OR are OK, but NO XOR for the god sake! Otherwise the aserted statement MUST be false!
             TExpr guarded_ass = solver->createOrExpr(solver->createNotExpr(state.guard.get_solver_var()), value);
             solver->assertLater(guarded_ass);
         }
@@ -384,7 +385,7 @@ class OverapproxTransformer {
         }
 
         void push(Expr _target_expr, std::set<rulep> _target_rule, TExpr guard) {
-            log->critical(++ovr_porr);
+            log->warn(++ovr_porr);
             log->warn("Pushing {}", *_target_expr);
             emit_comment("PUSH" + _target_expr->to_string());
             save_all();
