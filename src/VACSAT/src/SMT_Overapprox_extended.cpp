@@ -83,7 +83,7 @@ class ExtendedOverapproxTransformer {
                     // fprintf(outputFile, "/*---------- VALUE changed ---------*/\n");
                     role_changed[i] = variable(("changed_" + policy->atoms()[i]->name), 0, 1, solver, BOOLEAN);
                 } else {
-                    log->info("Skipping atom: {}, since not tracked", *policy->atoms(i));
+                    log->trace("Skipping atom: {}, since not tracked", *policy->atoms(i));
                 }
             }
         }
@@ -423,7 +423,7 @@ class ExtendedOverapproxTransformer {
         }
 
         void push(Expr _target_expr, /*std::set<rulep> _target_rule, */TExpr guard) {
-            log->warn(++ext_porr);
+            log->trace(++ext_porr);
 //            log->warn("pushing");
 //            log->warn("Pushing {}", *_target_expr);
             emit_comment("PUSH" + _target_expr->to_string());
