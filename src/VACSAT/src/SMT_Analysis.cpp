@@ -46,18 +46,18 @@ namespace SMT {
         }
         log->debug("Performing underapproximated analysis");
 
-        std::list<rulep> assigning_target = policy->per_role_can_assign_rule(policy->goal_role);
-        Expr to_check = createConstantFalse();
-        for (auto &&rule : assigning_target) {
-            to_check = createOrExpr(to_check, rule->prec);
-        }
+//        std::list<rulep> assigning_target = policy->per_role_can_assign_rule(policy->goal_role);
+//        Expr to_check = createConstantFalse();
+//        for (auto &&rule : assigning_target) {
+//            to_check = createOrExpr(to_check, rule->prec);
+//        }
 
 //#ifndef NDEBUG
 //        bool over_result = overapprox_multi(solver, policy, to_check, std::set<rulep>(assigning_target.begin(), assigning_target.end()));
 //#else
 //        bool under_result = arbac_to_smt_bmc(solver, policy, config.rounds, config.steps, config.wanted_threads_count);
 
-//        bool over_result = overapprox(solver, policy, createEqExpr(createLiteralp(policy->goal_role), createConstantTrue()), std::set<rulep>(assigning_target.begin(), assigning_target.end()));
+//        bool over_result = overapprox(solver, policy, createEqExpr(createLiteralp(policy->goal_role), createConstantTrue()));
 //        solver->deep_clean();
         bool over_result = extended_overapprox(solver, policy, createEqExpr(createLiteralp(policy->goal_role), createConstantTrue()));
         solver->deep_clean();

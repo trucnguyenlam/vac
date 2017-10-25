@@ -95,7 +95,6 @@ class OverapproxTransformer {
         std::shared_ptr<arbac_policy> policy;
         /*--- VALUES ---*/
         variables state;
-        std::set<rulep> target_rules;
         Expr target_expr;
         std::vector<bool> tracked_roles;
         std::vector<bool> core_roles;
@@ -106,7 +105,6 @@ class OverapproxTransformer {
 
         /*--- SAVED ---*/
         std::stack<variables> saved_state;
-        std::stack<std::set<rulep>> saved_target_rules;
         std::stack<Expr> saved_target_expr;
         std::stack<std::vector<bool>> saved_tracked_roles;
         std::stack<std::vector<bool>> saved_core_roles;
@@ -119,8 +117,6 @@ class OverapproxTransformer {
             // cloning and saving...
             variables old_state = state;
             saved_state.push(old_state);
-            std::set<rulep> old_target_rules = target_rules;
-            saved_target_rules.push(old_target_rules);
             Expr old_target_expr = target_expr;
             saved_target_expr.push(old_target_expr);
             std::vector<bool> old_tracked_roles = tracked_roles;
@@ -139,8 +135,6 @@ class OverapproxTransformer {
 
         void restore_all_but_state() {
             // restoring and popping all but state...
-            target_rules = saved_target_rules.top();
-            saved_target_rules.pop();
             target_expr = saved_target_expr.top();
             saved_target_expr.pop();
             tracked_roles = saved_tracked_roles.top();
@@ -309,9 +303,8 @@ class OverapproxTransformer {
             }
         }
 
-        void init_new_frame(const Expr& _target_expr, const std::set<rulep>& _target_rule) {
+        void init_new_frame(const Expr& _target_expr) {
             deep = deep - 1;
-            target_rules.insert(_target_rule.begin(), _target_rule.end());
             target_expr = _target_expr;
             update_tracked_core_role_array_set_pc_size(target_expr);
             update_program_counter();
@@ -350,7 +343,6 @@ class OverapproxTransformer {
                 solver(_solver),
                 policy(_policy),
                 state(policy, solver),
-                target_rules(std::set<rulep>()),
                 target_expr(nullptr),
                 tracked_roles((ulong) policy->atom_count()),
                 core_roles((ulong) policy->atom_count()),
@@ -384,13 +376,13 @@ class OverapproxTransformer {
 //            log->critical("Emitting comment...");
         }
 
-        void push(Expr _target_expr, std::set<rulep> _target_rule, TExpr guard) {
+        void push(Expr _target_expr, TExpr guard) {
             log->warn(++ovr_porr);
             log->warn("Pushing {}", *_target_expr);
             emit_comment("PUSH" + _target_expr->to_string());
             save_all();
             set_guard(guard);
-            init_new_frame(_target_expr, _target_rule);
+            init_new_frame(_target_expr);
         }
 
         void pop() {
@@ -492,10 +484,6 @@ class OverapproxTransformer {
             ca_expr = (*ite)->prec;
             for (++ite; ite != policy->per_role_can_assign_rule(target_role).end(); ++ite) {
                 rulep rule = *ite;
-                if (contains(state.target_rules, rule)) {
-                    // EXCLUDE THE TARGET RULE FROM ASSIGNMENT
-                    continue;
-                }
                 // print_ca_comment(outputFile, ca_idx);
                 ca_expr = createOrExpr(ca_expr, rule->prec);
                 // fprintf(outputFile, "        ||\n");
@@ -506,7 +494,7 @@ class OverapproxTransformer {
             for (auto &&ca :policy->per_role_can_assign_rule(target_role)) {
                 log->warn("pushing {} ca: {}", state.deep, *ca);
             }
-            state.push(ca_expr, state.target_rules, if_prelude);
+            state.push(ca_expr, if_prelude);
             generate_main();
             state.pop();
         }
@@ -532,17 +520,13 @@ class OverapproxTransformer {
             cr_expr = (*ite)->prec;
             for (++ite; ite != policy->per_role_can_revoke_rule(target_role).end(); ++ite) {
                 rulep rule = *ite;
-                if (contains(state.target_rules, rule)) {
-                    // EXCLUDE THE TARGET RULE FROM ASSIGNMENT
-                    continue;
-                }
                 cr_expr = createOrExpr(cr_expr, rule->prec);
             }
         }
 
         if (state.deep > 0) {
-            //TODO: recursion!!
-            state.push(cr_expr, state.target_rules, if_prelude);
+            //recursion!!
+            state.push(cr_expr, if_prelude);
             generate_main();
             state.pop();
         }
@@ -817,15 +801,14 @@ class OverapproxTransformer {
     public:
     OverapproxTransformer(const std::shared_ptr<SMTFactory<TVar, TExpr>> _solver,
                           const std::shared_ptr<arbac_policy>& _policy,
-                          const Expr _to_check,
-                          const std::set<rulep> _to_check_source) :
+                          const Expr _to_check) :
         solver(_solver),
         policy(_policy),
         state(_solver.get(), _policy, Config::overapprox_depth),
         zero(solver->createFalse()), one(solver->createTrue()) {
 //        solver->deep_clean();
         init_threads();
-        state.push(_to_check, _to_check_source, one);
+        state.push(_to_check, one);
     }
 
     ~OverapproxTransformer() = default;
@@ -852,13 +835,12 @@ class OverapproxTransformer {
     template <typename TVar, typename TExpr>
     bool overapprox(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
                     const std::shared_ptr<arbac_policy>& policy,
-                    const Expr& to_check,
-                    const std::set<rulep>& to_check_source) {
+                    const Expr& to_check) {
         solver->deep_clean();
         if (is_constant_true(to_check)) {
             return false;
         }
-        OverapproxTransformer<TVar, TExpr> transf(solver, policy, to_check, to_check_source);
+        OverapproxTransformer<TVar, TExpr> transf(solver, policy, to_check);
         // std::shared_ptr<SMTFactory<expr, expr>> solver(new Z3Solver());
         // R6Transformer<expr, expr> transf(solver, rule_index, is_ca);
         bool res = transf.apply();
@@ -870,22 +852,18 @@ class OverapproxTransformer {
 
     template bool overapprox<term_t, term_t>(const std::shared_ptr<SMTFactory<term_t, term_t>>& solver,
                                              const std::shared_ptr<arbac_policy>& policy,
-                                             const Expr& to_check,
-                                             const std::set<rulep>& to_check_source);
+                                             const Expr& to_check);
 
     template bool overapprox<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>>& solver,
                                          const std::shared_ptr<arbac_policy>& policy,
-                                         const Expr& to_check,
-                                         const std::set<rulep>& to_check_source);
+                                         const Expr& to_check);
 
     template bool overapprox<BoolectorExpr, BoolectorExpr>(const std::shared_ptr<SMTFactory<BoolectorExpr, BoolectorExpr>>& solver,
                                                            const std::shared_ptr<arbac_policy>& policy,
-                                                           const Expr& to_check,
-                                                           const std::set<rulep>& to_check_source);
+                                                           const Expr& to_check);
 
     template bool overapprox<msat_term, msat_term>(const std::shared_ptr<SMTFactory<msat_term, msat_term>>& solver,
                                                    const std::shared_ptr<arbac_policy>& policy,
-                                                   const Expr& to_check,
-                                                   const std::set<rulep>& to_check_source);
+                                                   const Expr& to_check);
 
 }
