@@ -1,5 +1,5 @@
 //#include "ARBACExact.h"
-#include <time.h>
+#include <ctime>
 #include <vector>
 #include <iostream>
 #include <string>
