@@ -89,6 +89,28 @@ class ExtendedOverapproxTransformer {
         }
     };
 
+    struct overapprox_infos {
+    public:
+        const std::vector<bool> tracked_roles;
+        const int tracked_roles_count;
+        const int pc_size;
+        const int pc_max_value;
+        const int required_rounds;
+
+        overapprox_infos(
+                const std::vector<bool> _tracked_roles,
+                const int _tracked_roles_count,
+                const int _pc_size,
+                const int _pc_max_value,
+                const int _required_rounds) :
+                tracked_roles(_tracked_roles),
+                tracked_roles_count(_tracked_roles_count),
+                pc_size(_pc_size),
+                pc_max_value(_pc_max_value),
+                required_rounds(_required_rounds) { }
+
+    };
+
     struct overapprox_status {
         friend class variables;
 
@@ -101,14 +123,14 @@ class ExtendedOverapproxTransformer {
         variables state;
 //        std::set<rulep> target_rules;
         Expr target_expr;
-        const std::vector<bool> tracked_roles;
+        int round_to_do;
+
+        const overapprox_infos infos;
+
 //        const std::set<Atomp>& tracked_roles_set;
 //        std::vector<bool> core_roles;
-        const int tracked_roles_count;
 //        int core_roles_count;
-        const int pc_size;
         //// pc_max_value is the value from which we have to start skipping (inclusive)
-        const int pc_max_value;
         int deep;
 
 //         constraints on assertions
@@ -118,6 +140,8 @@ class ExtendedOverapproxTransformer {
         std::stack<variables> saved_state;
 //        std::stack<std::set<rulep>> saved_target_rules;
         std::stack<Expr> saved_target_expr;
+        std::stack<int> saved_round_to_do;
+
 //        std::stack<std::vector<bool>> saved_tracked_roles;
 //        std::stack<std::vector<bool>> saved_core_roles;
 //        std::stack<int> saved_tracked_roles_count;
@@ -132,6 +156,8 @@ class ExtendedOverapproxTransformer {
 //            saved_target_rules.push(old_target_rules);
             Expr old_target_expr = target_expr;
             saved_target_expr.push(old_target_expr);
+            int old_round_to_do = round_to_do;
+            saved_round_to_do.push(round_to_do);
 //            std::vector<bool> old_tracked_roles = tracked_roles;
 //            saved_tracked_roles.push(old_tracked_roles);
 //            std::vector<bool> old_core_roles = core_roles;
@@ -152,6 +178,8 @@ class ExtendedOverapproxTransformer {
 //            saved_target_rules.pop();
             target_expr = saved_target_expr.top();
             saved_target_expr.pop();
+            round_to_do = saved_round_to_do.top();
+            saved_round_to_do.pop();
 //            tracked_roles = saved_tracked_roles.top();
 //            saved_tracked_roles.pop();
 //            core_roles = saved_core_roles.top();
@@ -192,8 +220,8 @@ class ExtendedOverapproxTransformer {
             state.program_counter = new_program_counter;
 
             // RESTORING OLD STEP SET STATE
-            for (int i = 0; i < tracked_roles.size(); ++i) {
-                if (tracked_roles[i]) {
+            for (int i = 0; i < infos.tracked_roles.size(); ++i) {
+                if (infos.tracked_roles[i]) {
                     //TRACKED: RESTORE OLD VALUE
                     TVar old_set_state = old_state.role_sets[i].get_solver_var();
                     variable new_set_state = state.role_sets[i].createFrom();
@@ -215,7 +243,7 @@ class ExtendedOverapproxTransformer {
 
             //UPDATING CHANGED MEMORY WITH ITE ON GUARD
             for (int i = 0; i < policy->atom_count(); ++i) {
-                if (tracked_roles[i]) {
+                if (infos.tracked_roles[i]) {
                     variable new_changed = state.role_changed[i].createFrom();
                     variable old_changed = old_state.role_changed[i];
                     TExpr new_changed_value =
@@ -230,7 +258,7 @@ class ExtendedOverapproxTransformer {
 
             //MAKE CONSISTENT COPYING ALL VALUE WITH ITE ON GUARD
             for (int i = 0; i < policy->atom_count(); ++i) {
-                if (tracked_roles[i]) {
+                if (infos.tracked_roles[i]) {
                     // role_vars
                     variable sync_role_var = state.role_vars[i].createFrom();
                     TExpr cond_sync_role_var = solver->createCondExpr(frame_guard,
@@ -265,38 +293,8 @@ class ExtendedOverapproxTransformer {
             saved_state.pop();
         }
 
-        //        void update_tracked_core_role_array_set_pc_size(const Expr &target_expr) {
-////            tracked_roles_count = 0;
-////            for (auto &&tracked_i : policy->atoms()) {
-////                if (contains(target_expr->atoms(), tracked_i)) {
-////                    tracked_roles_count++;
-////                    tracked_roles[tracked_i->role_array_index] = true;
-////                } else {
-////                    tracked_roles[tracked_i->role_array_index] = false;
-////                }
-////            }
-////
-////            for (auto &&core_i : target_expr->atoms()) {
-////                if (core_roles[core_i->role_array_index] == false) {
-////                    core_roles_count++;
-////                }
-////                core_roles[core_i->role_array_index] = true;
-////            }
-//
-//            // let f(r) = 0 if not assignable nor revokable, 2 if both assignable and revokable, 1 otherwise  \sum_{r \in core_roles}(f(r))
-////        std::cout << "################################################################################################" << std::endl;
-////        std::cout << "Working on: " << *target_rule << std::endl;
-////        std::cout << "Expr:       " << *target_expr << std::endl;
-////        std::cout << "Minimal:    " << get_pc_size(cores) << std::endl;
-////        std::cout << "Overapprox: " << numBits((core_roles_count * 2) + 1) << std::endl;
-////        std::cout << "################################################################################################" << std::endl;
-//
-//            pc_size = get_pc_size(policy, tracked_roles_set);
-//
-//        }
-
         void create_program_counter() {
-            if (pc_size == 0) {
+            if (infos.pc_size == 0) {
                 log->critical("pc is zero in overapprox...");
 //                state.program_counter = variable(state.program_counter.name,
 //                                                 state.program_counter.idx + 1,
@@ -307,7 +305,7 @@ class ExtendedOverapproxTransformer {
             } else {
                 state.program_counter = variable(state.program_counter.name,
                                                  state.program_counter.idx + 1,
-                                                 pc_size,
+                                                 infos.pc_size,
                                                  solver,
                                                  BIT_VECTOR);
             }
@@ -315,7 +313,7 @@ class ExtendedOverapproxTransformer {
 
         void clean_changed_memory() {
             for (int i = 0; i < policy->atom_count(); ++i) {
-                if (tracked_roles[i]) {
+                if (infos.tracked_roles[i]) {
                     variable new_role_changed = state.role_changed[i].createFrom();
                     this->emit_assignment(new_role_changed, solver->createFalse());
                     state.role_changed[i] = new_role_changed;
@@ -323,10 +321,11 @@ class ExtendedOverapproxTransformer {
             }
         }
 
-        void init_new_frame(const Expr& _target_expr/*, const std::set<rulep>& _target_rule*/) {
+        void init_new_frame(const Expr& _target_expr, int rounds_to_do) {
             deep = deep - 1;
 //            target_rules.insert(_target_rule.begin(), _target_rule.end());
             target_expr = _target_expr;
+            round_to_do = rounds_to_do;
 //            update_tracked_core_role_array_set_pc_size(target_expr);
 //            update_program_counter();
             clean_changed_memory();
@@ -344,7 +343,7 @@ class ExtendedOverapproxTransformer {
             TExpr _false = solver->createFalse();
             TExpr _true = solver->createTrue();
             for (int i = 0; i < policy->atom_count(); ++i) {
-                if (tracked_roles[i]) {
+                if (infos.tracked_roles[i]) {
                     TExpr init_role_changed = solver->createEqExpr(state.role_changed[i].get_solver_var(),
                                                                    _false);
                     solver->assertLater(init_role_changed);
@@ -371,21 +370,13 @@ class ExtendedOverapproxTransformer {
         overapprox_status(SMTFactory<TExpr, TVar>* _solver,
                           const std::shared_ptr<arbac_policy>& _policy,
                           int _deep,
-                          std::tuple<const std::vector<bool>, // _tracked_roles,
-                                     const int, // _tracked_roles_count,
-                                     const int, //_pc_size
-                                     const int /* _pc_max_value */> tracked_and_pc) :
+                          const overapprox_infos infos) :
                 solver(_solver),
                 policy(_policy),
-                state(policy, solver, std::get<0>(tracked_and_pc)),
+                state(policy, solver, infos.tracked_roles),
 //                target_rules(std::set<rulep>()),
                 target_expr(nullptr),
-                tracked_roles(std::get<0>(tracked_and_pc)),
-//                role_roles((ulong) policy->atom_count()),
-                tracked_roles_count(std::get<1>(tracked_and_pc)),
-//                role_roles_count(0),
-                pc_size(std::get<2>(tracked_and_pc)),
-                pc_max_value(std::get<3>(tracked_and_pc)),
+                infos(infos),
                 deep(_deep) {
 //            for (int i = 0; i < policy->atom_count(); ++i) {
 //                role_roles[i] = false;
@@ -422,14 +413,15 @@ class ExtendedOverapproxTransformer {
             return state.nondet_bool;
         }
 
-        void push(Expr _target_expr, /*std::set<rulep> _target_rule, */TExpr guard) {
+        void push(Expr _target_expr, /*std::set<rulep> _target_rule, */TExpr guard, int rounds_to_do) {
             log->trace(++ext_porr);
 //            log->warn("pushing");
 //            log->warn("Pushing {}", *_target_expr);
-            emit_comment("PUSH" + _target_expr->to_string());
+            emit_comment("PUSH" + _target_expr->to_string() + " " + std::to_string(round_to_do) + " rounds");
             save_all();
             set_guard(guard);
-            init_new_frame(_target_expr/*, _target_rule*/);
+            init_new_frame(_target_expr, rounds_to_do);
+//            log->critical("pushed target {} depth: {} rounds: {}", *_target_expr, deep, rounds_to_do);
         }
 
         void pop() {
@@ -445,22 +437,13 @@ class ExtendedOverapproxTransformer {
 
     std::shared_ptr<SMTFactory<TVar, TExpr>> solver;
     std::shared_ptr<arbac_policy> policy;
-//    std::stringstream fmt;
 
-//    void clean_fmt() {
-//        fmt.str(std::string());
-//    }
-//
     overapprox_status state;
 
     const TExpr zero;
     const TExpr one;
 
-//    std::vector<bool> tracked_roles;
-//    int tracked_roles_count;
-//    int pc_size;
-
-    static std::tuple<std::vector<bool>, int, int, int> get_tracked_pc_size_pc_maxvalue(const std::shared_ptr<arbac_policy>& policy, const Expr& phi_t) {
+    static overapprox_infos get_tracked_pc_size_pc_maxvalue(const std::shared_ptr<arbac_policy>& policy, const Expr& phi_t) {
         bool fixpoint = false;
 
         std::set<Atomp> to_track;
@@ -482,7 +465,7 @@ class ExtendedOverapproxTransformer {
                     auto old_size = to_track.size();
 
                     //FIXME: absolutely remove the following if working with admin!
-                    to_track.insert(rule->admin->atoms().begin(), rule->admin->atoms().end());
+//                    to_track.insert(rule->admin->atoms().begin(), rule->admin->atoms().end());
                     to_track.insert(rule->prec->atoms().begin(), rule->prec->atoms().end());
                     if (old_size - to_track.size() != 0) {
                         fixpoint = false;
@@ -501,18 +484,28 @@ class ExtendedOverapproxTransformer {
             tracked_roles_count++;
         }
 
+        int required_rounds = 0;
+
+        for (auto &&atom : policy->atoms()) {
+             if (tracked_roles[atom->role_array_index]) {
+                if (policy->per_role_can_assign_rule(atom).empty() &&
+                    policy->per_role_can_revoke_rule(atom).empty()) {
+                    continue;
+                } else {
+                    required_rounds++;
+                }
+            }
+        }
+
+
         std::pair<int, int> pc_size_max_value = get_pc_size_max_value(policy, to_track);
-        return std::tuple<std::vector<bool>, int, int, int>(tracked_roles,
-                                                            tracked_roles_count,
-                                                            pc_size_max_value.first,
-                                                            pc_size_max_value.second);
+        return overapprox_infos(tracked_roles,
+                                tracked_roles_count,
+                                pc_size_max_value.first,
+                                pc_size_max_value.second,
+                                required_rounds);
     }
 
-
-//
-//    //int *roles_ca_counts = NULL;
-//    //int *roles_cr_counts = NULL;
-//
     inline void emit_assignment(const variable& var, const TExpr& value) {
 //        TExpr assign = solver->createEqExpr(variable.get_solver_var(), value);
         state.emit_assignment(var, value);
@@ -531,7 +524,7 @@ class ExtendedOverapproxTransformer {
         for (auto &&conf :policy->unique_configurations()) {
             TExpr conf_expr = solver->createTrue();
             for (auto &&atom :policy->atoms()) {
-                if (state.tracked_roles[atom->role_array_index]) {
+                if (state.infos.tracked_roles[atom->role_array_index]) {
                     bool has = contains(conf->config(), atom);
                     conf_expr = solver->createAndExpr(conf_expr,
                                                       solver->createEqExpr(
@@ -547,7 +540,8 @@ class ExtendedOverapproxTransformer {
     TExpr generate_PC_prec(int pc) {
         // fprintf(outputFile, "    if (!skip && (__cs_pc == %d) &&\n", pc);
         return solver->createEqExpr(state.state.program_counter.get_solver_var(),
-                                    solver->createBVConst(pc, state.pc_size)) ;
+                                    solver->createBVConst(pc,
+                                                          state.infos.pc_size)) ;
     }
 
     TExpr generate_from_prec(const Expr &precond) {
@@ -728,7 +722,8 @@ class ExtendedOverapproxTransformer {
         // fprintf(outputFile, "    }");
         variable new_skip = state.state.skip.createFrom();
         TExpr cond = solver->createGEqExpr(state.state.program_counter.get_solver_var(),
-                                           solver->createBVConst(state.pc_max_value, state.pc_size));
+                                           solver->createBVConst(state.infos.pc_max_value,
+                                                                 state.infos.pc_size));
         TExpr new_val = solver->createCondExpr(cond, one, state.state.skip.get_solver_var());
 
         emit_assignment(new_skip, new_val);
@@ -748,9 +743,9 @@ class ExtendedOverapproxTransformer {
 //            }
 //        }
 
-        TExpr init_r_i = init_r_i_var.get_solver_var();
+//        TExpr init_r_i = init_r_i_var.get_solver_var();
 
-        TVar role_var = state.state.role_vars[role_index].get_solver_var();
+//        TVar role_var = state.state.role_vars[role_index].get_solver_var();
         TVar role_set = state.state.role_sets[role_index].get_solver_var();
         TVar role_changed = state.state.role_changed[role_index].get_solver_var();
 
@@ -780,24 +775,24 @@ class ExtendedOverapproxTransformer {
         emit_assumption(rule_assumption);
 
         int user_id = 0;
-        //          /\
-        // assume( /  \          (changed_r_i ==> set_r_i)
-        //        r_i \in Track
-        // fprintf(outputFile, "//          /\\\n");
-        // fprintf(outputFile, "// assume( /  \\          (changed_r_i ==> set_r_i)\n";
-        // fprintf(outputFile, "//        r_i \\in Track\n");
-        TExpr impl_assumption = zero;
+        //                    /\
+        // assume( skip ==>  /  \          (changed_r_i ==> set_r_i)
+        //                  r_i \in Track
+        // fprintf(outputFile, "//                    /\\\n");
+        // fprintf(outputFile, "// assume( skip ==>  /  \\          (changed_r_i ==> set_r_i)\n";
+        // fprintf(outputFile, "//                  r_i \\in Track\n");
 //        for (auto &&user : policy->unique_configurations()) {
-            TExpr inner_and = one;
-            for (int i = 0; i < policy->atom_count(); i++) {
-                if (state.tracked_roles[i]) {
-                    TExpr impl_r_ui = generate_check_implication(i, origs[i]);
-                    inner_and = solver->createAndExpr(inner_and, impl_r_ui);
-                }
+        TExpr inner_and = one;
+        for (int i = 0; i < policy->atom_count(); i++) {
+            if (state.infos.tracked_roles[i]) {
+                TExpr impl_r_ui = generate_check_implication(i, origs[i]);
+                inner_and = solver->createAndExpr(inner_and, impl_r_ui);
             }
-            impl_assumption = solver->createOrExpr(impl_assumption, inner_and);
+        }
+        TExpr target_impl = solver->createImplExpr(state.state.skip.get_solver_var(), inner_and);
+//        TExpr target_impl = inner_and;
 //        }
-        emit_assumption(impl_assumption);
+        emit_assumption(target_impl);
 
         emit_comment("CHECK_END" + state.target_expr->to_string());
 
@@ -868,8 +863,9 @@ class ExtendedOverapproxTransformer {
         }
 
         //assert the constraint guarded by the fact the update must take place
-        // TODO: consider using XOR
-        emit_assumption(solver->createImplExpr(update_guard_var.get_solver_var(), constraints));
+        //NOTICE: Do NOT put XOR, IMPLICATION or OR are OK, but NO XOR for the god sake! Otherwise the aserted statement MUST be false!
+        emit_assumption(solver->createImplExpr(update_guard_var.get_solver_var(),
+                                               constraints));
 
         // Perform update guarded by "update_guard"
         // on role_value
@@ -891,17 +887,21 @@ class ExtendedOverapproxTransformer {
         emit_comment("role " + atom->name + " updated");
     }
 
-    void generate_update_state() {
+    void generate_update_state(int round_idx) {
         // IF NOT IN BASE CASE DO NOT GENERATE INITIALIZATION
         emit_comment("S updating at: " + std::to_string(state.deep) + " ");
         if (state.deep > 0) {
-            state.push(createConstantTrue(), solver->createNotExpr(state.state.skip.get_solver_var()));
+//            log->critical("Pushing at step {} of depth {}", round_idx, state.deep);
+            state.push(createConstantTrue(),
+                       solver->createNotExpr(state.state.skip.get_solver_var()),
+                       state.round_to_do - round_idx);
             generate_main();
             state.pop();
         } else {
+//            log->critical("update {} of depth {}", round_idx, state.deep);
             // fprintf(outputFile, "    /*---------- UPDATE STATE ---------*/\n");
             for (int i = 0; i < policy->atom_count(); i++) {
-                if (state.tracked_roles[i]) {
+                if (state.infos.tracked_roles[i]) {
                     atomp atom = policy->atoms(i);
                     update_constrained_value(atom);
                     // fprintf(outputFile, "    role_%s = set_%s ? role_%s : nondet_bool();\n", role, role, role);
@@ -914,7 +914,7 @@ class ExtendedOverapproxTransformer {
 
     }
 
-    void generate_round() {
+    void generate_round(int round_idx) {
         int label_idx = 0;
         // fprintf(outputFile, "    /*---------- UPDATE ---------*/\n");
         generate_pc_update();
@@ -923,12 +923,12 @@ class ExtendedOverapproxTransformer {
 
         //TODO: everything MUST be guarded by (!skip)
 
-        generate_update_state();
+        generate_update_state(round_idx);
 
 
         // fprintf(outputFile, "    /*---------- CAN ASSIGN SIMULATION ---------*/\n");
         for (auto &&atom :policy->atoms()) {
-            if (state.tracked_roles[atom->role_array_index] &&
+            if (state.infos.tracked_roles[atom->role_array_index] &&
                 policy->per_role_can_assign_rule(atom).size() > 0) {
 //                int exclude = target_rule->is_ca ? exclude_idx : -1;
                 simulate_can_assigns_by_role(atom, label_idx++);
@@ -940,22 +940,23 @@ class ExtendedOverapproxTransformer {
         // fprintf(outputFile, "    /*---------- CAN REVOKE SIMULATION ---------*/\n");
         for (auto &&atom :policy->atoms()) {
             // printf("CR idx: %d, role: %s: count: %d\n", i, role_array[i], roles_cr_counts[i]);
-            if (state.tracked_roles[atom->role_array_index] &&
+            if (state.infos.tracked_roles[atom->role_array_index] &&
                 policy->per_role_can_revoke_rule(atom).size() > 0) {
 //                int exclude = !excluded_is_ca ? exclude_idx : -1;
                 simulate_can_revokes_by_role(atom, label_idx++);
             }
         }
 
-        assert(label_idx == state.pc_max_value);
+        assert(label_idx == state.infos.pc_max_value);
         // fprintf(outputFile, "\n\n");
     }
 
     void generate_main() {
         // fprintf(outputFile, "int main(void) {\n\n");
 
-        for (int i = 0; i < state.tracked_roles_count; ++i) {
-            generate_round();
+        for (int i = 0; i < state.round_to_do; ++i) {
+            emit_comment("Round " + std::to_string(i) + " deep " + std::to_string(state.deep));
+            generate_round(i);
         }
         generate_check();
         // fprintf(outputFile, "    return 0;\n");
@@ -1016,7 +1017,7 @@ class ExtendedOverapproxTransformer {
         one(solver->createTrue()) {
 //        solver->deep_clean();
         init_threads();
-        state.push(_to_check, /*_to_check_source,*/ one);
+        state.push(_to_check, /*_to_check_source,*/ one, state.infos.required_rounds);
     }
 
     ~ExtendedOverapproxTransformer() = default;
