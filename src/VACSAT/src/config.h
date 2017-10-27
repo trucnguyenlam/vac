@@ -29,6 +29,7 @@ namespace SMT {
         static bool do_not_merge;
         static int rule_6_max_depth;
         static int overapprox_depth;
+        static int overapprox_merge_precs;
         static bool simplify_toplevel_or;
         static std::string dump_smt_formula;
         static bool show_solver_statistics;
