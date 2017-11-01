@@ -399,7 +399,7 @@ int main(int argc, const char * const *argv) {
         options config = parse_args(argc, argv);
 
         SMT::Config::rule_6_max_depth = config.rule_6_max_depth;
-        SMT::Config::overapprox_depth = config.overapprox_depth;
+        SMT::Config::overapproxOptions.depth = config.overapprox_depth;
         SMT::Config::no_infinity_bmc = config.no_infinity_bmc;
         SMT::Config::infinity_bmc_rounds_count = config.infinity_bmc_rounds_count;
         SMT::Config::infinity_bmc_steps_count = config.infinity_bmc_steps_count;

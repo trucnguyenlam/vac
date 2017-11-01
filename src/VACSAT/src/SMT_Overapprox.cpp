@@ -804,7 +804,7 @@ class OverapproxTransformer {
                           const Expr _to_check) :
         solver(_solver),
         policy(_policy),
-        state(_solver.get(), _policy, Config::overapprox_depth),
+        state(_solver.get(), _policy, Config::overapproxOptions.depth),
         zero(solver->createFalse()), one(solver->createTrue()) {
 //        solver->deep_clean();
         init_threads();

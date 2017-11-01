@@ -1012,7 +1012,10 @@ class ExtendedOverapproxTransformer {
         solver(_solver),
         policy(_policy),
         // could be changed instead of using tuple with references that... can be changed from the outside!!!
-        state(_solver.get(), _policy, Config::overapprox_depth, get_tracked_pc_size_pc_maxvalue(_policy, _to_check)),
+        state(_solver.get(),
+              _policy,
+              Config::overapproxOptions.depth,
+              get_tracked_pc_size_pc_maxvalue(_policy, _to_check)),
         zero(solver->createFalse()),
         one(solver->createTrue()) {
 //        solver->deep_clean();

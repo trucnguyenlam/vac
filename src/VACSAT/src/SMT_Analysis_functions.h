@@ -29,6 +29,11 @@ namespace SMT {
                              const std::shared_ptr<arbac_policy>& policy,
                              const Expr& to_check);
 
+    template <typename TVar, typename TExpr>
+    bool super_overapprox(const std::shared_ptr<SMT::SMTFactory<TVar, TExpr>>& solver,
+                          const std::shared_ptr<arbac_policy>& policy,
+                          const Expr& to_check);
+
 }
 
 #endif //VACSAT_ARBAC_TO_SMT_BMC_H

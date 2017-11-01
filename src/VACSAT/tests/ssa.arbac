@@ -9,11 +9,10 @@ UA
     ;
 
 CR
-    <r0 r0>;
+    <r0, r0>;
 
 CA
-    <r0, r1, r1>
-    <r0, r0, r1>
+    <r0, TRUE, r1>
     <r0, r1, rt>
 
 

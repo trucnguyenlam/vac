@@ -13,6 +13,27 @@
 namespace SMT {
 
     template <typename TVar, typename TExpr>
+    bool execute_overapprox(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+                            const std::shared_ptr<arbac_policy>& policy,
+                            const Expr& target_expr) {
+        bool over_result = false;
+        switch (Config::overapproxOptions.version) {
+            case OverapproxOptions::JUNE:
+                over_result = overapprox(solver, policy, target_expr);
+                break;
+            case OverapproxOptions::TRACE_ALL:
+                over_result = extended_overapprox(solver, policy, target_expr);
+                break;
+            case OverapproxOptions::SELECTIVE:
+                over_result = super_overapprox(solver, policy, target_expr);
+                break;
+            default:
+                throw unexpected_error("OVERAPPROX VERSION SWITCH MUST BE COMPLETE");
+        }
+        return over_result;
+    };
+
+    template <typename TVar, typename TExpr>
     bool execute(const std::string& filename,
                  AnalysisType analysis_type,
                  const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
@@ -59,8 +80,7 @@ namespace SMT {
 
 //        bool over_result = overapprox(solver, policy, createEqExpr(createLiteralp(policy->goal_role), createConstantTrue()));
 //        solver->deep_clean();
-        bool over_result = extended_overapprox(solver, policy, createEqExpr(createLiteralp(policy->goal_role), createConstantTrue()));
-        solver->deep_clean();
+        bool over_result = execute_overapprox(solver, policy, createEqExpr(createLiteralp(policy->goal_role), createConstantTrue()));
 
 
 //        log->info("old over: {}", over_result);
