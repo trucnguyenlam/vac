@@ -14,6 +14,22 @@
 //#include <boost/log/expressions.hpp>
 
 namespace SMT {
+    struct OverapproxOptions {
+        enum OverapproxVersion {
+            JUNE,
+            TRACE_ALL,
+            SELECTIVE
+        };
+        /*enum BlocksChoice {
+            STRICT,
+            AT_MOST,
+            AT_LEAST
+        };*/
+        OverapproxVersion version;
+        int depth;
+        int blocks_count;
+    };
+
     class Config {
     public:
         enum Verbosity {
@@ -24,12 +40,15 @@ namespace SMT {
             ERROR,
             FATAL
         };
+
+
+
         static bool experimental;
         static Verbosity verbosity;
         static bool do_not_merge;
         static int rule_6_max_depth;
-        static int overapprox_depth;
-        static int overapprox_merge_precs;
+        static OverapproxOptions overapproxOptions;
+        //static int overapprox_merge_precs;
         static bool simplify_toplevel_or;
         static std::string dump_smt_formula;
         static bool show_solver_statistics;
