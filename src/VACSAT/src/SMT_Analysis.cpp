@@ -16,6 +16,17 @@ namespace SMT {
     bool execute_overapprox(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
                             const std::shared_ptr<arbac_policy>& policy,
                             const Expr& target_expr) {
+        switch (Config::overapproxOptions.version) {
+            case OverapproxOptions::JUNE:
+                log->debug("Using June overapprox version");
+                break;
+            case OverapproxOptions::TRACE_ALL:
+                log->debug("Using total overapprox version");
+                break;
+            case OverapproxOptions::SELECTIVE:
+                log->debug("Using selective overapprox version");
+                break;
+        }
         bool over_result = false;
         switch (Config::overapproxOptions.version) {
             case OverapproxOptions::JUNE:
@@ -93,7 +104,7 @@ namespace SMT {
 //#endif
         if (!over_result) {
             return false;
-        }
+        } else { return true; }
         return arbac_to_smt_bmc(solver, policy, config.rounds, config.steps, config.wanted_threads_count);
     };
 

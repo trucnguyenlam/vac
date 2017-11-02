@@ -28,6 +28,18 @@ namespace SMT {
         OverapproxVersion version;
         int depth;
         int blocks_count;
+
+        static OverapproxVersion parse(std::string version) {
+            if (version == "June") {
+                return JUNE;
+            } else if (version == "selective") {
+                return SELECTIVE;
+            } else if (version == "total") {
+                return TRACE_ALL;
+            } else {
+                throw std::runtime_error("Unknown overapproximated analysis version");
+            }
+        }
     };
 
     class Config {
