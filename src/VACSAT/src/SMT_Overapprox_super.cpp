@@ -36,7 +36,7 @@ class SuperOverapproxTransformer {
 
         const std::shared_ptr<arbac_policy>& policy;
 
-        RoleChoicer(const std::shared_ptr<arbac_policy>& _policy) :
+        explicit RoleChoicer(const std::shared_ptr<arbac_policy>& _policy) :
                 policy(_policy) { }
 
         Choice classify(atomp r) const {
@@ -481,12 +481,17 @@ class SuperOverapproxTransformer {
             return state.nondet_bool;
         }
 
-        void push(Expr _target_expr, /*std::set<rulep> _target_rule, */TExpr guard, std::vector<std::pair<Expr, int>> preconditions) {
+        void push(Expr _target_expr,
+                /*std::set<rulep> _target_rule, */
+                  TExpr guard,
+                  variable _parent_pc,
+                  std::vector<std::pair<Expr, int>> preconditions) {
             log->trace(++ext_porr);
 //            log->warn("pushing");
 //            log->warn("Pushing {}", *_target_expr);
             emit_comment("PUSH" + _target_expr->to_string() + " " + std::to_string(blocks_to_do) + " rounds");
             save_all();
+            parent_pc = _parent_pc;
             set_guard(guard);
             init_new_frame(_target_expr, preconditions);
 //            log->critical("pushed target {} depth: {} rounds: {}", *_target_expr, deep, rounds_to_do);
@@ -1074,7 +1079,7 @@ class SuperOverapproxTransformer {
         if (!res.empty()) {
             return res;
         }
-
+        interesting Pair broken on indexes... Fix with numbers 0-n, not rule_idx
         for (auto &&rule :policy->rules()) {
             if (state.infos.interesting_roles[rule->target->role_array_index]) {
                 res.push_back(std::pair<rulep, int>(rule, rule->original_idx));
@@ -1104,12 +1109,12 @@ class SuperOverapproxTransformer {
         emit_comment("S updating at: " + std::to_string(state.deep) + " ");
         if (state.deep > 0) {
             //FIXME: this is executed every time, but is constant. REMOVE FROM HERE!
-
             std::vector<std::pair<Expr, int>> prec_pairs = get_interesting_precondition_pairs();
 
 //            log->critical("Pushing at step {} of depth {}", round_idx, state.deep);
             state.push(createConstantTrue(),
                        solver->createNotExpr(state.state.skip.get_solver_var()),
+                       state.state.program_counter,
                        prec_pairs);
             generate_main();
             state.pop();
@@ -1159,11 +1164,11 @@ class SuperOverapproxTransformer {
     void set_atom_tracked_state(int atom_id) {
         atomp atom = policy->atoms(atom_id);
 
-        RoleChoicer::Choice choice = state.choicer.classify(atom);
+        auto choice = state.choicer.classify(atom);
 
         if (choice != RoleChoicer::FREE) {
             TExpr value = choice == RoleChoicer::REQUIRED ? one : zero;
-            emit_assignment(state.state.role_tracked[atom_id], choice);
+            emit_assignment(state.state.role_tracked[atom_id], value);
             return;
         } else {
             TExpr tracked_value = zero;
@@ -1217,19 +1222,25 @@ class SuperOverapproxTransformer {
 
     void simulate_first_pc() {
         variable new_pc = state.state.program_counter.createFrom();
-        emit_assignment(new_pc, zero);
+        emit_assignment(new_pc, solver->createBVConst(0, state.infos.pc_size));
         state.state.program_counter = new_pc;
     }
 
-    bool checkUnreachable() {
+    void generate_program() {
         std::vector<std::pair<Expr, int>> conditions;
         conditions.push_back(std::pair<Expr, int>(state.infos.to_check, 0));
         simulate_first_pc();
 
-        state.push(state.infos.to_check, one, conditions);
+        state.push(state.infos.to_check, one,
+                   state.state.program_counter, conditions);
 
         generate_main();
 
+        TExpr target_cond = generate_from_prec(conditions[0].first);
+        emit_assumption(target_cond);
+    }
+
+    bool check_satisfiable() {
         auto start = std::chrono::high_resolution_clock::now();
 
         if (Config::show_solver_statistics) {
@@ -1265,6 +1276,14 @@ class SuperOverapproxTransformer {
                 break;
         }
         return false;
+    }
+
+    bool checkUnreachable() {
+        generate_program();
+
+        bool result = check_satisfiable();
+
+        return result;
     }
 
 
