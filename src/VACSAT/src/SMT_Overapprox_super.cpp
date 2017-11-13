@@ -40,6 +40,10 @@ class SuperOverapproxTransformer {
                 policy(_policy) { }
 
         Choice classify(atomp r) const {
+//            if (r->name == "r1" || r->name == "r2") {
+//                return REQUIRED;
+//            }
+
             return FREE;
         }
 
@@ -47,6 +51,7 @@ class SuperOverapproxTransformer {
             int count = 0;
             for (auto &&atom :policy->atoms()) {
                 if (classify(atom) == REQUIRED) {
+                    count++;
                 }
             }
             return count;
@@ -127,23 +132,17 @@ class SuperOverapproxTransformer {
         const Expr to_check;
         const std::vector<bool> interesting_roles;
         const int interesting_roles_count;
-//        const std::vector<bool> optional_roles;
-//        const int optional_roles_count;
         const int pc_size;
         const int pc_max_value;
 
         overapprox_infos(const Expr _to_check,
                          const std::vector<bool> _interesting_roles,
                          const int _interesting_roles_count,
-                         const std::vector<bool> _optional_roles,
-                         const int _optional_roles_count,
                          const int _pc_size,
                          const int _pc_max_value) :
                 to_check(_to_check),
                 interesting_roles(_interesting_roles),
                 interesting_roles_count(_interesting_roles_count),
-//                optional_roles(_optional_roles),
-//                optional_roles_count(_optional_roles_count),
                 pc_size(_pc_size),
                 pc_max_value(_pc_max_value) { }
     };
@@ -372,7 +371,7 @@ class SuperOverapproxTransformer {
 
             log->trace("Desired: {}. Had {}", desired, required);
 
-            if (desired == -1) {
+            if (desired <= -1) {
                 return required;
             } else if (desired == 0) {
                 throw std::runtime_error("Desired number of blocks cannot be 0");
@@ -502,7 +501,7 @@ class SuperOverapproxTransformer {
 //            Expr tgt = target_expr;
             restore_all_but_state();
             restore_state();
-//            emit_comment("POP" + tgt->to_string());
+            emit_comment("POP");
         }
 
     };
@@ -518,22 +517,6 @@ class SuperOverapproxTransformer {
 
     static bool is_optional(int atom_idx) {
         return false;
-    }
-
-    static std::pair<std::vector<bool>, int> get_optionals(const std::shared_ptr<arbac_policy> &policy,
-                                                           const std::vector<bool>& interestings) {
-        int count = 0;
-        std::vector<bool> optionals((unsigned long) policy->atom_count());
-
-        for (int i = 0; i < policy->atom_count(); ++i) {
-            optionals[i] = is_optional(i);
-            if (optionals[i] && !interestings[i]) {
-                log->warn("Optional atom {} is not INTERESTING...", policy->atoms(i)->to_string());
-                log->warn("\tSKIPPING IT since it will not change...");
-            }
-        }
-
-        return std::pair<std::vector<bool>, int>();
     }
 
     static overapprox_infos get_interesting_pc_size_pc_maxvalue(const std::shared_ptr<arbac_policy> &policy,
@@ -591,16 +574,10 @@ class SuperOverapproxTransformer {
 //            }
 //        }
 
-        std::pair<std::vector<bool>, int> optionals = get_optionals(policy, interesting_roles);
-
-
-
         std::pair<int, int> pc_size_max_value = get_pc_size_max_value(policy, interesting);
         return overapprox_infos(to_check,
                                 interesting_roles,
                                 interesting_roles_count,
-                                optionals.first,
-                                optionals.second,
                                 pc_size_max_value.first,
                                 pc_size_max_value.second);
     }
@@ -802,7 +779,7 @@ class SuperOverapproxTransformer {
 //        if (state.deep > 0) {
 ////            log->warn("pushing rule {} with depth {}", *ca_expr, state.deep);
 //            state.push(ca_expr/*, state.target_rules*/, if_prelude);
-//            generate_main();
+//            generate_layer();
 //            state.pop();
 //        }
 
@@ -848,9 +825,9 @@ class SuperOverapproxTransformer {
         TExpr new_set_val = solver->createCondExpr(pc_precondition,
                                                    one,
                                                    state.state.role_sets[target_index].get_solver_var());
-        TExpr new_tracked_val = solver->createCondExpr(pc_precondition,
-                                                       one,
-                                                       state.state.role_tracked[target_index].get_solver_var());
+//        TExpr new_tracked_val = solver->createCondExpr(pc_precondition,
+//                                                       one,
+//                                                       state.state.role_tracked[target_index].get_solver_var());
 
 
         // fprintf(outputFile, "            role_%s = ass_value;\n", role_array[target_role_index]);
@@ -870,10 +847,10 @@ class SuperOverapproxTransformer {
         state.state.role_sets[target_index] = new_set_var;
 
 
-        // fprintf(outputFile, "            tracked_%s = 1;\n", role_array[target_role_index]);
-        variable new_tracked_var = state.state.role_tracked[target_index].createFrom();
-        emit_assignment(new_tracked_var, new_tracked_val);
-        state.state.role_tracked[target_index] = new_tracked_var;
+//        // fprintf(outputFile, "            tracked_%s = 1;\n", role_array[target_role_index]);
+//        variable new_tracked_var = state.state.role_tracked[target_index].createFrom();
+//        emit_assignment(new_tracked_var, new_tracked_val);
+//        state.state.role_tracked[target_index] = new_tracked_var;
     }
 
     void simulate_skip() {
@@ -995,7 +972,7 @@ class SuperOverapproxTransformer {
         state.state.program_counter = new_pc;
     }
 
-    void update_constrained_value(const atomp& atom) {
+    void update_constrained_value(const atomp& atom, bool tracked_only) {
         /*
          * if (!set(r) && *) { //Do update iff exists at least a ca and a cr
          *      r = *
@@ -1023,6 +1000,11 @@ class SuperOverapproxTransformer {
         TExpr update_guard = solver->createAndExpr(not_skipping,
                                                    solver->createAndExpr(solver->createNotExpr(role_set.get_solver_var()),
                                                                          do_update.get_solver_var()));
+
+        if (tracked_only) {
+            variable role_tracked = state.state.role_tracked[atom->role_array_index];
+            update_guard = solver->createAndExpr(update_guard, role_tracked.get_solver_var());
+        }
 
         emit_assignment(update_guard_var, update_guard);
 
@@ -1079,10 +1061,11 @@ class SuperOverapproxTransformer {
         if (!res.empty()) {
             return res;
         }
-        interesting Pair broken on indexes... Fix with numbers 0-n, not rule_idx
+//        interesting Pair broken on indexes... Fix with numbers 0-n, not rule_idx
+        int c = 0;
         for (auto &&rule :policy->rules()) {
             if (state.infos.interesting_roles[rule->target->role_array_index]) {
-                res.push_back(std::pair<rulep, int>(rule, rule->original_idx));
+                res.push_back(std::pair<rulep, int>(rule, c++));
             }
         }
         return res;
@@ -1116,7 +1099,7 @@ class SuperOverapproxTransformer {
                        solver->createNotExpr(state.state.skip.get_solver_var()),
                        state.state.program_counter,
                        prec_pairs);
-            generate_main();
+            generate_layer();
             state.pop();
         } else {
 //            log->critical("update {} of depth {}", round_idx, state.deep);
@@ -1124,7 +1107,7 @@ class SuperOverapproxTransformer {
             for (int i = 0; i < policy->atom_count(); i++) {
                 if (state.infos.interesting_roles[i]) {
                     atomp atom = policy->atoms(i);
-                    update_constrained_value(atom);
+                    update_constrained_value(atom, false);
                     // fprintf(outputFile, "    role_%s = set_%s ? role_%s : nondet_bool();\n", role, role, role);
                 }
             }
@@ -1197,10 +1180,21 @@ class SuperOverapproxTransformer {
         }
     }
 
-    void generate_main() {
+    void generate_layer() {
         // fprintf(outputFile, "int main(void) {\n\n");
 
         set_tracked_infos();
+
+        //FIXME: do only if block count is insufficient
+        if (true) {
+            for (int i = 0; i < policy->atom_count(); i++) {
+                if (state.infos.interesting_roles[i]) {
+                    atomp atom = policy->atoms(i);
+                    update_constrained_value(atom, true);
+                    // fprintf(outputFile, "    role_%s = set_%s ? role_%s : nondet_bool();\n", role, role, role);
+                }
+            }
+        }
 
         for (int i = 0; i < state.blocks_to_do; ++i) {
             emit_comment("Round " + std::to_string(i) + " deep " + std::to_string(state.deep));
@@ -1211,12 +1205,11 @@ class SuperOverapproxTransformer {
         // fprintf(outputFile, "}\n");
     }
 
-
-    void generate_top_level_tracked(std::set<atomp> additionals = std::set<atomp>()) {
-        for (auto &&item : policy->atoms()) {
-
-        }
-    }
+    //    void generate_top_level_tracked(std::set<atomp> additionals = std::set<atomp>()) {
+//        for (auto &&item : policy->atoms()) {
+//
+//        }
+//    }
 
 //    state.push(_to_check, /*_to_check_source,*/ one, (int) _to_check->atoms().size());
 
@@ -1234,7 +1227,7 @@ class SuperOverapproxTransformer {
         state.push(state.infos.to_check, one,
                    state.state.program_counter, conditions);
 
-        generate_main();
+        generate_layer();
 
         TExpr target_cond = generate_from_prec(conditions[0].first);
         emit_assumption(target_cond);
@@ -1280,6 +1273,8 @@ class SuperOverapproxTransformer {
 
     bool checkUnreachable() {
         generate_program();
+
+        log->debug("SMT formula generated. Solving it...");
 
         bool result = check_satisfiable();
 
