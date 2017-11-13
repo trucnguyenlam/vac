@@ -16,7 +16,7 @@ namespace SMT {
     OverapproxOptions Config::overapproxOptions = {
         .version = OverapproxOptions::SELECTIVE,
         .depth = 3,
-        .blocks_count = 5,
+        .blocks_count = -1,
     };
 //    int Config::overapprox_merge_precs = false;
     bool Config::simplify_toplevel_or = false;
