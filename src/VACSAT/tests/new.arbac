@@ -1,8 +1,6 @@
-USERS
+
 	u1
 	;
-
-ATTRIBUTES
 	r0[1]
 	r1[1]
 	r2[1]
@@ -10,12 +8,8 @@ ATTRIBUTES
 	rt[1]
 	rs[1]
 	;
-
-INIT
 	<u1: r0=1>
 	;
-
-RULES
 	<a.r0=1, 1: t.r1=0>
 	<a.r0=1, 1: t.r2=0>
 	<a.r0=1, 1: t.r3=0>
@@ -26,7 +20,5 @@ RULES
 	<a.r0=1, (t.r1=1 & t.r2=1): t.r3=1>
 	<a.r0=1, t.r3=1: t.rt=1>
 	;
-
-QUERY
 	__any__.rt=1
 	;
