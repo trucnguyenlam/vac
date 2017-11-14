@@ -13,6 +13,7 @@ namespace SMT {
     Config::Verbosity Config::verbosity = Config::TRACE;
     bool Config::do_not_merge = false;
     int Config::rule_6_max_depth = -1;
+    bool Config::tampone = false;
     OverapproxOptions Config::overapproxOptions = {
         .version = OverapproxOptions::SELECTIVE,
         .depth = 3,

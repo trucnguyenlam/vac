@@ -61,6 +61,14 @@ namespace SMT {
             throw unexpected_error("Uh?");
         }
 
+        bool check_sat_simple(const Expr &expr) const {
+            solver->clean();
+            std::vector<std::shared_ptr<TVar>> var_vect((ulong) policy->atom_count());
+            TExpr solver_expr = generateSMTFunction(solver, expr, var_vect, "C");
+            solver->assertNow(solver_expr);
+            return solver->solve() != SAT;
+        }
+
         bool have_common_atoms(const Expr& e1, const Expr& e2) {
             std::list<atomp> intersection;
             //TODO: sure is it correct?
@@ -399,7 +407,7 @@ namespace SMT {
 
             std::vector<std::shared_ptr<TVar>> var_vect((unsigned int) policy->atom_count());
             TExpr solver_expr = generateSMTFunction(solver, expr, var_vect, "C");
-            if (tampone) {
+            if (!Config::tampone) {
                 TExpr check = solver->createNotExpr(solver_expr);
                 solver->assertNow(check);
                 SMTResult res = solver->solve();
@@ -523,7 +531,7 @@ namespace SMT {
             return false;
         }
 
-        bool satisfies_using_set(const Expr& adm, const userp& user, std::vector<std::shared_ptr<atom_status>>& _atom_status) {
+        bool satisfies_using_set_simple(const Expr& adm, const userp& user, std::vector<std::shared_ptr<atom_status>>& _atom_status) {
             auto lits = adm->atoms();
             for (auto &&atom : adm->atoms()) {
                 std::vector<std::shared_ptr<TExpr>> var_vect((ulong) policy->atom_count());
@@ -567,7 +575,12 @@ namespace SMT {
 
         bool immaterial_not_interfere_new(const Expr& adm, std::vector<std::shared_ptr<atom_status>>& _atom_status) {
             for (auto &&conf : policy->unique_configurations()) {
-                bool sat = satisfies_using_set(adm, conf, _atom_status);
+                bool sat;
+                if (!Config::tampone) {
+                    sat = satisfies_using_set_simple(adm, conf, _atom_status);
+                } else {
+                    sat = satisfies_using_set_tampone(adm, conf, _atom_status);
+                }
                 if (sat)
                     return true;
             }
@@ -1087,7 +1100,7 @@ namespace SMT {
 
             Expr final_cond = createOrExpr(adm_cond, cond);
 
-            bool sat = check_sat(final_cond, on_admin, "C", "Adm", nullptr);
+            bool sat = check_sat_tampone(final_cond, on_admin, "C", "Adm", nullptr);
 
 
             return !sat;
@@ -1111,7 +1124,7 @@ namespace SMT {
 //            return res == UNSAT;
         }
 
-        int implied(const std::shared_ptr<rule>& ca1, const std::shared_ptr<rule>& ca2) {
+        int implied_simple(const std::shared_ptr<rule>& ca1, const std::shared_ptr<rule>& ca2) {
             //FIXME: tampone
             solver->clean();
             std::vector<std::shared_ptr<TVar>> adm_vect((ulong) policy->atom_count());
@@ -1171,6 +1184,14 @@ namespace SMT {
 //            SMTResult res = solver->solve();
 //            solver->clean();
 //            return res == UNSAT;
+        }
+
+        int implied(const std::shared_ptr<rule>& ca1, const std::shared_ptr<rule>& ca2) {
+            if (Config::tampone) {
+                return implied_tampone(ca1, ca2);
+            } else {
+                return implied_simple(ca1, ca2);
+            }
         }
 
         bool prune_implied_pairs() {
@@ -1499,20 +1520,13 @@ namespace SMT {
             return res;
         };
 
-        bool check_sat(const Expr &expr) const {
-            solver->clean();
-            std::vector<std::shared_ptr<TVar>> var_vect((ulong) policy->atom_count());
-            TExpr solver_expr = generateSMTFunction(solver, expr, var_vect, "C");
-            solver->assertNow(solver_expr);
-            return solver->solve() != SAT;
-        }
-
         bool always_false(const Expr& expr, const rulep& rule) {
             if (with_tampone) {
 //                return apply_r6<TVar, TExpr>(solver, policy, expr, rule);
-                return apply_r6<TVar, TExpr>(solver, policy, expr, rule);
+                std::set<Expr> empty;
+                return apply_r6<TVar, TExpr>(solver, policy, expr, empty, rule);
             } else {
-                return check_sat(expr);
+                return check_sat_simple(expr);
             }
         }
 
@@ -1554,7 +1568,7 @@ namespace SMT {
 //            bool res = apply_r6<TVar, TExpr>(this->solver, this->policy, final, rule);
             bool res;
 
-            if (tampone) {
+            if (Config::tampone) {
                 std::set<Expr> empty;
                 res = !check_sat_tampone(final, empty, "", "", rule);
             } else {
@@ -1577,9 +1591,9 @@ namespace SMT {
         interactive_split_result apply_remove_simplify(Expr& expr, const rulep& rule, bool admin) {
             // IF RULE IS NEVER FIREABLE THAN REMOVE IT!
 //            if (apply_r6<TVar, TExpr>(this->solver, this->policy, expr, rule)) {
-            if (tampone) {
+            if (Config::tampone) {
                 std::set<Expr> empty;
-                if (!check_sat(expr, empty, "", "", rule)) {
+                if (!check_sat_tampone(expr, empty, "", "", rule)) {
                     return REMOVE;
                 }
             } else {
@@ -2021,7 +2035,7 @@ namespace SMT {
                 bool fixpoint = false;
                 auto step_start = std::chrono::high_resolution_clock::now();
                 while (!fixpoint) {
-                    std::string tampone = with_tampone ? "with tampone" : "without tampone";
+                    std::string w_tampone = Config::tampone ? "with tampone" : "without tampone";
 
                     log->debug("Applying backward_slicing on {}", policy->rules().size());
                     bool backward_slicing_res = this->backward_slicing();
@@ -2032,7 +2046,7 @@ namespace SMT {
 //                std::cout << *policy << std::endl;
 
 
-                    log->debug("Applying easy_pruning on {}", policy->rules().size());
+                    log->debug("Applying easy_pruning {} on {}", w_tampone, policy->rules().size());
                     bool easy_pruning_res = this->easy_pruning();
                     easy_pruning_res = reduce_roles() && easy_pruning_res;
                     log->debug(" ==> {} rules...", policy->rules().size());
@@ -2053,7 +2067,7 @@ namespace SMT {
                     solver->deep_clean();
 
 
-                    log->debug("Applying prune_irrelevant_roles on {}", policy->rules().size());
+                    log->debug("Applying prune_irrelevant_roles {} on {}", w_tampone, policy->rules().size());
                     bool prune_irrelevant_roles_res = this->prune_irrelevant_roles();
                     prune_irrelevant_roles_res = reduce_roles() || prune_irrelevant_roles_res;
                     log->debug(" ==> {} rules...", policy->rules().size());
@@ -2077,7 +2091,7 @@ namespace SMT {
 
                     bool merge_rules_res = false;
                     if (!Config::do_not_merge) {
-                        log->debug("Applying merge_rules on {}", policy->rules().size());
+                        log->debug("Applying merge_rules {} on {}", w_tampone, policy->rules().size());
                         merge_rules_res = this->merge_rules();
                         merge_rules_res = reduce_roles() || merge_rules_res;
                         log->debug(" ==> {} rules...", policy->rules().size());
@@ -2115,7 +2129,7 @@ namespace SMT {
 //                    log->info("{}", *policy);
 
                     log->debug("Applying prune_rule_6 on {}", policy->rules().size());
-                    bool prune_rule_6_res = this->prune_rule_6();
+                    bool prune_rule_6_res = this->simplyfy_remove_false();
                     prune_rule_6_res = reduce_roles() || prune_rule_6_res;
                     log->debug(" ==> {} rules...", policy->rules().size());
                     solver->deep_clean();

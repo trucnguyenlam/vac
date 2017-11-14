@@ -59,6 +59,7 @@ namespace SMT {
         static Verbosity verbosity;
         static bool do_not_merge;
         static int rule_6_max_depth;
+        static bool tampone;
         static OverapproxOptions overapproxOptions;
         //static int overapprox_merge_precs;
         static bool simplify_toplevel_or;
