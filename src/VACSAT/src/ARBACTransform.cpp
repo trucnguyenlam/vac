@@ -55,6 +55,7 @@ public:
     const std::string new_backend;
     const bool old_parser;
     const bool new_prune_only;
+    const bool use_tampone;
     const bool new_reachability_only;
     const bool do_not_merge;
     const int rule_6_max_depth;
@@ -86,6 +87,7 @@ public:
             std::string _new_backend,
             bool _old_parser,
             bool _new_prune_only,
+            bool _use_tampone,
             bool _new_reachability_only,
             bool _do_not_merge,
             int _rule_6_max_depth,
@@ -114,6 +116,7 @@ public:
         new_backend(_new_backend),
         old_parser(_old_parser),
         new_prune_only(_new_prune_only),
+        use_tampone(_use_tampone),
         new_reachability_only(_new_reachability_only),
         do_not_merge(_do_not_merge),
         rule_6_max_depth(_rule_6_max_depth),
@@ -226,8 +229,9 @@ static options parse_args(int ac, const char* const* av) {
     arg_obj<std::string> output_file = create_arg_obj_string("out,o", "Specify the output file");
     arg_obj<bool> old_inline = create_arg_obj_bool("inline", "Inline the program (lazycseq only)");
     arg_obj<std::string> new_backend = create_arg_obj_string("backend,b", "yices", "SMT backend (Z3, YICES, BOOLECTOR, MATHSAT)");
-    arg_obj<bool> old_parser = create_arg_obj_bool("old-parser,O", "Prune the policy using sat based approaches only");
+    arg_obj<bool> old_parser = create_arg_obj_bool("old-parser,O", "Use the VAC1.0 policy format");
     arg_obj<bool> new_prune_only = create_arg_obj_bool("prune-only,p", "Prune the policy using sat based approaches only");
+    arg_obj<bool> use_tampone = create_arg_obj_bool("tampone,E", "Use the tampone pruning system (testing)");
     arg_obj<bool> new_reachability_only = create_arg_obj_bool("reachability-only,q", "Check reachability with bmc only");
     arg_obj<bool> do_not_merge = create_arg_obj_bool("do-not-merge", "Do not use the pruning merge rule");
     arg_obj<int> rule_6_max_depth = create_arg_obj_int("rule6-max-depth", -1, "Set the max depth of expression that should be tested in rule 6. (< 0 for any)");
@@ -257,6 +261,7 @@ static options parse_args(int ac, const char* const* av) {
     add_option_description(desc, new_backend);
     add_option_description(desc, old_parser);
     add_option_description(desc, new_prune_only);
+    add_option_description(desc, use_tampone);
     add_option_description(desc, new_reachability_only);
     add_option_description(desc, do_not_merge);
     add_option_description(desc, rule_6_max_depth);
@@ -301,6 +306,7 @@ static options parse_args(int ac, const char* const* av) {
                     new_backend.result,
                     old_parser.result,
                     new_prune_only.result,
+                    use_tampone.result,
                     new_reachability_only.result,
                     do_not_merge.result,
                     rule_6_max_depth.result,
@@ -419,6 +425,8 @@ int main(int argc, const char * const *argv) {
         SMT::Config::infinity_bmc_steps_count = config.infinity_bmc_steps_count;
         SMT::Config::show_solver_statistics = config.solver_statistics;
         SMT::Config::print_old_model = config.print_old_model;
+
+        SMT::Config::use_tampone = config.use_tampone;
 
         SMT::Config::overapproxOptions.version = SMT::OverapproxOptions::parse(config.overapprox_version);
 

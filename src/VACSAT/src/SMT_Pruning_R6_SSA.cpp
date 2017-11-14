@@ -400,7 +400,8 @@ class R6Transformer {
     void generate_check() {
         // fprintf(outputFile, "    /*--------------- ERROR CHECK ------------*/\n");
         // fprintf(outputFile, "    /*--------------- assume(\\phi) ------------*/\n");
-        if (!Config::tampone) {
+        //FIXME: this if could be removed since if not tampone the free set is empty
+        if (!Config::use_tampone) {
             TExpr rule_assumption = generate_from_prec(target_expr);
             emit_assumption(rule_assumption);
         } else {

@@ -407,7 +407,7 @@ namespace SMT {
 
             std::vector<std::shared_ptr<TVar>> var_vect((unsigned int) policy->atom_count());
             TExpr solver_expr = generateSMTFunction(solver, expr, var_vect, "C");
-            if (!Config::tampone) {
+            if (!Config::use_tampone) {
                 TExpr check = solver->createNotExpr(solver_expr);
                 solver->assertNow(check);
                 SMTResult res = solver->solve();
@@ -576,7 +576,7 @@ namespace SMT {
         bool immaterial_not_interfere_new(const Expr& adm, std::vector<std::shared_ptr<atom_status>>& _atom_status) {
             for (auto &&conf : policy->unique_configurations()) {
                 bool sat;
-                if (!Config::tampone) {
+                if (!Config::use_tampone) {
                     sat = satisfies_using_set_simple(adm, conf, _atom_status);
                 } else {
                     sat = satisfies_using_set_tampone(adm, conf, _atom_status);
@@ -1187,7 +1187,7 @@ namespace SMT {
         }
 
         int implied(const std::shared_ptr<rule>& ca1, const std::shared_ptr<rule>& ca2) {
-            if (Config::tampone) {
+            if (Config::use_tampone) {
                 return implied_tampone(ca1, ca2);
             } else {
                 return implied_simple(ca1, ca2);
@@ -1568,7 +1568,7 @@ namespace SMT {
 //            bool res = apply_r6<TVar, TExpr>(this->solver, this->policy, final, rule);
             bool res;
 
-            if (Config::tampone) {
+            if (Config::use_tampone) {
                 std::set<Expr> empty;
                 res = !check_sat_tampone(final, empty, "", "", rule);
             } else {
@@ -1591,7 +1591,7 @@ namespace SMT {
         interactive_split_result apply_remove_simplify(Expr& expr, const rulep& rule, bool admin) {
             // IF RULE IS NEVER FIREABLE THAN REMOVE IT!
 //            if (apply_r6<TVar, TExpr>(this->solver, this->policy, expr, rule)) {
-            if (Config::tampone) {
+            if (Config::use_tampone) {
                 std::set<Expr> empty;
                 if (!check_sat_tampone(expr, empty, "", "", rule)) {
                     return REMOVE;
@@ -2035,7 +2035,7 @@ namespace SMT {
                 bool fixpoint = false;
                 auto step_start = std::chrono::high_resolution_clock::now();
                 while (!fixpoint) {
-                    std::string w_tampone = Config::tampone ? "with tampone" : "without tampone";
+                    std::string w_tampone = Config::use_tampone ? "with tampone" : "without tampone";
 
                     log->debug("Applying backward_slicing on {}", policy->rules().size());
                     bool backward_slicing_res = this->backward_slicing();
