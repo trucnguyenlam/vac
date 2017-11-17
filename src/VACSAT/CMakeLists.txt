@@ -61,7 +61,8 @@ set(SOURCE_FILES
         src/SMT_Infini_admin_bmc.cpp
         src/SMT_Overapprox.cpp
         src/SMT_Overapprox_extended.cpp
-        src/SMT_Overapprox_super.cpp )
+        src/SMT_Overapprox_super.cpp
+        src/SMT_Overapprox_admin.cpp)
 
 # Add path for custom modules
 list (APPEND CMAKE_MODULE_PATH
