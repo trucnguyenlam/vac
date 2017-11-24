@@ -7,12 +7,14 @@ UA
     ;
 
 CR
+    <ra, r0>
+    <ra, r1>
     ;
 
 CA
-    <ra, -r1, r0>
-    <ra, -r0, r1>
-    <ra, r0&r1, rt>
+    <ra, r1, r0>
+    <ra, r0, r1>
+    <ra, r1, rt>
 
 
 	;

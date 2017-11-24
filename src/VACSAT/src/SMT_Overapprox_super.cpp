@@ -1254,6 +1254,7 @@ class SuperOverapproxTransformer {
         switch (res) {
             case SAT:
                 log->debug("SAT\n");
+//                solver->printModel();
                 return true;
                 break;
             case UNSAT:
