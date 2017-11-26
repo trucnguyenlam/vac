@@ -228,17 +228,20 @@ class AdminOverapproxTransformer {
         const Expr to_check;
         const std::vector<bool> interesting_roles;
         const int interesting_roles_count;
+        const int user_count;
         const int pc_size;
         const int pc_max_value;
 
         overapprox_infos(const Expr _to_check,
                          const std::vector<bool> _interesting_roles,
                          const int _interesting_roles_count,
+                         const int _user_count,
                          const int _pc_size,
                          const int _pc_max_value) :
                 to_check(_to_check),
                 interesting_roles(_interesting_roles),
                 interesting_roles_count(_interesting_roles_count),
+                user_count(_user_count),
                 pc_size(_pc_size),
                 pc_max_value(_pc_max_value) { }
     };
@@ -263,7 +266,7 @@ class AdminOverapproxTransformer {
 
         /*--- SAVED ---*/
         std::stack<variables> saved_state;
-        std::stack<std::vector<std::tuple<Expr, Expr, int>>> saved_target_exprs;
+        std::stack<std::vector<std::pair<std::pair<Expr, Expr>, int>>> saved_target_exprs;
         std::stack<variable> saved_parent_pc;
         std::stack<int> saved_blocks_to_do;
 
@@ -274,7 +277,7 @@ class AdminOverapproxTransformer {
             variables old_state = state;
             saved_state.push(old_state);
 
-            std::vector<std::tuple<Expr, Expr, int>> old_target_exprs = target_exprs;
+            std::vector<std::pair<std::pair<Expr, Expr>, int>> old_target_exprs = target_exprs;
             saved_target_exprs.push(old_target_exprs);
 
             variable old_parent_pc = parent_pc;
@@ -511,19 +514,28 @@ class AdminOverapproxTransformer {
         void internal_init() {
             TExpr _false = solver->createFalse();
             TExpr _true = solver->createTrue();
+            for (int j = 0; j < infos.user_count; ++j) {
+                for (int i = 0; i < policy->atom_count(); ++i) {
+                    if (infos.interesting_roles[i]) {
+                        TExpr init_role_changed = solver->createEqExpr(state.all_role_changed[j][i].get_solver_var(),
+                                                                       _false);
+                        solver->assertLater(init_role_changed);
+
+                        TExpr init_role_sets = solver->createEqExpr(state.all_role_sets[j][i].get_solver_var(),
+                                                                    _false);
+                        solver->assertLater(init_role_sets);
+                    }
+                }
+            }
+
             for (int i = 0; i < policy->atom_count(); ++i) {
                 if (infos.interesting_roles[i]) {
-                    TExpr init_role_changed = solver->createEqExpr(state.role_changed[i].get_solver_var(),
-                                                                   _false);
-                    solver->assertLater(init_role_changed);
-
-                    TExpr init_role_sets = solver->createEqExpr(state.role_sets[i].get_solver_var(),
-                                                                _false);
-                    solver->assertLater(init_role_sets);
-
-                    TExpr init_role_tracked = solver->createEqExpr(state.role_tracked[i].get_solver_var(),
-                                                                   _false);
-                    solver->assertLater(init_role_tracked);
+                    TExpr init_adm_role_tracked = solver->createEqExpr(state.layer_admin_role_tracked[i].get_solver_var(),
+                                                                       _false);
+                    solver->assertLater(init_adm_role_tracked);
+                    TExpr init_user_role_tracked = solver->createEqExpr(state.layer_user_role_tracked[i].get_solver_var(),
+                                                                        _false);
+                    solver->assertLater(init_user_role_tracked);
                 }
             }
 
@@ -546,7 +558,7 @@ class AdminOverapproxTransformer {
                           const overapprox_infos infos) :
                 solver(_solver),
                 policy(_policy),
-                state(policy, solver, infos.interesting_roles),
+                state(policy, solver, infos.user_count, infos.interesting_roles),
 //                target_rules(std::set<rulep>()),
                 target_exprs(std::vector<std::pair<std::pair<Expr, Expr>, int>>()),
                 blocks_to_do(-1),
@@ -625,7 +637,8 @@ class AdminOverapproxTransformer {
     }
 
     static overapprox_infos get_interesting_pc_size_pc_maxvalue(const std::shared_ptr<arbac_policy> &policy,
-                                                                const Expr &to_check) {
+                                                                const Expr &to_check,
+                                                                const int user_count) {
         bool fixpoint = false;
 
         std::set<Atomp> interesting;
@@ -683,6 +696,7 @@ class AdminOverapproxTransformer {
         return overapprox_infos(to_check,
                                 interesting_roles,
                                 interesting_roles_count,
+                                user_count,
                                 pc_size_max_value.first,
                                 pc_size_max_value.second);
     }
@@ -700,22 +714,36 @@ class AdminOverapproxTransformer {
         state.emit_comment(comment);
     }
 
-    void init_atoms() {
+//    void init_atoms() {
+//        TExpr init = solver->createFalse();
+//        for (auto &&conf :policy->unique_configurations()) {
+//            TExpr conf_expr = solver->createTrue();
+//            for (auto &&atom :policy->atoms()) {
+//                if (state.infos.interesting_roles[atom->role_array_index]) {
+//                    bool has = contains(conf->config(), atom);
+//                    conf_expr = solver->createAndExpr(conf_expr,
+//                                                      solver->createEqExpr(
+//                                                              state.state.role_vars[atom->role_array_index].get_solver_var(),
+//                                                              has ? one : zero));
+//                }
+//            }
+//            init = solver->createOrExpr(init, conf_expr);
+//        }
+//        solver->assertLater(init);
+//    }
+
+    void det_init_atoms() {
         TExpr init = solver->createFalse();
-        for (auto &&conf :policy->unique_configurations()) {
-            TExpr conf_expr = solver->createTrue();
+        for (int i = 0; i < state.infos.user_count; ++i) {
+            userp conf = policy->users(i);
             for (auto &&atom :policy->atoms()) {
                 if (state.infos.interesting_roles[atom->role_array_index]) {
                     bool has = contains(conf->config(), atom);
-                    conf_expr = solver->createAndExpr(conf_expr,
-                                                      solver->createEqExpr(
-                                                              state.state.role_vars[atom->role_array_index].get_solver_var(),
-                                                              has ? one : zero));
+                    emit_assignment(state.state.all_role_vars[i][atom->role_array_index],
+                                    has ? one : zero);
                 }
             }
-            init = solver->createOrExpr(init, conf_expr);
         }
-        solver->assertLater(init);
     }
 
     TExpr generate_PC_prec(int pc) {
@@ -1016,8 +1044,8 @@ class AdminOverapproxTransformer {
                 TExpr new_value = solver->createFalse();
                 TExpr new_set = solver->createFalse();
                 TExpr new_changed = solver->createFalse();
-                for (int i = 0; i < user_count; ++i) {
-                    TExpr is_selected = solver->createEqExpr(u_idx,
+                for (int i = 0; i < state.infos.user_count; ++i) {
+                    TExpr is_selected = solver->createEqExpr(u_idx.get_solver_var(),
                                                              solver->createBVConst(i, u_idx.bv_size));
 
                     //VALUE
@@ -1054,7 +1082,7 @@ class AdminOverapproxTransformer {
         variable nadm = state.state.block_admin_idx.createFrom();
         state.state.block_admin_idx = nadm;
         TExpr adm_existance = solver->createLtExpr(nadm.get_solver_var(),
-                                                   solver->createBVConst(user_count, nadm.bv_size));
+                                                   solver->createBVConst(state.infos.user_count, nadm.bv_size));
         emit_assumption(adm_existance);
         copy_from_user(ADMIN, lob);
         emit_comment("end block admin multiplexing");
@@ -1071,7 +1099,7 @@ class AdminOverapproxTransformer {
         copy_from_user(TARGET, lob);
         emit_comment("end block user multiplexing");
 
-        after nondet assignment check that ((state.state.block_admin_idx == state.state.block_target_idx) ==> all variables are equals)
+//        after nondet assignment check that ((state.state.block_admin_idx == state.state.block_target_idx) ==> all variables are equals)
     }
 
     void check_if_equals(LayerOrBlock lob) {
@@ -1082,8 +1110,8 @@ class AdminOverapproxTransformer {
 
         for (auto &&atom :policy->atoms()) {
             TExpr atom_eq = solver->createImplExpr(guard,
-                                                   solver->createAndExpr(state.state.selected_admin_role_vars[atom->role_array_index],
-                                                                         state.state.selected_user_role_vars[atom->role_array_index]));
+                                                   solver->createAndExpr(state.state.selected_admin_role_vars[atom->role_array_index].get_solver_var(),
+                                                                         state.state.selected_user_role_vars[atom->role_array_index].get_solver_var()));
             emit_assumption(atom_eq);
         }
     }
@@ -1140,13 +1168,13 @@ class AdminOverapproxTransformer {
     void save_multiplexed_values(LayerOrBlock lob) {
         //FIXME: ADMIN COPY MUST ALWAYS BE BEFORE THE STANDARD ONE OTHERWISE IN CASE THE USER IS THE SAME CHANGES ARE OVERRIDDEN
         emit_comment("start layer admin de-multiplexing");
-        for (int i = 0; i < user_count; ++i) {
+        for (int i = 0; i < state.infos.user_count; ++i) {
             save_copied_user(i, ADMIN, lob);
         }
         emit_comment("end layer admin de-multiplexing");
 
         emit_comment("start layer user de-multiplexing");
-        for (int i = 0; i < user_count; ++i) {
+        for (int i = 0; i < state.infos.user_count; ++i) {
             save_copied_user(i, TARGET, lob);
         }
         emit_comment("end layer user de-multiplexing");
@@ -1466,7 +1494,8 @@ class AdminOverapproxTransformer {
 
         if (choice != RoleChoicer::FREE) {
             TExpr value = choice == RoleChoicer::REQUIRED ? one : zero;
-            emit_assignment(state.state.role_tracked[atom_id], value);
+            emit_assignment(state.state.layer_admin_role_tracked[atom_id], value);
+            emit_assignment(state.state.layer_user_role_tracked[atom_id], value);
             return;
         } else {
             TExpr tracked_value = zero;
@@ -1543,14 +1572,14 @@ class AdminOverapproxTransformer {
         variable new_admin = state.state.layer_admin_idx.createFrom();
         state.state.layer_admin_idx = new_admin;
         TExpr adm_existance = solver->createLtExpr(new_admin.get_solver_var(),
-                                                   solver->createBVConst(user_count, new_admin.bv_size));
+                                                   solver->createBVConst(state.infos.user_count, new_admin.bv_size));
         emit_assumption(adm_existance);
 
         variable new_target = state.state.layer_target_idx.createFrom();
         state.state.layer_target_idx = new_target;
         TExpr target_existance = solver->createLtExpr(new_target.get_solver_var(),
-                                                      solver->createBVConst(user_count, new_target.bv_size));
-        emit_assumption(new_target);
+                                                      solver->createBVConst(state.infos.user_count, new_target.bv_size));
+        emit_assumption(target_existance);
 
 
     }
@@ -1626,6 +1655,7 @@ class AdminOverapproxTransformer {
     public:
     AdminOverapproxTransformer(const std::shared_ptr<SMTFactory<TVar, TExpr>> _solver,
                                const std::shared_ptr<arbac_policy>& _policy,
+                               const int user_count,
                                const Expr _to_check
                                   /*const std::set<rulep> _to_check_source*/) :
         solver(_solver),
@@ -1634,11 +1664,12 @@ class AdminOverapproxTransformer {
         state(_solver.get(),
               _policy,
               Config::overapproxOptions.depth,
-              get_interesting_pc_size_pc_maxvalue(_policy, _to_check)),
+              get_interesting_pc_size_pc_maxvalue(_policy, _to_check, user_count)),
         zero(solver->createFalse()),
         one(solver->createTrue()) {
 //        solver->deep_clean();
-        init_atoms();
+        det_init_atoms();
+//        det_init_atoms();
     }
 
     ~AdminOverapproxTransformer() = default;
@@ -1665,12 +1696,13 @@ class AdminOverapproxTransformer {
     template <typename TVar, typename TExpr>
     bool overapprox_admin(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
                           const std::shared_ptr<arbac_policy>& policy,
+                          const int user_count,
                           const Expr& to_check) {
         solver->deep_clean();
         if (is_constant_true(to_check)) {
             return false;
         }
-        AdminOverapproxTransformer<TVar, TExpr> transf(solver, policy, to_check);
+        AdminOverapproxTransformer<TVar, TExpr> transf(solver, policy, user_count, to_check);
         // std::shared_ptr<SMTFactory<expr, expr>> solver(new Z3Solver());
         // R6Transformer<expr, expr> transf(solver, rule_index, is_ca);
         bool res = transf.apply();
@@ -1682,18 +1714,22 @@ class AdminOverapproxTransformer {
 
     template bool overapprox_admin<term_t, term_t>(const std::shared_ptr<SMTFactory<term_t, term_t>>& solver,
                                                    const std::shared_ptr<arbac_policy>& policy,
+                                                   const int user_count,
                                                    const Expr& to_check);
 
     template bool overapprox_admin<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>>& solver,
                                                const std::shared_ptr<arbac_policy>& policy,
+                                               const int user_count,
                                                const Expr& to_check);
 
     template bool overapprox_admin<BoolectorExpr, BoolectorExpr>(const std::shared_ptr<SMTFactory<BoolectorExpr, BoolectorExpr>>& solver,
                                                                  const std::shared_ptr<arbac_policy>& policy,
+                                                                 const int user_count,
                                                                  const Expr& to_check);
 
     template bool overapprox_admin<msat_term, msat_term>(const std::shared_ptr<SMTFactory<msat_term, msat_term>>& solver,
                                                          const std::shared_ptr<arbac_policy>& policy,
+                                                         const int user_count,
                                                          const Expr& to_check);
 
 }
