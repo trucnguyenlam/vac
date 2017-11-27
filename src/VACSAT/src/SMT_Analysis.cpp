@@ -16,6 +16,9 @@ namespace SMT {
     bool execute_overapprox(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
                             const std::shared_ptr<arbac_policy>& policy,
                             const Expr& target_expr) {
+        overapprox_admin(solver, policy, 2, target_expr);
+        exit(0);
+
         switch (Config::overapproxOptions.version) {
             case OverapproxOptions::JUNE:
                 log->debug("Using June overapprox version");

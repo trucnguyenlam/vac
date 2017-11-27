@@ -331,29 +331,147 @@ class AdminOverapproxTransformer {
             solver->assertLater(solver->createEqExpr(new_program_counter.get_solver_var(), old_program_counter));
             state.program_counter = new_program_counter;
 
-            // RESTORING OLD STEP SET STATE
-            for (int i = 0; i < infos.interesting_roles.size(); ++i) {
-                if (infos.interesting_roles[i]) {
-                    //TRACKED: RESTORE OLD VALUE
-                    TVar old_set_state = old_state.role_sets[i].get_solver_var();
-                    variable new_set_state = state.role_sets[i].createFrom();
-                    this->emit_assignment(new_set_state, old_set_state);
-                    state.role_sets[i] = new_set_state;
-                } else {
-                    //UNTRACKED: SET VARIABLE TO FALSE (NEXT USAGE WILL FIND UNSET!)
-//                    state.core_sets[i] = state.core_sets[i].createFrom();
-//                    this->emit_assignment(state.core_sets[i], solver->createFalse());
+            {
+                //RESTORIE LAYER/BLOCK ADM/USER IDX
+                TVar old_block_adm_idx = old_state.block_admin_idx.get_solver_var();
+                variable new_block_adm_idx = state.block_admin_idx.createFrom();
+//            this->emit_assignment(new_guard, old_guard);
+                solver->assertLater(solver->createEqExpr(new_block_adm_idx.get_solver_var(), old_block_adm_idx));
+                state.block_admin_idx = new_block_adm_idx;
+
+                TVar old_block_target_idx = old_state.block_target_idx.get_solver_var();
+                variable new_block_target_idx = state.block_target_idx.createFrom();
+//            this->emit_assignment(new_guard, old_guard);
+                solver->assertLater(solver->createEqExpr(new_block_target_idx.get_solver_var(), old_block_target_idx));
+                state.block_target_idx = new_block_target_idx;
+
+                TVar old_layer_admin_idx = old_state.layer_admin_idx.get_solver_var();
+                variable new_layer_admin_idx = state.layer_admin_idx.createFrom();
+//            this->emit_assignment(new_guard, old_guard);
+                solver->assertLater(solver->createEqExpr(new_layer_admin_idx.get_solver_var(), old_layer_admin_idx));
+                state.layer_admin_idx = new_layer_admin_idx;
+
+                TVar old_layer_target_idx = old_state.layer_target_idx.get_solver_var();
+                variable new_layer_target_idx = state.layer_target_idx.createFrom();
+//            this->emit_assignment(new_guard, old_guard);
+                solver->assertLater(solver->createEqExpr(new_layer_target_idx.get_solver_var(), old_layer_target_idx));
+                state.layer_target_idx = new_layer_target_idx;
+            }
+
+
+            // RESTORING USERS OLD STEP SET STATE
+            for (int j = 0; j < infos.user_count; ++j) {
+                emit_comment("B: Updating user " + std::to_string(j));
+                for (int i = 0; i < policy->atom_count(); ++i) {
+                    if (infos.interesting_roles[i]) {
+                        // SET: RESTORE OLD VALUE
+                        TVar old_set_state = old_state.all_role_sets[j][i].get_solver_var();
+                        variable new_set_state = state.all_role_sets[j][i].createFrom();
+                        this->emit_assignment(new_set_state, old_set_state);
+                        state.all_role_sets[j][i] = new_set_state;
+
+                        // CHANGED: UPDATE MEMORY WITH ITE ON GUARD
+                        variable new_changed = state.all_role_changed[j][i].createFrom();
+                        variable old_changed = old_state.all_role_changed[j][i];
+                        TExpr new_changed_value =
+                                solver->createCondExpr(frame_guard,
+                                                       solver->createOrExpr(old_changed.get_solver_var(),
+                                                                            state.all_role_changed[j][i].get_solver_var()),
+                                                       old_changed.get_solver_var());
+                        emit_assignment(new_changed, new_changed_value);
+                        state.all_role_changed[j][i] = new_changed;
+
+                        // VALUE: UPDATE WITH ITE ON GUARD
+                        variable sync_role_var = state.all_role_vars[j][i].createFrom();
+                        TExpr cond_sync_role_var = solver->createCondExpr(frame_guard,
+                                                                          state.all_role_vars[j][i].get_solver_var(),
+                                                                          old_state.all_role_vars[j][i].get_solver_var());
+                        emit_assignment(sync_role_var, cond_sync_role_var);
+                        state.all_role_vars[j][i] = sync_role_var;
+                    }
                 }
+                emit_comment("E: Updating user " + std::to_string(j));
+            }
+
+            {
+                emit_comment("B: Updating selected admin user");
+                for (int i = 0; i < policy->atom_count(); ++i) {
+                    if (infos.interesting_roles[i]) {
+                        // SET: RESTORE OLD VALUE
+                        TVar old_set_state = old_state.selected_admin_role_sets[i].get_solver_var();
+                        variable new_set_state = state.selected_admin_role_sets[i].createFrom();
+                        this->emit_assignment(new_set_state, old_set_state);
+                        state.selected_admin_role_sets[i] = new_set_state;
+
+                        // CHANGED: UPDATE MEMORY WITH ITE ON GUARD
+                        variable new_changed = state.selected_admin_role_changed[i].createFrom();
+                        variable old_changed = old_state.selected_admin_role_changed[i];
+                        TExpr new_changed_value =
+                                solver->createCondExpr(frame_guard,
+                                                       solver->createOrExpr(old_changed.get_solver_var(),
+                                                                            state.selected_admin_role_changed[i].get_solver_var()),
+                                                       old_changed.get_solver_var());
+                        emit_assignment(new_changed, new_changed_value);
+                        state.selected_admin_role_changed[i] = new_changed;
+
+                        // VALUE: UPDATE WITH ITE ON GUARD
+                        variable sync_role_var = state.selected_admin_role_vars[i].createFrom();
+                        TExpr cond_sync_role_var = solver->createCondExpr(frame_guard,
+                                                                          state.selected_admin_role_vars[i].get_solver_var(),
+                                                                          old_state.selected_admin_role_vars[i].get_solver_var());
+                        emit_assignment(sync_role_var, cond_sync_role_var);
+                        state.selected_admin_role_vars[i] = sync_role_var;
+                    }
+                }
+                emit_comment("E: Updating selected admin user");
+            }
+
+            {
+                emit_comment("B: Updating selected target user");
+                for (int i = 0; i < policy->atom_count(); ++i) {
+                    if (infos.interesting_roles[i]) {
+                        // SET: RESTORE OLD VALUE
+                        TVar old_set_state = old_state.selected_user_role_sets[i].get_solver_var();
+                        variable new_set_state = state.selected_user_role_sets[i].createFrom();
+                        this->emit_assignment(new_set_state, old_set_state);
+                        state.selected_user_role_sets[i] = new_set_state;
+
+                        // CHANGED: UPDATE MEMORY WITH ITE ON GUARD
+                        variable new_changed = state.selected_user_role_changed[i].createFrom();
+                        variable old_changed = old_state.selected_user_role_changed[i];
+                        TExpr new_changed_value =
+                                solver->createCondExpr(frame_guard,
+                                                       solver->createOrExpr(old_changed.get_solver_var(),
+                                                                            state.selected_user_role_changed[i].get_solver_var()),
+                                                       old_changed.get_solver_var());
+                        emit_assignment(new_changed, new_changed_value);
+                        state.selected_user_role_changed[i] = new_changed;
+
+                        // VALUE: UPDATE WITH ITE ON GUARD
+                        variable sync_role_var = state.selected_user_role_vars[i].createFrom();
+                        TExpr cond_sync_role_var = solver->createCondExpr(frame_guard,
+                                                                          state.selected_user_role_vars[i].get_solver_var(),
+                                                                          old_state.selected_user_role_vars[i].get_solver_var());
+                        emit_assignment(sync_role_var, cond_sync_role_var);
+                        state.selected_user_role_vars[i] = sync_role_var;
+                    }
+                }
+                emit_comment("E: Updating selected target user");
             }
 
             // RESTORING OLD STEP TRACKED STATE
-            for (int i = 0; i < infos.interesting_roles.size(); ++i) {
+            for (int i = 0; i < policy->atom_count(); ++i) {
                 if (infos.interesting_roles[i]) {
-                    //TRACKED: RESTORE OLD VALUE
-                    TVar old_tracked_state = old_state.role_tracked[i].get_solver_var();
-                    variable new_tracked_state = state.role_tracked[i].createFrom();
-                    this->emit_assignment(new_tracked_state, old_tracked_state);
-                    state.role_tracked[i] = new_tracked_state;
+                    //TRACKED: ADMIN RESTORE OLD VALUE
+                    TVar old_admin_tracked_state = old_state.layer_admin_role_tracked[i].get_solver_var();
+                    variable new_admin_tracked_state = state.layer_admin_role_tracked[i].createFrom();
+                    this->emit_assignment(new_admin_tracked_state, old_admin_tracked_state);
+                    state.layer_admin_role_tracked[i] = new_admin_tracked_state;
+                    //TRACKED: TARGET RESTORE OLD VALUE
+                    TVar old_user_tracked_state = old_state.layer_user_role_tracked[i].get_solver_var();
+                    variable new_user_tracked_state = state.layer_user_role_tracked[i].createFrom();
+                    this->emit_assignment(new_user_tracked_state, old_user_tracked_state);
+                    state.layer_user_role_tracked[i] = new_user_tracked_state;
                 } else {
                     //UNTRACKED: SET VARIABLE TO FALSE (NEXT USAGE WILL FIND UNSET!)
 //                    state.core_sets[i] = state.core_sets[i].createFrom();
@@ -361,61 +479,11 @@ class AdminOverapproxTransformer {
                 }
             }
 
-//            update_program_counter();
             //RESTORE OLD SKIP
             TVar old_skip = old_state.skip.get_solver_var();
             variable new_skip = state.skip.createFrom();
             this->emit_assignment(new_skip, old_skip);
             state.skip = new_skip;
-
-            //UPDATING CHANGED MEMORY WITH ITE ON GUARD
-            for (int i = 0; i < policy->atom_count(); ++i) {
-                if (infos.interesting_roles[i]) {
-                    variable new_changed = state.role_changed[i].createFrom();
-                    variable old_changed = old_state.role_changed[i];
-                    TExpr new_changed_value =
-                            solver->createCondExpr(frame_guard,
-                                                   solver->createOrExpr(old_changed.get_solver_var(),
-                                                                        state.role_changed[i].get_solver_var()),
-                                                   old_state.role_changed[i].get_solver_var());
-                    emit_assignment(new_changed, new_changed_value);
-                    state.role_changed[i] = new_changed;
-                }
-            }
-
-            //MAKE CONSISTENT COPYING ALL VALUE WITH ITE ON GUARD
-            for (int i = 0; i < policy->atom_count(); ++i) {
-                if (infos.interesting_roles[i]) {
-                    // role_vars
-                    variable sync_role_var = state.role_vars[i].createFrom();
-                    TExpr cond_sync_role_var = solver->createCondExpr(frame_guard,
-                                                                      state.role_vars[i].get_solver_var(),
-                                                                      old_state.role_vars[i].get_solver_var());
-                    emit_assignment(sync_role_var, cond_sync_role_var);
-                    state.role_vars[i] = sync_role_var;
-                    /*// core_value_true
-                    variable sync_core_value_true = state.core_value_true[i].createFrom();
-                    TExpr cond_sync_core_value_true = solver->createCondExpr(frame_guard,
-                                                                             state.core_value_true[i].get_solver_var(),
-                                                                             old_state.core_value_true[i].get_solver_var());
-                    emit_assignment(sync_core_value_true, cond_sync_core_value_true);
-                    state.core_value_true[i] = sync_core_value_true;
-                    // core_value_false
-                    variable sync_core_value_false = state.core_value_false[i].createFrom();
-                    TExpr cond_sync_core_value_false = solver->createCondExpr(frame_guard,
-                                                                              state.core_value_false[i].get_solver_var(),
-                                                                              old_state.core_value_false[i].get_solver_var());
-                    emit_assignment(sync_core_value_false, cond_sync_core_value_false);
-                    state.core_value_false[i] = sync_core_value_false;
-                    // core_sets
-                    variable sync_core_set = state.core_sets[i].createFrom();
-                    TExpr cond_sync_core_set = solver->createCondExpr(frame_guard,
-                                                                      state.core_sets[i].get_solver_var(),
-                                                                      old_state.core_sets[i].get_solver_var());
-                    emit_assignment(sync_core_set, cond_sync_core_set);
-                    state.core_sets[i] = sync_core_set;*/
-                }
-            }
 
             saved_state.pop();
         }
@@ -761,7 +829,7 @@ class AdminOverapproxTransformer {
         return solver->createAndExpr(adm_res, prec_res);
     }
 
-    //    TExpr get_assignment_cond(const atomp& target_role, int label_index) {
+        //    TExpr get_assignment_cond(const atomp& target_role, int label_index) {
 //        // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
 //        // fprintf(outputFile, "    /* --- ASSIGNMENT RULES FOR ROLE %s --- */\n", role_array[target_role_index]);
 //        TExpr skip_condition = solver->createNotExpr(state.state.skip.get_solver_var());
@@ -1109,10 +1177,13 @@ class AdminOverapproxTransformer {
         TExpr guard = solver->createEqExpr(admin_user_id.get_solver_var(), target_user_id.get_solver_var());
 
         for (auto &&atom :policy->atoms()) {
-            TExpr atom_eq = solver->createImplExpr(guard,
-                                                   solver->createAndExpr(state.state.selected_admin_role_vars[atom->role_array_index].get_solver_var(),
-                                                                         state.state.selected_user_role_vars[atom->role_array_index].get_solver_var()));
-            emit_assumption(atom_eq);
+            if (state.infos.interesting_roles[atom->role_array_index]) {
+                TExpr atom_eq = solver->createImplExpr(guard,
+                                                       solver->createAndExpr(
+                                                               state.state.selected_admin_role_vars[atom->role_array_index].get_solver_var(),
+                                                               state.state.selected_user_role_vars[atom->role_array_index].get_solver_var()));
+                emit_assumption(atom_eq);
+            }
         }
     }
 

@@ -233,9 +233,9 @@ class SuperOverapproxTransformer {
             state.program_counter = new_program_counter;
 
             // RESTORING OLD STEP SET STATE
-            for (int i = 0; i < infos.interesting_roles.size(); ++i) {
+            for (int i = 0; i < policy->atom_count(); ++i) {
                 if (infos.interesting_roles[i]) {
-                    //TRACKED: RESTORE OLD VALUE
+                    //SET: RESTORE OLD VALUE
                     TVar old_set_state = old_state.role_sets[i].get_solver_var();
                     variable new_set_state = state.role_sets[i].createFrom();
                     this->emit_assignment(new_set_state, old_set_state);
@@ -248,7 +248,7 @@ class SuperOverapproxTransformer {
             }
 
             // RESTORING OLD STEP TRACKED STATE
-            for (int i = 0; i < infos.interesting_roles.size(); ++i) {
+            for (int i = 0; i < policy->atom_count(); ++i) {
                 if (infos.interesting_roles[i]) {
                     //TRACKED: RESTORE OLD VALUE
                     TVar old_tracked_state = old_state.role_tracked[i].get_solver_var();

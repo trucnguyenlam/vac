@@ -220,7 +220,7 @@ class ExtendedOverapproxTransformer {
             state.program_counter = new_program_counter;
 
             // RESTORING OLD STEP SET STATE
-            for (int i = 0; i < infos.tracked_roles.size(); ++i) {
+            for (int i = 0; i < policy->atom_count(); ++i) {
                 if (infos.tracked_roles[i]) {
                     //TRACKED: RESTORE OLD VALUE
                     TVar old_set_state = old_state.role_sets[i].get_solver_var();

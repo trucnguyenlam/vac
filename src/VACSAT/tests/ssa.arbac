@@ -1,20 +1,18 @@
 Roles ra r0 r1 r2 rt ;
 
-Users u1;
+Users u1 u2;
 
 UA
     <u1, ra>
     ;
 
 CR
-    <ra, r0>
-    <ra, r1>
     ;
 
 CA
-    <ra, r1, r0>
-    <ra, r0, r1>
-    <ra, r1, rt>
+    <ra, TRUE, r0>
+    <r0, TRUE, r1>
+    <r1, -ra&-r1, rt>
 
 
 	;
