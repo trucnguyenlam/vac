@@ -1,20 +1,64 @@
-Roles ra r0 r1 r2 rt ;
+Roles
+	Allowed_c
+	Author_a
+	Author_b
+	Author_c
+	Doctor
+	Done_TICK
+	Done_b
+	Eq_a_b
+	Manager
+	Patient
+	PrimaryDoctor
+	Receptionist
+	Super
+;
 
-Users u1 u2;
+Users
+	SuperUser
+	user0
+	user1
+	user10
+	user100
+	user101
+	user102
+	user103
+	user104
+	user105
+	user106
+	user107
+	user108
+	user109
+	user2
+	user3
+	user4
+	user5
+	user6
+	user7
+	user8
+	user9
+;
 
 UA
-    <u1, ra>
-    ;
+	<SuperUser,Super>
+	<user4,Doctor>
+	<user9,Receptionist>
+;
 
 CR
-    ;
+;
 
 CA
-    <ra, TRUE, r0>
-    <r0, TRUE, r1>
-    <r1, -ra&-r1, rt>
+	<Super,Doctor&-Super,Author_a>
+	<Super,Receptionist&-Super,Author_b>
+	<Super,Author_a&Author_b,Eq_a_b>
+	<Author_b,Super,Done_b>
+	<Eq_a_b,Super,Eq_a_b>
+	<Author_a,Done_b&Eq_a_b&Super,Allowed_c>
+	<Allowed_c,-Super,Author_c>
+	<Author_c,Super,Done_TICK>
+;
 
-
-	;
-
-SPEC rt ;
+SPEC
+	Done_TICK
+;

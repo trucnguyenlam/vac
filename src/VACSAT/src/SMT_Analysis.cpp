@@ -15,9 +15,13 @@ namespace SMT {
     template <typename TVar, typename TExpr>
     bool execute_overapprox(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
                             const std::shared_ptr<arbac_policy>& policy,
-                            const Expr& target_expr) {
-        overapprox_admin(solver, policy, 2, target_expr);
-        exit(0);
+                            const Expr& target_expr,
+                            const bmc_config& config) {
+//        overapprox_admin(solver, policy, policy->user_count(), target_expr);
+//        int a;
+//        std::cin >> a;
+//        arbac_to_smt_bmc(solver, policy, config.rounds, config.steps, config.wanted_threads_count);
+//        exit(0);
 
         switch (Config::overapproxOptions.version) {
             case OverapproxOptions::JUNE:
@@ -94,7 +98,7 @@ namespace SMT {
 
 //        bool over_result = overapprox(solver, policy, createEqExpr(createLiteralp(policy->goal_role), createConstantTrue()));
 //        solver->deep_clean();
-        bool over_result = execute_overapprox(solver, policy, createEqExpr(createLiteralp(policy->goal_role), createConstantTrue()));
+        bool over_result = execute_overapprox(solver, policy, createEqExpr(createLiteralp(policy->goal_role), createConstantTrue()), config);
 
 
 //        log->info("old over: {}", over_result);

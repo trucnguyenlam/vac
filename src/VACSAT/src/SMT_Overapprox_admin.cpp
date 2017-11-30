@@ -35,6 +35,14 @@ class AdminOverapproxTransformer {
         TARGET
     };
 
+    std::string AoTToString(AdminOrTarget aot) {
+        return aot == ADMIN ? "Admin" : "Target";
+    }
+
+    std::string LoBToString(LayerOrBlock lob) {
+        return lob == LAYER ? "Layer" : "Block";
+    }
+
     struct RoleChoicer {
         enum Choice {
             REQUIRED,
@@ -69,6 +77,19 @@ class AdminOverapproxTransformer {
 
     typedef generic_variable<TVar, TExpr> variable;
 
+    static int get_bit_count_for_choices(int pc) {
+        int i = 1, bit = 0;
+
+        if (pc < 2 ) return 1;
+
+        while (pc > i) {
+            i = i * 2;
+            bit++;
+        }
+
+        return (bit);
+    }
+
     static std::pair<int, int> get_pc_size_max_value(const std::shared_ptr<arbac_policy>& policy,
                                                      const std::set<Atomp>& tracked_atoms) {
         int count = 1;
@@ -80,7 +101,7 @@ class AdminOverapproxTransformer {
                 }
             }
         }
-        int bits = bits_count(count);
+        int bits = get_bit_count_for_choices(count);
         return { bits, count - 1 };
     }
 
@@ -181,20 +202,20 @@ class AdminOverapproxTransformer {
                     layer_user_role_tracked[i] = variable(("layer_target_tracked_" + policy->atoms()[i]->name), 0, 1, solver, BOOLEAN);
 
                     // fprintf(outputFile, "/*---------- block admin ROLE value ---------*/\n");
-                    selected_admin_role_vars[i] = variable("block_admin_" + policy->atoms()[i]->name, 0, 1, solver, BOOLEAN);
+                    selected_admin_role_vars[i] = variable("selected_admin_" + policy->atoms()[i]->name, 0, 1, solver, BOOLEAN);
                     // fprintf(outputFile, "/*---------- block admin ROLE set ---------*/\n");
-                    selected_admin_role_sets[i] = variable(("block_admin_set_" + policy->atoms()[i]->name), 0, 1, solver, BOOLEAN);
+                    selected_admin_role_sets[i] = variable(("selected_admin_set_" + policy->atoms()[i]->name), 0, 1, solver, BOOLEAN);
                     // fprintf(outputFile, "/*---------- block admin ROLE changed ---------*/\n");
-                    selected_admin_role_changed[i] = variable(("block_admin_changed_" + policy->atoms()[i]->name), 0, 1, solver, BOOLEAN);
+                    selected_admin_role_changed[i] = variable(("selected_admin_changed_" + policy->atoms()[i]->name), 0, 1, solver, BOOLEAN);
                     // fprintf(outputFile, "/*---------- block admin ROLE tracked ---------*/\n");
 //                    selected_admin_role_tracked[i] = variable(("block_admin_tracked_" + policy->atoms()[i]->name), 0, 1, solver, BOOLEAN);
 
                     // fprintf(outputFile, "/*---------- block user ROLE value ---------*/\n");
-                    selected_user_role_vars[i] = variable("block_target_" + policy->atoms()[i]->name, 0, 1, solver, BOOLEAN);
+                    selected_user_role_vars[i] = variable("selected_target_" + policy->atoms()[i]->name, 0, 1, solver, BOOLEAN);
                     // fprintf(outputFile, "/*---------- block user ROLE set ---------*/\n");
-                    selected_user_role_sets[i] = variable(("block_target_set_" + policy->atoms()[i]->name), 0, 1, solver, BOOLEAN);
+                    selected_user_role_sets[i] = variable(("selected_target_set_" + policy->atoms()[i]->name), 0, 1, solver, BOOLEAN);
                     // fprintf(outputFile, "/*---------- block user ROLE changed ---------*/\n");
-                    selected_user_role_changed[i] = variable(("block_target_changed_" + policy->atoms()[i]->name), 0, 1, solver, BOOLEAN);
+                    selected_user_role_changed[i] = variable(("selected_target_changed_" + policy->atoms()[i]->name), 0, 1, solver, BOOLEAN);
                     // fprintf(outputFile, "/*---------- block user ROLE tracked ---------*/\n");
 //                    selected_user_role_tracked[i] = variable(("block_target_tracked_" + policy->atoms()[i]->name), 0, 1, solver, BOOLEAN);
                 } else {
@@ -210,11 +231,11 @@ class AdminOverapproxTransformer {
                 for (int i = 0; i < policy->atom_count(); i++) {
                     if (interesting_roles[i]) {
                         // fprintf(outputFile, "/*---------- ROLE value ---------*/\n");
-                        all_role_vars[j][i] = variable(std::to_string(j) + "_" + policy->atoms()[i]->name, 0, 1, solver, BOOLEAN);
+                        all_role_vars[j][i] = variable("u_" + std::to_string(j) + "_" + policy->atoms()[i]->name, 0, 1, solver, BOOLEAN);
                         // fprintf(outputFile, "/*---------- ROLE set ---------*/\n");
-                        all_role_changed[j][i] = variable((std::to_string(j) + "_set_" + policy->atoms()[i]->name), 0, 1, solver, BOOLEAN);
+                        all_role_changed[j][i] = variable("u_" + std::to_string(j) + "_set_" + policy->atoms()[i]->name, 0, 1, solver, BOOLEAN);
                         // fprintf(outputFile, "/*---------- ROLE changed ---------*/\n");
-                        all_role_sets[j][i] = variable((std::to_string(j) + "_changed_" + policy->atoms()[i]->name), 0, 1, solver, BOOLEAN);
+                        all_role_sets[j][i] = variable("u_" + std::to_string(j) + "_changed_" + policy->atoms()[i]->name, 0, 1, solver, BOOLEAN);
                         // fprintf(outputFile, "/*---------- ROLE tracked ---------*/\n");
 //                        all_role_tracked[j][i] = variable((std::to_string(j) + "_tracked_" + policy->atoms()[i]->name), 0, 1, solver, BOOLEAN);
                     } else { }
@@ -393,72 +414,6 @@ class AdminOverapproxTransformer {
                 emit_comment("E: Updating user " + std::to_string(j));
             }
 
-            {
-                emit_comment("B: Updating selected admin user");
-                for (int i = 0; i < policy->atom_count(); ++i) {
-                    if (infos.interesting_roles[i]) {
-                        // SET: RESTORE OLD VALUE
-                        TVar old_set_state = old_state.selected_admin_role_sets[i].get_solver_var();
-                        variable new_set_state = state.selected_admin_role_sets[i].createFrom();
-                        this->emit_assignment(new_set_state, old_set_state);
-                        state.selected_admin_role_sets[i] = new_set_state;
-
-                        // CHANGED: UPDATE MEMORY WITH ITE ON GUARD
-                        variable new_changed = state.selected_admin_role_changed[i].createFrom();
-                        variable old_changed = old_state.selected_admin_role_changed[i];
-                        TExpr new_changed_value =
-                                solver->createCondExpr(frame_guard,
-                                                       solver->createOrExpr(old_changed.get_solver_var(),
-                                                                            state.selected_admin_role_changed[i].get_solver_var()),
-                                                       old_changed.get_solver_var());
-                        emit_assignment(new_changed, new_changed_value);
-                        state.selected_admin_role_changed[i] = new_changed;
-
-                        // VALUE: UPDATE WITH ITE ON GUARD
-                        variable sync_role_var = state.selected_admin_role_vars[i].createFrom();
-                        TExpr cond_sync_role_var = solver->createCondExpr(frame_guard,
-                                                                          state.selected_admin_role_vars[i].get_solver_var(),
-                                                                          old_state.selected_admin_role_vars[i].get_solver_var());
-                        emit_assignment(sync_role_var, cond_sync_role_var);
-                        state.selected_admin_role_vars[i] = sync_role_var;
-                    }
-                }
-                emit_comment("E: Updating selected admin user");
-            }
-
-            {
-                emit_comment("B: Updating selected target user");
-                for (int i = 0; i < policy->atom_count(); ++i) {
-                    if (infos.interesting_roles[i]) {
-                        // SET: RESTORE OLD VALUE
-                        TVar old_set_state = old_state.selected_user_role_sets[i].get_solver_var();
-                        variable new_set_state = state.selected_user_role_sets[i].createFrom();
-                        this->emit_assignment(new_set_state, old_set_state);
-                        state.selected_user_role_sets[i] = new_set_state;
-
-                        // CHANGED: UPDATE MEMORY WITH ITE ON GUARD
-                        variable new_changed = state.selected_user_role_changed[i].createFrom();
-                        variable old_changed = old_state.selected_user_role_changed[i];
-                        TExpr new_changed_value =
-                                solver->createCondExpr(frame_guard,
-                                                       solver->createOrExpr(old_changed.get_solver_var(),
-                                                                            state.selected_user_role_changed[i].get_solver_var()),
-                                                       old_changed.get_solver_var());
-                        emit_assignment(new_changed, new_changed_value);
-                        state.selected_user_role_changed[i] = new_changed;
-
-                        // VALUE: UPDATE WITH ITE ON GUARD
-                        variable sync_role_var = state.selected_user_role_vars[i].createFrom();
-                        TExpr cond_sync_role_var = solver->createCondExpr(frame_guard,
-                                                                          state.selected_user_role_vars[i].get_solver_var(),
-                                                                          old_state.selected_user_role_vars[i].get_solver_var());
-                        emit_assignment(sync_role_var, cond_sync_role_var);
-                        state.selected_user_role_vars[i] = sync_role_var;
-                    }
-                }
-                emit_comment("E: Updating selected target user");
-            }
-
             // RESTORING OLD STEP TRACKED STATE
             for (int i = 0; i < policy->atom_count(); ++i) {
                 if (infos.interesting_roles[i]) {
@@ -534,6 +489,22 @@ class AdminOverapproxTransformer {
             }
         }
 
+        void copy_block_adm_user_idx_to_layer() {
+            emit_comment("start layer admin multiplexing");
+            variable nadm = state.layer_admin_idx.createFrom();
+            state.layer_admin_idx = nadm;
+            //VALID BECAUSE BLOCK_IDX IS NOT CLEANED
+            emit_assignment(state.layer_admin_idx, state.block_admin_idx.get_solver_var());
+            emit_comment("end layer admin multiplexing");
+
+            emit_comment("start layer user multiplexing");
+            variable nuser = state.layer_target_idx.createFrom();
+            state.layer_target_idx = nuser;
+            //VALID BECAUSE BLOCK_IDX IS NOT CLEANED
+            emit_assignment(state.layer_target_idx, state.block_target_idx.get_solver_var());
+            emit_comment("end layer user multiplexing");
+        }
+
         int get_block_count(std::vector<std::pair<std::pair<Expr, Expr>, int>>& target_exprs) {
             int desired = Config::overapproxOptions.blocks_count;
 
@@ -568,6 +539,7 @@ class AdminOverapproxTransformer {
 //            update_tracked_core_role_array_set_pc_size(target_expr);
 //            update_program_counter();
             clean_changed_memory();
+            copy_block_adm_user_idx_to_layer();
             create_new_clean_tracked_infos();
         }
 
@@ -782,24 +754,6 @@ class AdminOverapproxTransformer {
         state.emit_comment(comment);
     }
 
-//    void init_atoms() {
-//        TExpr init = solver->createFalse();
-//        for (auto &&conf :policy->unique_configurations()) {
-//            TExpr conf_expr = solver->createTrue();
-//            for (auto &&atom :policy->atoms()) {
-//                if (state.infos.interesting_roles[atom->role_array_index]) {
-//                    bool has = contains(conf->config(), atom);
-//                    conf_expr = solver->createAndExpr(conf_expr,
-//                                                      solver->createEqExpr(
-//                                                              state.state.role_vars[atom->role_array_index].get_solver_var(),
-//                                                              has ? one : zero));
-//                }
-//            }
-//            init = solver->createOrExpr(init, conf_expr);
-//        }
-//        solver->assertLater(init);
-//    }
-
     void det_init_atoms() {
         TExpr init = solver->createFalse();
         for (int i = 0; i < state.infos.user_count; ++i) {
@@ -812,6 +766,81 @@ class AdminOverapproxTransformer {
                 }
             }
         }
+    }
+
+    struct nondet_init_variables {
+        std::vector<variable> thread_assigneds;
+        variable nondet_int;
+        variable guard;
+
+        nondet_init_variables(overapprox_infos infos, SMTFactory<TVar, TExpr>* solver) :
+            thread_assigneds(std::vector<variable>((uint) infos.user_count)),
+            nondet_int(variable("nondet_int", -1, get_bit_count_for_choices(infos.user_count), solver, BIT_VECTOR)),
+            guard(variable("nondet_ass_guard", 0, 1, solver, BOOLEAN)) {
+            for (int i = 0; i < thread_assigneds.size(); ++i) {
+                thread_assigneds[i] = variable("thread_" + std::to_string(i) + "_assigned", 0, 1, solver, BOOLEAN);
+            }
+        }
+    };
+
+    void thread_assignment_if(int thread_id, int user_id, nondet_init_variables& vars) {
+        emit_comment("B User " + policy->users(user_id)->name + " to thread " + std::to_string(thread_id));
+
+        TExpr con_e = solver->createBVConst(thread_id, vars.nondet_int.bv_size);
+        TExpr eq_e = solver->createEqExpr(vars.nondet_int, con_e);
+        TExpr not_e = solver->createNotExpr(vars.thread_assigneds[thread_id].get_solver_var());
+        TExpr if_guard = solver->createAndExpr(eq_e,
+                                               not_e);
+        variable n_guard = vars.guard.createFrom();
+        emit_assignment(n_guard, if_guard);
+        vars.guard = n_guard;
+
+        TExpr ass_val = solver->createCondExpr(vars.guard.get_solver_var(), one, vars.thread_assigneds[thread_id].get_solver_var());
+
+        variable assigned = vars.thread_assigneds[thread_id].createFrom();
+        emit_assignment(assigned, ass_val);
+        vars.thread_assigneds[thread_id] = assigned;
+
+        for (auto&& atom :policy->atoms()) {
+            if (state.infos.interesting_roles[atom->role_array_index]) {
+                variable old_var = state.state.all_role_vars[thread_id][atom->role_array_index];
+                variable new_var = old_var.createFrom();
+
+                TExpr act_val = contains(policy->users(user_id)->config(), atom) ?
+                                one :
+                                zero;
+
+                TExpr new_val = solver->createCondExpr(vars.guard.get_solver_var(),
+                                                       act_val,
+                                                       old_var.get_solver_var());
+                emit_assignment(new_var, new_val);
+                state.state.all_role_vars[thread_id][atom->role_array_index] = new_var;
+            }
+        }
+        emit_comment("E User " + policy->users(user_id)->name + " to thread " + std::to_string(thread_id));
+    }
+
+    void assign_thread_to_user(int user_id, nondet_init_variables& vars) {
+
+        variable nndint = vars.nondet_int.createFrom();
+        vars.nondet_int = nndint;
+
+        for (int i = 0; i < state.infos.user_count; i++) {
+            thread_assignment_if(i, user_id, vars);
+        }
+    }
+
+    void nondet_init_atoms() {
+        nondet_init_variables vars(state.infos, solver.get());
+        for (int i = 0; i < policy->user_count(); i++) {
+            assign_thread_to_user(i, vars);
+        }
+
+        TExpr assume_body = vars.thread_assigneds[0].get_solver_var();
+        for (int i = 1; i < vars.thread_assigneds.size(); i++) {
+            assume_body = solver->createAndExpr(vars.thread_assigneds[i].get_solver_var(), assume_body);
+        }
+        emit_assumption(assume_body);
     }
 
     TExpr generate_PC_prec(int pc) {
@@ -829,7 +858,7 @@ class AdminOverapproxTransformer {
         return solver->createAndExpr(adm_res, prec_res);
     }
 
-        //    TExpr get_assignment_cond(const atomp& target_role, int label_index) {
+            //    TExpr get_assignment_cond(const atomp& target_role, int label_index) {
 //        // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
 //        // fprintf(outputFile, "    /* --- ASSIGNMENT RULES FOR ROLE %s --- */\n", role_array[target_role_index]);
 //        TExpr skip_condition = solver->createNotExpr(state.state.skip.get_solver_var());
@@ -1080,6 +1109,7 @@ class AdminOverapproxTransformer {
     }
 
     void copy_from_user(AdminOrTarget aot, LayerOrBlock lob) {
+        emit_comment("B: Copying user to " + AoTToString(aot) + " of " + LoBToString(lob));
         for (auto &&item :policy->atoms()) {
             if (state.infos.interesting_roles[item->role_array_index]) {
                 variable n_r_val;
@@ -1143,16 +1173,17 @@ class AdminOverapproxTransformer {
                 emit_assumption(new_changed);
             }
         }
+        emit_comment("E: Copying user to " + AoTToString(aot) + " of " + LoBToString(lob));
     }
 
-    void start_multiplexing(LayerOrBlock lob) {
+    void init_multiplexing() {
         emit_comment("start block admin multiplexing");
         variable nadm = state.state.block_admin_idx.createFrom();
         state.state.block_admin_idx = nadm;
         TExpr adm_existance = solver->createLtExpr(nadm.get_solver_var(),
                                                    solver->createBVConst(state.infos.user_count, nadm.bv_size));
         emit_assumption(adm_existance);
-        copy_from_user(ADMIN, lob);
+//        copy_from_user(ADMIN, lob);
         emit_comment("end block admin multiplexing");
 
         emit_comment("start block user multiplexing");
@@ -1164,13 +1195,14 @@ class AdminOverapproxTransformer {
                         solver->createEqExpr(nuser.get_solver_var(), state.state.layer_admin_idx.get_solver_var()),
                         solver->createEqExpr(nuser.get_solver_var(), state.state.layer_target_idx.get_solver_var()));
         emit_assumption(target_existance);
-        copy_from_user(TARGET, lob);
+//        copy_from_user(TARGET, lob);
         emit_comment("end block user multiplexing");
 
 //        after nondet assignment check that ((state.state.block_admin_idx == state.state.block_target_idx) ==> all variables are equals)
     }
 
     void check_if_equals(LayerOrBlock lob) {
+        emit_comment("B: check eq in " + LoBToString(lob));
         variable admin_user_id = (lob == BLOCK) ? state.state.block_admin_idx : state.state.layer_admin_idx;
         variable target_user_id = (lob == BLOCK) ? state.state.block_target_idx : state.state.layer_target_idx;
 
@@ -1185,9 +1217,11 @@ class AdminOverapproxTransformer {
                 emit_assumption(atom_eq);
             }
         }
+        emit_comment("E: check eq in " + LoBToString(lob));
     }
 
     void save_copied_user(int user_idx, AdminOrTarget aot, LayerOrBlock lob) {
+        emit_comment("B: Saving " + AoTToString(aot) + " to user " + std::to_string(user_idx) + " of " + LoBToString(lob));
         variable user_idx_var;
         if (lob == BLOCK) {
             user_idx_var = (aot == ADMIN) ? state.state.block_admin_idx : state.state.block_target_idx;
@@ -1234,6 +1268,7 @@ class AdminOverapproxTransformer {
                 emit_assignment(nchg, new_chg);
             }
         }
+        emit_comment("E: Saving " + AoTToString(aot) + " to user " + std::to_string(user_idx) + " of " + LoBToString(lob));
     }
 
     void save_multiplexed_values(LayerOrBlock lob) {
@@ -1502,8 +1537,12 @@ class AdminOverapproxTransformer {
                        prec_pairs);
             generate_layer();
             state.pop();
+            copy_from_user(ADMIN, BLOCK);
+            copy_from_user(TARGET, BLOCK);
         } else {
-//            log->critical("update {} of depth {}", round_idx, state.deep);
+            copy_from_user(ADMIN, BLOCK);
+            copy_from_user(TARGET, BLOCK);
+            //            log->critical("update {} of depth {}", round_idx, state.deep);
             // fprintf(outputFile, "    /*---------- UPDATE STATE ---------*/\n");
             for (int i = 0; i < policy->atom_count(); i++) {
                 if (state.infos.interesting_roles[i]) {
@@ -1519,6 +1558,7 @@ class AdminOverapproxTransformer {
                     // fprintf(outputFile, "    role_%s = set_%s ? role_%s : nondet_bool();\n", role, role, role);
                 }
             }
+            check_if_equals(BLOCK);
         }
 
         emit_comment("E updating at: " + std::to_string(state.deep) + " ");
@@ -1533,14 +1573,11 @@ class AdminOverapproxTransformer {
 
         simulate_skip();
 
+        init_multiplexing();
+
         //TODO: everything MUST be guarded by (!skip)
 
-        start_multiplexing(BLOCK);
-
         generate_update_state();
-
-        check_if_equals(BLOCK);
-
 
         // fprintf(outputFile, "    /*---------- CAN ASSIGN SIMULATION ---------*/\n");
         for (auto &&rule_pair :get_interesting_rule_pairs()) {
@@ -1618,10 +1655,11 @@ class AdminOverapproxTransformer {
 
         set_tracked_infos();
 
+
         //FIXME: do only if block count is insufficient
-        if (true) {
-            generate_layer_block_nondet();
-        }
+//        if (true) {
+//            generate_layer_block_nondet();
+//        }
 
         for (int i = 0; i < state.blocks_to_do; ++i) {
             emit_comment("Round " + std::to_string(i) + " deep " + std::to_string(state.deep));
