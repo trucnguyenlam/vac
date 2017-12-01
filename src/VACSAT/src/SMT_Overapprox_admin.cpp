@@ -505,9 +505,7 @@ class AdminOverapproxTransformer {
             emit_comment("end layer user multiplexing");
         }
 
-        int get_block_count(std::vector<std::pair<std::pair<Expr, Expr>, int>>& target_exprs) {
-            int desired = Config::overapproxOptions.blocks_count;
-
+        int required_blocks(std::vector<std::pair<std::pair<Expr, Expr>, int>>& target_exprs) {
             int max_rules = 0;
 
             for (auto &&prec :target_exprs) {
@@ -515,6 +513,14 @@ class AdminOverapproxTransformer {
             }
 
             int required = max_rules + choicer.get_required_count(ADMIN) + choicer.get_required_count(TARGET);
+
+            return required;
+        }
+
+        int get_block_count(std::vector<std::pair<std::pair<Expr, Expr>, int>>& target_exprs) {
+            int desired = Config::overapproxOptions.blocks_count;
+
+            int required = required_blocks(target_exprs);
 
             log->trace("Desired: {}. Had {}", desired, required);
 
@@ -529,6 +535,10 @@ class AdminOverapproxTransformer {
             } else {
                 return desired;
             }
+        }
+
+        bool requires_nondet_block_layer() {
+            return blocks_to_do < required_blocks(target_exprs);
         }
 
         void init_new_frame(const Expr& _target_expr, std::vector<std::pair<std::pair<Expr, Expr>, int>> _target_exprs) {
@@ -1656,10 +1666,10 @@ class AdminOverapproxTransformer {
         set_tracked_infos();
 
 
-        //FIXME: do only if block count is insufficient
-//        if (true) {
-//            generate_layer_block_nondet();
-//        }
+        //do only if block count is insufficient
+        if (state.requires_nondet_block_layer()) {
+            generate_layer_block_nondet();
+        }
 
         for (int i = 0; i < state.blocks_to_do; ++i) {
             emit_comment("Round " + std::to_string(i) + " deep " + std::to_string(state.deep));

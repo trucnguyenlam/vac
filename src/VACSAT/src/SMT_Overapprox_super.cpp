@@ -358,9 +358,7 @@ class SuperOverapproxTransformer {
             }
         }
 
-        int get_block_count(std::vector<std::pair<Expr, int>>& target_exprs) {
-            int desired = Config::overapproxOptions.blocks_count;
-
+        int required_blocks(std::vector<std::pair<Expr, int>>& target_exprs) {
             int max_rules = 0;
 
             for (auto &&prec :target_exprs) {
@@ -368,6 +366,14 @@ class SuperOverapproxTransformer {
             }
 
             int required = max_rules + choicer.get_required_count();
+
+            return required;
+        }
+
+        int get_block_count(std::vector<std::pair<Expr, int>>& target_exprs) {
+            int desired = Config::overapproxOptions.blocks_count;
+
+            int required = required_blocks(target_exprs);
 
             log->trace("Desired: {}. Had {}", desired, required);
 
@@ -382,6 +388,10 @@ class SuperOverapproxTransformer {
             } else {
                 return desired;
             }
+        }
+
+        bool requires_nondet_block_layer() {
+            return blocks_to_do < required_blocks(target_exprs);
         }
 
         void init_new_frame(const Expr& _target_expr, std::vector<std::pair<Expr, int>> _target_exprs) {
@@ -1185,8 +1195,8 @@ class SuperOverapproxTransformer {
 
         set_tracked_infos();
 
-        //FIXME: do only if block count is insufficient
-        if (true) {
+        //do only if block count is insufficient
+        if (state.requires_nondet_block_layer()) {
             for (int i = 0; i < policy->atom_count(); i++) {
                 if (state.infos.interesting_roles[i]) {
                     atomp atom = policy->atoms(i);
