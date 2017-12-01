@@ -18,7 +18,8 @@ namespace SMT {
         enum OverapproxVersion {
             JUNE,
             TRACE_ALL,
-            SELECTIVE
+            SELECTIVE,
+            ADMIN
         };
         /*enum BlocksChoice {
             STRICT,
@@ -29,13 +30,15 @@ namespace SMT {
         int depth;
         int blocks_count;
 
-        static OverapproxVersion parse(std::string version) {
+        static OverapproxVersion parse(const std::string& version) {
             if (version == "June") {
                 return JUNE;
             } else if (version == "selective") {
                 return SELECTIVE;
             } else if (version == "total") {
                 return TRACE_ALL;
+            } else if (version == "admin") {
+                return ADMIN;
             } else {
                 throw std::runtime_error("Unknown overapproximated analysis version");
             }

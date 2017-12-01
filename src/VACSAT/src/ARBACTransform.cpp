@@ -236,7 +236,7 @@ static options parse_args(int ac, const char* const* av) {
     arg_obj<bool> do_not_merge = create_arg_obj_bool("do-not-merge", "Do not use the pruning merge rule");
     arg_obj<int> rule_6_max_depth = create_arg_obj_int("rule6-max-depth", -1, "Set the max depth of expression that should be tested in rule 6. (< 0 for any)");
     arg_obj<int> overapprox_depth = create_arg_obj_int("overapprox-depth,d", 3, "Set the max depth of over approximation.");
-    arg_obj<std::string> overapprox_version = create_arg_obj_string("overapprox-version,V", "selective", "Choose the version of the overapproximation (June, total, selective)");
+    arg_obj<std::string> overapprox_version = create_arg_obj_string("overapprox-version,V", "selective", "Choose the version of the overapproximation (June, total, selective, admin)");
     arg_obj<int> overapprox_blocks = create_arg_obj_int("overapprox-blocks,B", -1, "Set the number of blocks of over approximation. (<= 0 for any)");
     arg_obj<bool> experimental_simplify_toplevel_or = create_arg_obj_bool("simplify-or,X", "Simplify toplevel or expressions");
     arg_obj<int> bmc_rounds_count = create_arg_obj_int("rounds,r", "Number of rounds for the bmc");

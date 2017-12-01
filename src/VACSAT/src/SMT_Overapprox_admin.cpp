@@ -797,7 +797,7 @@ class AdminOverapproxTransformer {
         emit_comment("B User " + policy->users(user_id)->name + " to thread " + std::to_string(thread_id));
 
         TExpr con_e = solver->createBVConst(thread_id, vars.nondet_int.bv_size);
-        TExpr eq_e = solver->createEqExpr(vars.nondet_int, con_e);
+        TExpr eq_e = solver->createEqExpr(vars.nondet_int.get_solver_var(), con_e);
         TExpr not_e = solver->createNotExpr(vars.thread_assigneds[thread_id].get_solver_var());
         TExpr if_guard = solver->createAndExpr(eq_e,
                                                not_e);
@@ -1787,7 +1787,11 @@ class AdminOverapproxTransformer {
         zero(solver->createFalse()),
         one(solver->createTrue()) {
 //        solver->deep_clean();
-        det_init_atoms();
+        if (state.infos.user_count < policy->user_count()) {
+            nondet_init_atoms();
+        } else {
+            det_init_atoms();
+        }
 //        det_init_atoms();
     }
 

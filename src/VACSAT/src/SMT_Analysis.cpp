@@ -33,6 +33,9 @@ namespace SMT {
             case OverapproxOptions::SELECTIVE:
                 log->debug("Using selective overapprox version");
                 break;
+            case OverapproxOptions::ADMIN:
+                log->debug("Using admin overapprox version");
+                break;
         }
         bool over_result = false;
         switch (Config::overapproxOptions.version) {
@@ -44,6 +47,9 @@ namespace SMT {
                 break;
             case OverapproxOptions::SELECTIVE:
                 over_result = super_overapprox(solver, policy, target_expr);
+                break;
+            case OverapproxOptions::ADMIN:
+                over_result = overapprox_admin(solver, policy, policy->user_count(), target_expr);
                 break;
             default:
                 throw unexpected_error("OVERAPPROX VERSION SWITCH MUST BE COMPLETE");
