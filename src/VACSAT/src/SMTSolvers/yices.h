@@ -50,6 +50,7 @@ namespace SMT {
         SMTResult solve() override;
         void printExpr(term_t expr) override;
         void printModel() override;
+        bool get_bool_value(term_t expr) override;
         void print_statistics() override;
         void loadToSolver() override;
         void clean() override;
@@ -61,9 +62,13 @@ namespace SMT {
         // void pop() override;
 
         private:
+
         std::list<term_t> to_be_asserted;
         std::list<term_t> asserted;
         context_t* context;
+        model_t* model;
+
+        void extract_model();
     };
 }
 

@@ -237,23 +237,25 @@ namespace SMT {
         std::cout << e << std::endl;
     }
     void Z3Solver::printModel() {
-        try {
-            model model = solver.get_model();
-            if (model == NULL) {
-                std::cerr << "Model is NULL..." << std::endl;
-            }
-            std::cout << model << std::endl;
+        extract_model();
+        std::cout << model << std::endl;
+    }
 
-        }
-        catch (z3::exception e) {
-            std::cerr << "Model is NULL..." << std::endl;
-        }
+    bool Z3Solver::get_bool_value(expr expr) {
+        extract_model();
+        expr val = model.eval(expr);
+        std::stringstream fmt;
+        fmt << val;
+        std::string str = fmt.str();
+        log->critical(str);
+        return str == "true";
     }
     
     void Z3Solver::loadToSolver() { }
 
     void Z3Solver::clean() {
         //TODO: both var_counter and context should be cleaned
+        this->model = nullptr;
         this->solver = z3::solver(context, "QF_BV");
     }
     void Z3Solver::deep_clean() {
@@ -261,6 +263,7 @@ namespace SMT {
         //FIXME: nondtext should be regenerated
         /*delete context;
         context = new z3::context();*/
+        this->model = nullptr;
         this->solver = z3::solver(context, "QF_BV");
     }
     void Z3Solver::printContext() {
@@ -271,6 +274,21 @@ namespace SMT {
         myfile.open(filename);
         myfile << this->solver << std::endl;
         myfile.close();
+    }
+
+    void Z3Solver::extract_model() {
+        bool error = false;
+        try {
+            model = solver.get_model();
+            if (model == nullptr) {
+                error = true;
+            }
+        } catch (z3::exception e) {
+            error = true;
+        }
+        if (error) {
+            throw std::runtime_error("Z3 model is NULL...");
+        }
     }
 
     // void Z3Solver::push() { 

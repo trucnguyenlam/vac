@@ -56,6 +56,7 @@ namespace SMT {
 
         SMTResult solve() override;
         void printModel() override;
+        bool get_bool_value(expr expr) override;
         void print_statistics() override;
         void loadToSolver() override;
         void clean() override;
@@ -72,6 +73,9 @@ namespace SMT {
         private:
         z3::context context;
         z3::solver solver;
+        z3::model model;
+
+        void extract_model();
     };
 }
 

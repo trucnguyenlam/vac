@@ -80,13 +80,17 @@ namespace SMT {
     }
 
 
-    YicesSolver::YicesSolver() {
+    YicesSolver::YicesSolver() :
+        model(nullptr) {
         yices_init();
 
         context = mk_context();
 //        context = yices_new_context(NULL);
     }
     YicesSolver::~YicesSolver() {
+        if (model != nullptr) {
+            yices_free_model(model);
+        }
         yices_exit();
     }
 
@@ -367,15 +371,37 @@ namespace SMT {
         return ERROR;
     }
 
+    void YicesSolver::extract_model() {
+        if (model == nullptr) {
+            model = yices_get_model(context, false);
+        }
+    }
+
     void YicesSolver::printModel() {
-        model_t* model = yices_get_model(context, false);
         if (model == NULL) {
             fprintf(stdout, "Model is NULL...\n");
-        }
-        else {
+        } else {
             yices_pp_model(stdout, model, 120, 40, 0);
-            yices_free_model(model);
         }
+    }
+
+    bool YicesSolver::get_bool_value(term_t expr) {
+        extract_model();
+        if (model == NULL) {
+            throw std::runtime_error("YICES Model is null");
+        }
+        int val = -1;
+        int res = yices_get_bool_value(model, expr, &val);
+
+        if (res < 0) {
+            std::list<term_t> parts;
+            parts.push_back(expr);
+            yices_fail("YicesSolver::get_bool_value", parts);
+        }
+
+        return val == 0 ? false : true;
+
+
     }
 
     void YicesSolver::printExpr(term_t expr) {
@@ -411,6 +437,9 @@ namespace SMT {
     }
     void YicesSolver::clean() {
         yices_free_context(this->context);
+        if (model != nullptr) {
+            yices_free_model(model);
+        }
 //        this->context = yices_new_context(NULL);
         this->context = mk_context();
         this->to_be_asserted.clear();
@@ -418,6 +447,9 @@ namespace SMT {
     }
     void YicesSolver::deep_clean() {
         yices_free_context(this->context);
+        if (model != nullptr) {
+            yices_free_model(model);
+        }
 //        this->context = yices_new_context(NULL);
         yices_reset();
         this->context = mk_context();

@@ -65,6 +65,8 @@ namespace SMT {
         virtual void printExpr(TExpr expr) = 0;
         virtual void printModel() = 0;
         virtual void print_statistics() = 0;
+        virtual bool get_bool_value(TExpr expr) = 0;
+//        virtual bool get_bv_value(TExpr expr) = 0;
 
         virtual void loadToSolver() = 0;
         virtual void clean() = 0;

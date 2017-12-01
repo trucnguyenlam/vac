@@ -54,6 +54,7 @@ namespace SMT {
         SMTResult solve() override;
         void printExpr(msat_term expr) override;
         void printModel() override;
+        bool get_bool_value(msat_term expr) override;
         void print_statistics() override;
         void loadToSolver() override;
         void clean() override;
@@ -68,6 +69,7 @@ namespace SMT {
         std::list<msat_term> to_be_asserted;
         std::list<msat_term> asserted;
         msat_env context;
+        msat_model model;
 
         msat_config mk_config();
         void mathsat_fail(const std::string& error_message);

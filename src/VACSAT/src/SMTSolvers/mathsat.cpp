@@ -308,6 +308,10 @@ namespace SMT {
         log->critical("MathsatSolver::printModel is not implemented");
         throw unexpected_error("MathsatSolver::printModel is not implemented");
     }
+    bool MathsatSolver::get_bool_value(msat_term expr) {
+        log->critical("MathsatSolver::get_bool_value is not implemented");
+        throw unexpected_error("MathsatSolver::get_bool_value is not implemented");
+    }
     void MathsatSolver::print_statistics() {
         size_t size = 0;
         msat_term * terms = msat_get_asserted_formulas(context, &size);
