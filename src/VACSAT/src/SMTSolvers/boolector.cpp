@@ -13,7 +13,7 @@ namespace SMT {
 //        log->warn("Mk config!");
 //        log->warn("enabling model generation for boolector");
 #endif
-        boolector_set_opt(this->context, BTOR_OPT_MODEL_GEN, 0);
+        boolector_set_opt(this->context, BTOR_OPT_MODEL_GEN, 1);
         boolector_set_opt(this->context, BTOR_OPT_ENGINE, 2);
         // Simplifier options
         boolector_set_opt(this->context, BTOR_OPT_REWRITE_LEVEL, 1);
@@ -214,6 +214,12 @@ namespace SMT {
 
     void BoolectorSolver::printModel() {
         boolector_print_model(context, "smt2", stdout);
+    }
+
+    bool BoolectorSolver::get_bool_value(BoolectorExpr expr) {
+        const char *xstr = boolector_bv_assignment(context, expr);
+        bool res = strcmp(xstr, "1") == 0;
+        return res;
     }
 
     void BoolectorSolver::print_statistics() {
