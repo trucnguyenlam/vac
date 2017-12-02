@@ -1114,6 +1114,7 @@ class SuperOverapproxTransformer {
         } else {
 //            log->critical("update {} of depth {}", round_idx, state.deep);
             // fprintf(outputFile, "    /*---------- UPDATE STATE ---------*/\n");
+            emit_comment("B nondet_assignment");
             for (int i = 0; i < policy->atom_count(); i++) {
                 if (state.infos.interesting_roles[i]) {
                     atomp atom = policy->atoms(i);
@@ -1121,6 +1122,7 @@ class SuperOverapproxTransformer {
                     // fprintf(outputFile, "    role_%s = set_%s ? role_%s : nondet_bool();\n", role, role, role);
                 }
             }
+            emit_comment("E nondet_assignment");
         }
 
         emit_comment("E updating at: " + std::to_string(state.deep) + " ");
