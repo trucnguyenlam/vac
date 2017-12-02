@@ -217,8 +217,31 @@ namespace SMT {
     }
 
     bool BoolectorSolver::get_bool_value(BoolectorExpr expr) {
-        const char *xstr = boolector_bv_assignment(context, expr);
-        bool res = strcmp(xstr, "1") == 0;
+        const char *result = boolector_bv_assignment(this->context, expr);
+
+        bool res;
+
+        if (result != nullptr) {
+            throw std::runtime_error("Boolector returned null bv assignment string");
+        }
+
+        switch (*result) {
+            case '1':
+                res = true;
+                break;
+            case '0':
+                res = false;
+                break;
+            case 'x':
+                log->critical("Boolector bv model string \"{}\" is unknown", result);
+                throw std::runtime_error("Boolector bv model string is unknown");
+                break;
+            default:
+                log->critical("Boolector bv model string \"{}\" not of the expected format", result);
+                throw std::runtime_error("Boolector bv model string not of the expected format");
+        }
+
+        boolector_free_bv_assignment(this->context, result);
         return res;
     }
 

@@ -238,17 +238,21 @@ namespace SMT {
     }
     void Z3Solver::printModel() {
         extract_model();
-        std::cout << model << std::endl;
+        std::cout << *model << std::endl;
     }
 
     bool Z3Solver::get_bool_value(expr expr) {
         extract_model();
-        expr val = model.eval(expr);
-        std::stringstream fmt;
-        fmt << val;
-        std::string str = fmt.str();
-        log->critical(str);
-        return str == "true";
+        expr res;
+        try {
+            res = model->eval(expr, false);
+        } catch (z3::exception &e) {
+            // No model value
+            log->critical("Cannot extract z3 value from {}", expr);
+            throw std::runtime_error("Cannot extract z3 value");
+        }
+
+        return Z3_get_bool_value(this->context, res) == Z3_L_TRUE;
     }
     
     void Z3Solver::loadToSolver() { }
@@ -279,7 +283,7 @@ namespace SMT {
     void Z3Solver::extract_model() {
         bool error = false;
         try {
-            model = solver.get_model();
+            model = std::make_shared<z3::model>(solver.get_model());
             if (model == nullptr) {
                 error = true;
             }

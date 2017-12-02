@@ -309,8 +309,21 @@ namespace SMT {
         throw unexpected_error("MathsatSolver::printModel is not implemented");
     }
     bool MathsatSolver::get_bool_value(msat_term expr) {
-        log->critical("MathsatSolver::get_bool_value is not implemented");
-        throw unexpected_error("MathsatSolver::get_bool_value is not implemented");
+        msat_term t = msat_get_model_value(this->context, expr);
+        check_msat_error(t);
+
+        bool res;
+
+        if (msat_term_is_true(this->context, t)) {
+            res = true;
+        } else if (msat_term_is_false(this->context, t)) {
+            res = false;
+        } else {
+            throw std::runtime_error("Boolean model value is neither true or false");
+        }
+
+        msat_free(msat_term_repr(t));
+        return res;
     }
     void MathsatSolver::print_statistics() {
         size_t size = 0;

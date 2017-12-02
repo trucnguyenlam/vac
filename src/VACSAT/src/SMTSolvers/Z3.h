@@ -73,7 +73,7 @@ namespace SMT {
         private:
         z3::context context;
         z3::solver solver;
-        z3::model model;
+        std::shared_ptr<z3::model> model;
 
         void extract_model();
     };
