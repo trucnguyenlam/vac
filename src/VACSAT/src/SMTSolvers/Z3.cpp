@@ -243,16 +243,14 @@ namespace SMT {
 
     bool Z3Solver::get_bool_value(expr expr) {
         extract_model();
-        expr res;
         try {
-            res = model->eval(expr, false);
+            z3::expr res = model->eval(expr, false);
+            return Z3_get_bool_value(this->context, res) == Z3_L_TRUE;
         } catch (z3::exception &e) {
             // No model value
             log->critical("Cannot extract z3 value from {}", expr);
             throw std::runtime_error("Cannot extract z3 value");
         }
-
-        return Z3_get_bool_value(this->context, res) == Z3_L_TRUE;
     }
     
     void Z3Solver::loadToSolver() { }
