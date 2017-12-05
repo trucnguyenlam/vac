@@ -37,6 +37,7 @@ namespace SMT {
 //    std::shared_ptr<z3::config> Z3Solver::config = default_config();
     Z3Solver::Z3Solver() /*context(new z3::context()),*/  {
         z3::config cfg;
+        cfg.set("relevancy", 0);
         cfg.set("proof", false);
 //        cfg.set("debug_ref_count", false);
         cfg.set("trace", false);
@@ -44,7 +45,7 @@ namespace SMT {
 //        cfg.set("timeout", false);
         cfg.set("well_sorted_check", false);
         cfg.set("auto_config", false);
-        cfg.set("model", false);
+        cfg.set("model", true);
         cfg.set("model_validate", false);
         cfg.set("unsat_core", false);
         context.init(cfg, false);
@@ -252,7 +253,19 @@ namespace SMT {
             throw std::runtime_error("Cannot extract z3 value");
         }
     }
-    
+
+//    unsigned int Z3Solver::get_bv_value(z3::expr expr) {
+//        extract_model();
+//        try {
+//            z3::expr res = model->eval(expr, false);
+//            return Z3_get_bool_value(this->context, res) == Z3_L_TRUE;
+//        } catch (z3::exception &e) {
+//            // No model value
+//            log->critical("Cannot extract z3 value from {}", expr);
+//            throw std::runtime_error("Cannot extract z3 value");
+//        }
+//    }
+
     void Z3Solver::loadToSolver() { }
 
     void Z3Solver::clean() {

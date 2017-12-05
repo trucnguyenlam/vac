@@ -57,6 +57,7 @@ namespace SMT {
         SMTResult solve() override;
         void printModel() override;
         bool get_bool_value(expr expr) override;
+//        unsigned int get_bv_value(expr expr) override;
         void print_statistics() override;
         void loadToSolver() override;
         void clean() override;
