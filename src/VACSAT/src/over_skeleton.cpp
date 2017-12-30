@@ -43,28 +43,11 @@ namespace SMT {
         class b_solver_info {
         };
 
-        class l_solver_info {
+        class b_solver_state {
+
         };
 
-        typedef std::shared_ptr<glayer<simple_layer_info<l_solver_info>, simple_block_info<b_solver_info>>> layer;
-        typedef std::shared_ptr<gblock<simple_layer_info<l_solver_info>, simple_block_info<b_solver_info>>> block;
-
-        struct layer_restriction_info {
-//            std::set<atomp> in_adm_target;
-//            std::set<atomp> in_adm_precs;
-//            std::set<rulep> assigning_adm;
-            std::set<atomp> in_reg_target;
-            std::set<atomp> in_reg_precs;
-            std::set<rulep> assigning_reg;
-
-            layer_restriction_info():
-//                    in_adm_target(std::set<atomp>()),
-//                    in_adm_precs(std::set<atomp>()),
-//                    assigning_adm(std::set<rulep>()),
-                    in_reg_target(std::set<atomp>()),
-                    in_reg_precs(std::set<atomp>()),
-                    assigning_reg(std::set<rulep>()) { }
-        };
+        typedef std::shared_ptr<gblock<simple_block_info<b_solver_info>, b_solver_state>> block;
 
         layer_restriction_info get_required(const std::shared_ptr<arbac_policy> &policy,
                                             const std::vector<std::pair<Expr, Expr>> &target_exprs) {
@@ -106,11 +89,7 @@ namespace SMT {
             }
         };
 
-        layer create_from_policy(std::shared_ptr<arbac_policy> policy, overapprox_strategy strategy) {
 
-
-            return nullptr;
-        };
 
     public:
 
