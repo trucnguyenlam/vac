@@ -131,6 +131,9 @@ namespace SMT {
         inline int user_count() const {
             return (int) _users.size();
         }
+        inline int rules_count() const {
+            return (int) _rules.size();
+        }
 
 //        void remove_can_assign(rule to_remove);
 //        void remove_can_revoke(rule to_remove);
