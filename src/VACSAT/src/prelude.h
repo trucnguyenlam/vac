@@ -112,12 +112,12 @@ void print_collection(const TCollection<std::shared_ptr<TVal>>& collection, std:
     }
 };
 
-static int bits_count(int pc) {
+static int bits_count(int n) {
     int i = 1, bit = 0;
 
-    if (pc < 2 ) return 1;
+    if (n < 2 ) return 1;
 
-    while (pc >= i) {
+    while (n >= i) {
         i = i * 2;
         bit++;
     }
