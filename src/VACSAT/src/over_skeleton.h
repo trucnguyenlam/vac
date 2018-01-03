@@ -24,32 +24,44 @@ namespace SMT {
 
     typedef std::list<int> tree_path;
 
+    struct overapprox_restriction {
+        std::vector<bool> interesting_var;
+        std::vector<bool> interesting_rule;
+
+        int interesting_var_count;
+        int interesting_rule_count;
+    };
+
     struct overapprox_strategy {
         int max_depth;
         int block_count;
+        overapprox_restriction restriction;
     };
 
     template <typename BlockInfo, typename SolverState>
     class gblock {//: public node<LayerInfo, BlockInfo> {
     public:
         tree_path path;
-        int uid;
+        std::string uid;
         int depth;
         std::shared_ptr<BlockInfo> infos;
         std::shared_ptr<SolverState> solver_state;
+        std::list<std::weak_ptr<gblock<BlockInfo, SolverState>>> ancestors;
         std::vector<std::shared_ptr<gblock<BlockInfo, SolverState>>> refinement_blocks;
 
         gblock(tree_path _path,
-               int _uid,
+               std::string _uid,
                int _depth,
                std::shared_ptr<BlockInfo> _infos,
                std::shared_ptr<SolverState> _solver_state,
+               std::list<std::weak_ptr<gblock<BlockInfo, SolverState>>> _ancestors,
                std::vector<std::shared_ptr<gblock<BlockInfo, SolverState>>> _refinement_blocks):
                 path(_path),
                 uid(_uid),
                 depth(_depth),
                 infos(_infos),
                 solver_state(_solver_state),
+                ancestors(_ancestors),
                 refinement_blocks(_refinement_blocks) { }
 
 
