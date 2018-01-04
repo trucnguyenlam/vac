@@ -37,7 +37,6 @@ namespace SMT {
 //    std::shared_ptr<z3::config> Z3Solver::config = default_config();
     Z3Solver::Z3Solver() /*context(new z3::context()),*/  {
         z3::config cfg;
-        cfg.set("relevancy", 0);
         cfg.set("proof", false);
 //        cfg.set("debug_ref_count", false);
         cfg.set("trace", false);
@@ -50,6 +49,11 @@ namespace SMT {
         cfg.set("unsat_core", false);
         context.init(cfg, false);
         solver = z3::solver(context);
+        z3::params p(context);
+        p.set("relevancy", (unsigned int) 0);
+        p.set("model", true);
+        p.set("proof", false);
+        solver.set(p);
     }
     Z3Solver::~Z3Solver() { /*delete context;*/ }
 
