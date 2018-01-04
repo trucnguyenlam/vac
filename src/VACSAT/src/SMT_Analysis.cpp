@@ -36,6 +36,9 @@ namespace SMT {
             case OverapproxOptions::ADMIN:
                 log->debug("Using admin overapprox version");
                 break;
+            case OverapproxOptions::LEARNING:
+                log->debug("Using learning overapprox version");
+                break;
         }
         bool over_result = false;
         switch (Config::overapproxOptions.version) {
@@ -50,6 +53,9 @@ namespace SMT {
                 break;
             case OverapproxOptions::ADMIN:
                 over_result = overapprox_admin(solver, policy, policy->user_count(), target_expr);
+                break;
+            case OverapproxOptions::LEARNING:
+                over_result = overapprox_learning(solver, policy, target_expr);
                 break;
             default:
                 throw unexpected_error("OVERAPPROX VERSION SWITCH MUST BE COMPLETE");

@@ -19,7 +19,8 @@ namespace SMT {
             JUNE,
             TRACE_ALL,
             SELECTIVE,
-            ADMIN
+            ADMIN,
+            LEARNING
         };
         /*enum BlocksChoice {
             STRICT,
@@ -39,6 +40,8 @@ namespace SMT {
                 return TRACE_ALL;
             } else if (version == "admin") {
                 return ADMIN;
+            } else if (version == "learning") {
+                return LEARNING;
             } else {
                 throw std::runtime_error("Unknown overapproximated analysis version");
             }

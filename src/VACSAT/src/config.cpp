@@ -15,7 +15,7 @@ namespace SMT {
     int Config::rule_6_max_depth = -1;
     bool Config::use_tampone = false;
     OverapproxOptions Config::overapproxOptions = {
-        .version = OverapproxOptions::SELECTIVE,
+        .version = OverapproxOptions::LEARNING,
         .depth = 3,
         .blocks_count = -1,
     };
