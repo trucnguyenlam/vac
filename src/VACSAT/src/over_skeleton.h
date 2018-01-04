@@ -49,6 +49,16 @@ namespace SMT {
         std::list<std::weak_ptr<gblock<BlockInfo, SolverState>>> ancestors;
         std::vector<std::shared_ptr<gblock<BlockInfo, SolverState>>> refinement_blocks;
 
+        gblock(std::string _uid,
+               int _depth):
+                path(std::list<int>()),
+                uid(_uid),
+                depth(_depth),
+                infos(nullptr),
+                solver_state(nullptr),
+                ancestors(std::list<std::weak_ptr<gblock<BlockInfo, SolverState>>>()),
+                refinement_blocks(std::vector<std::shared_ptr<gblock<BlockInfo, SolverState>>>()) { }
+
         gblock(tree_path _path,
                std::string _uid,
                int _depth,
@@ -76,14 +86,18 @@ namespace SMT {
         const std::shared_ptr<arbac_policy>& policy;
         std::vector<rulep> rules;
         std::shared_ptr<BlockSolverInfo> solverInfo;
+        const Expr invariant;
 
-        simple_block_info(std::shared_ptr<arbac_policy>& _policy,
+        simple_block_info(const std::shared_ptr<arbac_policy>& _policy,
                           std::vector<rulep> _rules,
-                          std::shared_ptr<BlockSolverInfo> _solverInfo):
+                          std::shared_ptr<BlockSolverInfo> _solverInfo,
+                          Expr _invariant):
                 policy(_policy),
                 rules(_rules),
-                solverInfo(_solverInfo) { }
+                solverInfo(_solverInfo),
+                invariant(_invariant) { }
     };
+
 }
 
 #endif //VACSAT_OVER_SKELETON_H
