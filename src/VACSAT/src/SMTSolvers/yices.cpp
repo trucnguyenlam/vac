@@ -373,7 +373,10 @@ namespace SMT {
 
     void YicesSolver::extract_model() {
         if (model == nullptr) {
-            model = yices_get_model(context, false);
+            // Do not know the meaning of the second boolean parameter.
+            // Using true because Mikhail does so
+            model = yices_get_model(context, true);
+//            yices_pp_model(stdout, model, 120, 40, 0);
         }
     }
 
@@ -470,6 +473,14 @@ namespace SMT {
         for (auto &&term : this->asserted) {
             yices_pp_term(out, term, 1600, 20000, 0);
         }
+        fclose(out);
+    }
+    void YicesSolver::printTerm(std::string filename, term_t term) {
+        FILE* out = fopen(filename.c_str(), "w");
+        if (out == NULL) {
+            throw std::runtime_error("Cannot open file: " + filename);
+        }
+        yices_pp_term(out, term, 1600, 20000, 0);
         fclose(out);
     }
     void YicesSolver::print_statistics() {
