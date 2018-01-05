@@ -23,6 +23,13 @@ namespace SMT {
     };
 
     typedef std::list<int> tree_path;
+    std::string tree_path_to_string(tree_path& path) {
+        std::string ret = "_root";
+        for (auto &&p : path) {
+            ret = ret + "_" + std::to_string(p);
+        }
+        return ret + "_";
+    }
 
     struct overapprox_restriction {
         std::vector<bool> interesting_var;
@@ -35,7 +42,6 @@ namespace SMT {
     struct overapprox_strategy {
         int max_depth;
         int block_count;
-        overapprox_restriction restriction;
     };
 
     template <typename BlockInfo, typename SolverState>
@@ -60,6 +66,18 @@ namespace SMT {
                 refinement_blocks(std::vector<std::shared_ptr<gblock<BlockInfo, SolverState>>>()) { }
 
         gblock(tree_path _path,
+               int _depth,
+               std::shared_ptr<BlockInfo> _infos,
+               std::list<std::weak_ptr<gblock<BlockInfo, SolverState>>> _ancestors):
+                path(_path),
+                uid(tree_path_to_string(_path)),
+                depth(_depth),
+                infos(_infos),
+                solver_state(nullptr),
+                ancestors(_ancestors),
+                refinement_blocks(std::vector<std::shared_ptr<gblock<BlockInfo, SolverState>>>()) { }
+
+        gblock(tree_path _path,
                std::string _uid,
                int _depth,
                std::shared_ptr<BlockInfo> _infos,
@@ -77,6 +95,9 @@ namespace SMT {
 
         bool is_leaf() {
             return refinement_blocks.empty();
+        }
+        bool is_root() {
+            return depth == 0;
         }
     };
 
