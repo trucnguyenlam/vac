@@ -22,14 +22,24 @@ namespace SMT {
             ADMIN,
             LEARNING
         };
-        /*enum BlocksChoice {
-            STRICT,
-            AT_MOST,
-            AT_LEAST
-        };*/
+        enum blocks_choice {
+            STRICT_BLOCK,
+            AT_MOST_BLOCK,
+            AT_LEAST_BLOCK
+        };
+        enum depth_choice {
+            STRICT_DEPTH,
+            AT_MOST_DEPTH,
+            AT_LEAST_DEPTH
+        };
         OverapproxVersion version;
+
+        depth_choice depth_strategy;
         int depth;
+
+        blocks_choice blocks_strategy;
         int blocks_count;
+
 
         static OverapproxVersion parse(const std::string& version) {
             if (version == "June") {

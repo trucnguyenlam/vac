@@ -16,7 +16,9 @@ namespace SMT {
     bool Config::use_tampone = false;
     OverapproxOptions Config::overapproxOptions = {
         .version = OverapproxOptions::LEARNING,
+        .depth_strategy = OverapproxOptions::AT_LEAST_DEPTH,
         .depth = 3,
+        .blocks_strategy = OverapproxOptions::AT_LEAST_BLOCK,
         .blocks_count = -1,
     };
 //    int Config::overapprox_merge_precs = false;
