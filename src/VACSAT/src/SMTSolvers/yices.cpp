@@ -381,6 +381,7 @@ namespace SMT {
     }
 
     void YicesSolver::printModel() {
+        extract_model();
         if (model == NULL) {
             fprintf(stdout, "Model is NULL...\n");
         } else {
@@ -442,6 +443,7 @@ namespace SMT {
         yices_free_context(this->context);
         if (model != nullptr) {
             yices_free_model(model);
+            model = nullptr;
         }
 //        this->context = yices_new_context(NULL);
         this->context = mk_context();
@@ -452,6 +454,7 @@ namespace SMT {
         yices_free_context(this->context);
         if (model != nullptr) {
             yices_free_model(model);
+            model = nullptr;
         }
 //        this->context = yices_new_context(NULL);
         yices_reset();
