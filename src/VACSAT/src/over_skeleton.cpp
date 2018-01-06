@@ -70,11 +70,15 @@ namespace SMT {
                 for (auto &&atom : node->infos->policy->atoms()) {
                     std::string var_name = "var_" + node_id + "_" + atom->name;
                     vars[atom->role_array_index] = variable(var_name, 0, 1, solver, BOOLEAN);
+                }
 
+                for (auto &&atom : node->infos->policy->atoms()) {
                     std::string updated_in_subrun_name = "updated_in_subrun_" + node_id + "_" + atom->name;
                     updated_in_subrun[atom->role_array_index] = variable(updated_in_subrun_name, 0, 1, solver,
                                                                          BOOLEAN);
+                }
 
+                for (auto &&atom : node->infos->policy->atoms()) {
                     std::string blocked_name = "blocked_" + node_id + "_" + atom->name;
                     blocked[atom->role_array_index] = variable(blocked_name, 0, 1, solver, BOOLEAN);
                 }
@@ -545,7 +549,7 @@ namespace SMT {
                     all_set = solver->createAndExpr(all_set, upd_impl_block_node_i);
                 }
 
-                TExpr final_impl = solver->createImplExpr(skipped, all_set);
+                TExpr final_impl = solver->createAndExpr(skipped, all_set);
 
                 return final_impl;
             }
@@ -622,6 +626,8 @@ namespace SMT {
                 TExpr exists_not_in_priority_set = zero;
                 for (int i = 0; i < node->solver_state->blocked.size(); ++i) {
                     TExpr not_in_priority_and_set_i = var_not_in_priority_and_set(node, i);
+                    log->warn("Atom {} -------------------------------", *policy->atoms(i));
+                    solver->printExpr(not_in_priority_and_set_i);
                     exists_not_in_priority_set = solver->createOrExpr(exists_not_in_priority_set,
                                                                       not_in_priority_and_set_i);
                 }
@@ -682,20 +688,25 @@ namespace SMT {
                     if_not_in_p_set_then_p_is_set_val = if_not_in_p_set_then_p_is_set(node);
                 }
 
-                TExpr final_cond = solver->createImplExpr(budget_expired, if_not_in_p_set_then_p_is_set_val);
+                TExpr final_cond = solver->createAndExpr(budget_expired, if_not_in_p_set_then_p_is_set_val);
 
                 return final_cond;
             }
 
             void exploration_strategy(tree &node) {
                 TExpr if_skipped = es_skipped_last_child(node);
+//                log->warn("If Skipped----------------------------------------------------------------");
+//                solver->printExpr(if_skipped);
 
+                log->warn("NOT SKIPPED-----------------------------------------------------------------");
                 TExpr if_budget = not_skipped_last_child(node);
+//                solver->printExpr(if_budget);
 
 
-                TExpr global_assimption = solver->createAndExpr(if_skipped, if_budget);
+                TExpr global_assumption = solver->createOrExpr(if_skipped, if_budget);
 
-                emit_assumption(node, global_assimption);
+
+                emit_assumption(node, global_assumption);
             }
 
             // SUBRUN FUNCTION
@@ -705,7 +716,9 @@ namespace SMT {
                 if (node->is_leaf()) {//Is_leaf(n)
                     emit_comment("Node_" + node->uid + "is_leaf");
                     update_unblocked_vars(node);
-                    transition(node);
+                    if (!node->is_root()) {
+                        transition(node);
+                    }
 //                    return;
                 } else {
                     emit_comment("Node_" + node->uid + "_is_internal");
@@ -713,7 +726,9 @@ namespace SMT {
                     emit_comment("Begin_exploration_strategy_" + node->uid);
                     exploration_strategy(node);
                     emit_comment("End_exploration_strategy_" + node->uid);
-                    transition(node);
+                    if (!node->is_root()) {
+                        transition(node);
+                    }
 //                    return;
                 }
                 emit_comment("End_subrun_" + node->uid);
@@ -1016,7 +1031,7 @@ namespace SMT {
         OverapproxOptions strategy = {
             .version = OverapproxOptions::LEARNING,
             .depth_strategy = OverapproxOptions::AT_MOST_DEPTH,
-            .depth = 8,
+            .depth = Config::overapproxOptions.depth,
             .blocks_strategy = OverapproxOptions::AT_LEAST_BLOCK,
             .blocks_count = -1,
         };
