@@ -54,12 +54,13 @@ namespace SMT {
 
         class b_solver_info {
         public:
-            enum block_refineable {
+            enum refineable_result {
                 UNSET,
                 YES,
                 NO
             };
-            block_refineable refineable = UNSET;
+            refineable_result refineable = UNSET;
+            refineable_result increase_budget = UNSET;
         };
 
         class b_solver_state {
@@ -90,6 +91,7 @@ namespace SMT {
                 skip = variable("skip_" + node_id, 0, 1, solver, BOOLEAN);
                 guard = variable("guard_" + node_id, 0, 1, solver, BOOLEAN);
                 refineable = variable("refineable_" + node_id, 0, 1, solver, BOOLEAN);
+                increase_budget = variable("increase_budget_" + node_id, 0, 1, solver, BOOLEAN);
             }
 
 //            void set_guards(SMTFactory<TVar, TExpr>* solver) {
@@ -112,6 +114,7 @@ namespace SMT {
             variable skip;
             variable guard;
             variable refineable;
+            variable increase_budget;
 
             b_solver_state() = delete;
 
@@ -709,6 +712,39 @@ namespace SMT {
                 emit_assumption(node, global_assumption);
             }
 
+            void set_increase_budget(tree &node) {
+                assert(!node->is_leaf());
+                tree& last_child = node->refinement_blocks.back();
+                TExpr not_skipped = solver->createNotExpr(last_child->solver_state->skip.get_solver_var());
+
+                TExpr exists_priority_not_set = zero;
+                for (int i = 0; i < node->infos->rules.size(); ++i) {
+                    rulep rule = node->infos->rules[i];
+                    //Truvial preconditions does not have priority
+                    if (!rule->prec->atoms().empty()) {
+                        TExpr rule_selected =
+                                solver->createEqExpr(node->solver_state->rule_id.get_solver_var(),
+                                                     solver->createBVConst(i, node->solver_state->rule_id.bv_size));
+                        TExpr updated_not_set = zero;
+                        for (auto &&atom : rule->prec->atoms()) {
+                            variable atom_updated = node->solver_state->updated_in_subrun[i];
+                            variable atom_blocked = node->solver_state->blocked[i];
+                            TExpr atom_updated_not_set =
+                                    solver->createAndExpr(atom_updated.get_solver_var(),
+                                                          solver->createNotExpr(atom_blocked.get_solver_var()));
+                            updated_not_set = solver->createOrExpr(updated_not_set,
+                                                                   atom_updated_not_set);
+                        }
+                        TExpr prio_not_set = solver->createAndExpr(rule_selected, updated_not_set);
+                        exists_priority_not_set = solver->createOrExpr(exists_priority_not_set, prio_not_set);
+                    }
+                }
+                TExpr increase_budget = solver->createAndExpr(not_skipped,
+                                                              exists_priority_not_set);
+
+                emit_assignment(node, node->solver_state->increase_budget, increase_budget);
+            }
+
             // SUBRUN FUNCTION
             void subrun(tree &node) {
                 emit_comment("Begin_subrun_" + node->uid);
@@ -724,6 +760,9 @@ namespace SMT {
                     emit_comment("Node_" + node->uid + "_is_internal");
                     simulate_children(node);
                     emit_comment("Begin_exploration_strategy_" + node->uid);
+                    if (true) {
+                        set_increase_budget(node);
+                    }
                     exploration_strategy(node);
                     emit_comment("End_exploration_strategy_" + node->uid);
                     if (!node->is_root()) {
@@ -839,6 +878,12 @@ namespace SMT {
                     if (is_node_refineable) {
                         log->warn("Node {} is refineable", node->uid);
                     }
+
+                    bool increase_node_budget = solver->get_bool_value(node->solver_state->increase_budget.get_solver_var());
+                    node->infos->solverInfo->increase_budget = increase_node_budget ? b_solver_info::YES : b_solver_info::NO;
+                    if (node->infos->solverInfo->increase_budget == b_solver_info::YES) {
+                        log->warn("Node {} budget should be increased", node->uid);
+                    }
                     return is_node_refineable;
                 }
             }
@@ -885,6 +930,7 @@ namespace SMT {
         std::shared_ptr<b_solver_info> get_empty_solver_info() {
             b_solver_info ret_body;
             ret_body.refineable = b_solver_info::UNSET;
+            ret_body.increase_budget = b_solver_info::UNSET;
             return std::make_shared<b_solver_info>(ret_body);
         }
 
