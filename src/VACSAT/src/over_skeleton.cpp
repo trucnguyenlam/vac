@@ -626,8 +626,8 @@ namespace SMT {
                 TExpr exists_not_in_priority_set = zero;
                 for (int i = 0; i < node->solver_state->blocked.size(); ++i) {
                     TExpr not_in_priority_and_set_i = var_not_in_priority_and_set(node, i);
-                    log->warn("Atom {} -------------------------------", *policy->atoms(i));
-                    solver->printExpr(not_in_priority_and_set_i);
+//                    log->warn("Atom {} -------------------------------", *policy->atoms(i));
+//                    solver->printExpr(not_in_priority_and_set_i);
                     exists_not_in_priority_set = solver->createOrExpr(exists_not_in_priority_set,
                                                                       not_in_priority_and_set_i);
                 }
@@ -698,7 +698,7 @@ namespace SMT {
 //                log->warn("If Skipped----------------------------------------------------------------");
 //                solver->printExpr(if_skipped);
 
-                log->warn("NOT SKIPPED-----------------------------------------------------------------");
+//                log->warn("NOT SKIPPED-----------------------------------------------------------------");
                 TExpr if_budget = not_skipped_last_child(node);
 //                solver->printExpr(if_budget);
 
