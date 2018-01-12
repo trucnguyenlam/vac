@@ -53,6 +53,7 @@ namespace SMT {
         std::shared_ptr<BlockInfo> infos;
         std::shared_ptr<SolverState> solver_state;
         std::list<std::weak_ptr<gblock<BlockInfo, SolverState>>> ancestors;
+        std::weak_ptr<gblock<BlockInfo, SolverState>> parent;
         std::vector<std::shared_ptr<gblock<BlockInfo, SolverState>>> refinement_blocks;
 
         gblock(std::string _uid,
@@ -68,13 +69,15 @@ namespace SMT {
         gblock(tree_path _path,
                int _depth,
                std::shared_ptr<BlockInfo> _infos,
-               std::list<std::weak_ptr<gblock<BlockInfo, SolverState>>> _ancestors):
+               std::list<std::weak_ptr<gblock<BlockInfo, SolverState>>> _ancestors,
+               std::weak_ptr<gblock<BlockInfo, SolverState>> _parent):
                 path(_path),
                 uid(tree_path_to_string(_path)),
                 depth(_depth),
                 infos(_infos),
                 solver_state(nullptr),
                 ancestors(_ancestors),
+                parent(_parent),
                 refinement_blocks(std::vector<std::shared_ptr<gblock<BlockInfo, SolverState>>>()) { }
 
         gblock(tree_path _path,
@@ -83,6 +86,7 @@ namespace SMT {
                std::shared_ptr<BlockInfo> _infos,
                std::shared_ptr<SolverState> _solver_state,
                std::list<std::weak_ptr<gblock<BlockInfo, SolverState>>> _ancestors,
+               std::weak_ptr<gblock<BlockInfo, SolverState>> _parent,
                std::vector<std::shared_ptr<gblock<BlockInfo, SolverState>>> _refinement_blocks):
                 path(_path),
                 uid(_uid),
@@ -90,6 +94,7 @@ namespace SMT {
                 infos(_infos),
                 solver_state(_solver_state),
                 ancestors(_ancestors),
+                parent(_parent),
                 refinement_blocks(_refinement_blocks) { }
 
 
@@ -104,16 +109,23 @@ namespace SMT {
     template <typename BlockSolverInfo>
     class simple_block_info {
     public:
-        const std::shared_ptr<arbac_policy>& policy;
-        std::vector<rulep> rules;
+//        const std::shared_ptr<arbac_policy>& policy;
+        //NEEDED TO KNOW ARRAYS DIMENSIONS
+        const int policy_atom_count;
+        const std::vector<atomp> atoms;
+        const std::vector<rulep> rules;
         std::shared_ptr<BlockSolverInfo> solverInfo;
         const Expr invariant;
 
-        simple_block_info(const std::shared_ptr<arbac_policy>& _policy,
-                          std::vector<rulep> _rules,
+        simple_block_info(//const std::shared_ptr<arbac_policy>& _policy,
+                          const int _policy_atom_count,
+                          const std::vector<atomp> _atoms,
+                          const std::vector<rulep> _rules,
                           std::shared_ptr<BlockSolverInfo> _solverInfo,
                           Expr _invariant):
-                policy(_policy),
+//                policy(_policy),
+                policy_atom_count(_policy_atom_count),
+                atoms(_atoms),
                 rules(_rules),
                 solverInfo(_solverInfo),
                 invariant(_invariant) { }
