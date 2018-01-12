@@ -55,7 +55,7 @@ namespace SMT {
                 over_result = overapprox_admin(solver, policy, policy->user_count(), target_expr);
                 break;
             case OverapproxOptions::LEARNING:
-                over_result = overapprox_learning(solver, policy, target_expr);
+                over_result = overapprox_learning(solver, policy, policy->atoms(), policy->rules(), target_expr);
                 break;
             default:
                 throw unexpected_error("OVERAPPROX VERSION SWITCH MUST BE COMPLETE");

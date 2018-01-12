@@ -43,6 +43,8 @@ namespace SMT {
     template <typename TVar, typename TExpr>
     bool overapprox_learning(const std::shared_ptr<SMT::SMTFactory<TVar, TExpr>>& solver,
                              const std::shared_ptr<arbac_policy>& policy,
+                             const std::vector<atomp> atoms,
+                             const std::vector<rulep> rules,
                              const Expr& to_check);
 
 }
