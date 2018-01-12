@@ -39,6 +39,7 @@ namespace SMT {
 
         blocks_choice blocks_strategy;
         int blocks_count;
+        bool no_backward_slicing;
 
 
         static OverapproxVersion parse(const std::string& version) {

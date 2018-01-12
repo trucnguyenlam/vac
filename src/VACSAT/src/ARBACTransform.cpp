@@ -60,6 +60,7 @@ public:
     const bool do_not_merge;
     const int rule_6_max_depth;
     const int overapprox_depth;
+    const bool no_overapprox_slicing;
     const std::string overapprox_version;
     const int overapprox_blocks_count;
     const bool experimental_simplify_toplevel_or;
@@ -92,6 +93,7 @@ public:
             bool _do_not_merge,
             int _rule_6_max_depth,
             int _overapprox_depth,
+            bool _no_overapprox_slicing,
             std::string _overapprox_version,
             int _overapprox_blocks_count,
             bool _experimental_simplify_toplevel_or,
@@ -121,6 +123,7 @@ public:
         do_not_merge(_do_not_merge),
         rule_6_max_depth(_rule_6_max_depth),
         overapprox_depth(_overapprox_depth),
+        no_overapprox_slicing(_no_overapprox_slicing),
         overapprox_version(_overapprox_version),
         overapprox_blocks_count(_overapprox_blocks_count),
         experimental_simplify_toplevel_or(_experimental_simplify_toplevel_or),
@@ -236,6 +239,7 @@ static options parse_args(int ac, const char* const* av) {
     arg_obj<bool> do_not_merge = create_arg_obj_bool("do-not-merge", "Do not use the pruning merge rule");
     arg_obj<int> rule_6_max_depth = create_arg_obj_int("rule6-max-depth", -1, "Set the max depth of expression that should be tested in rule 6. (< 0 for any)");
     arg_obj<int> overapprox_depth = create_arg_obj_int("overapprox-depth,d", 3, "Set the max depth of over approximation.");
+    arg_obj<bool> no_overapprox_slicing = create_arg_obj_bool("no-overapprox-slicing,l", "Do not apply slicing before overapprox.");
     arg_obj<std::string> overapprox_version = create_arg_obj_string("overapprox-version,V", "learning", "Choose the version of the overapproximation (June, total, selective, admin, learning)");
     arg_obj<int> overapprox_blocks = create_arg_obj_int("overapprox-blocks,B", -1, "Set the number of blocks of over approximation. (<= 0 for any)");
     arg_obj<bool> experimental_simplify_toplevel_or = create_arg_obj_bool("simplify-or,X", "Simplify toplevel or expressions");
@@ -266,6 +270,7 @@ static options parse_args(int ac, const char* const* av) {
     add_option_description(desc, do_not_merge);
     add_option_description(desc, rule_6_max_depth);
     add_option_description(desc, overapprox_depth);
+    add_option_description(desc, no_overapprox_slicing);
     add_option_description(desc, overapprox_version);
     add_option_description(desc, overapprox_blocks);
     add_option_description(desc, experimental_simplify_toplevel_or);
@@ -311,6 +316,7 @@ static options parse_args(int ac, const char* const* av) {
                     do_not_merge.result,
                     rule_6_max_depth.result,
                     overapprox_depth.result,
+                    no_overapprox_slicing.result,
                     overapprox_version.result,
                     overapprox_blocks.result,
                     experimental_simplify_toplevel_or.result,
@@ -419,6 +425,7 @@ int main(int argc, const char * const *argv) {
 
         SMT::Config::rule_6_max_depth = config.rule_6_max_depth;
         SMT::Config::overapproxOptions.depth = config.overapprox_depth;
+        SMT::Config::overapproxOptions.no_backward_slicing = config.no_overapprox_slicing;
         SMT::Config::overapproxOptions.blocks_count = config.overapprox_blocks_count;
         SMT::Config::no_infinity_bmc = config.no_infinity_bmc;
         SMT::Config::infinity_bmc_rounds_count = config.infinity_bmc_rounds_count;

@@ -20,6 +20,7 @@ namespace SMT {
         .depth = 3,
         .blocks_strategy = OverapproxOptions::AT_LEAST_BLOCK,
         .blocks_count = -1,
+        .no_backward_slicing = false
     };
 //    int Config::overapprox_merge_precs = false;
     bool Config::simplify_toplevel_or = false;
