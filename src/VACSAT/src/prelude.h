@@ -53,6 +53,10 @@ static inline bool contains(const TCollection<TVal>& collection, const TVal &ele
     return false;
 };
 
+std::string bool_to_true_false(bool b) {
+    return b ? "true" : "false";
+}
+
 //    template <typename T, typename TCmp>
 //    static inline bool contains_ptr(const std::set<std::weak_ptr<T>, TCmp> &set, const std::shared_ptr<T> &elem) {
 //        return set.find(elem) != set.end();
