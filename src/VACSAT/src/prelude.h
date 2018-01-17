@@ -16,14 +16,27 @@ namespace SMT {
 
 typedef unsigned long long int ulong64;
 
-class unexpected_error : public std::exception
-{
+class unexpected_error : public std::exception {
     std::string what_message;
+    const char* file_name;
+    const int line_number;
 public:
-    unexpected_error(std::string msg) : what_message(msg) {
-    }
+    unexpected_error(std::string msg) :
+            what_message(msg),
+            file_name(nullptr),
+            line_number(-1) { }
+    unexpected_error(std::string msg, const char* file, const int line) :
+            what_message(msg),
+            file_name(file),
+            line_number(line) { }
     const char* what() const noexcept override {
-        return what_message.c_str();
+        if (file_name == nullptr) {
+            return what_message.c_str();
+        } else {
+            std::stringstream stream;
+            stream << what_message << " @ " << file_name << ": " << line_number;
+            return stream.str().c_str();
+        }
     }
 };
 
@@ -53,7 +66,7 @@ static inline bool contains(const TCollection<TVal>& collection, const TVal &ele
     return false;
 };
 
-std::string bool_to_true_false(bool b) {
+static inline std::string bool_to_true_false(bool b) {
     return b ? "true" : "false";
 }
 
