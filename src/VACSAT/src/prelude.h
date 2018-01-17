@@ -28,15 +28,15 @@ public:
     unexpected_error(std::string msg, const char* file, const int line) :
             what_message(msg),
             file_name(file),
-            line_number(line) { }
-    const char* what() const noexcept override {
-        if (file_name == nullptr) {
-            return what_message.c_str();
-        } else {
+            line_number(line) {
+        if (file_name != nullptr)  {
             std::stringstream stream;
             stream << what_message << " @ " << file_name << ": " << line_number;
-            return stream.str().c_str();
+            what_message = stream.str();
         }
+    }
+    const char* what() const noexcept override {
+        return what_message.c_str();
     }
 };
 
