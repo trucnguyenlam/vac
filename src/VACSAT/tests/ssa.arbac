@@ -1,21 +1,23 @@
-Roles ru ra rb rc rt ;
+Roles adm r1 r2 r3 r4 r5 ra rt rn ;
 
 Users u1;
 
 UA
-    <u1, ru>
+    <u1, adm>
     ;
 
 CR
+    <adm, ra>
     ;
 
 CA
-    <ru, -rb, ra>
-    <ru, TRUE, rb>
-    <ru, ra&rb, rc>
-    <ru, rb&rc, rt>
-
-
+    <adm, TRUE, r1>
+    <adm, TRUE, r2>
+    <adm, TRUE, r3>
+    <adm, TRUE, r4>
+    <adm, TRUE, r5>
+    <adm, rn, ra>
+    <adm, ra, rt>
 	;
 
 SPEC rt ;
