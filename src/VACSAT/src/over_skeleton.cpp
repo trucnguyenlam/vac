@@ -44,24 +44,10 @@ namespace SMT {
     private:
         typedef generic_variable<TVar, TExpr> variable;
 
-        class b_solver_info;
-
         class b_solver_state;
 
-        typedef gblock<simple_block_info<b_solver_info>, b_solver_state> node;
-        typedef std::shared_ptr<gblock<simple_block_info<b_solver_info>, b_solver_state>> tree;
-
-
-        class b_solver_info {
-        public:
-            enum refineable_result {
-                UNSET,
-                YES,
-                NO
-            };
-            refineable_result refineable = UNSET;
-            refineable_result increase_budget = UNSET;
-        };
+        typedef proof_node<b_solver_state> node;
+        typedef std::shared_ptr<proof_node<b_solver_state>> tree;
 
         class b_solver_state {
         private:
@@ -106,9 +92,9 @@ namespace SMT {
                 }
 
                 //TODO: can be decreased only to actual atom count, but everything should be updated accordingly
-                var_id = variable("var_id_" + node_id, 0, bits_count(node->infos->policy_atom_count), solver,
+                var_id = variable("var_id_" + node_id, 0, bits_count(node->node_infos.policy_atoms_count), solver,
                                   BIT_VECTOR);
-                rule_id = variable("rule_id_" + node_id, 0, bits_count((uint) node->infos->rules.size()), solver,
+                rule_id = variable("rule_id_" + node_id, 0, bits_count((uint) node->node_infos.rules_c.size()), solver,
                                    BIT_VECTOR);
                 skip = variable("skip_" + node_id, 0, 1, solver, BOOLEAN);
                 guard = variable("guard_" + node_id, 0, 1, solver, BOOLEAN);
@@ -139,14 +125,14 @@ namespace SMT {
 //                           const std::shared_ptr<arbac_policy>& policy,
                            SMTFactory<TVar, TExpr>* solver) :
                     node_id(node->uid),
-                    vars(std::vector<variable>((uint) node->infos->policy_atom_count)),
-                    updated_in_subrun(std::vector<variable>((uint) node->infos->policy_atom_count)),
-                    blocked(std::vector<variable>((uint) node->infos->policy_atom_count)),
-                    blocked_by_children(std::vector<variable>((uint) node->infos->policy_atom_count)),
-                    missing_priority(std::vector<variable>((uint) node->infos->policy_atom_count)),
-                    priority(std::vector<variable>((uint) node->infos->policy_atom_count)),
-                    second_priority(std::vector<variable>((uint) node->infos->policy_atom_count)),
-                    priority_not_blocked(std::vector<variable>((uint) node->infos->policy_atom_count)){
+                    vars(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
+                    updated_in_subrun(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
+                    blocked(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
+                    blocked_by_children(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
+                    missing_priority(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
+                    priority(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
+                    second_priority(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
+                    priority_not_blocked(std::vector<variable>((uint) node->node_infos.policy_atoms_count)){
                 init(solver, node);
 //                set_guards();
             }
@@ -340,7 +326,7 @@ namespace SMT {
             }
 
             void save_refineable_condition(tree &node, std::list<variable> &update_guards) {
-                if (!node->is_leaf()) {
+                if (!node->is_leaf) {
 //                    log->warn("setting to false refinement of internal node {}", node->uid);
                     strict_emit_assignment(node->solver_state->refineable, zero);
                 } else {
@@ -360,7 +346,7 @@ namespace SMT {
                 }
             }
 
-            void update_unblocked_vars(tree &node) {
+            void update_unblocked_vars_a(tree &node) {
                 emit_comment("Begin_nondet_assignment");
                 std::list<variable> update_guards;
                 for (auto &&var :node->infos->atoms) {
@@ -373,8 +359,8 @@ namespace SMT {
             }
 
             // TRANS RELATED FUNCTIONS
-            TExpr get_rule_assumptions(tree &node, int rule_id, TExpr &rule_is_selected) {
-                rulep rule = node->infos->rules[rule_id];
+            TExpr get_rule_assumptions_c(tree &node, int rule_id, TExpr &rule_is_selected) {
+                rulep rule = node->node_infos.rules_c[rule_id];
                 TExpr rule_precondition = generateSMTFunction(solver,
                                                               rule->prec,
                                                               node->solver_state->vars,
@@ -397,8 +383,8 @@ namespace SMT {
                 return final_assumption;
             }
 
-            void apply_rule_effect(tree &node, int rule_id, TExpr &rule_is_selected) {
-                rulep rule = node->infos->rules[rule_id];
+            void apply_rule_effect_c(tree &node, int rule_id, TExpr &rule_is_selected) {
+                rulep rule = node->node_infos.rules_c[rule_id];
                 atomp target = rule->target;
                 // UPDATE VAR VALUE
                 variable old_var_var = node->solver_state->vars[target->role_array_index];
@@ -438,8 +424,8 @@ namespace SMT {
 //                node->solver_state->var_id = new_var_id_var;
             }
 
-            void simulate_rule(tree &node, int rule_id) {
-                const rulep& rule = node->infos->rules[rule_id];
+            void simulate_rule_c(tree &node, int rule_id) {
+                const rulep& rule = node->node_infos.rules_c[rule_id];
                 if (std::is_same<TExpr, z3::expr>::value) {
                     TVar v = solver->createBVVar("Simulating_rule_" + rule->to_new_string(), node->solver_state->rule_id.bv_size);
                     TExpr value = solver->createBVConst(rule_id, node->solver_state->rule_id.bv_size);
@@ -449,26 +435,26 @@ namespace SMT {
                         solver->createEqExpr(node->solver_state->rule_id.get_solver_var(),
                                              solver->createBVConst(rule_id, node->solver_state->rule_id.bv_size));
 
-                TExpr rule_assumptions = get_rule_assumptions(node, rule_id, rule_is_selected);
+                TExpr rule_assumptions = get_rule_assumptions_c(node, rule_id, rule_is_selected);
 
                 emit_assumption(node, rule_assumptions);
 
-                apply_rule_effect(node, rule_id, rule_is_selected);
+                apply_rule_effect_c(node, rule_id, rule_is_selected);
             }
 
-            void apply_one_rule(tree &node) {
+            void select_one_rule_c(tree &node) {
                 //TO BE SURE TO APPLY AT LEAST ONE RULE WE HAVE TO ASSUME THAT RULE_ID <= RULE_COUNT
                 TExpr assumption = solver->createLtExpr(node->solver_state->rule_id.get_solver_var(),
-                                                        solver->createBVConst((int) node->infos->rules.size(),
+                                                        solver->createBVConst((int) node->node_infos.rules_c.size(),
                                                                               node->solver_state->rule_id.bv_size));
                 emit_assumption(node, assumption);
             }
 
-            void transition(tree &node) {
+            void transition_c(tree &node) {
                 emit_comment("Begin_transition_" + node->uid);
-                apply_one_rule(node);
-                for (int rule_id = 0; rule_id < node->infos->rules.size(); ++rule_id) {
-                    simulate_rule(node, rule_id);
+                select_one_rule_c(node);
+                for (int rule_id = 0; rule_id < node->node_infos.rules_c.size(); ++rule_id) {
+                    simulate_rule_c(node, rule_id);
                 }
                 emit_comment("End_transition_" + node->uid);
             }
@@ -546,7 +532,7 @@ namespace SMT {
                 if (node->refinement_blocks.empty()) {
                     throw unexpected_error("exploration_strategy cannot be called on leaves");
                 }
-                std::weak_ptr<gblock<simple_block_info<b_solver_info>, b_solver_state>> w_last_child = node->refinement_blocks.back();
+                std::weak_ptr<proof_node<b_solver_state>> w_last_child = node->refinement_blocks.back();
                 variable last_skip = w_last_child.lock()->solver_state->skip;
 
                 TExpr skipped = last_skip.get_solver_var();
@@ -960,7 +946,7 @@ namespace SMT {
                 set_zero(node, node->solver_state->updated_in_subrun);
                 if (node->is_leaf()) {//Is_leaf(n)
                     emit_comment("Node_" + node->uid + "is_leaf");
-                    update_unblocked_vars(node);
+                    update_unblocked_vars_a(node);
                     if (!node->is_root()) {
                         transition(node);
                     }
@@ -1185,7 +1171,7 @@ namespace SMT {
             }
         }
 
-        bool refine_tree(std::shared_ptr<gblock<simple_block_info<b_solver_info>, b_solver_state>>& _node) {
+        bool refine_tree(tree& _node) {
             if (!_node->is_leaf()) {
                 bool changed = false;
                 for (auto &&child :_node->refinement_blocks) {

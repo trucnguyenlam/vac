@@ -137,23 +137,26 @@ namespace SMT {
         const std::vector<rulep> rules_a;
         const std::vector<rulep> rules_c;
         const std::vector<atomp> atoms_a;
+        const int policy_atoms_count;
 
         node_policy_infos clone() {
             const std::vector<rulep> _rules_a = this->rules_a;
             const std::vector<rulep> _rules_c = this->rules_c;
             const std::vector<atomp> _atoms_a = this->atoms_a;
 
-            node_policy_infos res(_rules_a, _rules_c, _atoms_a);
+            node_policy_infos res(_rules_a, _rules_c, _atoms_a, this->policy_atoms_count);
 
             return res;
         }
 
         node_policy_infos(std::vector<rulep> _rules_a,
                           std::vector<rulep> _rules_c,
-                          std::vector<atomp> _atoms_a):
+                          std::vector<atomp> _atoms_a,
+                          int _policy_atoms_count):
                 rules_a(std::move(_rules_a)),
                 rules_c(std::move(_rules_c)),
-                atoms_a(std::move(_atoms_a)) { }
+                atoms_a(std::move(_atoms_a)),
+                policy_atoms_count(_policy_atoms_count) { }
     };
 
     class pruning_triggers {
@@ -348,7 +351,7 @@ namespace SMT {
         tree_path path;
         std::string uid;
         int depth;
-        bool is_leaf;
+        const bool is_leaf;
 
         node_invariants invariants;
         node_policy_infos node_infos;
