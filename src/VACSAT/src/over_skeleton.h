@@ -37,9 +37,16 @@ namespace SMT {
         const bool value;
         const Expr expr;
 
-        inline bool operator == (const invariant& lhs, const invariant& rhs) {
-            return lhs.atom->role_array_index == rhs.atom->role_array_index &&
-                    lhs.value == rhs.value;
+        inline bool operator == (const invariant& rhs) const {
+            return this->atom->role_array_index == rhs.atom->role_array_index &&
+                    this->value == rhs.value;
+        }
+
+        inline bool operator <(invariant const& rhs)const {
+            if (this->atom->role_array_index == rhs.atom->role_array_index) {
+                return this->value < rhs.value;
+            }
+            return this->atom->role_array_index < rhs.atom->role_array_index;
         }
 
         invariant clone() {
@@ -136,25 +143,37 @@ namespace SMT {
     public:
         const std::vector<rulep> rules_a;
         const std::vector<rulep> rules_c;
+        const std::vector<atomp> all_atoms;
         const std::vector<atomp> atoms_a;
         const int policy_atoms_count;
 
         node_policy_infos clone() {
             const std::vector<rulep> _rules_a = this->rules_a;
             const std::vector<rulep> _rules_c = this->rules_c;
+            const std::vector<atomp> _all_atoms = this->all_atoms;
             const std::vector<atomp> _atoms_a = this->atoms_a;
 
-            node_policy_infos res(_rules_a, _rules_c, _atoms_a, this->policy_atoms_count);
+            node_policy_infos res(_rules_a, _rules_c, _all_atoms, _atoms_a, this->policy_atoms_count);
 
             return res;
         }
 
+
+        node_policy_infos(const node_policy_infos &n_i) :
+                rules_a(n_i.rules_a),
+                rules_c(n_i.rules_c),
+                all_atoms(n_i.all_atoms),
+                atoms_a(n_i.atoms_a),
+                policy_atoms_count(n_i.policy_atoms_count) { }
+
         node_policy_infos(std::vector<rulep> _rules_a,
                           std::vector<rulep> _rules_c,
+                          std::vector<atomp> _all_atoms,
                           std::vector<atomp> _atoms_a,
                           int _policy_atoms_count):
                 rules_a(std::move(_rules_a)),
                 rules_c(std::move(_rules_c)),
+                all_atoms(std::move(_all_atoms)),
                 atoms_a(std::move(_atoms_a)),
                 policy_atoms_count(_policy_atoms_count) { }
     };
@@ -182,6 +201,9 @@ namespace SMT {
             bool _no_skip = no_skip;
             bool _no_priority = no_priority;
 
+            bool _overapprox = this->overapprox;
+            bool _check_gap = this->check_gap;
+
             pruning_triggers res;
 
             std::unique_ptr<std::pair<atomp, bool>> _pre_A_check =
@@ -203,7 +225,22 @@ namespace SMT {
             res.no_skip = no_skip;
             res.no_priority = no_priority;
 
+            res.overapprox = _overapprox;
+            res.check_gap = _check_gap;
+
             return res;
+        }
+
+        void clean() {
+            this->pre_A_check = nullptr;
+            this->A_C_check = nullptr;
+            this->post_A_check = nullptr;
+            this->pre_A_blocked_check = nullptr;
+            this->post_A_blocked_check = nullptr;
+            this->no_skip = false;
+            this->no_priority = false;
+            this->overapprox = false;
+            this->check_gap = false;
         }
 
         pruning_triggers() :
@@ -213,7 +250,9 @@ namespace SMT {
                 pre_A_blocked_check(nullptr),
                 post_A_blocked_check(nullptr),
                 no_skip(false),
-                no_priority(false) { }
+                no_priority(false),
+                overapprox(false),
+                check_gap(false) { }
     };
 
     class leaves_infos {
@@ -236,7 +275,7 @@ namespace SMT {
 
         leaves_infos():
                 nondet_restriction(std::map<atomp, std::set<bool>>()),
-                gap(UNKNOWN) { }
+                gap(gap_info::UNKNOWN) { }
     };
 
     template <typename SolverState>
@@ -347,11 +386,22 @@ namespace SMT {
                 get_nodes(child.get(), list);
             }
         };
+
+        void filter_nodes_tail(std::list<std::shared_ptr<proof_node<SolverState>>>& acc,
+                               std::function<bool(std::shared_ptr<proof_node<SolverState>>&)> fn) {
+            std::shared_ptr<proof_node<SolverState>> _this = this->shared_from_this();
+            if (fn(_this)) {
+                acc.push_back(_this);
+            }
+            for (auto &&child : refinement_blocks) {
+                filter_nodes_tail(acc, fn);
+            }
+        }
+
     public:
         tree_path path;
         std::string uid;
-        int depth;
-        const bool is_leaf;
+        const int depth;
 
         node_invariants invariants;
         node_policy_infos node_infos;
@@ -364,26 +414,39 @@ namespace SMT {
         std::weak_ptr<proof_node<SolverState>> parent;
         std::vector<std::shared_ptr<proof_node<SolverState>>> refinement_blocks;
 
-        proof_node(std::string _uid,
+        std::list<std::shared_ptr<proof_node<SolverState>>> get_all_nodes() {
+            std::list<std::shared_ptr<proof_node<SolverState>>> res;
+            filter_nodes_tail(res, [] (std::shared_ptr<proof_node<SolverState>>& node) { return true; });
+            return std::move(res);
+        }
+
+        std::list<std::shared_ptr<proof_node<SolverState>>> get_all_leaves() {
+            std::list<std::shared_ptr<proof_node<SolverState>>> res;
+            filter_nodes_tail(res, [] (std::shared_ptr<proof_node<SolverState>>& node) { return node->is_leaf(); });
+            return std::move(res);
+        }
+
+        proof_node(tree_path _path,
                    int _depth,
-                   bool _is_leaf,
-                   node_policy_infos _node_infos) :
-                path(std::list<int>()),
-                uid(std::move(_uid)),
+                   node_policy_infos _node_infos,
+                   std::unique_ptr<leaves_infos> _leaves_infos,
+                   std::list<std::weak_ptr<proof_node<SolverState>>> _ancestors,
+                   std::weak_ptr<proof_node<SolverState>> _parent) :
+                path(std::move(path)),
+                uid(tree_path_to_string(_path)),
                 depth(_depth),
-                is_leaf(_is_leaf),
                 invariants(node_invariants()),
                 node_infos(std::move(_node_infos)),
-                leaf_infos(is_leaf ? std::unique_ptr(new leaves_infos()) : nullptr),
+                leaf_infos(std::move(_leaves_infos)),
                 triggers(pruning_triggers()),
                 solver_state(nullptr),
-                ancestors(std::list<std::weak_ptr<proof_node<SolverState>>>()),
+                ancestors(std::move(ancestors)),
+                parent(_parent),
                 refinement_blocks(std::vector<std::shared_ptr<proof_node<SolverState>>>()) { }
 
         proof_node(tree_path _path,
                    std::string _uid,
                    int _depth,
-                   bool _is_leaf,
                    node_invariants _invariants,
                    node_policy_infos _node_infos,
                    std::unique_ptr<leaves_infos> _leaf_infos,
@@ -395,10 +458,9 @@ namespace SMT {
                 path(std::move(_path)),
                 uid(std::move(_uid)),
                 depth(_depth),
-                is_leaf(_is_leaf),
                 invariants(std::move(_invariants)),
                 node_infos(std::move(_node_infos)),
-                leaf_infos(is_leaf ? std::move(_leaf_infos) : nullptr),
+                leaf_infos(std::move(_leaf_infos)),
                 pruning_triggers(_pruning_triggers),
                 solver_state(_solver_state),
                 ancestors(_ancestors),
@@ -418,29 +480,28 @@ namespace SMT {
             return cloned;
         }
 
-
         std::pair<std::string, std::string> tree_to_full_string() {
             tree_printer printer;
 
-            std::list<proof_node<SolverState>*> nodes;
+//            std::list<proof_node<SolverState>*> nodes;
             std::stringstream stream;
 
             log->critical("Print here!");
 
-            get_nodes(this, nodes);
-            for (auto &&node : nodes) {
-                stream << node->uid << ":" << std::endl;
-                stream << "\tleaf: " << bool_to_true_false(node->is_leaf) << std::endl;
-                stream << *node->infos;
-            }
+//            get_nodes(this, nodes);
+//            for (auto &&node : nodes) {
+//                stream << node->uid << ":" << std::endl;
+//                stream << "\tleaf: " << bool_to_true_false(node->is_leaf()) << std::endl;
+//                stream << node->infos;
+//            }
 
             return std::pair<std::string, std::string>(printer(this), stream.str());
         }
 
+        bool is_leaf() {
+            return refinement_blocks.empty();
+        }
 
-//        bool is_leaf() {
-//            return refinement_blocks.empty();
-//        }
         bool is_root() {
             return depth == 0;
         }
