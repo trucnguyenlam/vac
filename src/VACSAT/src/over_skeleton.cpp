@@ -205,7 +205,7 @@ namespace SMT {
 
             void copy_mask(tree &node, std::vector<variable> &source, std::vector<variable> &dest) {
                 if (source.size() != dest.size()) {
-                    throw unexpected_error("Cannot copy from container of different sizes");
+                    throw unexpected_error("Cannot copy from container of different sizes", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
                 }
                 for (auto &&atom : node->node_infos.all_atoms) {
                     int i = atom->role_array_index;
@@ -225,7 +225,7 @@ namespace SMT {
                                 std::vector<variable> &dest,
                                 TExpr condition) {
                 if (source.size() != dest.size()) {
-                    throw unexpected_error("Cannot sync two container of different sizes");
+                    throw unexpected_error("Cannot sync two container of different sizes", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
                 }
                 //TODO: check if atoms_a is enough
                 for (auto &&atom : node->node_infos.all_atoms) {
@@ -252,7 +252,7 @@ namespace SMT {
                                      std::vector<variable> &dest,
                                      TExpr condition) {
                 if (source1.size() != source2.size() || source1.size() != dest.size()) {
-                    throw unexpected_error("Cannot sync two container of different sizes");
+                    throw unexpected_error("Cannot sync two container of different sizes", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
                 }
                 //TODO: check if atoms_a is enough
                 for (auto &&atom : node->node_infos.all_atoms) {
@@ -550,7 +550,7 @@ namespace SMT {
             //TODO: exlude atom from priorities if not in atom_a
             TExpr es_skipped_last_child(tree &node) {
                 if (node->refinement_blocks.empty()) {
-                    throw unexpected_error("exploration_strategy cannot be called on leaves");
+                    throw unexpected_error("exploration_strategy cannot be called on leaves", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
                 }
                 std::weak_ptr<proof_node<b_solver_state>> w_last_child = node->refinement_blocks.back();
                 variable last_skip = w_last_child.lock()->solver_state->skip;
@@ -879,7 +879,7 @@ namespace SMT {
 
             TExpr multi_priority_not_skipped_last_child(tree& node) {
                 if (node->refinement_blocks.empty()) {
-                    throw unexpected_error("exploration_strategy cannot be called on leaves");
+                    throw unexpected_error("exploration_strategy cannot be called on leaves", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
                 }
                 std::weak_ptr<proof_node<b_solver_state>> w_last_child = node->refinement_blocks.back();
                 variable last_skip = w_last_child.lock()->solver_state->skip;
@@ -1370,7 +1370,7 @@ namespace SMT {
                         break;
                 }
             }
-            throw unexpected_error("While loop should converge at some point!");
+            throw unexpected_error("While loop should converge at some point!", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
         }
 
     };

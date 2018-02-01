@@ -58,7 +58,7 @@ namespace SMT {
             }
 
             log->critical("Uh?");
-            throw unexpected_error("Uh?");
+            throw unexpected_error("Uh?", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
         }
 
         bool check_sat_simple(const Expr &expr) const {
@@ -548,7 +548,7 @@ namespace SMT {
 
                 if (set_false && set_true) {
                     log->critical("cannot set the atom to both true and false!");
-                    throw unexpected_error("cannot set the atom to both true and false!");
+                    throw unexpected_error("cannot set the atom to both true and false!", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
                 } else if (set_true) {
                     var_vect[atom->role_array_index] = std::make_shared<TExpr>(solver->createTrue());
                 } else if (set_false) {
@@ -1822,7 +1822,7 @@ namespace SMT {
                             }
                             if (pair.second.size() > user_k) {
                                 log->critical("User size cannot be greater than k + 1 and is {}; k + 1 = {}", pair.second.size(), user_k);
-                                throw unexpected_error("User size cannot be greater than k + 1.");
+                                throw unexpected_error("User size cannot be greater than k + 1.", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
                             }
                         }
                     }

@@ -1201,7 +1201,7 @@ namespace SMT {
             }
             default:
                 log->critical("Should not be here...");
-                throw unexpected_error("Should not be here...");
+                throw unexpected_error("Should not be here...", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
         }
 
     }
@@ -1258,7 +1258,7 @@ namespace SMT {
             }
             default:
                 log->critical("Should not be here...");
-                throw unexpected_error("Should not be here...");
+                throw unexpected_error("Should not be here...", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
         }
 
     }
@@ -1296,15 +1296,15 @@ namespace SMT {
             }
             case Exprv::IMPL_EXPR: {
                 log->critical("IMPL_EXPR not supported here");
-                throw unexpected_error("IMPL_EXPR not supported here");
+                throw unexpected_error("IMPL_EXPR not supported here", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
             }
             case Exprv::COND_EXPR: {
                 log->critical("COND_EXPR not supported here");
-                throw unexpected_error("COND_EXPR not supported here");
+                throw unexpected_error("COND_EXPR not supported here", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
             }
             default:
                 log->critical("Should not be here");
-                throw unexpected_error("Should not be here");
+                throw unexpected_error("Should not be here", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
         }
     }
 
@@ -1414,15 +1414,15 @@ namespace SMT {
             }
             case Exprv::IMPL_EXPR: {
                 log->critical("IMPL_EXPR not supported here");
-                throw unexpected_error("IMPL_EXPR not supported here");
+                throw unexpected_error("IMPL_EXPR not supported here", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
             }
             case Exprv::COND_EXPR: {
                 log->critical("COND_EXPR not supported here");
-                throw unexpected_error("COND_EXPR not supported here");
+                throw unexpected_error("COND_EXPR not supported here", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
             }
             default:
                 log->critical("Should not be here");
-                throw unexpected_error("Should not be here");
+                throw unexpected_error("Should not be here", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
         }
     }
 

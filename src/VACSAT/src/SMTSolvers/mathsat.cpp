@@ -241,11 +241,11 @@ namespace SMT {
 
     msat_term MathsatSolver::createBitSet(msat_term container, unsigned int ith, msat_term value) {
         log->critical("MathsatSolver::createBitSet is not implemented since there is no distinct");
-        throw unexpected_error("MathsatSolver::createBitSet is not implemented since there is no distinct");
+        throw unexpected_error("MathsatSolver::createBitSet is not implemented since there is no distinct", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
     }
     msat_term MathsatSolver::createDistinct(std::list<msat_term> exprs) {
         log->critical("MathsatSolver::createDistinct is not implemented since there is no distinct");
-        throw unexpected_error("MathsatSolver::createDistinct is not implemented since there is no distinct");
+        throw unexpected_error("MathsatSolver::createDistinct is not implemented since there is no distinct", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
     }
 
     msat_term MathsatSolver::joinExprsWithAnd(std::list<msat_term>& exprs) {
@@ -296,7 +296,7 @@ namespace SMT {
                 return SAT;
             default:
                 log->critical("Uh?");
-                throw unexpected_error("Uh?");
+                throw unexpected_error("Uh?", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
         }
     }
     void MathsatSolver::printExpr(msat_term expr) {
@@ -306,7 +306,7 @@ namespace SMT {
     }
     void MathsatSolver::printModel() {
         log->critical("MathsatSolver::printModel is not implemented");
-        throw unexpected_error("MathsatSolver::printModel is not implemented");
+        throw unexpected_error("MathsatSolver::printModel is not implemented", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
     }
     bool MathsatSolver::get_bool_value(msat_term expr) {
         msat_term t = msat_get_model_value(this->context, expr);

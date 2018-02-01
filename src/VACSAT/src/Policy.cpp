@@ -682,7 +682,7 @@ namespace SMT {
         this->goal_role = targetPrime;
     }
 
-    void arbac_policy::add_atom(const atomp& atom){
+    void arbac_policy::add_atom(const atomp& atom) {
         _atoms.push_back(atom);
     }
 

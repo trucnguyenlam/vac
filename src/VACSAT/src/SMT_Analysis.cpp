@@ -58,7 +58,7 @@ namespace SMT {
                 over_result = overapprox_learning(solver, policy, policy->atoms(), policy->rules(), target_expr);
                 break;
             default:
-                throw unexpected_error("OVERAPPROX VERSION SWITCH MUST BE COMPLETE");
+                throw unexpected_error("OVERAPPROX VERSION SWITCH MUST BE COMPLETE", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
         }
         return over_result;
     };
