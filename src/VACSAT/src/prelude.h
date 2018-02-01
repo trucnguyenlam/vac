@@ -20,21 +20,53 @@ class unexpected_error : public std::exception {
     std::string what_message;
     const char* file_name;
     const int line_number;
+    const char* function;
+    const char* pretty_function;
 public:
     unexpected_error(std::string msg) :
-            what_message(msg),
+            what_message(std::move(msg)),
             file_name(nullptr),
-            line_number(-1) { }
+            line_number(-1),
+            function(nullptr),
+            pretty_function(nullptr) { }
     unexpected_error(std::string msg, const char* file, const int line) :
-            what_message(msg),
+            what_message(std::move(msg)),
             file_name(file),
-            line_number(line) {
+            line_number(line),
+            function(nullptr),
+            pretty_function(nullptr) {
+        std::stringstream stream;
+        stream << what_message << std::endl;
         if (file_name != nullptr)  {
-            std::stringstream stream;
-            stream << what_message << " @ " << file_name << ": " << line_number;
-            what_message = stream.str();
+            stream << "\t@ " << file_name << ": " << line_number;
         }
+        what_message = stream.str();
     }
+    unexpected_error(std::string msg,
+                     const char* file,
+                     const int line,
+                     const char* _function,
+                     const char* _pretty_function) :
+            what_message(std::move(msg)),
+            file_name(file),
+            line_number(line),
+            function(_function),
+            pretty_function (_pretty_function) {
+        std::stringstream stream;
+        stream << what_message << std::endl;
+        if (file_name != nullptr)  {
+            stream << "\t@ " << file_name << ": " << line_number << std::endl;
+        }
+        if (function != nullptr) {
+            stream << "\tin function: " << function << std::endl;
+        }
+        if (pretty_function != nullptr) {
+            stream << "\tprettied: " << pretty_function << std::endl;
+        }
+        what_message = stream.str();
+    }
+
+    //    __PRETTY_FUNCTION__
     const char* what() const noexcept override {
         return what_message.c_str();
     }
