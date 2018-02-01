@@ -199,7 +199,8 @@ namespace SMT {
                 for (auto &&atom : node->node_infos.all_atoms) {
 
 //                    log->warn("{}", var.full_name);
-                        strict_emit_assignment(vars[atom->role_array_index], zero);
+                        emit_assignment(node, vars[atom->role_array_index], zero);
+//                        strict_emit_assignment(vars[atom->role_array_index], zero);
                 }
             }
 
@@ -518,10 +519,10 @@ namespace SMT {
             void simulate_child(tree &node, tree &child) {
                 set_empty_node_state(child);
 
+                set_skip(child);
                 copy_mask(child, node->solver_state->vars, child->solver_state->vars);
                 copy_mask(child, node->solver_state->blocked, child->solver_state->blocked);
 
-                set_skip(child);
 
                 subrun(child);
 
@@ -911,7 +912,6 @@ namespace SMT {
                 set_priority_not_blocked(node);
                 get_second_priority_by_p_not_blocked(node);
 
-
                 TExpr if_skipped = es_skipped_last_child(node);
 //                log->warn("If Skipped----------------------------------------------------------------");
 //                solver->printExpr(if_skipped);
@@ -929,15 +929,12 @@ namespace SMT {
 
             // SUBRUN FUNCTION
             void subrun(tree &node) {
-                assert(!node->is_root());
                 emit_comment("Begin_subrun_" + node->uid);
                 set_zero(node, node->solver_state->updated_in_subrun);
-                if (node->is_leaf()) {//Is_leaf(n)
+                if (node->is_leaf()) {
                     emit_comment("Node_" + node->uid + "is_leaf");
                     update_unblocked_vars_a(node);
-                    if (!node->is_root()) {
-                        transition_c(node);
-                    }
+                    transition_c(node);
                 } else {
                     emit_comment("Node_" + node->uid + "_is_internal");
                     simulate_children(node);
@@ -948,9 +945,7 @@ namespace SMT {
 //                    exploration_strategy(node);
                     multi_priority_exploration_strategy(node);
                     emit_comment("End_exploration_strategy_" + node->uid);
-                    if (!node->is_root()) {
-                        transition_c(node);
-                    }
+                    transition_c(node);
                 }
                 emit_comment("End_subrun_" + node->uid);
             }
@@ -1145,6 +1140,7 @@ namespace SMT {
 //        }
 
         int get_budget() { // std::shared_ptr<simple_block_info<b_solver_info>>& info) {
+            log->critical(overapprox_strategy.blocks_count);
             return overapprox_strategy.blocks_count;
 //            int max_budget = 0;
 //            for (auto &&rule :info->rules) {
@@ -1190,10 +1186,18 @@ namespace SMT {
                     int i = 0;
                     tree_path first_path = _node->path;
                     first_path.push_back(i);
-                    node_policy_infos node_info = _node->node_infos.clone();
+                    node_policy_infos node_info(_node->node_infos.rules_a,
+                                                _node->node_infos.rules_a,
+                                                _node->node_infos.all_atoms,
+                                                _node->node_infos.atoms_a,
+                                                _node->node_infos.policy_atoms_count);
                     std::unique_ptr<leaves_infos> leaf_infos(new leaves_infos());
                     std::list<std::weak_ptr<proof_node<b_solver_state>>> prec_ancestors = _node->ancestors;
                     prec_ancestors.push_back(_node);
+                    int j = 0;
+                    for (auto &&anc : first_path) {
+                        log->critical(anc);
+                    }
                     tree actual_child(new node(first_path,
                                                _node->depth + 1,
                                                node_info,
@@ -1202,11 +1206,20 @@ namespace SMT {
                                                _node));
                     _node->refinement_blocks.push_back(actual_child);
 
+                    j = 0;
+                    for (auto &&anc : first_path) {
+                        log->critical(anc);
+                    }
+
                     int budget = get_budget();
                     for (++i; i < budget; ++i) {
                         first_path = _node->path;
                         first_path.push_back(i);
-                        node_policy_infos act_info = _node->node_infos.clone();
+                        node_policy_infos act_info(_node->node_infos.rules_a,
+                                                   _node->node_infos.rules_a,
+                                                   _node->node_infos.all_atoms,
+                                                   _node->node_infos.atoms_a,
+                                                   _node->node_infos.policy_atoms_count);
                         leaf_infos = std::make_unique<leaves_infos>(_node->leaf_infos->clone());
 
                         prec_ancestors = actual_child->ancestors;
@@ -1257,7 +1270,7 @@ namespace SMT {
                                         std::move(root_rule_c),
                                         std::move(all_atoms),
                                         atoms,
-                                        policy_atom_count);
+                                        policy_atom_count + 2);
 
             std::unique_ptr<leaves_infos> root_leaf_infos(new leaves_infos());
 
@@ -1344,6 +1357,9 @@ namespace SMT {
                 over_analysis_result result =
                         translator.translate_and_run(proof, policy->unique_configurations());
 
+                std::pair<std::string, std::string> strs = proof->tree_to_full_string();
+                log->warn("{}", strs.first);
+//                log->debug("{}", strs.second);
                 switch (result) {
                     case SAFE:
                         log->info("Target role is not reachable");
@@ -1359,9 +1375,9 @@ namespace SMT {
                         log->info("Target role may be reachable... REFINING");
                         bool changed = refine_tree(proof);
                         tree_clean_solver_info_state(proof);
-                        std::pair<std::string, std::string> strs = proof->tree_to_full_string();
-                        log->warn("{}", strs.first);
-                        log->debug("{}", strs.second);
+//                        std::pair<std::string, std::string> strs = proof->tree_to_full_string();
+//                        log->warn("{}", strs.first);
+//                        log->debug("{}", strs.second);
                         if (!changed) {
                             log->info("Givin up refinement...");
                             completed = true;
