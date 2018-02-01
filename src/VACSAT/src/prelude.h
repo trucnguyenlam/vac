@@ -23,7 +23,7 @@ class unexpected_error : public std::exception {
     const char* function;
     const char* pretty_function;
 public:
-    unexpected_error(std::string msg) :
+    explicit unexpected_error(std::string msg) :
             what_message(std::move(msg)),
             file_name(nullptr),
             line_number(-1),
