@@ -1099,7 +1099,7 @@ namespace SMT {
             tree_to_SMT(const std::shared_ptr<arbac_policy> _policy,
                         std::shared_ptr<SMTFactory<TVar, TExpr>> _solver) :
                     policy(_policy),
-                    solver(_solver),
+                    solver(std::move(_solver)),
                     assertions(std::list<TExpr>()) { }
 
             over_analysis_result translate_and_run(tree &root,
@@ -1139,8 +1139,38 @@ namespace SMT {
 //            return std::make_shared<b_solver_info>(ret_body);
 //        }
 
+        static void update_leaves_infos(tree& tree) {
+            if (!tree->is_leaf()) {
+                return;
+            }
+            if (tree->leaf_infos == nullptr) {
+                throw unexpected_error("All leaves must have the associated leaf_infos != nullptr",
+                                       __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
+            }
+
+            std::map<atomp, std::set<bool>>& map = tree->leaf_infos->nondet_restriction;
+
+            for (auto &&atom : tree->node_infos.all_atoms) {
+                std::set<bool> new_set;
+                // ADDING POSSIBLE VALUES DEPENDING ON rules_A
+                for (auto &&rule_a : tree->node_infos.rules_a) {
+                    if (rule_a->target == atom) {
+                        new_set.insert(rule_a->is_ca ? true : false);
+                    }
+                }
+                // REMOVING VALUES FORBIDDEN BY INVARIANTS
+                for (auto &&invariant : tree->invariants.inv_A_C.get_as_map()) {
+                    if ()
+                }
+            }
+
+        }
+
+        void consolidate_tree(tree& tree) {
+
+        }
+
         int get_budget() { // std::shared_ptr<simple_block_info<b_solver_info>>& info) {
-            log->critical(overapprox_strategy.blocks_count);
             return overapprox_strategy.blocks_count;
 //            int max_budget = 0;
 //            for (auto &&rule :info->rules) {

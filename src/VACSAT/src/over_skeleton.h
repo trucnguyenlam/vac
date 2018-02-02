@@ -83,7 +83,7 @@ namespace SMT {
                 cnt_changed(true),
                 cache(std::map<atomp, std::set<bool>>()){ }
 
-        const std::map<atomp, std::set<bool>> get_as_map() {
+        const std::map<atomp, std::set<bool>>& get_as_map() {
             if (!cnt_changed) {
                 return cache;
             }
@@ -504,6 +504,13 @@ namespace SMT {
 
         bool is_root() {
             return depth == 0;
+        }
+
+        void tree_iter(std::function<void(std::shared_ptr<proof_node<SolverState>&>)>& fun) {
+            fun(this);
+            for (auto &&child : this->refinement_blocks) {
+                child->tree_iter(fun);
+            }
         }
     };
 
