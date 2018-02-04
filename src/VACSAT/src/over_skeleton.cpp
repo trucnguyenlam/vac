@@ -1160,7 +1160,10 @@ namespace SMT {
                 }
                 // REMOVING VALUES FORBIDDEN BY INVARIANTS
                 for (auto &&invariant : tree->invariants.inv_A_C.get_as_map()) {
-                    if ()
+//                    if () {
+//
+//                    }
+                    assert(false);
                 }
             }
 

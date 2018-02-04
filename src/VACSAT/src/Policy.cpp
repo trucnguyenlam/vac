@@ -448,6 +448,51 @@ namespace SMT {
 
         return pol;
     }
+
+    std::shared_ptr<arbac_policy> arbac_policy::flatten_admin() {
+        if (iterable_exists(this->_users.begin(), this->_users.end(), [](userp &u) { return u->infinite; })) {
+            throw std::runtime_error("Cannot flatten a policy with infinite number of users");
+        }
+
+        std::map<atomp, std::set<atomp>> translation_map;
+        std::vector<Atomp> new_atoms;
+        std::set<Atomp> owned_atoms;
+        int u_idx = 0;
+        for (auto &&user : this->_users) {
+            for (auto &&atom : this->_atoms) {
+                std::string nname = atom->name + "_" + user->name;
+                int idx = atom->role_array_index + (u_idx * (int) _atoms.size());
+                atomp new_atom(new Atom(nname,
+                                        idx,
+                                        atom->bv_size));
+                new_atoms.emplace_back(new_atom);
+                translation_map[atom].insert(new_atom);
+                if (contains(user->config(), atom)) {
+                    owned_atoms.insert(new_atom);
+                }
+            }
+            u_idx++;
+        }
+
+        userp new_user(new user("merged_user", 0, owned_atoms));
+        std::vector<userp> new_users;
+        new_users.push_back(new_user);
+
+
+        std::vector<rulep> new_rules;
+        for (auto &&r : _rules) {
+            // MULTIPLY THE RULES AND THE EXPRESSIONS
+            throw unexpected_error("Unimplemented function", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
+        }
+
+        std::vector<rulep> new_can_assign_rules;
+        std::vector<rulep> new_can_revoke_rules;
+
+
+
+        return nullptr;
+    }
+
     int arbac_policy::admin_count() const {
         //FIXME: use semantics equivalence and not structural one
         std::set<Expr, deepCmpExprs> admin_exprs;

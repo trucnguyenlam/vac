@@ -124,6 +124,8 @@ namespace SMT {
 
         std::shared_ptr<arbac_policy> clone_but_expr();
 
+        std::shared_ptr<arbac_policy> flatten_admin();
+
         int admin_count() const;
         inline int atom_count() const {
             return (int) _atoms.size();
