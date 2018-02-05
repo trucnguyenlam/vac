@@ -331,6 +331,9 @@ namespace SMT {
 
     Expr clone_substitute(const Expr& expr, const Expr& substitute, const Expr& with);
 
+//    template <typename lookup_t>
+    Expr remap_atoms(const Expr& expr, const std::map<Atomp, Atomp>& lookup);
+
     std::list<std::pair<int, OrExprp>> get_or_expressions(const Expr& expr, int level);
 
     // THIS FUNCTION DIFFERS FROM THE PREVIOUS BECAUSE THE FIRST RETURNS ALL THE OR (E.G. FALSE | A), WHILE THIS ONLY THE VALID ONES

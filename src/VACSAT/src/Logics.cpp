@@ -1263,6 +1263,66 @@ namespace SMT {
 
     }
 
+    Atomp atom_lookup(const std::vector<Atomp>& lookup, const Atomp& atom) {
+        return lookup[atom->role_array_index];
+    }
+    Atomp atom_lookup(const std::map<Atomp, Atomp>& lookup, const Atomp& atom) {
+        return lookup.at(atom);
+    }
+
+//    template <typename lookup_t>
+    Expr remap_atoms(const Expr& expr, const std::map<Atomp, Atomp>& lookup) {
+        switch (expr->type) {
+            case Exprv::LITERAL: {
+                Literalp lit = std::dynamic_pointer_cast<Literal>(expr);
+                Atomp new_atom = atom_lookup(lookup, lit->atom);
+                Expr res = createLiteralp(new_atom);
+                return res;
+            }
+            case Exprv::CONSTANT:
+                return expr;
+            case Exprv::EQ_EXPR: {
+                EqExprp eq_expr = std::dynamic_pointer_cast<EqExpr>(expr);
+                Expr res = createEqExpr(remap_atoms(eq_expr->lhs, lookup),
+                                        remap_atoms(eq_expr->rhs, lookup));
+                return res;
+            }
+            case Exprv::NOT_EXPR: {
+                NotExprp not_expr = std::dynamic_pointer_cast<NotExpr>(expr);
+                Expr res = createNotExpr(remap_atoms(not_expr->expr, lookup));
+                return res;
+            }
+            case Exprv::AND_EXPR: {
+                AndExprp and_expr = std::dynamic_pointer_cast<AndExpr>(expr);
+                Expr res = createAndExpr(remap_atoms(and_expr->lhs, lookup),
+                                         remap_atoms(and_expr->rhs, lookup));
+                return res;
+            }
+            case Exprv::OR_EXPR: {
+                OrExprp or_expr = std::dynamic_pointer_cast<OrExpr>(expr);
+                Expr res = createOrExpr(remap_atoms(or_expr->lhs, lookup),
+                                        remap_atoms(or_expr->rhs, lookup));
+                return res;
+            }
+            case Exprv::IMPL_EXPR: {
+                ImplExprp impl_expr = std::dynamic_pointer_cast<ImplExpr>(expr);
+                Expr res = createImplExpr(remap_atoms(impl_expr->lhs, lookup),
+                                          remap_atoms(impl_expr->rhs, lookup));
+                return res;
+            }
+            case Exprv::COND_EXPR: {
+                CondExprp cond_expr = std::dynamic_pointer_cast<CondExpr>(expr);
+                Expr res =  createCondExpr(remap_atoms(cond_expr->cond, lookup),
+                                           remap_atoms(cond_expr->choice1, lookup),
+                                           remap_atoms(cond_expr->choice2, lookup));
+                return res;
+            }
+            default:
+                log->critical("Should not be here...");
+                throw unexpected_error("Should not be here...", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
+        }
+    }
+
     std::list<std::pair<int, OrExprp>> get_or_expressions(const Expr& expr, int level) {
         switch (expr->type) {
             case Exprv::LITERAL:
