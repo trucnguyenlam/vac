@@ -1530,22 +1530,6 @@ namespace SMT {
             }
         }
 
-//        bool check_sat(const Expr &expr) const {
-//            solver->clean();
-//            std::vector<std::shared_ptr<TVar>> var_vect((ulong) policy->atom_count());
-//            TExpr solver_expr = generateSMTFunction(solver, expr, var_vect, "C");
-//            solver->assertNow(solver_expr);
-//            return solver->solve() != SAT;
-//        }
-
-//        bool always_false(const Expr& expr, const rulep& rule) {
-//            if (with_tampone) {
-//                return apply_r6<TVar, TExpr>(solver, policy, expr, rule);
-//            } else {
-//                return check_sat(expr);
-//            }
-//        }
-
         bool try_simplify(const Expr& expr, OrExprp _or, bool left, const rulep& rule) {
             Expr final;
             Expr copy = clone_but_lits(expr);
@@ -1794,15 +1778,82 @@ namespace SMT {
         }
 
         /* USER REDUCTION */
+        int get_user_admin_count(const userp& user, const std::list<Expr>& admin_precs) {
+            int i = 0;
+            std::set<Expr> empty;
+            if (admin_precs.empty()) {
+                for (auto &&rule :policy->rules()) {
+                    bool can_be_admin = apply_r6<TVar, TExpr>(solver, policy, rule->admin, empty, rule, user);
+                    if (can_be_admin) {
+                        i++;
+                    }
+                    if (log->level() == spdlog::level::trace) {
+                        std::cout << (can_be_admin ? "H" : "-");
+                    }
+                }
+            } else {
+                for (auto &&expr :admin_precs) {
+                    bool can_be_admin = apply_r6<TVar, TExpr>(solver, policy, expr, empty, nullptr, user);
+                    if (can_be_admin) {
+                        i++;
+                    }
+                    if (log->level() == spdlog::level::trace) {
+                        std::cout << (can_be_admin ? "H" : "-");
+                    }
+                }
+            }
+            bool can_be_goal = apply_r6(solver,
+                                        policy,
+                                        createEqExpr(createLiteralp(policy->goal_role),
+                                                     createConstantTrue()),
+                                        empty,
+                                        nullptr,
+                                        user);
+            if (log->level() == spdlog::level::trace) {
+                std::cout << (can_be_goal ? "G" : "-") << std::endl;
+            }
+            return i;
+        }
+
+        std::map<userp, int> get_users_admin_count(const std::list<Expr>& admin_precs) {
+            std::map<userp, int> res;
+            for (auto &&user :policy->unique_configurations()) {
+                int count = get_user_admin_count(user, admin_precs);
+                res[user] = count;
+            }
+            return std::move(res);
+        };
+
+        const std::list<Expr> partition_equivalent_admin_expr() {
+            std::list<Expr> partitions;
+
+            for (auto &&rule : policy->rules()) {
+                bool exists = false;
+                for (auto &&expr : partitions) {
+                    bool can_merge = equivalent_exprs(rule->admin, expr);
+                    if (can_merge) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    partitions.push_back(rule->admin);
+                }
+            }
+            return std::move(partitions);
+        }
+
         void reduce_users() {
             auto unique_conf = policy->unique_configurations();
             std::list<std::pair<std::set<atomp>, std::list<userp>>> partitions;
 
             for (auto &&u_conf : unique_conf) {
-                partitions.push_back(std::pair<std::set<atomp>, std::list<userp>>(u_conf->config(), std::list<userp>()));
+                partitions.emplace_back(std::pair<std::set<atomp>, std::list<userp>>(u_conf->config(), std::list<userp>()));
             }
 
-            int user_k = policy->admin_count() + 1;
+
+
+            std::map<userp, int, std::function<bool(const userp&, const userp&)>> user_ks = get_users_admin_count(std::list<Expr>());
 
             for (auto &&pair : partitions) {
                 if (pair.second.size() < user_k) {
