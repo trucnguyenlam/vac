@@ -48,6 +48,7 @@ class R6Transformer {
     std::shared_ptr<rule> target_rule;
     Expr target_expr;
     std::set<Expr> free;
+    userp target_user;
 
     TExpr zero;
     TExpr one;
@@ -207,13 +208,6 @@ class R6Transformer {
                 core_value_false[i] = variable::dummy();
             }
         }
-    }
-
-    void free_globals() {
-//        delete[] role_vars;
-//        delete[] core_sets;
-//        delete[] core_value_true;
-//        delete[] core_value_false;
     }
 
     void set_globals() {
@@ -421,7 +415,13 @@ class R6Transformer {
         // fprintf(outputFile, "// assume(  \\/        ( /  \\          ((core_r_i != init_r_i) \\/ ((set_false_r_i /\\ init_r_i = 1) \\/ (set_true_r_i /\\ init_r_i = 0)) => set_r_i)))\n");
         // fprintf(outputFile, "//        u_i \\in U    r_i \\in \\phi\n");
         TExpr impl_assumption = zero;
-        for (auto &&user : policy->unique_configurations()) {
+        std::set<userp, std::function<bool(const userp&, const userp&)>> users;
+        if (target_user == nullptr) {
+            users = policy->unique_configurations();
+        } else {
+            users.insert(target_user);
+        }
+        for (auto &&user : users) {
             TExpr inner_and = one;
             for (int i = 0; i < policy->atom_count(); i++) {
                 if (core_roles[i]) {
@@ -534,15 +534,17 @@ class R6Transformer {
 
 
     public:
-    R6Transformer(const std::shared_ptr<SMTFactory<TVar, TExpr>> _solver,
+    R6Transformer(const std::shared_ptr<SMTFactory<TVar, TExpr>>& _solver,
                   const std::shared_ptr<arbac_policy>& _policy,
-                  const Expr _to_check,
+                  const Expr& _to_check,
                   const std::set<Expr>& _free,
-                  const std::shared_ptr<rule> _to_check_source) :
+                  const std::shared_ptr<rule>& _to_check_source,
+                  const userp& _target_user) :
         solver(_solver),
         policy(_policy),
         target_rule(_to_check_source),
         target_expr(_to_check),
+        target_user(_target_user),
         pc_size(get_pc_size(target_expr->atoms())) {
         solver->deep_clean();
         free = _free,
@@ -555,7 +557,6 @@ class R6Transformer {
     ~R6Transformer() {
 //        deallocate_precomputated_values();
         free_core_role_array();
-        free_globals();
     }
 
     bool apply_r6() {
@@ -568,11 +569,12 @@ class R6Transformer {
                   const std::shared_ptr<arbac_policy>& policy,
                   const Expr& to_check,
                   const std::set<Expr>& free,
-                  const std::shared_ptr<rule>& to_check_source) {
+                  const std::shared_ptr<rule>& to_check_source,
+                  const userp& tracked_user) {
         if (is_constant_true(to_check)) {
             return false;
         }
-        R6Transformer<TVar, TExpr> transf(solver, policy, to_check, free, to_check_source);
+        R6Transformer<TVar, TExpr> transf(solver, policy, to_check, free, to_check_source, tracked_user);
         // std::shared_ptr<SMTFactory<expr, expr>> solver(new Z3Solver());
         // R6Transformer<expr, expr> transf(solver, rule_index, is_ca);
         bool res = transf.apply_r6();
@@ -586,24 +588,28 @@ class R6Transformer {
                                            const std::shared_ptr<arbac_policy>& policy,
                                            const Expr& to_check,
                                            const std::set<Expr>& free,
-                                           const std::shared_ptr<rule>& to_check_source);
+                                           const std::shared_ptr<rule>& to_check_source,
+                                           const userp& tracked_user = nullptr);
 
     template bool apply_r6<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>>& solver,
                                        const std::shared_ptr<arbac_policy>& policy,
                                        const Expr& to_check,
                                        const std::set<Expr>& free,
-                                       const std::shared_ptr<rule>& to_check_source);
+                                       const std::shared_ptr<rule>& to_check_source,
+                                       const userp& tracked_user = nullptr);
 
     template bool apply_r6<BoolectorExpr, BoolectorExpr>(const std::shared_ptr<SMTFactory<BoolectorExpr, BoolectorExpr>>& solver,
                                                          const std::shared_ptr<arbac_policy>& policy,
                                                          const Expr& to_check,
                                                          const std::set<Expr>& free,
-                                                         const std::shared_ptr<rule>& to_check_source);
+                                                         const std::shared_ptr<rule>& to_check_source,
+                                                         const userp& tracked_user = nullptr);
 
     template bool apply_r6<msat_term, msat_term>(const std::shared_ptr<SMTFactory<msat_term, msat_term>>& solver,
                                                  const std::shared_ptr<arbac_policy>& policy,
                                                  const Expr& to_check,
                                                  const std::set<Expr>& free,
-                                                 const std::shared_ptr<rule>& to_check_source);
+                                                 const std::shared_ptr<rule>& to_check_source,
+                                                 const userp& tracked_user = nullptr);
 
 }
