@@ -114,7 +114,8 @@ namespace SMT {
                   const std::shared_ptr<arbac_policy>& policy,
                   const Expr& to_check,
                   const std::set<Expr>& free,
-                  const std::shared_ptr<rule>& to_check_source);
+                  const std::shared_ptr<rule>& to_check_source,
+                  const userp& tracked_user = nullptr);
 
     template <typename TVar, typename TExpr>
     void prune_policy(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
