@@ -169,12 +169,12 @@ namespace SMT {
         }
 
         const std::list<std::list<rulep>> partition_equivalent(const std::list<rulep>& targetings) {
-            if (targetings.size() == 0) {
+            if (targetings.empty()) {
                 return std::list<std::list<rulep>>();
             }
             auto ite = targetings.begin();
             std::list<std::list<rulep>> partitions;
-            partitions.push_back(std::list<rulep>());
+            partitions.emplace_back(std::list<rulep>());
             partitions.begin()->push_back(*ite);
 
             for (++ite; ite != targetings.end(); ++ite) {
