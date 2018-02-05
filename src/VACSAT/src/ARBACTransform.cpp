@@ -75,6 +75,7 @@ public:
     const bool profile;
     const bool print_old_model;
     const bool update_model;
+    const bool flatten_admin;
     const bool solver_statistics;
     const bool show_statistics;
     const bool show_help;
@@ -108,6 +109,7 @@ public:
             bool _profile,
             bool _print_old_model,
             bool _update_model,
+            bool _flatten_admin,
             bool _solver_statistics,
             bool _show_statistics,
             bool _show_help,
@@ -138,6 +140,7 @@ public:
         profile(_profile),
         print_old_model(_print_old_model),
         update_model(_update_model),
+        flatten_admin(_flatten_admin),
         solver_statistics(_solver_statistics),
         show_statistics(_show_statistics),
         show_help(_show_help),
@@ -253,6 +256,7 @@ static options parse_args(int ac, const char* const* av) {
     arg_obj<bool> profile = create_arg_obj_bool("profile,P", "Show times");
     arg_obj<bool> print_old_model = create_arg_obj_bool("print-old-model,m", "Print using the VAC1 syntax");
     arg_obj<bool> update_model = create_arg_obj_bool("update-model,U", "Update the model from VAC syntax to VAC2 one");
+    arg_obj<bool> flatten_admin = create_arg_obj_bool("flatten-admin,F", "Remove administrative preconditions embedding in regular ones");
     arg_obj<bool> solver_statistics = create_arg_obj_bool("solver-statistics,T", "Print solver stetistics (over/under-approximation)");
     arg_obj<bool> show_statistics = create_arg_obj_bool("show-statistics,S", "Print policy stetistics");
     arg_obj<std::string> memory_limit = create_arg_obj_string("memlimit,M", "10G", "Set a specific memory limit for the process");
@@ -284,6 +288,7 @@ static options parse_args(int ac, const char* const* av) {
     add_option_description(desc, profile);
     add_option_description(desc, print_old_model);
     add_option_description(desc, update_model);
+    add_option_description(desc, flatten_admin);
     add_option_description(desc, solver_statistics);
     add_option_description(desc, show_statistics);
     add_option_description(desc, memory_limit);
@@ -331,6 +336,7 @@ static options parse_args(int ac, const char* const* av) {
                     profile.result,
                     print_old_model.result,
                     update_model.result,
+                    flatten_admin.result,
                     solver_statistics.result,
                     show_statistics.result,
                     show_help.result,
@@ -436,6 +442,8 @@ int main(int argc, const char * const *argv) {
         SMT::Config::use_tampone = config.use_tampone;
 
         SMT::Config::overapproxOptions.version = SMT::OverapproxOptions::parse(config.overapprox_version);
+
+        SMT::Config::flatten_admin = config.flatten_admin;
 
         if (config.output_file != "") {
             SMT::log = spdlog::basic_logger_mt("log", config.output_file, true);

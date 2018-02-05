@@ -34,6 +34,7 @@ namespace SMT {
     std::string Config::dump_smt_formula = "";
     bool Config::show_solver_statistics = false;
     bool Config::print_old_model = false;
+    bool Config::flatten_admin = false;
 
     std::string Config::input_file = "";
 

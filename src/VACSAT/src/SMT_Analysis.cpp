@@ -95,6 +95,14 @@ namespace SMT {
             default:
                 throw std::runtime_error("Uh?");
         }
+        if (Config::flatten_admin) {
+            std::shared_ptr<arbac_policy> flattened = policy->flatten_admin();
+            log->info("Flattened pre-pruning");
+            log->info("{}", *flattened);
+            prune_policy(solver, flattened);
+            log->info("Flattened after-pruning");
+            log->info("{}", *flattened);
+        }
         log->debug("Performing underapproximated analysis");
 
 //        std::list<rulep> assigning_target = policy->per_role_can_assign_rule(policy->goal_role);

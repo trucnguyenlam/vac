@@ -85,6 +85,7 @@ namespace SMT {
         static bool print_old_model;
 
         static bool no_infinity_bmc;
+        static bool flatten_admin;
         static int infinity_bmc_rounds_count;
         static int infinity_bmc_steps_count;
 
