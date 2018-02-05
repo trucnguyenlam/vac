@@ -449,24 +449,47 @@ namespace SMT {
         return pol;
     }
 
+    rulep remove_multiply_admin(const rulep& _rule,
+                                const std::vector<userp>& users,
+                                const userp& target_user,
+                                const std::map<userp, std::map<atomp, atomp>>& user_atom_translation_map) {
+        Expr new_admin = createConstantFalse();
+        for (auto &&user : users) {
+            Expr uadmin = remap_atoms(_rule->admin, user_atom_translation_map.at(user));
+            new_admin = createOrExpr(uadmin, new_admin);
+        }
+
+        Expr remapped_precondition = remap_atoms(_rule->prec, user_atom_translation_map.at(target_user));
+
+        Expr final_prec = createAndExpr(new_admin, remapped_precondition);
+
+        atomp target_atom = user_atom_translation_map.at(target_user).at(_rule->target);
+
+        rulep res(new rule(_rule->is_ca, createConstantTrue(), final_prec, target_atom, -1));
+
+        return res;
+    }
+
     std::shared_ptr<arbac_policy> arbac_policy::flatten_admin() {
         if (iterable_exists(this->_users.begin(), this->_users.end(), [](userp &u) { return u->infinite; })) {
             throw std::runtime_error("Cannot flatten a policy with infinite number of users");
         }
 
-        std::map<atomp, std::set<atomp>> translation_map;
+//        std::map<atomp, std::set<atomp>> translation_map;
+        std::map<userp, std::map<atomp, atomp>> user_atom_translation_map;
         std::vector<Atomp> new_atoms;
         std::set<Atomp> owned_atoms;
         int u_idx = 0;
         for (auto &&user : this->_users) {
             for (auto &&atom : this->_atoms) {
                 std::string nname = atom->name + "_" + user->name;
-                int idx = atom->role_array_index + (u_idx * (int) _atoms.size());
+                int idx = atom->role_array_index + (u_idx * (int)_atoms.size());
                 atomp new_atom(new Atom(nname,
                                         idx,
                                         atom->bv_size));
                 new_atoms.emplace_back(new_atom);
-                translation_map[atom].insert(new_atom);
+                user_atom_translation_map[user][atom] = new_atom;
+//                translation_map[atom].insert(new_atom);
                 if (contains(user->config(), atom)) {
                     owned_atoms.insert(new_atom);
                 }
@@ -475,22 +498,38 @@ namespace SMT {
         }
 
         userp new_user(new user("merged_user", 0, owned_atoms));
-        std::vector<userp> new_users;
-        new_users.push_back(new_user);
 
 
-        std::vector<rulep> new_rules;
-        for (auto &&r : _rules) {
-            // MULTIPLY THE RULES AND THE EXPRESSIONS
-            throw unexpected_error("Unimplemented function", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
+        std::list<rulep> new_rules;
+
+        for (auto &&user : this->_users) {
+            for (auto &&r : this->_rules) {
+                rulep new_rule = remove_multiply_admin(r, this->_users, user, user_atom_translation_map);
+                new_rules.push_back(new_rule);
+            }
         }
 
-        std::vector<rulep> new_can_assign_rules;
-        std::vector<rulep> new_can_revoke_rules;
+        atomp target_atom = createAtomp("flattened_target", (int)new_atoms.size(), 1);
+        new_atoms.push_back(target_atom);
+        Expr target_rule_cond = createConstantFalse();
 
+        for (auto &&user : this->_users) {
+            atomp& user_goal = user_atom_translation_map.at(user).at(this->goal_role);
+            target_rule_cond = createOrExpr(createLiteralp(user_goal), target_rule_cond);
+        }
 
+        rulep goal_rule(new rule(true, createConstantTrue(), target_rule_cond, target_atom, -1));
 
-        return nullptr;
+        new_rules.push_back(goal_rule);
+
+        std::shared_ptr<arbac_policy> flattened_policy(new arbac_policy());
+
+        flattened_policy->_users.emplace_back(new_user);
+        flattened_policy->_atoms = std::move(new_atoms);
+        flattened_policy->goal_role = std::move(target_atom);
+        flattened_policy->add_rules(new_rules);
+
+        return flattened_policy;
     }
 
     int arbac_policy::admin_count() const {
