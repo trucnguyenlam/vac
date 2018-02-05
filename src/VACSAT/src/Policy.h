@@ -253,6 +253,17 @@ namespace SMT {
 
         private:
 
+        explicit arbac_policy():
+                goal_role(nullptr),
+                filename("flattened"),
+                _atoms(std::vector<Atomp>()),
+                _users(std::vector<userp>()),
+                _rules(std::vector<std::shared_ptr<rule>>()),
+                _can_assign_rules(std::vector<std::shared_ptr<rule>>()),
+                _can_revoke_rules(std::vector<std::shared_ptr<rule>>()),
+                _users_to_track(1),
+                _cache(nullptr) { }
+
         friend class policy_cache;
 
         void update();
