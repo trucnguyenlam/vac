@@ -1426,84 +1426,6 @@ namespace SMT {
             UNCHANGED
         };
 
-        /*std::list<OrExprp> get_or_list(Expr& expr, const std::set<ulong64>& visited, int max_level) {
-            std::list<std::pair<int, OrExprp>> ors = get_or_expressions(expr, 1);
-            std::list<OrExprp> res;
-            for (auto &&pair : ors) {
-                if (max_level >= 0 &&
-                    pair.first > max_level) {
-                    continue;
-                }
-                OrExprp _or = pair.second;
-                if (!contains(visited, _or->node_idx)) {
-                    res.push_back(_or);
-                }
-            }
-            return res;
-        };
-
-        interactive_split_result interactive_split(const Expr& expr, const rulep& rule, bool admin) {
-            int max_depth = Config::rule_6_max_depth;
-            bool changed = false;
-            Expr orig = expr;
-            if (apply_r6<TVar, TExpr>(this->solver, this->policy, orig, rule)) {
-                return REMOVE;
-            }
-
-            Expr rolling = clone_but_lits(orig);
-
-            std::set<ulong64> visited;
-
-            std::list<OrExprp> ors = get_or_list(rolling, visited, max_depth);
-
-            while (ors.size() > 0) {
-                auto _or = *ors.begin();
-                visited.insert(_or->node_idx);
-
-//                log->trace("Expr: {}", *rolling);
-//                log->trace("{}", *_or);
-
-                Expr old_r = _or->rhs;
-                _or->rhs = createConstantFalse();
-//                log->trace("testing: {}", *_or);
-                if (apply_r6<TVar, TExpr>(this->solver, this->policy, rolling, rule)) {
-                    _or->lhs = createConstantFalse();
-                    _or->rhs = old_r;
-                    changed = true;
-                } else {
-                    _or->rhs = old_r;
-                }
-
-                Expr old_l = _or->lhs;
-                _or->lhs = createConstantFalse();
-//                log->trace("testing: {}", *_or);
-                if (apply_r6<TVar, TExpr>(this->solver, this->policy, rolling, rule)) {
-                    _or->rhs = createConstantFalse();
-                    _or->lhs = old_l;
-                    changed = true;
-                } else {
-                    _or->lhs = old_l;
-                }
-
-                ors = get_or_list(rolling, visited, max_depth);
-            }
-            if (changed) {
-//                log->trace("Expression is changed!");
-//                log->trace("{}", *simplifyExpr(rolling));
-//                log->trace("{}", *simplifyExpr(orig));
-                rolling = simplifyExpr(rolling);
-                if (admin) {
-                    rule->admin = rolling;
-                } else {
-                    rule->prec = rolling;
-                }
-            } else {
-//                log->trace("Expression is not changed!");
-            }
-//            log->trace("done!");
-            return changed ? SIMPLIFIED : UNCHANGED;
-        }*/
-
         std::list<OrExprp> get_proper_or_list(Expr& expr, const std::set<ulong64>& visited, int max_level) {
             std::list<std::pair<int, OrExprp>> ors = get_proper_or_expressions_sorted(expr, max_level, 1);
             std::list<OrExprp> res;
@@ -1778,45 +1700,63 @@ namespace SMT {
         }
 
         /* USER REDUCTION */
-        int get_user_admin_count(const userp& user, const std::list<Expr>& admin_precs) {
-            int i = 0;
+        int get_user_admin_count(const userp& user, const std::list<std::list<rulep>>& admin_parts) {
+            int arity = 0;
             std::set<Expr> empty;
-            if (admin_precs.empty()) {
+            if (admin_parts.empty()) {
                 for (auto &&rule :policy->rules()) {
-                    bool can_be_admin = apply_r6<TVar, TExpr>(solver, policy, rule->admin, empty, rule, user);
+                    // if the admin precondition is true we do not need to reserve a user for it
+                    if (is_constant_true(rule->admin)) {
+                        std::cout << ("T");
+                        continue;
+                    }
+                    bool can_be_admin = !apply_r6<TVar, TExpr>(solver, policy, rule->admin, empty, rule, user);
                     if (can_be_admin) {
-                        i++;
+                        arity++;
                     }
                     if (log->level() == spdlog::level::trace) {
-                        std::cout << (can_be_admin ? "H" : "-");
+                        std::cout << (can_be_admin ? "A" : "-");
                     }
                 }
             } else {
-                for (auto &&expr :admin_precs) {
-                    bool can_be_admin = apply_r6<TVar, TExpr>(solver, policy, expr, empty, nullptr, user);
+                for (auto &&part :admin_parts) {
+                    assert(!part.empty());
+                    const rulep& fst = part.front();
+                    // if the admin precondition is true we do not need to reserve a user for it
+                    if (is_constant_true(fst->admin)) {
+                        std::cout << ("T");
+                        continue;
+                    }
+                    bool can_be_admin = !apply_r6<TVar, TExpr>(solver, policy, fst->admin, empty, part, user);
                     if (can_be_admin) {
-                        i++;
+                        arity++;
                     }
                     if (log->level() == spdlog::level::trace) {
-                        std::cout << (can_be_admin ? "H" : "-");
+                        std::cout << (can_be_admin ? "A" : "-");
                     }
                 }
             }
-            bool can_be_goal = apply_r6(solver,
-                                        policy,
-                                        createEqExpr(createLiteralp(policy->goal_role),
-                                                     createConstantTrue()),
-                                        empty,
-                                        nullptr,
-                                        user);
+            Expr target = createEqExpr(createLiteralp(policy->goal_role),
+                                       createConstantTrue());
+            bool can_be_goal = !apply_r6(solver,
+                                         policy,
+                                         target,
+                                         empty,
+                                         nullptr,
+                                         user);
+            if (can_be_goal) {
+                arity++;
+            }
             if (log->level() == spdlog::level::trace) {
                 std::cout << (can_be_goal ? "G" : "-") << std::endl;
             }
-            return i;
+            return arity;
         }
 
-        std::map<userp, int> get_users_admin_count(const std::list<Expr>& admin_precs) {
-            std::map<userp, int> res;
+        std::map<userp, int, std::function<bool(const userp&, const userp&)>>
+                get_users_admin_count(const std::list<std::list<rulep>>& admin_precs) {
+            auto user_comp = [](const userp& user1, const userp& user2){ return user1->config() < user2->config(); };
+            std::map<userp, int, std::function<bool(const userp&, const userp&)>> res( user_comp );
             for (auto &&user :policy->unique_configurations()) {
                 int count = get_user_admin_count(user, admin_precs);
                 res[user] = count;
@@ -1824,20 +1764,28 @@ namespace SMT {
             return std::move(res);
         };
 
-        const std::list<Expr> partition_equivalent_admin_expr() {
-            std::list<Expr> partitions;
+        const std::list<std::list<rulep>> partition_equivalent_admin_expr() {
+            std::list<std::list<rulep>> partitions;
 
             for (auto &&rule : policy->rules()) {
-                bool exists = false;
-                for (auto &&expr : partitions) {
-                    bool can_merge = equivalent_exprs(rule->admin, expr);
-                    if (can_merge) {
-                        exists = true;
+                bool inserted = false;
+                for (std::list<rulep> &part : partitions) {
+                    if (part.empty()) {
+                        throw unexpected_error("Partition cannot be empty",
+                                               __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
+                    }
+                    const rulep& first = part.front();
+                    bool equivalent = equivalent_exprs(rule->admin, first->admin);
+                    if (equivalent) {
+                        part.push_back(rule);
+                        inserted = true;
                         break;
                     }
                 }
-                if (!exists) {
-                    partitions.push_back(rule->admin);
+                if (!inserted) {
+                    std::list<rulep> new_part;
+                    new_part.push_back(rule);
+                    partitions.push_back(new_part);
                 }
             }
             return std::move(partitions);
@@ -1845,20 +1793,21 @@ namespace SMT {
 
         void reduce_users() {
             auto unique_conf = policy->unique_configurations();
-            std::list<std::pair<std::set<atomp>, std::list<userp>>> partitions;
+            std::list<std::pair<userp, std::list<userp>>> partitions;
 
             for (auto &&u_conf : unique_conf) {
-                partitions.emplace_back(std::pair<std::set<atomp>, std::list<userp>>(u_conf->config(), std::list<userp>()));
+                partitions.emplace_back(std::pair<userp, std::list<userp>>(u_conf, std::list<userp>()));
             }
 
 
-
-            std::map<userp, int, std::function<bool(const userp&, const userp&)>> user_ks = get_users_admin_count(std::list<Expr>());
+            std::list<std::list<rulep>> admin_partitions = partition_equivalent_admin_expr();
+            std::map<userp, int, std::function<bool(const userp&, const userp&)>> user_ks = get_users_admin_count(admin_partitions);
 
             for (auto &&pair : partitions) {
+                int user_k = user_ks[pair.first];
                 if (pair.second.size() < user_k) {
                     for (auto &&user : policy->users()) {
-                        if (user->config() == pair.first) {
+                        if (user->config() == pair.first->config()) {
                             if (user->infinite) {
                                 int i = 1;
                                 while (pair.second.size() < user_k) {
