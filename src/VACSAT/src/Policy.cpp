@@ -229,7 +229,7 @@ namespace SMT {
     }
 
     std::set<userp, std::function<bool (const userp&, const userp&)>> update_unique_confs(std::vector<userp> users) {
-        auto user_comp = [&](const userp user1, const userp user2){ return user1->config() < user2->config(); };
+        auto user_comp = [](const userp& user1, const userp& user2){ return user1->config() < user2->config(); };
         auto confs = std::set<userp, std::function<bool (const userp&, const userp&)>>( user_comp );
 
         for (auto &&user : users) {
@@ -453,10 +453,15 @@ namespace SMT {
                                 const std::vector<userp>& users,
                                 const userp& target_user,
                                 const std::map<userp, std::map<atomp, atomp>>& user_atom_translation_map) {
-        Expr new_admin = createConstantFalse();
-        for (auto &&user : users) {
-            Expr uadmin = remap_atoms(_rule->admin, user_atom_translation_map.at(user));
-            new_admin = createOrExpr(uadmin, new_admin);
+        Expr new_admin;
+        if (is_constant_true(_rule->admin)) {
+            new_admin = createConstantTrue();
+        } else {
+            new_admin = createConstantFalse();
+            for (auto &&user : users) {
+                Expr uadmin = remap_atoms(_rule->admin, user_atom_translation_map.at(user));
+                new_admin = createOrExpr(uadmin, new_admin);
+            }
         }
 
         Expr remapped_precondition = remap_atoms(_rule->prec, user_atom_translation_map.at(target_user));
