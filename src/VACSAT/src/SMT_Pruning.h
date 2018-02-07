@@ -11,6 +11,7 @@
 #include "Logics.h"
 #include "Policy.h"
 
+/** @file file containing function and class definition for the pruning of policies */
 
 namespace SMT {
 
@@ -109,12 +110,36 @@ namespace SMT {
                             int rounds,
                             int wanted_threads_count);
 
+    /** @fn function that returns true if the target expression is not reachable
+     * @param solver a pointer to the SMT solver
+     * @param policy a pointer to the policy to be used
+     * @param to_check the Expr to be checked
+     * @param free a set of Expr that will be considered free (used for tampone)
+     * @param excluded_rules a list of rulep to be excluded from the encoding
+     * @param tracked_user (optional) the user to be tracked
+     * */
     template <typename TVar, typename TExpr>
     bool apply_r6(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
                   const std::shared_ptr<arbac_policy>& policy,
                   const Expr& to_check,
                   const std::set<Expr>& free,
-                  const std::shared_ptr<rule>& to_check_source,
+                  const std::list<rulep>& excluded_rules,
+                  const userp& tracked_user = nullptr);
+
+    /** @fn function that returns true if the target expression is not reachable
+     * @param solver a pointer to the SMT solver
+     * @param policy a pointer to the policy to be used
+     * @param to_check the Expr to be checked
+     * @param free a set of Expr that will be considered free (used for tampone)
+     * @param excluded_rules a rulep to be excluded from the encoding
+     * @param tracked_user (optional) the user to be tracked
+     * */
+    template <typename TVar, typename TExpr>
+    bool apply_r6(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+                  const std::shared_ptr<arbac_policy>& policy,
+                  const Expr& to_check,
+                  const std::set<Expr>& free,
+                  const rulep& excluded_rule,
                   const userp& tracked_user = nullptr);
 
     template <typename TVar, typename TExpr>
