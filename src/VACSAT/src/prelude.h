@@ -79,24 +79,24 @@ std::set<T, TCmp> setUnion(const std::set<T, TCmp>& a, const std::set<T, TCmp>& 
     return result;
 }
 
+    template <template <typename> typename TCollection, typename TVal>
+    static inline bool contains(const TCollection<TVal>& collection, const TVal &elem) {
+        static_assert(std::is_base_of<std::vector<TVal>, TCollection<TVal>>::value ||
+                      std::is_base_of<std::list<TVal>, TCollection<TVal>>::value,
+                      "TCollection<TVar> is not derived from either vector and list");
+
+        for (auto &&value :collection) {
+            if (value == elem) {
+                return true;
+            }
+        }
+        return false;
+    };
+
 template <typename T>
 static inline bool contains(const std::set<T> &set, const T &elem) {
     return set.find(elem) != set.end();
 }
-
-template <template <typename> typename TCollection, typename TVal>
-static inline bool contains(const TCollection<TVal>& collection, const TVal &elem) {
-    static_assert(std::is_base_of<std::vector<TVal>, TCollection<TVal>>::value ||
-                  std::is_base_of<std::list<TVal>, TCollection<TVal>>::value,
-                  "TCollection<TVar> is not derived from either vector and list");
-
-    for (auto &&value :collection) {
-        if (value == elem) {
-            return true;
-        }
-    }
-    return false;
-};
 
 static inline std::string bool_to_true_false(bool b) {
     return b ? "true" : "false";
