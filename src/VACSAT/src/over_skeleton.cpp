@@ -48,6 +48,7 @@ namespace SMT {
 
         typedef proof_node<b_solver_state> node;
         typedef std::shared_ptr<proof_node<b_solver_state>> tree;
+        typedef std::weak_ptr<proof_node<b_solver_state>> w_tree;
 
         class b_solver_state {
         private:
@@ -72,7 +73,8 @@ namespace SMT {
 
                 for (auto &&atom : node->node_infos.all_atoms) {
                     std::string blocked_by_children_name = "blocked_by_children_" + node_id + "_" + atom->name;
-                    blocked_by_children[atom->role_array_index] = variable(blocked_by_children_name, 0, 1, solver, BOOLEAN);
+                    blocked_by_children[atom->role_array_index] = variable(blocked_by_children_name, 0, 1, solver,
+                                                                           BOOLEAN);
                 }
                 for (auto &&atom : node->node_infos.all_atoms) {
                     std::string missing_priority_name = "missing_priority_" + node_id + "_" + atom->name;
@@ -88,7 +90,8 @@ namespace SMT {
                 }
                 for (auto &&atom : node->node_infos.all_atoms) {
                     std::string priority_not_blocked_name = "priority_not_blocked_" + node_id + "_" + atom->name;
-                    priority_not_blocked[atom->role_array_index] = variable(priority_not_blocked_name, 0, 1, solver, BOOLEAN);
+                    priority_not_blocked[atom->role_array_index] = variable(priority_not_blocked_name, 0, 1, solver,
+                                                                            BOOLEAN);
                 }
 
                 //TODO: can be decreased only to actual atom count, but everything should be updated accordingly
@@ -147,11 +150,14 @@ namespace SMT {
         atomp target_atom = nullptr;
         atomp fake_atom = nullptr;
 
+
         class tree_to_SMT {
         private:
 
             const std::shared_ptr<arbac_policy> policy;
             std::shared_ptr<SMTFactory<TVar, TExpr>> solver;
+            const std::set<userp, std::function<bool(const userp &, const userp &)>> initial_confs;
+
             std::list<TExpr> assertions;
 
             variable tmp_bool;
@@ -164,7 +170,7 @@ namespace SMT {
                 solver->assertLater(ass);
             }
 
-            inline void emit_assignment(const tree& node, const variable &var, const TVar &value) {
+            inline void emit_assignment(const tree &node, const variable &var, const TVar &value) {
                 TExpr ass = solver->createEqExpr(var.get_solver_var(), value);
                 //NOTICE: Do NOT put XOR, IMPLICATION or OR are OK, but NO XOR for the god sake! Otherwise the aserted statement MUST be false!
                 TExpr guarded_ass = solver->createImplExpr(node->solver_state->guard.get_solver_var(),
@@ -173,7 +179,7 @@ namespace SMT {
 
             }
 
-            inline void emit_assumption(const tree& node, const TExpr &value) {
+            inline void emit_assumption(const tree &node, const TExpr &value) {
                 //NOTICE: Do NOT put XOR, IMPLICATION or OR are OK, but NO XOR for the god sake! Otherwise the aserted statement MUST be false!
                 TExpr guarded_ass = solver->createImplExpr(node->solver_state->guard.get_solver_var(),
                                                            value);
@@ -195,18 +201,19 @@ namespace SMT {
                 node->solver_state = std::make_shared<b_solver_state>(node_state);
             }
 
-            void set_zero(tree& node, std::vector<variable> &vars) {
+            void set_zero(tree &node, std::vector<variable> &vars) {
                 for (auto &&atom : node->node_infos.all_atoms) {
 
 //                    log->warn("{}", var.full_name);
-                        emit_assignment(node, vars[atom->role_array_index], zero);
+                    emit_assignment(node, vars[atom->role_array_index], zero);
 //                        strict_emit_assignment(vars[atom->role_array_index], zero);
                 }
             }
 
             void copy_mask(tree &node, std::vector<variable> &source, std::vector<variable> &dest) {
                 if (source.size() != dest.size()) {
-                    throw unexpected_error("Cannot copy from container of different sizes", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
+                    throw unexpected_error("Cannot copy from container of different sizes", __FILE__, __LINE__,
+                                           __FUNCTION__, __PRETTY_FUNCTION__);
                 }
                 for (auto &&atom : node->node_infos.all_atoms) {
                     int i = atom->role_array_index;
@@ -226,7 +233,8 @@ namespace SMT {
                                 std::vector<variable> &dest,
                                 TExpr condition) {
                 if (source.size() != dest.size()) {
-                    throw unexpected_error("Cannot sync two container of different sizes", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
+                    throw unexpected_error("Cannot sync two container of different sizes", __FILE__, __LINE__,
+                                           __FUNCTION__, __PRETTY_FUNCTION__);
                 }
                 //TODO: check if atoms_a is enough
                 for (auto &&atom : node->node_infos.all_atoms) {
@@ -253,7 +261,8 @@ namespace SMT {
                                      std::vector<variable> &dest,
                                      TExpr condition) {
                 if (source1.size() != source2.size() || source1.size() != dest.size()) {
-                    throw unexpected_error("Cannot sync two container of different sizes", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
+                    throw unexpected_error("Cannot sync two container of different sizes", __FILE__, __LINE__,
+                                           __FUNCTION__, __PRETTY_FUNCTION__);
                 }
                 //TODO: check if atoms_a is enough
                 for (auto &&atom : node->node_infos.all_atoms) {
@@ -420,11 +429,12 @@ namespace SMT {
                 node->solver_state->updated_in_subrun[target->role_array_index] = new_updated_in_subrun_var;
 
                 //SAVE VAR_ID
-                variable& var_id_var = node->solver_state->var_id;
+                variable &var_id_var = node->solver_state->var_id;
                 TExpr rule_var_id_value = solver->createBVConst(rule->target->role_array_index, var_id_var.bv_size);
                 TExpr rule_selected_impl_var_id = solver->createImplExpr(rule_is_selected,
-                                                                         solver->createEqExpr(var_id_var.get_solver_var(),
-                                                                                              rule_var_id_value));
+                                                                         solver->createEqExpr(
+                                                                                 var_id_var.get_solver_var(),
+                                                                                 rule_var_id_value));
                 emit_assumption(node, rule_selected_impl_var_id);
 
 //                //SAVE VAR_ID
@@ -439,9 +449,10 @@ namespace SMT {
             }
 
             void simulate_rule_c(tree &node, int rule_id) {
-                const rulep& rule = node->node_infos.rules_c[rule_id];
+                const rulep &rule = node->node_infos.rules_c[rule_id];
                 if (std::is_same<TExpr, z3::expr>::value) {
-                    TVar v = solver->createBVVar("Simulating_rule_" + rule->to_new_string(), node->solver_state->rule_id.bv_size);
+                    TVar v = solver->createBVVar("Simulating_rule_" + rule->to_new_string(),
+                                                 node->solver_state->rule_id.bv_size);
                     TExpr value = solver->createBVConst(rule_id, node->solver_state->rule_id.bv_size);
                     solver->assertLater(solver->createEqExpr(v, value));
                 }
@@ -551,7 +562,8 @@ namespace SMT {
             //TODO: exlude atom from priorities if not in atom_a
             TExpr es_skipped_last_child(tree &node) {
                 if (node->refinement_blocks.empty()) {
-                    throw unexpected_error("exploration_strategy cannot be called on leaves", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
+                    throw unexpected_error("exploration_strategy cannot be called on leaves", __FILE__, __LINE__,
+                                           __FUNCTION__, __PRETTY_FUNCTION__);
                 }
                 std::weak_ptr<proof_node<b_solver_state>> w_last_child = node->refinement_blocks.back();
                 variable last_skip = w_last_child.lock()->solver_state->skip;
@@ -739,12 +751,12 @@ namespace SMT {
 
             // NEW MULTY PRIORITY EXPLORATION STRATEGY FUNCTIONS
             //TODO: exlude atom from priorities if not in atom_a
-            void set_priority_mask(tree& node) {
+            void set_priority_mask(tree &node) {
                 for (auto &&atom : node->node_infos.all_atoms) {
                     variable atom_priority = node->solver_state->priority[atom->role_array_index];
                     TExpr in_priority_condition = zero;
                     for (int i = 0; i < node->node_infos.rules_c.size(); ++i) {
-                        const rulep& rule = node->node_infos.rules_c[i];
+                        const rulep &rule = node->node_infos.rules_c[i];
                         if (contains(rule->prec->atoms(), atom)) {
                             TExpr is_selected =
                                     solver->createEqExpr(solver->createBVConst(i, node->solver_state->rule_id.bv_size),
@@ -763,11 +775,11 @@ namespace SMT {
                     TExpr blocked_by_child_condition = zero;
                     //SKIPPING LAST CHILD
                     for (int i = 0; i < node->refinement_blocks.size() - 1; ++i) {
-                        tree& child = node->refinement_blocks[i];
+                        tree &child = node->refinement_blocks[i];
                         TExpr atom_blocked_by_child_i =
-                                    solver->createEqExpr(solver->createBVConst(atom->role_array_index,
-                                                                               child->solver_state->var_id.bv_size),
-                                                         child->solver_state->var_id.get_solver_var());
+                                solver->createEqExpr(solver->createBVConst(atom->role_array_index,
+                                                                           child->solver_state->var_id.bv_size),
+                                                     child->solver_state->var_id.get_solver_var());
                         blocked_by_child_condition = solver->createOrExpr(blocked_by_child_condition,
                                                                           atom_blocked_by_child_i);
                     }
@@ -777,22 +789,23 @@ namespace SMT {
 
             void set_priority_not_blocked(tree &node) {
                 for (auto &&atom : node->node_infos.all_atoms) {
-                    variable& priority_atom = node->solver_state->priority[atom->role_array_index];
-                    variable& blocked_atom = node->solver_state->blocked_by_children[atom->role_array_index];
+                    variable &priority_atom = node->solver_state->priority[atom->role_array_index];
+                    variable &blocked_atom = node->solver_state->blocked_by_children[atom->role_array_index];
                     TExpr priority_not_blocked_atom_value = solver->createAndExpr(priority_atom.get_solver_var(),
-                                                                             solver->createNotExpr(blocked_atom.get_solver_var()));
-                    variable& priority_not_blocked_atom = node->solver_state->priority_not_blocked[atom->role_array_index];
+                                                                                  solver->createNotExpr(
+                                                                                          blocked_atom.get_solver_var()));
+                    variable &priority_not_blocked_atom = node->solver_state->priority_not_blocked[atom->role_array_index];
                     emit_assignment(node, priority_not_blocked_atom, priority_not_blocked_atom_value);
                 }
             }
 
             void get_second_priority_by_p_not_blocked(tree &node) {
                 for (auto &&atom : node->node_infos.all_atoms) {
-                    variable& second_priority_node = node->solver_state->second_priority[atom->role_array_index];
+                    variable &second_priority_node = node->solver_state->second_priority[atom->role_array_index];
                     TExpr second_priority_atom_value = zero;
                     for (int i = 0; i < node->refinement_blocks.size() - 1; ++i) {
-                        tree& child = node->refinement_blocks[i];
-                        variable& child_prio_not_block_atom = child->solver_state->priority_not_blocked[atom->role_array_index];
+                        tree &child = node->refinement_blocks[i];
+                        variable &child_prio_not_block_atom = child->solver_state->priority_not_blocked[atom->role_array_index];
                         second_priority_atom_value = solver->createOrExpr(second_priority_atom_value,
                                                                           child_prio_not_block_atom.get_solver_var());
                     }
@@ -803,9 +816,9 @@ namespace SMT {
             TExpr multi_priority_second_priority_set(tree &node) {
                 TExpr second_priority_set = one;
                 for (auto &&atom : node->node_infos.all_atoms) {
-                    variable& in_second_priority = node->solver_state->second_priority[atom->role_array_index];
-                    variable& updated_in_subrun = node->solver_state->updated_in_subrun[atom->role_array_index];
-                    variable& set_by_child = node->solver_state->blocked_by_children[atom->role_array_index];
+                    variable &in_second_priority = node->solver_state->second_priority[atom->role_array_index];
+                    variable &updated_in_subrun = node->solver_state->updated_in_subrun[atom->role_array_index];
+                    variable &set_by_child = node->solver_state->blocked_by_children[atom->role_array_index];
                     TExpr if_changed_is_set =
                             solver->createImplExpr(second_priority_set,
                                                    solver->createImplExpr(updated_in_subrun.get_solver_var(),
@@ -819,13 +832,15 @@ namespace SMT {
             TExpr multi_priority_var_not_in_priority_nor_second_and_set(tree &node) {
                 TExpr exists_var_set_not_in_p_not_snd = zero;
                 for (auto &&atom : node->node_infos.all_atoms) {
-                    variable& atom_in_priority = node->solver_state->priority[atom->role_array_index];
-                    variable& atom_in_second_priority = node->solver_state->second_priority[atom->role_array_index];
-                    variable& atom_blocked_by_child = node->solver_state->blocked_by_children[atom->role_array_index];
+                    variable &atom_in_priority = node->solver_state->priority[atom->role_array_index];
+                    variable &atom_in_second_priority = node->solver_state->second_priority[atom->role_array_index];
+                    variable &atom_blocked_by_child = node->solver_state->blocked_by_children[atom->role_array_index];
                     TExpr not_priority_nor_snd_set =
-                            solver->createAndExpr(solver->createAndExpr(solver->createNotExpr(atom_in_priority.get_solver_var()),
-                                                                        solver->createNotExpr(atom_in_second_priority.get_solver_var())),
-                                                  atom_blocked_by_child.get_solver_var());
+                            solver->createAndExpr(
+                                    solver->createAndExpr(solver->createNotExpr(atom_in_priority.get_solver_var()),
+                                                          solver->createNotExpr(
+                                                                  atom_in_second_priority.get_solver_var())),
+                                    atom_blocked_by_child.get_solver_var());
                     exists_var_set_not_in_p_not_snd = solver->createOrExpr(exists_var_set_not_in_p_not_snd,
                                                                            not_priority_nor_snd_set);
                 }
@@ -843,9 +858,9 @@ namespace SMT {
             TExpr multi_priority_all_priority_set(tree &node) {
                 TExpr all_priority_set = one;
                 for (auto &&atom : node->node_infos.all_atoms) {
-                    variable& in_priority = node->solver_state->priority[atom->role_array_index];
-                    variable& updated_in_subrun = node->solver_state->updated_in_subrun[atom->role_array_index];
-                    variable& set_by_child = node->solver_state->blocked_by_children[atom->role_array_index];
+                    variable &in_priority = node->solver_state->priority[atom->role_array_index];
+                    variable &updated_in_subrun = node->solver_state->updated_in_subrun[atom->role_array_index];
+                    variable &set_by_child = node->solver_state->blocked_by_children[atom->role_array_index];
                     TExpr if_changed_is_set =
                             solver->createImplExpr(in_priority.get_solver_var(),
                                                    solver->createImplExpr(updated_in_subrun.get_solver_var(),
@@ -859,8 +874,8 @@ namespace SMT {
             TExpr multi_priority_var_not_in_priority_and_set(tree &node) {
                 TExpr exists_var_set_not_in_p = zero;
                 for (auto &&atom : node->node_infos.all_atoms) {
-                    variable& atom_in_priority = node->solver_state->priority[atom->role_array_index];
-                    variable& atom_blocked_by_child = node->solver_state->blocked_by_children[atom->role_array_index];
+                    variable &atom_in_priority = node->solver_state->priority[atom->role_array_index];
+                    variable &atom_blocked_by_child = node->solver_state->blocked_by_children[atom->role_array_index];
                     TExpr not_priority_set =
                             solver->createAndExpr(solver->createNotExpr(atom_in_priority.get_solver_var()),
                                                   atom_blocked_by_child.get_solver_var());
@@ -878,9 +893,10 @@ namespace SMT {
                 return if_not_p_then_p_set;
             }
 
-            TExpr multi_priority_not_skipped_last_child(tree& node) {
+            TExpr multi_priority_not_skipped_last_child(tree &node) {
                 if (node->refinement_blocks.empty()) {
-                    throw unexpected_error("exploration_strategy cannot be called on leaves", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
+                    throw unexpected_error("exploration_strategy cannot be called on leaves", __FILE__, __LINE__,
+                                           __FUNCTION__, __PRETTY_FUNCTION__);
                 }
                 std::weak_ptr<proof_node<b_solver_state>> w_last_child = node->refinement_blocks.back();
                 variable last_skip = w_last_child.lock()->solver_state->skip;
@@ -894,9 +910,9 @@ namespace SMT {
 //                            solver->createAndExpr(if_not_in_p_set_then_p_is_set_root(node),
 //                                                  multi_priority_if_not_in_p_nor_snd_set_then_snd_is_set(node));
 //                } else {
-                    if_not_in_p_set_then_p_is_set_val =
-                            solver->createAndExpr(multi_priority_if_not_in_p_set_then_p_is_set(node),
-                                                  multi_priority_if_not_in_p_nor_snd_set_then_snd_is_set(node));
+                if_not_in_p_set_then_p_is_set_val =
+                        solver->createAndExpr(multi_priority_if_not_in_p_set_then_p_is_set(node),
+                                              multi_priority_if_not_in_p_nor_snd_set_then_snd_is_set(node));
 //                }
 
                 TExpr final_cond = solver->createAndExpr(budget_expired, if_not_in_p_set_then_p_is_set_val);
@@ -952,15 +968,16 @@ namespace SMT {
 
             // ROOT SUBRUN RELATED FUNCTIONS
             void do_not_skip_root(tree &root) {
-                variable& skip_root = root->solver_state->skip;
-                variable& root_guard = root->solver_state->guard;
+                variable &skip_root = root->solver_state->skip;
+                variable &root_guard = root->solver_state->guard;
 
                 strict_emit_assignment(skip_root, zero);
                 strict_emit_assignment(root_guard, one);
             }
 
             void init_root_vars(tree &root,
-                                const std::set<userp, std::function<bool(const userp &, const userp &)>> &initial_confs) {
+                                const std::set<userp, std::function<bool(const userp &,
+                                                                         const userp &)>> &initial_confs) {
                 TExpr init_expr = zero;
                 for (auto &&conf : initial_confs) {
                     TExpr conf_expr = one;
@@ -978,7 +995,7 @@ namespace SMT {
 
             void assert_invariant_pre_subrun(tree &node) {
                 assert(node->is_root());
-                Expr& target_expr = node->node_infos.rules_c[0]->prec;
+                Expr &target_expr = node->node_infos.rules_c[0]->prec;
 
                 TExpr invariant_expr = generateSMTFunction(solver,
                                                            target_expr,
@@ -1023,8 +1040,7 @@ namespace SMT {
                 solver->assertLater(final_assertion);
             }
 
-            bool is_reachable(tree &root,
-                              const std::set<userp, std::function<bool(const userp &, const userp &)>> &initial_confs) {
+            bool is_reachable(tree &root, bool main_run) {
                 emit_comment("root_subrun");
                 root_subrun(root, initial_confs);
                 emit_comment("root_assertion");
@@ -1032,28 +1048,32 @@ namespace SMT {
 
                 auto start = std::chrono::high_resolution_clock::now();
 
-                if (Config::show_solver_statistics) {
-                    solver->print_statistics();
-                }
+                if (main_run) {
+                    if (Config::show_solver_statistics) {
+                        solver->print_statistics();
+                    }
 
-                if (!std::is_same<term_t, TExpr>::value && Config::dump_smt_formula != "") {
-                    solver->printContext(Config::dump_smt_formula);
-                    log->info("BMC SMT formula dumped at: {}", Config::dump_smt_formula);
+                    if (!std::is_same<term_t, TExpr>::value && Config::dump_smt_formula != "") {
+                        solver->printContext(Config::dump_smt_formula);
+                        log->info("BMC SMT formula dumped at: {}", Config::dump_smt_formula);
+                    }
                 }
 
                 SMTResult res = solver->solve();
 
-                if (std::is_same<term_t, TExpr>::value && Config::dump_smt_formula != "") {
-                    solver->printContext(Config::dump_smt_formula);
-                    log->info("BMC SMT formula dumped at: {}", Config::dump_smt_formula);
-                    if (res == SAT) {
-                        solver->printModel();
+                if (main_run) {
+                    if (std::is_same<term_t, TExpr>::value && Config::dump_smt_formula != "") {
+                        solver->printContext(Config::dump_smt_formula);
+                        log->info("BMC SMT formula dumped at: {}", Config::dump_smt_formula);
+                        if (res == SAT) {
+                            solver->printModel();
+                        }
                     }
-                }
 
-                auto end = std::chrono::high_resolution_clock::now();
-                auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-                log->debug("------------ SMT SOLVED IN {} ms ------------", milliseconds.count());
+                    auto end = std::chrono::high_resolution_clock::now();
+                    auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+                    log->debug("------------ SMT SOLVED IN {} ms ------------", milliseconds.count());
+                }
 
                 return res == SAT;
             }
@@ -1094,20 +1114,32 @@ namespace SMT {
                 one = solver->createBoolConst(1);
             }
 
+            void cleanup(tree& _tree) {
+                _tree->clean_solver_info_state();
+                solver->deep_clean();
+                assertions.clear();
+                initialize();
+            }
+
         public:
 
             tree_to_SMT(const std::shared_ptr<arbac_policy> _policy,
-                        std::shared_ptr<SMTFactory<TVar, TExpr>> _solver) :
+                        std::shared_ptr<SMTFactory<TVar, TExpr>> _solver,
+                        const std::set<userp, std::function<bool(const userp &,
+                                                                 const userp &)>> _initial_confs) :
                     policy(_policy),
                     solver(std::move(_solver)),
+                    initial_confs(std::move(_initial_confs)),
                     assertions(std::list<TExpr>()) { }
 
-            over_analysis_result translate_and_run(tree &root,
-                                                   const std::set<userp, std::function<bool(const userp &, const userp &)>> &initial_confs) {
+            over_analysis_result translate_and_run(tree &root, bool annotate) {
                 solver->deep_clean();
-                initialize();
-                bool result = is_reachable(root, initial_confs);
+                cleanup(root);
+                bool result = is_reachable(root, annotate);
                 if (result) {
+                    if (!annotate) {
+                        return UNSAFE;
+                    }
                     bool is_refineable = anotate_refineable(root);
                     if (!is_refineable) {
                         return UNSAFE;
@@ -1121,25 +1153,67 @@ namespace SMT {
 
         };
 
-//        class tree_pruner {
-//        private:
-//            tree& tree;
-//
-//        public:
-//            tree_pruner(tree &_tree) :
-//                    tree(_tree){ }
-//        };
+//        static over_analysis_result tree_to_smt_get_res(tree_to_SMT& transformer, tree &root, bool annotate) {
+//            over_analysis_result res = transformer.translate_and_run(root, annotate);
+//            return res;
+//        }
+
+        class tree_pruner {
+        private:
+            tree_to_SMT& transformer;
+            tree &_tree;
+
+            bool reduce_node_c_rules(tree &node) {
+                std::vector<rulep> new_rules;
+                std::vector<rulep> old_rules = node->node_infos.rules_c;
+                // warn -> trace
+                log->warn("Probing C of node {}:", node->uid);
+                for (auto &&rule :old_rules) {
+                    std::vector<rulep> probed_rule;
+                    probed_rule.push_back(rule);
+                    node->node_infos.rules_c = probed_rule;
+                    over_analysis_result res = transformer.translate_and_run(_tree, false);
+
+                    // warn -> trace
+                    if (log->level() <= spdlog::level::warn) {
+                        std::cout << (res == SAFE ? "X" : "-");
+                    }
+
+                    if (res != SAFE) {
+                        new_rules.push_back(rule);
+                    }
+                }
+                // warn -> trace
+                if (log->level() <= spdlog::level::warn) {
+                    std::cout << std::endl;
+                }
+                node->node_infos.rules_c = new_rules;
+
+                return old_rules.size() != new_rules.size();
+            }
+
+        public:
+            tree_pruner(tree_to_SMT& _transformer,
+                        tree &root) :
+                    transformer(_transformer),
+                    _tree(root) { }
+
+            void reduce_tree_c_rules() {
+                std::list<tree> internal_nodes = _tree->get_tree_nodes();
+                bool changed = true;
+                while (changed) {
+                    changed = false;
+                    for (auto &&node : internal_nodes) {
+                        bool modified = reduce_node_c_rules(node);
+                        changed = changed || modified;
+                    }
+                }
+            }
+        };
 
         const OverapproxOptions overapprox_strategy;
 
-//        std::shared_ptr<b_solver_info> get_empty_solver_info() {
-//            b_solver_info ret_body;
-//            ret_body.refineable = b_solver_info::UNSET;
-//            ret_body.increase_budget = b_solver_info::UNSET;
-//            return std::make_shared<b_solver_info>(ret_body);
-//        }
-
-        static void update_leaves_infos(tree& tree) {
+        static void update_leaves_infos(tree &tree) {
             if (!tree->is_leaf()) {
                 return;
             }
@@ -1148,29 +1222,32 @@ namespace SMT {
                                        __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
             }
 
-            std::map<atomp, std::set<bool>>& map = tree->leaf_infos->nondet_restriction;
+            std::map<atomp, std::set<bool>> &map = tree->leaf_infos->nondet_restriction;
 
             for (auto &&atom : tree->node_infos.all_atoms) {
                 std::set<bool> new_set;
                 // ADDING POSSIBLE VALUES DEPENDING ON rules_A
                 for (auto &&rule_a : tree->node_infos.rules_a) {
                     if (rule_a->target == atom) {
-                        new_set.insert(rule_a->is_ca ? true : false);
+                        new_set.insert(rule_a->is_ca);
                     }
                 }
-                // REMOVING VALUES FORBIDDEN BY INVARIANTS
-                for (auto &&invariant : tree->invariants.inv_A_C.get_as_map()) {
-//                    if () {
-//
-//                    }
-                    assert(false);
-                }
+                map[atom] = new_set;
             }
 
+            // REMOVING VALUES FORBIDDEN BY INVARIANTS
+            for (auto &&invariant : tree->invariants.inv_A_C.get_as_set()) {
+                // IN CASE OF MULTIVALUED ATTRIBUTE REMOVE ALL
+                bool forbidden_value = !invariant.value;
+                map[invariant.atom].erase(forbidden_value);
+            }
+
+            tree->leaf_infos->nondet_restriction = std::move(map);
         }
 
-        void consolidate_tree(tree& tree) {
-
+        void consolidate_tree(tree &_tree) {
+            _tree->tree_iter([](tree node) { update_leaves_infos(node); });
+//            expand_invariants(_tree);
         }
 
         int get_budget() { // std::shared_ptr<simple_block_info<b_solver_info>>& info) {
@@ -1196,15 +1273,7 @@ namespace SMT {
 //            }
         }
 
-        void tree_clean_solver_info_state(tree& node) {
-            node->solver_state = nullptr;
-//            node->node_infos->solverInfo->refineable = b_solver_info::UNSET;
-            for (auto &&child :node->refinement_blocks) {
-                tree_clean_solver_info_state(child);
-            }
-        }
-
-        bool refine_tree(tree& _node) {
+        bool refine_tree(tree &_node) {
             if (!_node->is_leaf()) {
                 bool changed = false;
                 for (auto &&child :_node->refinement_blocks) {
@@ -1212,7 +1281,7 @@ namespace SMT {
                 }
                 return changed;
             } else if (overapprox_strategy.depth_strategy == OverapproxOptions::AT_MOST_DEPTH &&
-                    _node->depth >= overapprox_strategy.depth) {
+                       _node->depth >= overapprox_strategy.depth) {
                 return false;
             } else {
                 if (_node->leaf_infos->gap == leaves_infos::YES) {
@@ -1225,12 +1294,9 @@ namespace SMT {
                                                 _node->node_infos.atoms_a,
                                                 _node->node_infos.policy_atoms_count);
                     std::unique_ptr<leaves_infos> leaf_infos(new leaves_infos());
-                    std::list<std::weak_ptr<proof_node<b_solver_state>>> prec_ancestors = _node->ancestors;
+                    std::list<w_tree> prec_ancestors = _node->ancestors;
                     prec_ancestors.push_back(_node);
-                    int j = 0;
-                    for (auto &&anc : first_path) {
-                        log->critical(anc);
-                    }
+
                     tree actual_child(new node(first_path,
                                                _node->depth + 1,
                                                node_info,
@@ -1238,11 +1304,6 @@ namespace SMT {
                                                prec_ancestors,
                                                _node));
                     _node->refinement_blocks.push_back(actual_child);
-
-                    j = 0;
-                    for (auto &&anc : first_path) {
-                        log->critical(anc);
-                    }
 
                     int budget = get_budget();
                     for (++i; i < budget; ++i) {
@@ -1273,7 +1334,7 @@ namespace SMT {
             }
         }
 
-        void create_target_fake_roles(const std::shared_ptr<arbac_policy>& policy) {
+        void create_target_fake_roles(const std::shared_ptr<arbac_policy> &policy) {
             if (target_atom == nullptr) {
                 target_atom = createAtomp("__overapprox__target__", policy->atom_count(), 1);
             }
@@ -1283,9 +1344,9 @@ namespace SMT {
         };
 
         tree create_tree_root(const int policy_atom_count,
-                              const std::vector<atomp>& atoms,
-                              const std::vector<rulep>& rules,
-                              const Expr& to_check) {
+                              const std::vector<atomp> &atoms,
+                              const std::vector<rulep> &rules,
+                              const Expr &to_check) {
 
             rulep root_rule(new rule(true,
                                      createConstantTrue(),
@@ -1317,9 +1378,9 @@ namespace SMT {
             return root;
         }
 
-        std::pair<std::vector<atomp>, std::vector<rulep>> slice_policy(const std::vector<atomp>& orig_atoms,
-                                                                       const std::vector<rulep>& orig_rules,
-                                                                       const Expr& target) {
+        std::pair<std::vector<atomp>, std::vector<rulep>> slice_policy(const std::vector<atomp> &orig_atoms,
+                                                                       const std::vector<rulep> &orig_rules,
+                                                                       const Expr &target) {
             bool fixpoint = false;
             std::set<rulep> rules_to_save_set;
             std::set<atomp> necessary_atoms_set;
@@ -1349,16 +1410,11 @@ namespace SMT {
 
             return std::pair<std::vector<atomp>, std::vector<rulep>>(necessary_atoms, rules_to_save);
         }
-    public:
 
-        explicit learning_overapprox(OverapproxOptions strategy):
-                overapprox_strategy(strategy) { }
-
-        bool operator()(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
-                        const std::vector<atomp>& orig_atoms,
-                        const std::vector<rulep>& orig_rules,
-                        const std::shared_ptr<arbac_policy>& policy,
-                        const Expr& to_check) {
+        tree init_get_root(const std::vector<atomp>& orig_atoms,
+                           const std::vector<rulep>& orig_rules,
+                           const std::shared_ptr<arbac_policy>& policy,
+                           const Expr& to_check) {
             std::vector<atomp> used_atoms;
             std::vector<rulep> used_rules;
 
@@ -1379,16 +1435,27 @@ namespace SMT {
                 log->warn("after slicing atoms: {}", used_atoms.size());
                 log->warn("after slicing rules: {}", used_rules.size());
             }
+            tree proof = create_tree_root(policy->atom_count(), used_atoms, used_rules, to_check);
+            return std::move(proof);
+        }
 
+        bool check_program(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+                           const std::vector<atomp>& orig_atoms,
+                           const std::vector<rulep>& orig_rules,
+                           const std::shared_ptr<arbac_policy>& policy,
+                           const Expr& to_check) {
+
+            tree proof = init_get_root(orig_atoms,
+                                       orig_rules,
+                                       policy,
+                                       to_check);
             bool completed = false;
 
-            tree proof = create_tree_root(policy->atom_count(), used_atoms, used_rules, to_check);
-
+            tree_to_SMT translator(policy, solver, policy->unique_configurations());
             while (!completed) {
-                tree_to_SMT translator(policy, solver);
 
                 over_analysis_result result =
-                        translator.translate_and_run(proof, policy->unique_configurations());
+                        translator.translate_and_run(proof, true);
 
                 std::pair<std::string, std::string> strs = proof->tree_to_full_string();
                 log->warn("{}", strs.first);
@@ -1405,9 +1472,15 @@ namespace SMT {
                         return true;
                         break;
                     case UNSAFE_REFINEABLE:
+                        log->info("Target role may be reachable... PRUNING");
+                        tree_pruner pruner(translator, proof);
+                        pruner.reduce_tree_c_rules();
                         log->info("Target role may be reachable... REFINING");
+
                         bool changed = refine_tree(proof);
-                        tree_clean_solver_info_state(proof);
+                        //TODO: insert consolidate_tree in refine_tree
+                        consolidate_tree(proof);
+
 //                        std::pair<std::string, std::string> strs = proof->tree_to_full_string();
 //                        log->warn("{}", strs.first);
 //                        log->debug("{}", strs.second);
@@ -1419,7 +1492,25 @@ namespace SMT {
                         break;
                 }
             }
-            throw unexpected_error("While loop should converge at some point!", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
+            throw unexpected_error("While loop should converge at some point!", __FILE__, __LINE__, __FUNCTION__,
+                                   __PRETTY_FUNCTION__);
+        }
+
+    public:
+
+        explicit learning_overapprox(OverapproxOptions strategy):
+                overapprox_strategy(strategy) { }
+
+        bool operator()(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+                        const std::vector<atomp>& orig_atoms,
+                        const std::vector<rulep>& orig_rules,
+                        const std::shared_ptr<arbac_policy>& policy,
+                        const Expr& to_check) {
+            return check_program(solver,
+                                 orig_atoms,
+                                 orig_rules,
+                                 policy,
+                                 to_check);
         }
 
     };

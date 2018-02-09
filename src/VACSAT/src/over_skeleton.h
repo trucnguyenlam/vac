@@ -141,11 +141,11 @@ namespace SMT {
 
     class node_policy_infos {
     public:
-        const std::vector<rulep> rules_a;
-        const std::vector<rulep> rules_c;
-        const std::vector<atomp> all_atoms;
-        const std::vector<atomp> atoms_a;
-        const int policy_atoms_count;
+        std::vector<rulep> rules_a;
+        std::vector<rulep> rules_c;
+        std::vector<atomp> all_atoms;
+        std::vector<atomp> atoms_a;
+        int policy_atoms_count;
 
         node_policy_infos clone() {
             const std::vector<rulep> _rules_a = this->rules_a;
@@ -398,7 +398,15 @@ namespace SMT {
             }
         }
 
+        void get_tree_nodes_tail(std::list<std::shared_ptr<proof_node<SolverState>>>& ret_list) {
+            ret_list.push_back(this->shared_from_this());
+            for (auto &&child : refinement_blocks) {
+                child->get_tree_nodes_tail(ret_list);
+            }
+        }
+
     public:
+
         tree_path path;
         std::string uid;
         const int depth;
@@ -506,10 +514,24 @@ namespace SMT {
             return depth == 0;
         }
 
-        void tree_iter(std::function<void(std::shared_ptr<proof_node<SolverState>&>)>& fun) {
-            fun(this);
+        void tree_iter(std::function<void(std::shared_ptr<proof_node<SolverState>>)> fun) {
+            fun(this->shared_from_this());
             for (auto &&child : this->refinement_blocks) {
                 child->tree_iter(fun);
+            }
+        }
+
+        std::list<std::shared_ptr<proof_node<SolverState>>> get_tree_nodes() {
+            std::list<std::shared_ptr<proof_node<SolverState>>> ret;
+            get_tree_nodes_tail(ret);
+            return std::move(ret);
+        }
+
+        void clean_solver_info_state() {
+            this->solver_state = nullptr;
+//            node->node_infos->solverInfo->refineable = b_solver_info::UNSET;
+            for (auto &&child :this->refinement_blocks) {
+                child->clean_solver_info_state();
             }
         }
     };
