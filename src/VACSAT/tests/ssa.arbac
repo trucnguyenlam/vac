@@ -1,10 +1,9 @@
 Roles adm r1 r2 r3 rt nogoal ;
 
-Users u1 u2;
+Users u1;
 
 UA
     <u1, adm>
-    <u2, nogoal>
     ;
 
 CR
@@ -12,9 +11,9 @@ CR
     ;
 
 CA
-    <adm, -nogoal, r1>
-    <adm, -nogoal&-r1, r2>
-    <adm, -nogoal&r1&r2, rt>
+    <adm, TRUE, r1>
+    <adm, r1, r2>
+    <adm, r1&r2, rt>
 	;
 
 SPEC rt ;

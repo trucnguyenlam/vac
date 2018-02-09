@@ -101,7 +101,7 @@ namespace SMT {
             log->info("{}", *flattened);
             prune_policy(solver, flattened);
             log->info("Flattened after-pruning");
-            log->info("{}", *flattened);
+            log->info("{}", flattened->to_new_string());
         }
         log->debug("Performing underapproximated analysis");
 
