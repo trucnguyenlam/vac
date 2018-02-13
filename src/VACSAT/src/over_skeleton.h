@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <memory>
+#include <fstream>
 #include "Policy.h"
 
 namespace SMT {
@@ -176,6 +177,43 @@ namespace SMT {
                 all_atoms(std::move(_all_atoms)),
                 atoms_a(std::move(_atoms_a)),
                 policy_atoms_count(_policy_atoms_count) { }
+
+        std::string JSON_stringify(const std::string& prefix = "") {
+            std::stringstream fmt;
+            std::string i_prefix = prefix;
+            fmt << "{" << std::endl;
+            i_prefix = prefix + "\t";
+
+            fmt << i_prefix << "rules_a: [" << std::endl;
+            for (auto &&rule_a : rules_a) {
+                fmt << i_prefix << "\t\"" << *rule_a << "\"," << std::endl;
+            }
+            fmt << i_prefix << "]," << std::endl;
+
+            fmt << i_prefix << "rules_c: [" << std::endl;
+            for (auto &&rule_c : rules_c) {
+                fmt << i_prefix << "\t\"" << *rule_c << "\"," << std::endl;
+            }
+            fmt << i_prefix << "]," << std::endl;
+
+            fmt << i_prefix << "all_atoms: [" << std::endl;
+            for (auto &&all_atom : all_atoms) {
+                fmt << i_prefix << "\t\"" << *all_atom << "\"," << std::endl;
+            }
+            fmt << i_prefix << "]," << std::endl;
+
+            fmt << i_prefix << "atoms_a: [" << std::endl;
+            for (auto &&atom_a : atoms_a) {
+                fmt << i_prefix << "\t\"" << *atom_a << "\"," << std::endl;
+            }
+            fmt << i_prefix << "]," << std::endl;
+
+            fmt << i_prefix << "policy_atoms_count: " << policy_atoms_count << std::endl;
+
+            fmt << prefix << "}";
+
+            return fmt.str();
+        }
     };
 
     class pruning_triggers {
@@ -257,10 +295,22 @@ namespace SMT {
 
     class leaves_infos {
     public:
-        enum gap_info {
+        enum class gap_info {
             UNKNOWN,
             YES,
             NO };
+
+        static const std::string gap_to_string(const gap_info info) {
+            switch (info) {
+                case gap_info::UNKNOWN:
+                    return "UNKNOWN";
+                case gap_info::YES:
+                    return "YES";
+                case gap_info::NO:
+                    return "NO";
+            }
+            return "uh?";
+        }
 
         std::map<atomp, std::set<bool>> nondet_restriction;
         gap_info gap;
@@ -276,6 +326,22 @@ namespace SMT {
         leaves_infos():
                 nondet_restriction(std::map<atomp, std::set<bool>>()),
                 gap(gap_info::UNKNOWN) { }
+
+        std::string JSON_stringify(const std::string& prefix = "") {
+            std::stringstream fmt;
+            fmt << "{" << std::endl;
+            fmt << prefix << "\tgap: " << gap_to_string(gap) << "," << std::endl;
+            fmt << prefix << "\tnondet_restriction: {" << std::endl; //"..." << std::endl;
+            for (auto &&kv : nondet_restriction) {
+                fmt << prefix << "\t" << *kv.first << ": { ";
+                for (auto &&v : kv.second) {
+                    fmt << bool_to_true_false(v) << ", ";
+                }
+                fmt << "}," << std::endl;
+            }
+            fmt << prefix << "}";
+            return fmt.str();
+        }
     };
 
     template <typename SolverState>
@@ -405,6 +471,35 @@ namespace SMT {
             }
         }
 
+        void JSON_stringify_node(std::stringstream& fmt, const std::string& prefix = "") {
+            fmt << prefix << "{" << std::endl;
+            std::string i_prefix = prefix + "\t";
+            std::string omissis = "\"...\"";
+            fmt << i_prefix << "uid: " << uid << "," << std::endl;
+            fmt << i_prefix << "path: " << tree_path_to_string(path) << "," << std::endl;
+            fmt << i_prefix << "depth: " << std::to_string(depth) << "," << std::endl;
+            fmt << i_prefix << "node_infos: " << node_infos.JSON_stringify(i_prefix) << "," << std::endl;
+            fmt << i_prefix << "leaf_infos: " << (leaf_infos == nullptr ? "null" : leaf_infos->JSON_stringify(i_prefix)) << "," << std::endl;
+            fmt << i_prefix << "invariants: " << omissis << "," << std::endl;
+            fmt << i_prefix << "triggers: " << omissis << "," << std::endl;
+            fmt << i_prefix << "solver_state: " << omissis << "," << std::endl;
+            auto shared_parent = parent.lock();
+            fmt << i_prefix << "parent: " << (shared_parent == nullptr ? "null" : shared_parent->uid) << "," << std::endl;
+            fmt << i_prefix << "ancestors: [" << std::endl;
+            for (auto &&w_ancestor : ancestors) {
+                auto ancestor = w_ancestor.lock();
+                fmt << i_prefix << "\t" << ancestor->uid << "," << std::endl;
+            }
+            fmt << i_prefix << "]," << std::endl;
+
+            fmt << i_prefix << "refinement_blocks: [" << std::endl;
+            for (auto &&child : refinement_blocks) {
+                fmt << i_prefix << "\t" << child->uid << "," << std::endl;
+            }
+            fmt << i_prefix << "]" << std::endl;
+            fmt << prefix << "}";
+        }
+
     public:
 
         tree_path path;
@@ -494,8 +589,6 @@ namespace SMT {
 //            std::list<proof_node<SolverState>*> nodes;
             std::stringstream stream;
 
-            log->critical("Print here!");
-
 //            get_nodes(this, nodes);
 //            for (auto &&node : nodes) {
 //                stream << node->uid << ":" << std::endl;
@@ -533,6 +626,28 @@ namespace SMT {
             for (auto &&child :this->refinement_blocks) {
                 child->clean_solver_info_state();
             }
+        }
+
+        std::string JSON_stringify() {
+            std::stringstream fmt;
+            fmt << "[" <<std::endl;
+            this->tree_iter([&fmt](std::shared_ptr<proof_node<SolverState>> node) {
+                node->JSON_stringify_node(fmt, "\t");
+                fmt << "," << std::endl; });
+            fmt << "]" <<std::endl;
+            return fmt.str();
+        }
+
+        void dump_tree(const std::string& fname) {
+            std::ofstream out(fname);
+            std::string structure = this->tree_to_string();
+            std::string details = this->JSON_stringify();
+            out << "/*" << std::endl;
+            out << structure;
+            out << "*/" << std::endl << std::endl;
+            out << details;
+            out << std::endl << std::endl;
+            out.close();
         }
     };
 

@@ -370,15 +370,20 @@ namespace SMT {
             }
 
             void update_unblocked_vars_a(tree &node) {
-                emit_comment("Begin_nondet_assignment");
-                std::list<variable> update_guards;
-                for (auto &&var :node->node_infos.atoms_a) {
-                    variable update_guard = update_var_a(node, var);
-                    update_guards.push_back(update_guard);
-                }
+                if (node->leaf_infos->gap != leaves_infos::gap_info::NO) {
+                    emit_comment("Begin_nondet_assignment");
+                    std::list<variable> update_guards;
+                    for (auto &&var :node->node_infos.atoms_a) {
+                        variable update_guard = update_var_a(node, var);
+                        update_guards.push_back(update_guard);
+                    }
 
-                save_refineable_condition(node, update_guards);
-                emit_comment("End_nondet_assignment");
+                    save_refineable_condition(node, update_guards);
+                    emit_comment("End_nondet_assignment");
+                } else {
+                    emit_comment("nondet_assignment_suppressed");
+                    strict_emit_assignment(node->solver_state->refineable, zero);
+                }
             }
 
             // TRANS RELATED FUNCTIONS
@@ -774,8 +779,7 @@ namespace SMT {
                     variable atom_blocked_by_children = node->solver_state->blocked_by_children[atom->role_array_index];
                     TExpr blocked_by_child_condition = zero;
                     //SKIPPING LAST CHILD
-                    for (int i = 0; i < node->refinement_blocks.size() - 1; ++i) {
-                        tree &child = node->refinement_blocks[i];
+                    for (auto &&child :node->refinement_blocks) {
                         TExpr atom_blocked_by_child_i =
                                 solver->createEqExpr(solver->createBVConst(atom->role_array_index,
                                                                            child->solver_state->var_id.bv_size),
@@ -1017,7 +1021,8 @@ namespace SMT {
             }
 
             void root_subrun(tree &root,
-                             const std::set<userp, std::function<bool(const userp &, const userp &)>> &initial_confs) {
+                             const std::set<userp,
+                                            std::function<bool(const userp &, const userp &)>> &initial_confs) {
                 set_empty_node_state(root);
                 do_not_skip_root(root);
 
@@ -1086,10 +1091,10 @@ namespace SMT {
                     }
                     return refineable_subtree;
                 } else {
-                    bool is_node_refineable = node->leaf_infos->gap == leaves_infos::YES;
-                    if (node->leaf_infos->gap == leaves_infos::UNKNOWN) {
+                    bool is_node_refineable = node->leaf_infos->gap == leaves_infos::gap_info::YES;
+                    if (node->leaf_infos->gap == leaves_infos::gap_info::UNKNOWN) {
                         is_node_refineable = solver->get_bool_value(node->solver_state->refineable.get_solver_var());
-                        node->leaf_infos->gap = is_node_refineable ? leaves_infos::YES : leaves_infos::UNKNOWN;
+                        node->leaf_infos->gap = is_node_refineable ? leaves_infos::gap_info::YES : leaves_infos::gap_info::UNKNOWN;
                     }
                     if (is_node_refineable) {
                         log->warn("Node {} is refineable", node->uid);
@@ -1177,6 +1182,7 @@ namespace SMT {
                     // warn -> trace
                     if (log->level() <= spdlog::level::warn) {
                         std::cout << (res == SAFE ? "X" : "-");
+                        std::flush(std::cout);
                     }
 
                     if (res != SAFE) {
@@ -1200,14 +1206,15 @@ namespace SMT {
 
             void reduce_tree_c_rules() {
                 std::list<tree> internal_nodes = _tree->get_tree_nodes();
-                bool changed = true;
-                while (changed) {
-                    changed = false;
-                    for (auto &&node : internal_nodes) {
-                        bool modified = reduce_node_c_rules(node);
-                        changed = changed || modified;
-                    }
+//                bool changed = true;
+//                while (changed) {
+//                    changed = false;
+                for (auto &&node : internal_nodes) {
+                    reduce_node_c_rules(node);
+//                    bool modified = reduce_node_c_rules(node);
+//                    changed = changed || modified;
                 }
+//                }
             }
         };
 
@@ -1242,12 +1249,19 @@ namespace SMT {
                 map[invariant.atom].erase(forbidden_value);
             }
 
-            tree->leaf_infos->nondet_restriction = std::move(map);
+//            tree->leaf_infos->nondet_restriction = std::move(map);
         }
 
         void consolidate_tree(tree &_tree) {
             _tree->tree_iter([](tree node) { update_leaves_infos(node); });
 //            expand_invariants(_tree);
+        }
+
+        void block_nondet(tree &_tree) {
+            _tree->tree_iter([](tree node) { if (node->is_leaf()) { node->leaf_infos->gap = leaves_infos::gap_info::NO; } });
+        }
+        void restore_nondet(tree &_tree) {
+            _tree->tree_iter([](tree node) { if (node->is_leaf()) { node->leaf_infos->gap = leaves_infos::gap_info::UNKNOWN; } });
         }
 
         int get_budget() { // std::shared_ptr<simple_block_info<b_solver_info>>& info) {
@@ -1284,7 +1298,7 @@ namespace SMT {
                        _node->depth >= overapprox_strategy.depth) {
                 return false;
             } else {
-                if (_node->leaf_infos->gap == leaves_infos::YES) {
+                if (_node->leaf_infos->gap == leaves_infos::gap_info::YES) {
                     int i = 0;
                     tree_path first_path = _node->path;
                     first_path.push_back(i);
@@ -1314,7 +1328,7 @@ namespace SMT {
                                                    _node->node_infos.all_atoms,
                                                    _node->node_infos.atoms_a,
                                                    _node->node_infos.policy_atoms_count);
-                        leaf_infos = std::make_unique<leaves_infos>(_node->leaf_infos->clone());
+                        leaf_infos = std::unique_ptr<leaves_infos>(new leaves_infos());
 
                         prec_ancestors = actual_child->ancestors;
                         prec_ancestors.push_back(actual_child);
@@ -1453,12 +1467,24 @@ namespace SMT {
 
             tree_to_SMT translator(policy, solver, policy->unique_configurations());
             while (!completed) {
+                log->warn("{}", proof->tree_to_string());
 
+                log->debug("TESTING UNDERAPPROX PROOF");
+                block_nondet(proof);
+                over_analysis_result complete_result = translator.translate_and_run(proof, true);
+                restore_nondet(proof);
+                proof->dump_tree("tree.js");
+                assert(complete_result != UNSAFE_REFINEABLE);
+                if (complete_result == UNSAFE) {
+                    log->info("Target role may be reachable (but proof is not refineable)");
+                    return true;
+                }
+
+                log->debug("TESTING OVERAPPROX PROOF");
                 over_analysis_result result =
                         translator.translate_and_run(proof, true);
 
-                std::pair<std::string, std::string> strs = proof->tree_to_full_string();
-                log->warn("{}", strs.first);
+//                std::pair<std::string, std::string> strs = proof->tree_to_full_string();
 //                log->debug("{}", strs.second);
                 switch (result) {
                     case SAFE:
@@ -1480,6 +1506,9 @@ namespace SMT {
                         bool changed = refine_tree(proof);
                         //TODO: insert consolidate_tree in refine_tree
                         consolidate_tree(proof);
+                            proof->dump_tree("tree.tree");
+                        if (!std::is_same<term_t, TExpr>::value && Config::dump_smt_formula != "") {
+                        }
 
 //                        std::pair<std::string, std::string> strs = proof->tree_to_full_string();
 //                        log->warn("{}", strs.first);
