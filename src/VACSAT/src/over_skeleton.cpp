@@ -1253,15 +1253,17 @@ namespace SMT {
         }
 
         void consolidate_tree(tree &_tree) {
-            _tree->tree_iter([](tree node) { update_leaves_infos(node); });
+            _tree->tree_pre_order_iter([](tree node) { update_leaves_infos(node); });
 //            expand_invariants(_tree);
         }
 
         void block_nondet(tree &_tree) {
-            _tree->tree_iter([](tree node) { if (node->is_leaf()) { node->leaf_infos->gap = leaves_infos::gap_info::NO; } });
+            _tree->tree_pre_order_iter(
+                    [](tree node) { if (node->is_leaf()) { node->leaf_infos->gap = leaves_infos::gap_info::NO; }});
         }
         void restore_nondet(tree &_tree) {
-            _tree->tree_iter([](tree node) { if (node->is_leaf()) { node->leaf_infos->gap = leaves_infos::gap_info::UNKNOWN; } });
+            _tree->tree_pre_order_iter(
+                    [](tree node) { if (node->is_leaf()) { node->leaf_infos->gap = leaves_infos::gap_info::UNKNOWN; }});
         }
 
         int get_budget() { // std::shared_ptr<simple_block_info<b_solver_info>>& info) {

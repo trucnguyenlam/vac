@@ -8,6 +8,7 @@
 #include <vector>
 #include <memory>
 #include <fstream>
+#include <queue>
 #include "Policy.h"
 
 namespace SMT {
@@ -607,10 +608,23 @@ namespace SMT {
             return depth == 0;
         }
 
-        void tree_iter(std::function<void(std::shared_ptr<proof_node<SolverState>>)> fun) {
+        void tree_pre_order_iter(std::function<void(std::shared_ptr<proof_node<SolverState>>)> fun) {
             fun(this->shared_from_this());
             for (auto &&child : this->refinement_blocks) {
-                child->tree_iter(fun);
+                child->tree_pre_order_iter(fun);
+            }
+        }
+
+        void tree_dfs_iter(std::function<void(std::shared_ptr<proof_node<SolverState>>)> fun) {
+            std::queue<std::shared_ptr<proof_node<SolverState>>> queue;
+            queue.push(this->shared_from_this());
+            while (!queue.empty()) {
+                std::shared_ptr<proof_node<SolverState>> node = queue.front();
+                queue.pop();
+                fun(node);
+                for (auto &&child : refinement_blocks) {
+                    queue.push(child);
+                }
             }
         }
 
@@ -631,9 +645,10 @@ namespace SMT {
         std::string JSON_stringify() {
             std::stringstream fmt;
             fmt << "[" <<std::endl;
-            this->tree_iter([&fmt](std::shared_ptr<proof_node<SolverState>> node) {
+            this->tree_dfs_iter([&fmt](std::shared_ptr<proof_node<SolverState>> node) {
                 node->JSON_stringify_node(fmt, "\t");
-                fmt << "," << std::endl; });
+                fmt << "," << std::endl;
+            });
             fmt << "]" <<std::endl;
             return fmt.str();
         }
