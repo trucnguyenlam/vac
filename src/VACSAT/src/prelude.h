@@ -79,19 +79,19 @@ std::set<T, TCmp> setUnion(const std::set<T, TCmp>& a, const std::set<T, TCmp>& 
     return result;
 }
 
-    template <template <typename> typename TCollection, typename TVal>
-    static inline bool contains(const TCollection<TVal>& collection, const TVal &elem) {
-        static_assert(std::is_base_of<std::vector<TVal>, TCollection<TVal>>::value ||
-                      std::is_base_of<std::list<TVal>, TCollection<TVal>>::value,
-                      "TCollection<TVar> is not derived from either vector and list");
+template <template <typename> class TCollection, typename TVal>
+static inline bool contains(const TCollection<TVal>& collection, const TVal &elem) {
+    static_assert(std::is_base_of<std::vector<TVal>, TCollection<TVal>>::value ||
+                  std::is_base_of<std::list<TVal>, TCollection<TVal>>::value,
+                  "TCollection<TVar> is not derived from either vector and list");
 
-        for (auto &&value :collection) {
-            if (value == elem) {
-                return true;
-            }
+    for (auto &&value :collection) {
+        if (value == elem) {
+            return true;
         }
-        return false;
-    };
+    }
+    return false;
+};
 
 template <typename T>
 static inline bool contains(const std::set<T> &set, const T &elem) {
@@ -148,7 +148,7 @@ void print_collection(const std::set<std::shared_ptr<TVal>, TComparer>& set, std
     }
 };
 
-template <template <typename> typename TCollection, typename TVal>
+template <template <typename> class TCollection, typename TVal>
 void print_collection(const TCollection<std::shared_ptr<TVal>>& collection, std::string prefix = "", spdlog::level::level_enum lvl = spdlog::level::info) {
     typedef std::shared_ptr<TVal> TValp;
     static_assert(std::is_base_of<std::vector<TValp>, TCollection<TValp>>::value ||
@@ -174,7 +174,7 @@ static int bits_count(int n) {
     return (bit);
 }
 
-template <template <typename> typename TCollection, typename TVal>
+template <template <typename> class TCollection, typename TVal>
 static inline TCollection<std::shared_ptr<TVal>> lock_collection(const TCollection<std::weak_ptr<TVal>>& collection) {
     static_assert(std::is_base_of<std::vector<TVal>, TCollection<TVal>>::value ||
                   std::is_base_of<std::list<TVal>, TCollection<TVal>>::value,
