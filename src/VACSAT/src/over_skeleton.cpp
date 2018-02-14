@@ -1205,7 +1205,9 @@ namespace SMT {
                     _tree(root) { }
 
             void reduce_tree_c_rules() {
-                std::list<tree> internal_nodes = _tree->get_tree_nodes();
+//                std::list<tree> internal_nodes = _tree->get_tree_nodes();
+                std::list<tree> internal_nodes;
+                _tree->tree_dfs_iter([&](tree _node) { internal_nodes.push_back(_node); });
 //                bool changed = true;
 //                while (changed) {
 //                    changed = false;
@@ -1508,6 +1510,7 @@ namespace SMT {
                         bool changed = refine_tree(proof);
                         //TODO: insert consolidate_tree in refine_tree
                         consolidate_tree(proof);
+
                             proof->dump_tree("tree.tree");
                         if (!std::is_same<term_t, TExpr>::value && Config::dump_smt_formula != "") {
                         }
