@@ -1761,7 +1761,8 @@ namespace SMT {
                 int count = get_user_admin_count(user, admin_precs);
                 res[user] = count;
             }
-            return std::move(res);
+//            return std::move(res);
+            return res;
         };
 
         const std::list<std::list<rulep>> partition_equivalent_admin_expr() {
@@ -1788,7 +1789,8 @@ namespace SMT {
                     partitions.push_back(new_part);
                 }
             }
-            return std::move(partitions);
+//            return std::move(partitions);
+            return partitions;
         }
 
         void reduce_users() {
