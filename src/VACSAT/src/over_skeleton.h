@@ -622,7 +622,7 @@ namespace SMT {
                 std::shared_ptr<proof_node<SolverState>> node = queue.front();
                 queue.pop();
                 fun(node);
-                for (auto &&child : refinement_blocks) {
+                for (auto &&child : node->refinement_blocks) {
                     queue.push(child);
                 }
             }
