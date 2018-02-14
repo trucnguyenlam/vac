@@ -1207,7 +1207,7 @@ namespace SMT {
             void reduce_tree_c_rules() {
 //                std::list<tree> internal_nodes = _tree->get_tree_nodes();
                 std::list<tree> internal_nodes;
-                _tree->tree_dfs_iter([&](tree _node) { internal_nodes.push_back(_node); });
+                _tree->tree_bfs_iter([&](tree _node) { internal_nodes.push_back(_node); });
 //                bool changed = true;
 //                while (changed) {
 //                    changed = false;

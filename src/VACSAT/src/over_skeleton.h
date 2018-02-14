@@ -615,7 +615,7 @@ namespace SMT {
             }
         }
 
-        void tree_dfs_iter(std::function<void(std::shared_ptr<proof_node<SolverState>>)> fun) {
+        void tree_bfs_iter(std::function<void(std::shared_ptr<proof_node<SolverState>>)> fun) {
             std::queue<std::shared_ptr<proof_node<SolverState>>> queue;
             queue.push(this->shared_from_this());
             while (!queue.empty()) {
@@ -645,7 +645,7 @@ namespace SMT {
         std::string JSON_stringify() {
             std::stringstream fmt;
             fmt << "[" <<std::endl;
-            this->tree_dfs_iter([&fmt](std::shared_ptr<proof_node<SolverState>> node) {
+            this->tree_bfs_iter([&fmt](std::shared_ptr<proof_node<SolverState>> node) {
                 node->JSON_stringify_node(fmt, "\t");
                 fmt << "," << std::endl;
             });
