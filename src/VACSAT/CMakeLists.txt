@@ -7,7 +7,17 @@ set(CMAKE_CXX_STANDARD 14)  # enable C++11 standard
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -fpermissive -Wwrite-strings")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused -Wno-unused-parameter -Wno-comment -Wno-sign-compare -Wno-c++1z-extensions -static")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-write-strings -Wall -Wextra -Werror -Wno-unused -Wno-unused-parameter -Wno-comment -Wno-sign-compare -static")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+                     -Wno-write-strings \
+                     -Wall \
+                     -Wextra \
+                     -Werror \
+                     -Wno-unused \
+                     -Wno-unused-parameter \
+                     -Wno-comment \
+                     -Wno-sign-compare \
+                     -Wno-parentheses-equality \
+                     -static")
 
 find_program(GOLD_FOUND gold)
 if (GOLD_FOUND)
@@ -114,7 +124,7 @@ include_directories("${YICES_INCLUDE_DIR}"
 # Set OpenMP flags (BLACK MAGIC)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 # Otherwise use this
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 
 # Add local libraries linking directories
 link_directories(${YICES_LIBRARY_DIR}
