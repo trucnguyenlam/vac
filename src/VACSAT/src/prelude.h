@@ -72,6 +72,27 @@ public:
     }
 };
 
+# define unexpected(message)							\
+  (unexpected_error(#message, __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__))
+
+    enum class maybe_bool {
+        UNKNOWN,
+        YES,
+        NO
+    };
+
+    static const std::string maybe_bool_to_string(const maybe_bool info) {
+        switch (info) {
+            case maybe_bool::UNKNOWN:
+                return "UNKNOWN";
+            case maybe_bool::YES:
+                return "YES";
+            case maybe_bool::NO:
+                return "NO";
+        }
+        return "uh?";
+    }
+
 template <typename T, typename TCmp=std::less<T>>
 std::set<T, TCmp> setUnion(const std::set<T, TCmp>& a, const std::set<T, TCmp>& b) {
     std::set<T, TCmp> result = a;
