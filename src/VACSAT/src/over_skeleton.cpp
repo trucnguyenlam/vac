@@ -295,43 +295,52 @@ namespace SMT {
             }
 
             variable update_var_a(tree &node, const Atomp &var) {
-                //GUARD FOR NONDET UPDATE
-                tmp_bool = tmp_bool.createFrom();
-                TExpr update_guard =
-                        solver->createAndExpr(solver->createNotExpr(
-                                node->solver_state->blocked[var->role_array_index].get_solver_var()),
-                                              tmp_bool.get_solver_var());
-                emit_assignment(node, tmp_bool, update_guard);
+                if (!node->is_leaf()) {
+                    throw unexpected("var update must be located to leaves only");
+                }
+                //IF THE ATOM IS UPDATEABLE
+                if (!node->leaf_infos->nondet_restriction[var].empty()) {
+                    //GUARD FOR NONDET UPDATE
+                    tmp_bool = tmp_bool.createFrom();
+                    TExpr update_guard =
+                            solver->createAndExpr(solver->createNotExpr(
+                                    node->solver_state->blocked[var->role_array_index].get_solver_var()),
+                                                  tmp_bool.get_solver_var());
+                    emit_assignment(node, tmp_bool, update_guard);
 
 
-                //FIXME: ADD NONDET LEAF RESTRICTION HERE!
-                //VAR VALUE UPDATE
-                variable old_var_val = node->solver_state->vars[var->role_array_index];
-                variable new_var_val = old_var_val.createFrom();
-                TExpr guarded_val = solver->createCondExpr(tmp_bool.get_solver_var(),
-                                                           new_var_val.get_solver_var(),
-                                                           old_var_val.get_solver_var());
-                emit_assignment(node, new_var_val, guarded_val);
-                node->solver_state->vars[var->role_array_index] = new_var_val;
+                    //VAR VALUE UPDATE
+                    variable old_var_val = node->solver_state->vars[var->role_array_index];
+                    variable new_var_val = old_var_val.createFrom();
+                    TExpr guarded_val = solver->createCondExpr(tmp_bool.get_solver_var(),
+                                                               new_var_val.get_solver_var(),
+                                                               old_var_val.get_solver_var());
+                    emit_assignment(node, new_var_val, guarded_val);
+                    node->solver_state->vars[var->role_array_index] = new_var_val;
 
-                //NEW VAR VALUE ASSUMPTIONS
-                TExpr value_was_changed = solver->createNotExpr(solver->createEqExpr(old_var_val.get_solver_var(),
-                                                                                     new_var_val.get_solver_var()));
-                TExpr value_invariant = get_variable_invariant_from_node(node, var);
-                TExpr assumption_body = solver->createImplExpr(tmp_bool.get_solver_var(),
-                                                               solver->createAndExpr(value_was_changed,
-                                                                                     value_invariant));
-                emit_assumption(node, assumption_body);
+                    //NEW VAR VALUE ASSUMPTIONS
+                    TExpr value_was_changed = solver->createNotExpr(solver->createEqExpr(old_var_val.get_solver_var(),
+                                                                                         new_var_val.get_solver_var()));
+                    TExpr value_invariant = get_variable_invariant_from_node(node, var);
+                    TExpr assumption_body = solver->createImplExpr(tmp_bool.get_solver_var(),
+                                                                   solver->createAndExpr(value_was_changed,
+                                                                                         value_invariant));
+                    emit_assumption(node, assumption_body);
 
-                //SAVE THE FACT THAT THE VARIABLE HAS BEEN CHANGED
-                variable old_updated_in_subrun = node->solver_state->updated_in_subrun[var->role_array_index];
-                variable new_updated_in_subrun = old_updated_in_subrun.createFrom();
-                TExpr new_updated_value = solver->createCondExpr(tmp_bool.get_solver_var(),
-                                                                 one,
-                                                                 old_updated_in_subrun.get_solver_var());
-                emit_assignment(node, new_updated_in_subrun, new_updated_value);
-                node->solver_state->updated_in_subrun[var->role_array_index] = new_updated_in_subrun;
-
+                    //SAVE THE FACT THAT THE VARIABLE HAS BEEN CHANGED
+                    variable old_updated_in_subrun = node->solver_state->updated_in_subrun[var->role_array_index];
+                    variable new_updated_in_subrun = old_updated_in_subrun.createFrom();
+                    TExpr new_updated_value = solver->createCondExpr(tmp_bool.get_solver_var(),
+                                                                     one,
+                                                                     old_updated_in_subrun.get_solver_var());
+                    emit_assignment(node, new_updated_in_subrun, new_updated_value);
+                    node->solver_state->updated_in_subrun[var->role_array_index] = new_updated_in_subrun;
+                } else {
+                    //IF THE ATOM IS STATICALLY NOT UPDATEABLE
+                    emit_comment("Node_" + var->name + "_is_not_updateable");
+                    tmp_bool = tmp_bool.createFrom();
+                    emit_assignment(node, tmp_bool, zero);
+                }
                 //RETURN TO CREATE THE REFINEABLE CHECK
                 return tmp_bool;
             }
@@ -364,7 +373,8 @@ namespace SMT {
             }
 
             void update_unblocked_vars_a(tree &node) {
-                if (node->leaf_infos->gap != leaves_infos::gap_info::NO) {
+                if (node->leaf_infos->gap != maybe_bool::NO &&
+                    node->triggers.overapprox != maybe_bool::NO) {
                     emit_comment("Begin_nondet_assignment");
                     std::list<variable> update_guards;
                     for (auto &&var :node->node_infos.atoms_a) {
@@ -478,7 +488,19 @@ namespace SMT {
                 emit_comment("Begin_transition_" + node->uid);
                 select_one_rule_c(node);
                 for (int rule_id = 0; rule_id < node->node_infos.rules_c.size(); ++rule_id) {
-                    simulate_rule_c(node, rule_id);
+                    if (node->triggers.c_rule_check == nullptr) {
+                        //execute all rules
+                        simulate_rule_c(node, rule_id);
+                    } else {
+                        //execute only selected rule
+                        if (*node->triggers.c_rule_check.get() == node->node_infos.rules_c[rule_id]) {
+                            // set the id to force role execution
+                            emit_assignment(node,
+                                            node->solver_state->rule_id,
+                                            solver->createBVConst(rule_id, node->solver_state->rule_id.bv_size));
+                            simulate_rule_c(node, rule_id);
+                        }
+                    }
                 }
                 emit_comment("End_transition_" + node->uid);
             }
@@ -1085,10 +1107,10 @@ namespace SMT {
                     }
                     return refineable_subtree;
                 } else {
-                    bool is_node_refineable = node->leaf_infos->gap == leaves_infos::gap_info::YES;
-                    if (node->leaf_infos->gap == leaves_infos::gap_info::UNKNOWN) {
+                    bool is_node_refineable = node->leaf_infos->gap == maybe_bool::YES;
+                    if (node->leaf_infos->gap == maybe_bool::UNKNOWN) {
                         is_node_refineable = solver->get_bool_value(node->solver_state->refineable.get_solver_var());
-                        node->leaf_infos->gap = is_node_refineable ? leaves_infos::gap_info::YES : leaves_infos::gap_info::UNKNOWN;
+                        node->leaf_infos->gap = is_node_refineable ? maybe_bool::YES : maybe_bool::UNKNOWN;
                     }
                     if (is_node_refineable) {
                         log->warn("Node {} is refineable", node->uid);
@@ -1104,6 +1126,9 @@ namespace SMT {
             }
 
             bool anotate_refineable(tree &root) {
+                if (!root->pruning_enabled()) {
+                    return false;
+                }
                 return set_node_refinement_from_model(root);
             }
 
@@ -1165,8 +1190,11 @@ namespace SMT {
             bool reduce_node_c_rules(tree &node) {
                 std::vector<rulep> new_rules;
                 std::vector<rulep> old_rules = node->node_infos.rules_c;
+                bool old_skip = node->triggers.no_skip;
                 // warn -> trace
                 log->warn("Probing C of node {}:", node->uid);
+                //FORCING NODE TO BE EXECUTED
+                node->triggers.no_skip = true;
                 for (auto &&rule :old_rules) {
                     std::vector<rulep> probed_rule;
                     probed_rule.push_back(rule);
@@ -1188,6 +1216,7 @@ namespace SMT {
                     std::cout << std::endl;
                 }
                 node->node_infos.rules_c = new_rules;
+                node->triggers.no_skip = old_skip;
 
                 return old_rules.size() != new_rules.size();
             }
@@ -1221,8 +1250,7 @@ namespace SMT {
                 return;
             }
             if (tree->leaf_infos == nullptr) {
-                throw unexpected_error("All leaves must have the associated leaf_infos != nullptr",
-                                       __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
+                throw unexpected("All leaves must have the associated leaf_infos != nullptr");
             }
 
             std::map<atomp, std::set<bool>> &map = tree->leaf_infos->nondet_restriction;
@@ -1255,12 +1283,12 @@ namespace SMT {
 
         void block_nondet(tree &_tree) {
             _tree->tree_pre_order_iter(
-                    [](tree node) { if (node->is_leaf()) { node->leaf_infos->gap = leaves_infos::gap_info::NO; }});
+                    [](tree node) { if (node->is_leaf()) { node->triggers.overapprox = maybe_bool::NO; }});
         }
-        void restore_nondet(tree &_tree) {
-            _tree->tree_pre_order_iter(
-                    [](tree node) { if (node->is_leaf()) { node->leaf_infos->gap = leaves_infos::gap_info::UNKNOWN; }});
-        }
+//        void restore_nondet(tree &_tree) {
+//            _tree->tree_pre_order_iter(
+//                    [](tree node) { if (node->is_leaf()) { node->triggers.overapprox = maybe_bool::UNKNOWN; }});
+//        }
 
         int get_budget() { // std::shared_ptr<simple_block_info<b_solver_info>>& info) {
             return overapprox_strategy.blocks_count;
@@ -1296,7 +1324,7 @@ namespace SMT {
                        _node->depth >= overapprox_strategy.depth) {
                 return false;
             } else {
-                if (_node->leaf_infos->gap == leaves_infos::gap_info::YES) {
+                if (_node->leaf_infos->gap == maybe_bool::YES) {
                     int i = 0;
                     tree_path first_path = _node->path;
                     first_path.push_back(i);
@@ -1472,7 +1500,7 @@ namespace SMT {
                 log->debug("TESTING UNDERAPPROX PROOF");
                 block_nondet(proof);
                 over_analysis_result complete_result = translator.translate_and_run(proof, true);
-                restore_nondet(proof);
+                proof->clean_pruning_triggers();
                 proof->dump_tree("tree.js");
                 assert(complete_result != UNSAFE_REFINEABLE);
                 if (complete_result == UNSAFE) {
@@ -1522,8 +1550,7 @@ namespace SMT {
                         break;
                 }
             }
-            throw unexpected_error("While loop should converge at some point!", __FILE__, __LINE__, __FUNCTION__,
-                                   __PRETTY_FUNCTION__);
+            throw unexpected("While loop should converge at some point!");
         }
 
     public:
