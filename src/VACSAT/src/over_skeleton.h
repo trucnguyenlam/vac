@@ -219,50 +219,67 @@ namespace SMT {
 
     class pruning_triggers {
     public:
+        std::unique_ptr<rulep> c_rule_check;
         std::unique_ptr<std::pair<atomp, bool>> pre_A_check;
         std::unique_ptr<std::pair<atomp, bool>> A_C_check;
         std::unique_ptr<std::pair<atomp, bool>> post_A_check;
         std::unique_ptr<std::pair<atomp, bool>> pre_A_blocked_check;
         std::unique_ptr<std::pair<atomp, bool>> post_A_blocked_check;
-        bool no_skip;
-        bool no_priority;
+        bool no_skip;       /// Forbids the node to skip
+        bool no_priority;   /// Disable node exploration strategy
 
         //FOR LEAVES ONLY
-        bool overapprox;
+        maybe_bool overapprox;    /// Forces/denies/leave free the overapproximation of the leaf
         bool check_gap;
 
         pruning_triggers clone() {
-            std::pair<atomp, bool> _pre_A_check_cnt = *this->pre_A_check;
-            std::pair<atomp, bool> _A_C_check_cnt = *this->A_C_check;
-            std::pair<atomp, bool> _post_A_check_cnt = *this->post_A_check;
-            std::pair<atomp, bool> _pre_A_blocked_check_cnt = *this->pre_A_blocked_check;
-            std::pair<atomp, bool> _post_A_blocked_check_cnt = *this->post_A_blocked_check;
             bool _no_skip = no_skip;
             bool _no_priority = no_priority;
 
-            bool _overapprox = this->overapprox;
+            maybe_bool _overapprox = this->overapprox;
             bool _check_gap = this->check_gap;
 
             pruning_triggers res;
 
-            std::unique_ptr<std::pair<atomp, bool>> _pre_A_check =
-                    std::make_unique<std::pair<atomp, bool>>(_pre_A_check_cnt);
-            std::unique_ptr<std::pair<atomp, bool>> _A_C_check =
-                    std::make_unique<std::pair<atomp, bool>>(_A_C_check_cnt);
-            std::unique_ptr<std::pair<atomp, bool>> _post_A_check =
-                    std::make_unique<std::pair<atomp, bool>>(_post_A_check_cnt);
-            std::unique_ptr<std::pair<atomp, bool>> _pre_A_blocked_check =
-                    std::make_unique<std::pair<atomp, bool>>(_pre_A_blocked_check_cnt);
-            std::unique_ptr<std::pair<atomp, bool>> _post_A_blocked_check =
-                    std::make_unique<std::pair<atomp, bool>>(_post_A_blocked_check_cnt);
+            std::unique_ptr<rulep> _c_rule_check = nullptr;
+            if (this->c_rule_check != nullptr) {
+                rulep _c_rule_check_cnt = *this->c_rule_check;
+                _c_rule_check = std::make_unique<rulep>(_c_rule_check_cnt);
+            }
+            std::unique_ptr<std::pair<atomp, bool>> _pre_A_check = nullptr;
+            if (this->pre_A_check != nullptr) {
+                std::pair<atomp, bool> _pre_A_check_cnt = *this->pre_A_check;
+                _pre_A_check = std::make_unique<std::pair<atomp, bool>>(_pre_A_check_cnt);
+            }
+            std::unique_ptr<std::pair<atomp, bool>> _A_C_check = nullptr;
+            if (this->A_C_check != nullptr) {
+                std::pair<atomp, bool> _A_C_check_cnt = *this->A_C_check;
+                _A_C_check = std::make_unique<std::pair<atomp, bool>>(_A_C_check_cnt);
+            }
+            std::unique_ptr<std::pair<atomp, bool>> _post_A_check = nullptr;
+            if (this->post_A_check != nullptr) {
+                std::pair<atomp, bool> _post_A_check_cnt = *this->post_A_check;
+                _post_A_check = std::make_unique<std::pair<atomp, bool>>(_post_A_check_cnt);
+            }
+            std::unique_ptr<std::pair<atomp, bool>> _pre_A_blocked_check = nullptr;
+            if (this->pre_A_blocked_check != nullptr) {
+                std::pair<atomp, bool> _pre_A_blocked_check_cnt = *this->pre_A_blocked_check;
+                _pre_A_blocked_check = std::make_unique<std::pair<atomp, bool>>(_pre_A_blocked_check_cnt);
+            }
+            std::unique_ptr<std::pair<atomp, bool>> _post_A_blocked_check = nullptr;
+            if (this->post_A_blocked_check != nullptr) {
+                std::pair<atomp, bool> _post_A_blocked_check_cnt = *this->post_A_blocked_check;
+                _post_A_blocked_check = std::make_unique<std::pair<atomp, bool>>(_post_A_blocked_check_cnt);
+            }
 
-            res.pre_A_check = std::move(pre_A_check);
-            res.A_C_check = std::move(A_C_check);
-            res.post_A_check = std::move(post_A_check);
-            res.pre_A_blocked_check = std::move(pre_A_blocked_check);
-            res.post_A_blocked_check = std::move(post_A_blocked_check);
-            res.no_skip = no_skip;
-            res.no_priority = no_priority;
+            res.c_rule_check = std::move(_c_rule_check);
+            res.pre_A_check = std::move(_pre_A_check);
+            res.A_C_check = std::move(_A_C_check);
+            res.post_A_check = std::move(_post_A_check);
+            res.pre_A_blocked_check = std::move(_pre_A_blocked_check);
+            res.post_A_blocked_check = std::move(_post_A_blocked_check);
+            res.no_skip = _no_skip;
+            res.no_priority = _no_priority;
 
             res.overapprox = _overapprox;
             res.check_gap = _check_gap;
@@ -271,6 +288,7 @@ namespace SMT {
         }
 
         void clean() {
+            this->c_rule_check = nullptr;
             this->pre_A_check = nullptr;
             this->A_C_check = nullptr;
             this->post_A_check = nullptr;
@@ -278,11 +296,78 @@ namespace SMT {
             this->post_A_blocked_check = nullptr;
             this->no_skip = false;
             this->no_priority = false;
-            this->overapprox = false;
+            this->overapprox = maybe_bool::UNKNOWN;
             this->check_gap = false;
         }
 
+        bool probing_enabled() {
+            return this->c_rule_check != nullptr ||
+                   this->pre_A_check != nullptr ||
+                   this->A_C_check != nullptr ||
+                   this->post_A_check != nullptr ||
+                   this->pre_A_blocked_check != nullptr ||
+                   this->post_A_blocked_check != nullptr ||
+                   this->no_skip ||
+                   this->no_priority ||
+                   this->overapprox != maybe_bool::UNKNOWN ||
+                   this->check_gap;
+        }
+
+        std::string JSON_stringify(const std::string& prefix = "") {
+            if (!this->probing_enabled()) {
+                return "false";
+            }
+            std::stringstream fmt;
+            std::string i_prefix = prefix;
+            fmt << "{" << std::endl;
+            i_prefix = prefix + "\t";
+
+            fmt << i_prefix << "c_rule_check: ";
+            if (this->c_rule_check != nullptr) {
+                fmt << (*c_rule_check)->to_string() << "," << std::endl;
+            } else {
+                fmt << "null," <<std::endl;
+            }
+            fmt << i_prefix << "pre_A_check: ";
+            if (this->pre_A_check != nullptr) {
+                fmt << "{" << pre_A_check->first->name << ", " << pre_A_check->second << "}," << std::endl;
+            } else {
+                fmt << "null," <<std::endl;
+            }
+            fmt << i_prefix << "A_C_check: ";
+            if (this->A_C_check != nullptr) {
+                fmt << "{" << A_C_check->first->name << ", " << A_C_check->second << "}," << std::endl;
+            } else {
+                fmt << "null," <<std::endl;
+            }
+            fmt << i_prefix << "post_A_check: ";
+            if (this->post_A_check != nullptr) {
+                fmt << "{" << post_A_check->first->name << ", " << post_A_check->second << "}," << std::endl;
+            } else {
+                fmt << "null," <<std::endl;
+            }
+            fmt << i_prefix << "pre_A_blocked_check: ";
+            if (this->pre_A_blocked_check != nullptr) {
+                fmt << "{" << pre_A_blocked_check->first->name << ", " << pre_A_blocked_check->second << "}," << std::endl;
+            } else {
+                fmt << "null," <<std::endl;
+            }
+            fmt << i_prefix << "post_A_blocked_check: ";
+            if (this->post_A_blocked_check != nullptr) {
+                fmt << "{" << post_A_blocked_check->first->name << ", " << post_A_blocked_check->second << "}," << std::endl;
+            } else {
+                fmt << "null," <<std::endl;
+            }
+            fmt << i_prefix << "no_skip: " << bool_to_true_false(no_skip) << "," << std::endl;
+            fmt << i_prefix << "no_priority: " << bool_to_true_false(no_priority) << "," << std::endl;
+            fmt << i_prefix << "overapprox: " << maybe_bool_to_string(overapprox) << "," << std::endl;
+            fmt << i_prefix << "check_gap: " << bool_to_true_false(check_gap) << "," << std::endl;
+
+            return fmt.str();
+        }
+
         pruning_triggers() :
+                c_rule_check(nullptr),
                 pre_A_check(nullptr),
                 A_C_check(nullptr),
                 post_A_check(nullptr),
@@ -290,31 +375,15 @@ namespace SMT {
                 post_A_blocked_check(nullptr),
                 no_skip(false),
                 no_priority(false),
-                overapprox(false),
+                overapprox(maybe_bool::UNKNOWN),
                 check_gap(false) { }
     };
 
     class leaves_infos {
     public:
-        enum class gap_info {
-            UNKNOWN,
-            YES,
-            NO };
-
-        static const std::string gap_to_string(const gap_info info) {
-            switch (info) {
-                case gap_info::UNKNOWN:
-                    return "UNKNOWN";
-                case gap_info::YES:
-                    return "YES";
-                case gap_info::NO:
-                    return "NO";
-            }
-            return "uh?";
-        }
 
         std::map<atomp, std::set<bool>> nondet_restriction;
-        gap_info gap;
+        maybe_bool gap;
 
         leaves_infos clone() {
             std::map<atomp, std::set<bool>> _nondet_restriction = this->nondet_restriction;
@@ -326,12 +395,12 @@ namespace SMT {
 
         leaves_infos():
                 nondet_restriction(std::map<atomp, std::set<bool>>()),
-                gap(gap_info::UNKNOWN) { }
+                gap(maybe_bool::UNKNOWN) { }
 
         std::string JSON_stringify(const std::string& prefix = "") {
             std::stringstream fmt;
             fmt << "{" << std::endl;
-            fmt << prefix << "\tgap: " << gap_to_string(gap) << "," << std::endl;
+            fmt << prefix << "\tgap: " << maybe_bool_to_string(gap) << "," << std::endl;
             fmt << prefix << "\tnondet_restriction: {" << std::endl; //"..." << std::endl;
             for (auto &&kv : nondet_restriction) {
                 fmt << prefix << "\t" << *kv.first << ": { ";
@@ -395,7 +464,7 @@ namespace SMT {
             tree_path c_path = this->path;
             std::string c_uid = this->uid;
             int c_depth = this->depth;
-            bool c_is_leaf = this->is_leaf;
+            bool c_is_leaf = this->is_leaf();
 
             node_invariants c_invariants = this->invariants.clone();
             node_policy_infos c_node_infos = this->node_infos.clone();
@@ -482,7 +551,7 @@ namespace SMT {
             fmt << i_prefix << "node_infos: " << node_infos.JSON_stringify(i_prefix) << "," << std::endl;
             fmt << i_prefix << "leaf_infos: " << (leaf_infos == nullptr ? "null" : leaf_infos->JSON_stringify(i_prefix)) << "," << std::endl;
             fmt << i_prefix << "invariants: " << omissis << "," << std::endl;
-            fmt << i_prefix << "triggers: " << omissis << "," << std::endl;
+            fmt << i_prefix << "triggers: " << triggers.JSON_stringify() << "," << std::endl;
             fmt << i_prefix << "solver_state: " << omissis << "," << std::endl;
             auto shared_parent = parent.lock();
             fmt << i_prefix << "parent: " << (shared_parent == nullptr ? "null" : shared_parent->uid) << "," << std::endl;
@@ -584,28 +653,23 @@ namespace SMT {
             return cloned;
         }
 
-        std::pair<std::string, std::string> tree_to_full_string() {
-            tree_printer printer;
-
-//            std::list<proof_node<SolverState>*> nodes;
-            std::stringstream stream;
-
-//            get_nodes(this, nodes);
-//            for (auto &&node : nodes) {
-//                stream << node->uid << ":" << std::endl;
-//                stream << "\tleaf: " << bool_to_true_false(node->is_leaf()) << std::endl;
-//                stream << node->infos;
-//            }
-
-            return std::pair<std::string, std::string>(printer(this), stream.str());
-        }
-
         bool is_leaf() {
             return refinement_blocks.empty();
         }
 
         bool is_root() {
             return depth == 0;
+        }
+
+        bool pruning_enabled() {
+            if (triggers.probing_enabled()) {
+                return true;
+            }
+            for (auto &&child : refinement_blocks) {
+                if (child->pruning_enabled())
+                    return true;
+            }
+            return false;
         }
 
         void tree_pre_order_iter(std::function<void(std::shared_ptr<proof_node<SolverState>>)> fun) {
@@ -632,6 +696,10 @@ namespace SMT {
             std::list<std::shared_ptr<proof_node<SolverState>>> ret;
             get_tree_nodes_tail(ret);
             return std::move(ret);
+        }
+
+        void clean_pruning_triggers() {
+            this->tree_pre_order_iter([](std::shared_ptr<proof_node<SolverState>> node) { node->triggers.clean();});
         }
 
         void clean_solver_info_state() {
