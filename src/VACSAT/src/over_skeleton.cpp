@@ -1126,7 +1126,7 @@ namespace SMT {
             }
 
             bool anotate_refineable(tree &root) {
-                if (!root->pruning_enabled()) {
+                if (root->pruning_enabled()) {
                     return false;
                 }
                 return set_node_refinement_from_model(root);
