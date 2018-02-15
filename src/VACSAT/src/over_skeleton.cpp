@@ -283,15 +283,9 @@ namespace SMT {
             // NONDET ASSIGNMENT RELATED FUNCTIONS
             TExpr get_variable_invariant_from_node(tree &node, const Atomp &var) {
                 variable var_value = node->solver_state->vars[var->role_array_index];
-                std::set<bool> values;
-                for (auto &&rule :node->node_infos.rules_a) {
-                    if (rule->target == var) {
-                        values.insert(rule->is_ca);
-                    }
-                }
 
                 TExpr value_valid = solver->createFalse();
-                for (auto &&value : values) {
+                for (auto &&value : node->leaf_infos->nondet_restriction[var]) {
                     TExpr assigned_value = value ? one : zero;
                     value_valid = solver->createOrExpr(value_valid,
                                                        solver->createEqExpr(var_value.get_solver_var(),
@@ -1392,6 +1386,8 @@ namespace SMT {
                                std::move(root_leaf_infos),
                                std::list<std::weak_ptr<node>>(),
                                std::weak_ptr<node>()));
+
+            consolidate_tree(root);
 
             return root;
         }
