@@ -77,8 +77,8 @@ namespace SMT {
                                                                            BOOLEAN);
                 }
                 for (auto &&atom : node->node_infos.all_atoms) {
-                    std::string missing_priority_name = "missing_priority_" + node_id + "_" + atom->name;
-                    missing_priority[atom->role_array_index] = variable(missing_priority_name, 0, 1, solver, BOOLEAN);
+                    std::string unchecked_priority_name = "unchecked_priority_" + node_id + "_" + atom->name;
+                    unchecked_priority[atom->role_array_index] = variable(unchecked_priority_name, 0, 1, solver, BOOLEAN);
                 }
                 for (auto &&atom : node->node_infos.all_atoms) {
                     std::string priority_name = "priority_" + node_id + "_" + atom->name;
@@ -109,9 +109,9 @@ namespace SMT {
             std::string &node_id;
             std::vector<variable> vars;
             std::vector<variable> updated_in_subrun;
-            std::vector<variable> blocked;
+//            std::vector<variable> blocked;
             std::vector<variable> blocked_by_children;
-            std::vector<variable> missing_priority;
+            std::vector<variable> unchecked_priority;
             std::vector<variable> priority;
             std::vector<variable> second_priority;
             std::vector<variable> priority_not_blocked;
@@ -121,6 +121,9 @@ namespace SMT {
             variable guard;
             variable refineable;
             variable increase_budget;
+
+            //Exploration_strategy tmp variables
+            variable es_all_atoms_set;
 
             b_solver_state() = delete;
 
@@ -132,7 +135,7 @@ namespace SMT {
                     updated_in_subrun(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
                     blocked(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
                     blocked_by_children(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
-                    missing_priority(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
+                    unchecked_priority(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
                     priority(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
                     second_priority(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
                     priority_not_blocked(std::vector<variable>((uint) node->node_infos.policy_atoms_count)) {
@@ -446,6 +449,9 @@ namespace SMT {
                                                                                  rule_var_id_value));
                 emit_assumption(node, rule_selected_impl_var_id);
 
+                // SET PRIORITY OF THE NODE
+                set_priority(node, rule, rule_is_selected);
+
 //                //SAVE VAR_ID
 //                variable old_var_id_var = node->solver_state->var_id;
 //                variable new_var_id_var = node->solver_state->var_id.createFrom();
@@ -579,12 +585,96 @@ namespace SMT {
                 }
             }
 
+            // PRIORITY RELATED FUNCTIONS
+            void set_priority(tree &node, rulep& rule, TExpr rule_selected) {
+                TExpr all_atoms_priority_set = one;
+                for (auto &&atom : node->node_infos.all_atoms) {
+                    int i = atom->role_array_index;
+                    TExpr value = (contains(rule->prec->atoms(), atom)) ? one : zero;
+
+                    TExpr priority_i_set = solver->createEqExpr(node->solver_state->priority[i].get_solver_val(),
+                                                              value);
+                    all_atoms_priority_set = solver->createAndExpr(all_atoms_priority_set, priority_i_set);
+                }
+                TExpr if_rule_selected_priority_is_set = solver->createImplExpr(rule_selected, all_atoms_priority_set);
+                emit_assumption(node, if_rule_selected_priority_is_set);
+            }
+
+            void set_unchecked_priority(tree &node) {
+                for (auto &&atom : node->node_infos.all_atoms) {
+                    int i = atom->role_array_index;
+                    TExpr atom_in_priority = node->solver_state->priority[i].get_solver_var();
+                    TExpr atom_blocked_by_children = node->solver_state->blocked_by_children[i].get_solver_var();
+
+                    // If leaf all priority is unchecked
+                    TExpr atom_in_p_not_checked = node->is_leaf() ?
+                                                  atom_in_priority :
+                                                  solver->createAndExpr(atom_in_priority,
+                                                                        solver->createNotExpr(atom_blocked_by_children));
+                    variable& unchecked_atom = node->solver_state->unchecked_priority[i];
+                    emit_assignment(node, unchecked_atom, atom_in_p_not_checked);
+                }
+            }
+
+            void set_second_priority(tree &node) {
+                if (node->is_leaf()) {
+                    unexpected("Leaves do not have second priority");
+                }
+                for (auto &&atom : node->node_infos.all_atoms) {
+                    int i = atom->role_array_index;
+                    TExpr is_unchecked_in_children = zero;
+                    // Exclude last child from snd priority
+                    //TODO: put condition in last node not used for priority
+                    for (int j = 0; j < node->refinement_blocks.size() - 1; ++j) {
+                        tree& child = node->refinement_blocks[i];
+                        TExpr atom_is_unchecked_in_child = child->solver_state->unchecked_priority[i].get_solver_var();
+                        is_unchecked_in_children = solver->createOrExpr(is_unchecked_in_children, atom_is_unchecked_in_child);
+                    }
+                    emit_assignment(node, node->solver_state->second_priority[i], is_unchecked_in_children);
+                }
+            }
+
+
+            // MULTY PRIORITY EXPLORATION STRATEGY REVISITED
+            TExpr rev_skipped_last_child(tree& node) {
+                if (node->is_leaf()) {
+                    throw unexpected("Exploration strategy cannot be called on leaves");
+                }
+                tree last_child = node->refinement_blocks.back();
+                return last_child->solver_state->skip;
+            }
+
+            TExpr rev_es_all_done(tree &node) {
+                TExpr all_set = one;
+                for (auto &&atom : node->node_infos.all_atoms) {
+                    int i = atom->role_array_index;
+                    variable updated_atom = node->solver_state->updated_in_subrun[i];
+                    variable blocked_atom = node->solver_state->blocked_by_children[i];
+
+                    TExpr if_upd_then_blocked = solver->createImplExpr(updated_atom.get_solver_var(),
+                                                                       blocked_atom.get_solver_var());
+
+                    all_set = solver->createAndExpr(all_set, if_upd_then_blocked);
+                }
+                return all_set;
+            }
+
+            void rev_es_skip_all_done(tree &node) {
+                TExpr skipped_last_child = rev_skipped_last_child(node);
+                TExpr all_done = rev_es_all_done(node);
+
+                TExpr if_skip_all_done = solver->createImplExpr(skipped_last_child, all_done);
+                emit_assignment(node, node->solver_state->es_all_atoms_set, if_skip_all_done);
+            }
+
+
+
+
             // EXPLORATION_STRATEGY RELATED FUNCTIONS
             //TODO: exlude atom from priorities if not in atom_a
             TExpr es_skipped_last_child(tree &node) {
                 if (node->refinement_blocks.empty()) {
-                    throw unexpected_error("exploration_strategy cannot be called on leaves", __FILE__, __LINE__,
-                                           __FUNCTION__, __PRETTY_FUNCTION__);
+                    throw unexpected("exploration_strategy cannot be called on leaves");
                 }
                 std::weak_ptr<proof_node<b_solver_state>> w_last_child = node->refinement_blocks.back();
                 variable last_skip = w_last_child.lock()->solver_state->skip;
@@ -971,6 +1061,7 @@ namespace SMT {
                     emit_comment("Node_" + node->uid + "is_leaf");
                     update_unblocked_vars_a(node);
                     transition_c(node);
+                    set_unchecked_priority(node);
                 } else {
                     emit_comment("Node_" + node->uid + "_is_internal");
                     simulate_children(node);
@@ -982,6 +1073,7 @@ namespace SMT {
                     multi_priority_exploration_strategy(node);
                     emit_comment("End_exploration_strategy_" + node->uid);
                     transition_c(node);
+                    set_unchecked_priority(node);
                 }
                 emit_comment("End_subrun_" + node->uid);
             }
