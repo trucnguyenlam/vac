@@ -721,13 +721,21 @@ namespace SMT {
             return fmt.str();
         }
 
-        void dump_tree(const std::string& fname) {
+        void dump_tree(const std::string& fname, bool javascript_compliant, std::string heading_name = "") {
             std::ofstream out(fname);
             std::string structure = this->tree_to_string();
             std::string details = this->JSON_stringify();
+            if (heading_name != "") {
+                out << "/**" << std::endl;
+                out << " * " << heading_name << std::endl;
+                out << " */" << std::endl;
+            }
             out << "/*" << std::endl;
             out << structure;
             out << "*/" << std::endl << std::endl;
+            if (javascript_compliant) {
+                out << "x = " << std::endl;
+            }
             out << details;
             out << std::endl << std::endl;
             out.close();

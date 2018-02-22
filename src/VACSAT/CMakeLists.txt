@@ -16,8 +16,19 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
                      -Wno-unused-parameter \
                      -Wno-comment \
                      -Wno-sign-compare \
-                     -Wno-parentheses-equality \
                      -static")
+
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+    message("using Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+                         -Wno-parentheses-equality")
+elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
+    message("using GCC")
+elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Intel")
+    message("using Intel C++")
+elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
+    message("using Visual Studio C++")
+endif()
 
 find_program(GOLD_FOUND gold)
 if (GOLD_FOUND)
