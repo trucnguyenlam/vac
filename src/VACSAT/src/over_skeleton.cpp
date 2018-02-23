@@ -1795,15 +1795,15 @@ namespace SMT {
                 log->warn("{}", proof->tree_to_string());
 
                 log->debug("TESTING UNDERAPPROX PROOF");
-//                block_nondet(proof);
-//                over_analysis_result complete_result = translator.translate_and_run(proof, true);
+                block_nondet(proof);
+                over_analysis_result complete_result = translator.translate_and_run(proof, true);
                 proof->clean_pruning_triggers();
-//                assert(complete_result != UNSAFE_REFINEABLE);
-//                if (complete_result == UNSAFE) {
-//                    proof->dump_tree("tree.js", true, "POST UNDERAPPROX");
-//                    log->info("Target role may be reachable (but proof is not refineable)");
-//                    return true;
-//                }
+                assert(complete_result != UNSAFE_REFINEABLE);
+                if (complete_result == UNSAFE) {
+                    proof->dump_tree("tree.js", true, "POST UNDERAPPROX");
+                    log->info("Target role may be reachable (but proof is not refineable)");
+                    return true;
+                }
 
                 log->debug("TESTING OVERAPPROX PROOF");
                 over_analysis_result result =
