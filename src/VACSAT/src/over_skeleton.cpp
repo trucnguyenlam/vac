@@ -70,6 +70,12 @@ namespace SMT {
 //                    blocked[atom->role_array_index] = variable(blocked_name, 0, 1, solver, BOOLEAN);
 //                }
 
+                int i = 0;
+                for (auto &&rules_c : node->node_infos.rules_c) {
+                    std::string apply_rule_name = "apply_rule_" + std::to_string(i) + "_" + node_id;
+                    apply_rule[i] = variable(apply_rule_name, -1, 1, solver, BOOLEAN);
+                    i++;
+                }
 
                 for (auto &&atom : node->node_infos.all_atoms) {
                     std::string blocked_by_children_name = "blocked_by_children_" + node_id + "_" + atom->name;
@@ -120,6 +126,7 @@ namespace SMT {
             std::vector<variable> vars;
             std::vector<variable> updated_in_subrun;
 //            std::vector<variable> blocked;
+            std::vector<variable> apply_rule;
             std::vector<variable> blocked_by_children;
             std::vector<variable> unchecked_priority;
             std::vector<variable> priority;
@@ -151,6 +158,7 @@ namespace SMT {
                     vars(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
                     updated_in_subrun(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
 //                    blocked(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
+                    apply_rule(std::vector<variable>((uint) node->node_infos.rules_c.size())),
                     blocked_by_children(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
                     unchecked_priority(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
                     priority(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
@@ -207,7 +215,7 @@ namespace SMT {
 
             inline void emit_comment(const std::string &comment) {
                 //Working automatically and only in Z3
-                if (std::is_same<z3::expr, TExpr>::value) {
+                if (std::is_same<z3::expr, TExpr>::value && false) {
                     solver->assertNow(solver->createBoolVar(comment));
                     log->debug("Emitting comment: " + comment);
                 }
@@ -224,7 +232,8 @@ namespace SMT {
                 for (auto &&atom : node->node_infos.all_atoms) {
 
 //                    log->warn("{}", var.full_name);
-                    emit_assignment(node, vars[atom->role_array_index], zero);
+//                    emit_assignment(node, vars[atom->role_array_index], zero);
+                    strict_emit_assignment(vars[atom->role_array_index], zero);
 //                        strict_emit_assignment(vars[atom->role_array_index], zero);
                 }
             }
@@ -455,7 +464,7 @@ namespace SMT {
                                                       is_rule_selected),
                                 one,
                                 old_blocked.get_solver_var());
-                emit_assignment(node, new_blocked, new_blocked_value);
+                strict_emit_assignment(new_blocked, new_blocked_value);
                 parent->solver_state->blocked_by_children[target_idx] = new_blocked;
             }
 
@@ -505,15 +514,22 @@ namespace SMT {
                     TExpr value = solver->createBVConst(rule_id, node->solver_state->rule_id.bv_size);
                     solver->assertLater(solver->createEqExpr(v, value));
                 }
-                TExpr rule_is_selected =
+                TExpr is_rule_selected_value =
                         solver->createEqExpr(node->solver_state->rule_id.get_solver_var(),
                                              solver->createBVConst(rule_id, node->solver_state->rule_id.bv_size));
 
-                TExpr rule_assumptions = get_rule_assumptions_c(node, rule_id, rule_is_selected);
+                // This ensures it is printed close to the usage in the model
+                node->solver_state->apply_rule[rule_id] = node->solver_state->apply_rule[rule_id].createFrom();
+                emit_assignment(node, node->solver_state->apply_rule[rule_id], is_rule_selected_value);
+
+
+                TExpr is_rule_selected = node->solver_state->apply_rule[rule_id].get_solver_var();
+
+                TExpr rule_assumptions = get_rule_assumptions_c(node, rule_id, is_rule_selected);
 
                 emit_assumption(node, rule_assumptions);
 
-                apply_rule_effect_c(node, rule_id, rule_is_selected);
+                apply_rule_effect_c(node, rule_id, is_rule_selected);
             }
 
             void select_one_rule_c(tree &node) {
@@ -1245,8 +1261,8 @@ namespace SMT {
                     simulate_children(node);
 //                    exploration_strategy(node);
 //                    multi_priority_exploration_strategy(node);
-                    transition_c(node);
                     rev_es_check(node);
+                    transition_c(node);
                     set_unchecked_priority(node);
                 }
                 emit_comment("End_subrun_" + node->uid);
@@ -1399,7 +1415,7 @@ namespace SMT {
             }
 
             void initialize() {
-                tmp_bool = variable("tmp_bool", 0, 1, solver.get(), BOOLEAN);
+                tmp_bool = generic_variable<TVar, TExpr>("tmp_bool", 0, 1, solver.get(), BOOLEAN);
                 zero = solver->createBoolConst(0);
                 one = solver->createBoolConst(1);
             }
@@ -1649,7 +1665,7 @@ namespace SMT {
         void set_fake_tree(tree& root) {
             root->leaf_infos->gap = maybe_bool::YES;
             refine_tree(root);
-            root->refinement_blocks[0]->leaf_infos->gap = maybe_bool::YES;
+//            root->refinement_blocks[0]->leaf_infos->gap = maybe_bool::YES;
             root->refinement_blocks[1]->leaf_infos->gap = maybe_bool::YES;
             refine_tree(root);
         }
@@ -1771,7 +1787,7 @@ namespace SMT {
                                        orig_rules,
                                        policy,
                                        to_check);
-            set_fake_tree(proof);
+//            set_fake_tree(proof);
             bool completed = false;
 
             tree_to_SMT translator(policy, solver, policy->unique_configurations());
@@ -1793,7 +1809,6 @@ namespace SMT {
                 over_analysis_result result =
                         translator.translate_and_run(proof, true);
                 proof->dump_tree("tree.js", true, "POST OVERAPPROX");
-
 
 //                std::pair<std::string, std::string> strs = proof->tree_to_full_string();
 //                log->debug("{}", strs.second);
