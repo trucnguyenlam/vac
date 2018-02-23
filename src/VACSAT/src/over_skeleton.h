@@ -402,13 +402,15 @@ namespace SMT {
             fmt << "{" << std::endl;
             fmt << prefix << "\tgap: " << maybe_bool_to_string(gap) << "," << std::endl;
             fmt << prefix << "\tnondet_restriction: {" << std::endl; //"..." << std::endl;
+            std::string nprefix = prefix + "\t";
             for (auto &&kv : nondet_restriction) {
-                fmt << prefix << "\t" << *kv.first << ": { ";
+                fmt << nprefix << "\t" << *kv.first << ": { ";
                 for (auto &&v : kv.second) {
                     fmt << bool_to_true_false(v) << ", ";
                 }
                 fmt << "}," << std::endl;
             }
+            fmt << nprefix << "}" << std::endl;
             fmt << prefix << "}";
             return fmt.str();
         }
@@ -736,53 +738,11 @@ namespace SMT {
             if (javascript_compliant) {
                 out << "x = " << std::endl;
             }
-            out << details;
+            out << details << ";";
             out << std::endl << std::endl;
             out.close();
         }
     };
-
-    template <typename BlockSolverInfo>
-    class simple_block_info {
-    public:
-//        const std::shared_ptr<arbac_policy>& policy;
-        //NEEDED TO KNOW ARRAYS DIMENSIONS
-        const int policy_atom_count;
-        const std::vector<atomp> atoms;
-        const std::vector<rulep> rules;
-        std::shared_ptr<BlockSolverInfo> solverInfo;
-        const Expr invariant;
-
-        friend std::ostream& operator<< (std::ostream& stream, const simple_block_info& self) {
-            stream << "\tpolicy_atom_count: " << self.policy_atom_count << std::endl;
-            stream << "\tatoms: " << std::endl;
-            for (auto &&atom : self.atoms) {
-                stream << "\t\t" << *atom << std::endl;
-            }
-            stream << "\trules: " << std::endl;
-            for (auto &&rule : self.rules) {
-                stream << "\t\t" << *rule << std::endl;
-            }
-//            stream << "\tsolverInfo: " << *self.solverInfo << std::endl;
-            stream << "\tinvariant: " << *self.invariant << std::endl;
-
-            return stream;
-        }
-
-        simple_block_info(//const std::shared_ptr<arbac_policy>& _policy,
-                          const int _policy_atom_count,
-                          const std::vector<atomp> _atoms,
-                          const std::vector<rulep> _rules,
-                          std::shared_ptr<BlockSolverInfo> _solverInfo,
-                          Expr _invariant):
-//                policy(_policy),
-                policy_atom_count(_policy_atom_count),
-                atoms(_atoms),
-                rules(_rules),
-                solverInfo(_solverInfo),
-                invariant(_invariant) { }
-    };
-
 }
 
 #endif //VACSAT_OVER_SKELETON_H
