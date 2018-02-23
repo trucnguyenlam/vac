@@ -35,18 +35,28 @@ mv "${tmp}" "${in_f}"
 sed 's/|\([^|]\+\)_\([0-9][0-9][0-9][0-9]\)|  /\2: |\1_\2|  /g' "${in_f}" > "${tmp}"
 mv "${tmp}" "${in_f}"
 
-# removing new_line beween var and value
+# removing new_line between var and value
 sed ':a;N;$!ba;s/  :  \n    /: /g' "${in_f}" > "${tmp}"
 mv "${tmp}" "${in_f}"
 
+# removing "(model"
+sed 's/(model $//' "${in_f}" > "${tmp}"
+mv "${tmp}" "${in_f}"
+# removing "sat"
+sed 's/sat$//' "${in_f}" > "${tmp}"
+mv "${tmp}" "${in_f}"
 # removing last ")"
 sed 's/.$//' "${in_f}" > "${tmp}"
 mv "${tmp}" "${in_f}"
-# sed 's/(model$//' "${in_f}" > "${tmp}"
-# mv "${tmp}" "${in_f}"
-# sed 's/sat$//' "${in_f}" > "${tmp}"
-# mv "${tmp}" "${in_f}"
+
+# removing empty lines
+sed '/^\s*$/d' "${in_f}" > "${tmp}"
+mv "${tmp}" "${in_f}"
 
 # sorting the file
 sort "${in_f}" > "${tmp}"
+mv "${tmp}" "${in_f}"
+
+# removing previously inserted leading 0s from the var name
+sed 's/_0\+\([1-9][0-9]*\):/_\1:/g' "${in_f}" > "${tmp}"
 mv "${tmp}" "${in_f}"
