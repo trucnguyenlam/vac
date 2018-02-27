@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 
+if [ -z "${1}" ]
+then
+      echo "No file is specified"
+      echo "USAGE: ./${0} file_name"
+      exit
+fi
+
+if [ ! -f "${1}" ]; then
+    echo "File ${1} not found!"
+    exit
+fi
+
+
 in_f="${1}"
 tmp="${in_f}1"
 
