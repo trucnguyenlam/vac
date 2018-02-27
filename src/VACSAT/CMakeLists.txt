@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.0)
 project(vacsat)
 
 #set(CMAKE_CXX_STANDARD 11)  # enable C++11 standard
-set(CMAKE_CXX_STANDARD 14)  # enable C++11 standard
+set(CMAKE_CXX_STANDARD 14)  # enable C++14 standard
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -fpermissive -Wwrite-strings")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused -Wno-unused-parameter -Wno-comment -Wno-sign-compare -Wno-c++1z-extensions -static")
@@ -153,6 +153,7 @@ set(PARSER_SOURCES
     ${PROJECT_SOURCE_DIR}/src/parser/Parser.cpp
     ${PROJECT_SOURCE_DIR}/src/parser/translator.cpp
 )
+
 
 add_executable(vacsat ${SOURCE_FILES} ${PARSER_SOURCES})
 add_subdirectory(src/old_parser)
