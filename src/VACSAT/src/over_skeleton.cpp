@@ -1494,8 +1494,9 @@ namespace SMT {
             for (auto &&rule : orig_rules) {
                 bool should_insert = true;
                 for (auto &&selected : res) {
-                    if (selected->target == rule->target &&
-                            selected->prec->equals(rule->prec)) {
+                    if ( selected->is_ca == rule->is_ca &&
+                         selected->target == rule->target &&
+                         selected->prec->equals(rule->prec)) {
                         should_insert = false;
                         break;
                     }
