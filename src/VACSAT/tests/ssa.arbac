@@ -1,9 +1,10 @@
-Roles adm r1 r2 r3 rt nogoal ;
+Roles adm r1 r2 r3 rt nogoal rj;
 
 Users u1;
 
 UA
     <u1, adm>
+    <u1, r3>
     ;
 
 CR
