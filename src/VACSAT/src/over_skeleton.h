@@ -225,6 +225,7 @@ namespace SMT {
         std::unique_ptr<std::pair<atomp, bool>> post_A_check;
         std::unique_ptr<std::pair<atomp, bool>> pre_A_blocked_check;
         std::unique_ptr<std::pair<atomp, bool>> post_A_blocked_check;
+        bool no_transition; /// Disable transition
         bool no_skip;       /// Forbids the node to skip
         bool no_priority;   /// Disable node exploration strategy
 
@@ -233,6 +234,7 @@ namespace SMT {
         bool check_gap;
 
         pruning_triggers clone() {
+            bool _no_transition = no_transition;
             bool _no_skip = no_skip;
             bool _no_priority = no_priority;
 
@@ -278,6 +280,7 @@ namespace SMT {
             res.post_A_check = std::move(_post_A_check);
             res.pre_A_blocked_check = std::move(_pre_A_blocked_check);
             res.post_A_blocked_check = std::move(_post_A_blocked_check);
+            res.no_transition = _no_transition;
             res.no_skip = _no_skip;
             res.no_priority = _no_priority;
 
@@ -294,6 +297,7 @@ namespace SMT {
             this->post_A_check = nullptr;
             this->pre_A_blocked_check = nullptr;
             this->post_A_blocked_check = nullptr;
+            this->no_transition = false;
             this->no_skip = false;
             this->no_priority = false;
             this->overapprox = maybe_bool::UNKNOWN;
@@ -307,6 +311,7 @@ namespace SMT {
                    this->post_A_check != nullptr ||
                    this->pre_A_blocked_check != nullptr ||
                    this->post_A_blocked_check != nullptr ||
+                   this->no_transition ||
                    this->no_skip ||
                    this->no_priority ||
                    this->overapprox != maybe_bool::UNKNOWN ||
@@ -358,10 +363,13 @@ namespace SMT {
             } else {
                 fmt << "null," <<std::endl;
             }
+            fmt << i_prefix << "no_transition: " << bool_to_true_false(no_transition) << "," << std::endl;
             fmt << i_prefix << "no_skip: " << bool_to_true_false(no_skip) << "," << std::endl;
             fmt << i_prefix << "no_priority: " << bool_to_true_false(no_priority) << "," << std::endl;
             fmt << i_prefix << "overapprox: " << maybe_bool_to_string(overapprox) << "," << std::endl;
             fmt << i_prefix << "check_gap: " << bool_to_true_false(check_gap) << "," << std::endl;
+
+            fmt << prefix << "}";
 
             return fmt.str();
         }
@@ -373,6 +381,7 @@ namespace SMT {
                 post_A_check(nullptr),
                 pre_A_blocked_check(nullptr),
                 post_A_blocked_check(nullptr),
+                no_transition(false),
                 no_skip(false),
                 no_priority(false),
                 overapprox(maybe_bool::UNKNOWN),
@@ -476,7 +485,7 @@ namespace SMT {
                 c_leaf_infos = std::make_unique<leaves_infos>(c_leaf_infos_cnt);
             }
 
-            pruning_triggers c_triggers = this->triggers.clone();
+//            pruning_triggers c_triggers = ;
 
             // WEAK VALUES ARE REBBUILT AFTER
 //            std::list<std::weak_ptr<proof_node<SolverState>>> c_ancestors;
@@ -485,17 +494,16 @@ namespace SMT {
                     new proof_node<SolverState>(c_path,
                                                 c_uid,
                                                 c_depth,
-                                                c_is_leaf,
                                                 c_invariants,
                                                 c_node_infos,
                                                 std::move(c_leaf_infos),
-                                                c_triggers,
+                                                this->triggers.clone(),
                                                 nullptr,
                                                 std::list<std::weak_ptr<proof_node<SolverState>>>(),
                                                 std::weak_ptr<proof_node<SolverState>>(),
                                                 std::vector<std::shared_ptr<proof_node<SolverState>>>()));
 
-            for (std::shared_ptr<proof_node<SolverState>> &&child : this->refinement_blocks) {
+            for (auto &&child : this->refinement_blocks) {
                 std::shared_ptr<proof_node<SolverState>> c_child = child->memberwise_clone();
 //                c_child->parent = c_node;
                 c_node->refinement_blocks.push_back(c_child);
@@ -509,7 +517,7 @@ namespace SMT {
             std::list<std::weak_ptr<proof_node<SolverState>>> last_ancestors = this->ancestors;
             std::shared_ptr<proof_node<SolverState>> this_shared(this->shared_from_this());
             last_ancestors.push_back(this_shared);
-            for (std::shared_ptr<proof_node<SolverState>> &&child : this->refinement_blocks) {
+            for (auto &&child : this->refinement_blocks) {
                 child->parent = this_shared;
                 child->ancestors = last_ancestors;
                 child->rebuild_weak_ptrs();
@@ -553,7 +561,7 @@ namespace SMT {
             fmt << i_prefix << "node_infos: " << node_infos.JSON_stringify(i_prefix) << "," << std::endl;
             fmt << i_prefix << "leaf_infos: " << (leaf_infos == nullptr ? "null" : leaf_infos->JSON_stringify(i_prefix)) << "," << std::endl;
             fmt << i_prefix << "invariants: " << omissis << "," << std::endl;
-            fmt << i_prefix << "triggers: " << triggers.JSON_stringify() << "," << std::endl;
+            fmt << i_prefix << "triggers: " << triggers.JSON_stringify(i_prefix) << "," << std::endl;
             fmt << i_prefix << "solver_state: " << omissis << "," << std::endl;
             auto shared_parent = parent.lock();
             fmt << i_prefix << "parent: " << (shared_parent == nullptr ? "null" : shared_parent->uid) << "," << std::endl;
@@ -570,6 +578,41 @@ namespace SMT {
             }
             fmt << i_prefix << "]" << std::endl;
             fmt << prefix << "}";
+        }
+
+        void update_leaves_infos() {
+            if (!this->is_leaf()) {
+                return;
+            }
+            if (this->leaf_infos == nullptr) {
+                throw unexpected("All leaves must have the associated leaf_infos != nullptr");
+            }
+//            if (this->node_infos.rules_c.empty()) {
+//                //FIXME: ADD POSSIBILITY TO REMOVE CHILDREN FROM NODES
+//                return;
+//            }
+
+            std::map<atomp, std::set<bool>> &map = this->leaf_infos->nondet_restriction;
+
+            for (auto &&atom : this->node_infos.all_atoms) {
+                std::set<bool> new_set;
+                // ADDING POSSIBLE VALUES DEPENDING ON rules_A
+                for (auto &&rule_a : this->node_infos.rules_a) {
+                    if (rule_a->target == atom) {
+                        new_set.insert(rule_a->is_ca);
+                    }
+                }
+                map[atom] = new_set;
+            }
+
+            // REMOVING VALUES FORBIDDEN BY INVARIANTS
+            for (auto &&invariant : this->invariants.inv_A_C.get_as_set()) {
+                // IN CASE OF MULTIVALUED ATTRIBUTE REMOVE ALL
+                bool forbidden_value = !invariant.value;
+                map[invariant.atom].erase(forbidden_value);
+            }
+
+//            tree->leaf_infos->nondet_restriction = std::move(map);
         }
 
     public:
@@ -636,7 +679,7 @@ namespace SMT {
                 invariants(std::move(_invariants)),
                 node_infos(_node_infos),
                 leaf_infos(std::move(_leaf_infos)),
-                pruning_triggers(_pruning_triggers),
+                triggers(std::move(_pruning_triggers)),
                 solver_state(_solver_state),
                 ancestors(_ancestors),
                 parent(_parent),
@@ -741,6 +784,26 @@ namespace SMT {
             out << details << ";";
             out << std::endl << std::endl;
             out.close();
+        }
+
+        std::shared_ptr<proof_node<SolverState>> get_by_path(tree_path path) {
+            if (path.empty())
+                return this->shared_from_this();
+
+            int i = path.front();
+            path.pop_front();
+
+            if (i < this->refinement_blocks.size()) {
+                return this->refinement_blocks[i]->get_by_path(path);
+            } else {
+                log->critical("Cannot follow path {} in node {}", i, this->uid);
+                throw std::runtime_error("Cannot follow path " + std::to_string(i) + " in node " + this->uid);
+            }
+        }
+
+        void consolidate_tree() {
+            this->tree_pre_order_iter([](std::shared_ptr<proof_node<SolverState>> node) { node->update_leaves_infos(); });
+//            expand_invariants(_tree);
         }
     };
 }
