@@ -42,26 +42,44 @@ namespace SMT {
     static unsigned int var_counter = 0;
 
     msat_config MathsatSolver::mk_config() {
-        static const char* mathsat_config =
+//        static const char* mathsat_config =
+//                "preprocessor.toplevel_propagation = true\n"
+//                "preprocessor.simplification = 7\n"
+//                "dpll.branching_random_frequency = 0.01\n"
+//                "dpll.branching_random_invalidate_phase_cache = true\n"
+//                "dpll.restart_strategy = 3\n"
+//                "dpll.glucose_var_activity = true\n"
+//                "dpll.glucose_learnt_minimization = true\n"
+//                "theory.bv.eager = true\n"
+//                "theory.bv.delay_propagated_eqs = true\n"
+//                "theory.arr.mode = 1\n"
+//                "theory.la.enabled = false\n"
+//                "theory.eq_propagation = false\n"
+//                "theory.arr.enabled = false\n"
+//                "theory.bv.bit_blast_mode = 2\n"
+//                "dpll.preprocessor.mode = 1\n";
+        const char* mathsat_config =
                 "preprocessor.toplevel_propagation = true\n"
-                "preprocessor.simplification = 7\n"
-                "dpll.branching_random_frequency = 0.01\n"
-                "dpll.branching_random_invalidate_phase_cache = true\n"
-                "dpll.restart_strategy = 3\n"
-                "dpll.glucose_var_activity = true\n"
-                "dpll.glucose_learnt_minimization = true\n"
-                "theory.bv.eager = true\n"
-                "theory.bv.delay_propagated_eqs = true\n"
-                "theory.arr.mode = 1\n"
-                "theory.la.enabled = false\n"
-                "theory.eq_propagation = false\n"
-                "theory.arr.enabled = false\n"
-                "theory.bv.bit_blast_mode = 2\n"
-                "dpll.preprocessor.mode = 1\n";
+                        "preprocessor.simplification = 1\n"
+                        "dpll.branching_random_frequency = 0.01\n"
+                        "dpll.branching_random_invalidate_phase_cache = true\n"
+                        "dpll.restart_strategy = 3\n"
+                        "dpll.glucose_var_activity = true\n"
+                        "dpll.glucose_learnt_minimization = true\n"
+                        "dpll.preprocessor.mode = 1\n"
+                        "theory.bv.eager = true\n"
+                        "theory.bv.bit_blast_mode = 2\n"
+                        "theory.bv.delay_propagated_eqs = true\n"
+                        "theory.la.enabled = false\n"
+                        "theory.fp.mode = 1\n"
+                        "theory.fp.bit_blast_mode = 2\n"
+                        "theory.fp.bv_combination_enabled = true\n"
+                        "theory.arr.permanent_lemma_inst = true\n"
+                        "theory.arr.enable_witness = true";
 
 
         msat_config cfg = msat_parse_config(mathsat_config);
-        msat_set_option(cfg, "model_generation", "false");
+        msat_set_option(cfg, "model_generation", "true");
         return cfg;
     }
 
@@ -338,10 +356,10 @@ namespace SMT {
         else {
             auto ite = to_be_asserted.begin();
             msat_term body = *ite;
-            asserted.push_back(body);
+//            asserted.push_back(body);
             for (++ite; ite != to_be_asserted.end(); ++ite) {
                 body = msat_make_and(context, body, *ite);
-                asserted.push_back(body);
+//                asserted.push_back(body);
             }
             msat_assert_formula(context, body);
             // yices_pp_term(stderr, body, 120, 40, 0);

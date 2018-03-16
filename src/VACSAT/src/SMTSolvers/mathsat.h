@@ -67,7 +67,7 @@ namespace SMT {
 
     private:
         std::list<msat_term> to_be_asserted;
-        std::list<msat_term> asserted;
+//        std::list<msat_term> asserted;
         msat_env context;
         msat_model model;
 
