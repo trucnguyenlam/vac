@@ -71,7 +71,7 @@ namespace SMT {
     private:
         void mk_config();
         std::list<BoolectorExpr> to_be_asserted;
-        std::list<BoolectorExpr> asserted;
+//        std::list<BoolectorExpr> asserted;
         Btor* context;
     };
 }

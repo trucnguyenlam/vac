@@ -13,22 +13,26 @@ namespace SMT {
 //        log->warn("Mk config!");
 //        log->warn("enabling model generation for boolector");
 #endif
+//        boolector_set_opt(this->context, BTOR_OPT_MODEL_GEN, 1);
+//        boolector_set_opt(this->context, BTOR_OPT_ENGINE, 2);
+//        // Simplifier options
+//        boolector_set_opt(this->context, BTOR_OPT_REWRITE_LEVEL, 1);
+//        boolector_set_opt(this->context, BTOR_OPT_SKELETON_PREPROC, 1);
+//        boolector_set_opt(this->context, BTOR_OPT_ACKERMANN, 0);
+//        boolector_set_opt(this->context, BTOR_OPT_BETA_REDUCE_ALL, 0);
+//        boolector_set_opt(this->context, BTOR_OPT_ELIMINATE_SLICES, 1);
+//        boolector_set_opt(this->context, BTOR_OPT_VAR_SUBST, 1);
+//        boolector_set_opt(this->context, BTOR_OPT_UCOPT, 1);
+//        boolector_set_opt(this->context, BTOR_OPT_MERGE_LAMBDAS, 0);
+//        boolector_set_opt(this->context, BTOR_OPT_EXTRACT_LAMBDAS, 0);
+//        boolector_set_opt(this->context, BTOR_OPT_NORMALIZE_ADD, 0);
+//
+//
+//        boolector_set_opt(this->context, BTOR_OPT_AUTO_CLEANUP, 1);
+
         boolector_set_opt(this->context, BTOR_OPT_MODEL_GEN, 1);
-        boolector_set_opt(this->context, BTOR_OPT_ENGINE, 2);
-        // Simplifier options
-        boolector_set_opt(this->context, BTOR_OPT_REWRITE_LEVEL, 1);
-        boolector_set_opt(this->context, BTOR_OPT_SKELETON_PREPROC, 1);
-        boolector_set_opt(this->context, BTOR_OPT_ACKERMANN, 0);
-        boolector_set_opt(this->context, BTOR_OPT_BETA_REDUCE_ALL, 0);
-        boolector_set_opt(this->context, BTOR_OPT_ELIMINATE_SLICES, 1);
-        boolector_set_opt(this->context, BTOR_OPT_VAR_SUBST, 1);
-        boolector_set_opt(this->context, BTOR_OPT_UCOPT, 1);
-        boolector_set_opt(this->context, BTOR_OPT_MERGE_LAMBDAS, 0);
-        boolector_set_opt(this->context, BTOR_OPT_EXTRACT_LAMBDAS, 0);
-        boolector_set_opt(this->context, BTOR_OPT_NORMALIZE_ADD, 0);
-
-
         boolector_set_opt(this->context, BTOR_OPT_AUTO_CLEANUP, 1);
+
     }
 
     BoolectorSolver::BoolectorSolver() : context(boolector_new()) {
@@ -256,10 +260,10 @@ namespace SMT {
         else {
             auto ite = to_be_asserted.begin();
             BoolectorExpr body = *ite;
-            asserted.push_back(body);
+//            asserted.push_back(body);
             for (++ite; ite != to_be_asserted.end(); ++ite) {
                 body = boolector_and(context, body, *ite);
-                asserted.push_back(body);
+//                asserted.push_back(body);
             }
             boolector_assert(context, body);
             // yices_pp_term(stderr, body, 120, 40, 0);
