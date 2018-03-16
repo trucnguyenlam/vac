@@ -2,7 +2,7 @@
 // Created by esteffin on 12/5/17.
 //
 
-#include "over_skeleton.h"
+#include "over_structures.h"
 #include "prelude.h"
 #include "SMT_BMC_Struct.h"
 #include "SMTSolvers/yices.h"
@@ -24,13 +24,13 @@ namespace SMT {
 //            if (r->name == "r1" || r->name == "r2") {
 //                return REQUIRED;
 //            }
-            return FREE;
+            return Choice::FREE;
         }
 
         int get_required_count() const override {
             int count = 0;
             for (auto &&atom :policy->atoms()) {
-                if (classify(atom) == REQUIRED) {
+                if (classify(atom) == Choice::REQUIRED) {
                     count++;
                 }
             }
@@ -216,9 +216,9 @@ namespace SMT {
 
             inline void emit_comment(const std::string &comment) {
                 //Working automatically and only in Z3
-                if (std::is_same<z3::expr, TExpr>::value && false) {
+                if (std::is_same<z3::expr, TExpr>::value) {
                     solver->assertNow(solver->createBoolVar(comment));
-                    log->debug("Emitting comment: " + comment);
+//                    log->debug("Emitting comment: " + comment);
                 }
             }
 
@@ -550,7 +550,7 @@ namespace SMT {
                         simulate_rule_c(node, rule_id);
                     } else {
                         //execute only selected rule
-                        if (*node->triggers.c_rule_check.get() == node->node_infos.rules_c[rule_id]) {
+                        if (*node->triggers.c_rule_check == node->node_infos.rules_c[rule_id]) {
                             // set the id to force role execution
                             emit_assignment(node,
                                             node->solver_state->rule_id,
@@ -580,7 +580,7 @@ namespace SMT {
                 }
 
                 if (node->triggers.no_skip) {
-                    emit_comment("Apply this node");
+                    emit_comment("Do_not_skip_" + node->uid);
                     strict_emit_assignment(node->solver_state->skip, zero);
                 }
 
@@ -859,6 +859,14 @@ namespace SMT {
             }
 
             void rev_es_check(tree &node) {
+                if (node->triggers.no_priority) {
+//#ifdef NDEBUG
+//#else
+//                    log->critical("Second priority??");
+//#endif
+                    emit_comment("Skipping_exploration_strategy_" + node->uid);
+                    return;
+                }
                 set_second_priority(node);
 
                 emit_comment("Begin_exploration_strategy_" + node->uid);
@@ -878,7 +886,7 @@ namespace SMT {
                 emit_comment("Begin_subrun_" + node->uid);
                 set_zero(node, node->solver_state->updated_in_subrun);
                 if (node->is_leaf()) {
-                    emit_comment("Node_" + node->uid + "is_leaf");
+                    emit_comment("Node_" + node->uid + "_is_leaf");
                     update_unblocked_vars_a(node);
                     if (node->triggers.no_transition) {
                         emit_comment("Transition_disabled_by_pruning");
@@ -891,6 +899,7 @@ namespace SMT {
                     simulate_children(node);
 //                    exploration_strategy(node);
 //                    multi_priority_exploration_strategy(node);
+
                     rev_es_check(node);
                     if (node->triggers.no_transition) {
                         emit_comment("Transition_disabled_by_pruning");
@@ -990,7 +999,7 @@ namespace SMT {
                         solver->print_statistics();
                     }
 
-                    if (!std::is_same<term_t, TExpr>::value && Config::dump_smt_formula != "") {
+                    if (!std::is_same<term_t, TExpr>::value && !Config::dump_smt_formula.empty()) {
                         solver->printContext(Config::dump_smt_formula);
                         log->info("BMC SMT formula dumped at: {}", Config::dump_smt_formula);
                     }
@@ -999,7 +1008,7 @@ namespace SMT {
                 SMTResult res = solver->solve();
 
                 if (main_run) {
-                    if (std::is_same<term_t, TExpr>::value && Config::dump_smt_formula != "") {
+                    if (std::is_same<term_t, TExpr>::value && !Config::dump_smt_formula.empty()) {
                         solver->printContext(Config::dump_smt_formula);
                         log->info("BMC SMT formula dumped at: {}", Config::dump_smt_formula);
                         if (res == SAT) {
@@ -1079,24 +1088,26 @@ namespace SMT {
                     assertions(std::list<TExpr>()) { }
 
             over_analysis_result translate_and_run(tree &root, bool annotate) {
+                over_analysis_result result;
                 solver->deep_clean();
                 cleanup(root);
-                bool result = is_reachable(root, annotate);
-                if (result) {
-                    if (!annotate) {
-                        return over_analysis_result::UNSAFE;
-                    }
-                    bool is_refineable = anotate_refineable(root);
-                    if (!is_refineable) {
-                        return over_analysis_result::UNSAFE;
-                    } else {
-                        return over_analysis_result::UNSAFE_REFINEABLE;
-                    }
-                } else {
-                    return over_analysis_result::SAFE;
-                }
-            }
+                bool over_reachable = is_reachable(root, annotate);
 
+                if (!over_reachable) {
+                    result = over_analysis_result::SAFE;
+                } else {
+                    if (annotate) {
+                        bool is_refineable = anotate_refineable(root);
+                        result = is_refineable ? over_analysis_result::UNSAFE_REFINEABLE : over_analysis_result::UNSAFE;
+                    } else {
+                        result = over_analysis_result::UNSAFE;
+                    }
+                }
+
+                cleanup(root);
+
+                return result;
+            }
         };
 
         class tree_pruner {
@@ -1104,27 +1115,75 @@ namespace SMT {
             struct abstract_pruning_handle {
             public:
                 tree cloned_tree;
-                tree target_node;
-                tree fake_node;
-                tree sfogo_node;
-                tree testing_node;
+                tree target_node_l;
+                tree fake_node_f;
+                tree sfogo_node_s;
+                tree testing_node_e;
                 abstract_pruning_handle(
                         tree _cloned_tree,
-                        tree& _target_node,
-                        tree& _fake_node,
-                        tree& _sfogo_node,
-                        tree& _testing_node) :
-                    cloned_tree(_cloned_tree),
-                    target_node(_target_node),
-                    fake_node(_fake_node),
-                    sfogo_node(_sfogo_node),
-                    testing_node(_testing_node) { }
+                        tree& _target_node_l,
+                        tree& _fake_node_f,
+                        tree& _sfogo_node_s,
+                        tree& _testing_node_e) :
+                    cloned_tree(std::move(_cloned_tree)),
+                    target_node_l(_target_node_l),
+                    fake_node_f(_fake_node_f),
+                    sfogo_node_s(_sfogo_node_s),
+                    testing_node_e(_testing_node_e) { }
             };
 
             tree_to_SMT& transformer;
-            tree &_tree;
 
-            abstract_pruning_handle create_abstract_handle(tree& node) { //, rulep& tested_rule) {
+            void remove_rule_a(tree& node, rulep& rule) {
+                std::vector<rulep>& rules = node->node_infos.rules_a;
+                rules.erase(std::remove(rules.begin(), rules.end(), rule), rules.end());
+
+                std::function<void(tree)> fun = [&](tree _node) {
+                    _node->node_infos.rules_a.erase(std::remove(_node->node_infos.rules_a.begin(),
+                                                                _node->node_infos.rules_a.end(),
+                                                                rule),
+                                                    _node->node_infos.rules_a.end());
+                    _node->node_infos.rules_c.erase(std::remove(_node->node_infos.rules_c.begin(),
+                                                                _node->node_infos.rules_c.end(),
+                                                                rule),
+                                                    _node->node_infos.rules_c.end());
+                };
+
+                for (auto &&child : node->refinement_blocks) {
+                    child->tree_pre_order_iter(fun);
+                }
+
+                node->consolidate_tree();
+            }
+
+            // PARTITION FUNCTIONS
+            std::pair<rulep, bool> get_reach_impl_test_rule(std::vector<rulep>& rules, rulep& target_rule) {
+                Expr new_condition = createConstantFalse();
+                int similar_count = 0;
+                for (auto &&rule : rules) {
+                    if (target_rule->target == rule->target &&
+                        target_rule->is_ca == rule->is_ca &&
+                        target_rule != rule) {
+                        new_condition = createOrExpr(new_condition, rule->prec);
+                        similar_count++;
+                    }
+                }
+                new_condition = createAndExpr(target_rule->prec,
+                                              createNotExpr(new_condition));
+                rulep final_rule(new rule(target_rule->is_ca,
+                                          createConstantTrue(),
+                                          new_condition,
+                                          target_rule->target,
+                                          -target_rule->original_idx));
+
+                return std::make_pair(final_rule, similar_count > 0);
+            };
+
+
+//            tree &_tree;
+
+            // ABSTRACT PRUNING FUNCTIONS
+            abstract_pruning_handle create_abstract_handle(tree& node, int rule_6_subnodes) { //, rulep& tested_rule) {
 //            tree root = node->clone();
 
                 tree_path f_path = node->path;
@@ -1166,7 +1225,7 @@ namespace SMT {
                                        node->depth + 1,
                                        node_invariants(),
                                        s_policy_infos,
-                                       std::unique_ptr<leaves_infos>(new leaves_infos()),
+                                       std::make_unique<leaves_infos>(leaves_infos()),
                                        pruning_triggers(),
                                        nullptr,
                                        s_ancestors,
@@ -1199,10 +1258,10 @@ namespace SMT {
                 node->refinement_blocks.push_back(s_sfogo);
                 abstract_f->refinement_blocks.push_back(testing_e);
 
-                log->warn(testing_e->leaf_infos->JSON_stringify());
+//                log->warn(testing_e->leaf_infos->JSON_stringify());
 
                 node->consolidate_tree();
-                log->warn(testing_e->leaf_infos->JSON_stringify());
+//                log->warn(testing_e->leaf_infos->JSON_stringify());
 
                 abstract_f->triggers.no_transition = true;
                 testing_e->triggers.no_skip = true;
@@ -1211,97 +1270,103 @@ namespace SMT {
                 return abstract_pruning_handle(nullptr, node, abstract_f, s_sfogo, testing_e);
             }
 
-            abstract_pruning_handle create_abstract(tree& root, tree& tested) { //, rulep& tested_rule) {
+            abstract_pruning_handle create_abstract(tree& root, tree& tested, int rule_6_subnodes) { //, rulep& tested_rule) {
                 tree cloned = root->clone();
 
                 tree probed_node = cloned->get_by_path(tested->path);
 
-                abstract_pruning_handle ret = create_abstract_handle(probed_node);
+                abstract_pruning_handle ret = create_abstract_handle(probed_node, rule_6_subnodes);
                 ret.cloned_tree = cloned;
+
+                if (rule_6_subnodes > 0) {
+                    ret.testing_node_e->leaf_infos->gap = maybe_bool::YES;
+
+                    //FIXME: remove this awfull...
+                    ret.testing_node_e->node_infos.rules_c = ret.testing_node_e->node_infos.rules_a;
+                    ret.cloned_tree->refine_tree(-1, rule_6_subnodes);
+                    ret.testing_node_e->node_infos.rules_c.clear();
+                }
 
                 return ret;
             }
 
-            bool reduce_node_c_rules(tree &node) {
-                std::vector<rulep> new_rules;
-                std::vector<rulep> old_rules = node->node_infos.rules_c;
-                bool old_skip = node->triggers.no_skip;
-                // warn -> trace
-                log->warn("Probing C of node {}:", node->uid);
-                //FORCING NODE TO BE EXECUTED
-                node->triggers.no_skip = true;
-                for (auto &&rule :old_rules) {
-                    std::vector<rulep> probed_rule;
-                    probed_rule.push_back(rule);
-                    node->node_infos.rules_c = probed_rule;
-                    over_analysis_result res = transformer.translate_and_run(_tree, false);
-
-                    // info -> trace
-                    if (log->level() <= spdlog::level::info) {
-                        std::cout << (res == over_analysis_result::SAFE ? "X" : "-");
-                        std::flush(std::cout);
-                    }
-
-                    if (res != over_analysis_result::SAFE) {
-                        new_rules.push_back(rule);
-                    }
-                }
-                // info -> trace
-                if (log->level() <= spdlog::level::info) {
-                    std::cout << std::endl;
-                }
-                node->node_infos.rules_c = new_rules;
-                node->triggers.no_skip = old_skip;
-
-                return old_rules.size() != new_rules.size();
-            }
-
             bool test_node_rule_a(abstract_pruning_handle& handle, rulep& rule) {
-                std::vector<rulep> old_s_rules = handle.sfogo_node->node_infos.rules_c;
+                std::vector<rulep> old_s_rules = handle.sfogo_node_s->node_infos.rules_c;
 
-                handle.sfogo_node->node_infos.rules_c.erase(
-                        std::remove(handle.sfogo_node->node_infos.rules_c.begin(),
-                                    handle.sfogo_node->node_infos.rules_c.end(), rule),
-                        handle.sfogo_node->node_infos.rules_c.end());
+                handle.sfogo_node_s->node_infos.rules_c.erase(
+                        std::remove(handle.sfogo_node_s->node_infos.rules_c.begin(),
+                                    handle.sfogo_node_s->node_infos.rules_c.end(), rule),
+                        handle.sfogo_node_s->node_infos.rules_c.end());
 
                 std::vector<rulep> testing_c;
                 testing_c.push_back(rule);
 
 //                handle.testing_node->node_infos.rules_c.clear();
 //                handle.testing_node->node_infos.rules_c.push_back(rule);
-                handle.testing_node->node_infos.rules_c = testing_c;
+                handle.testing_node_e->node_infos.rules_c = testing_c;
+                handle.testing_node_e->triggers.no_skip = true;
 
-                handle.cloned_tree->dump_tree("tree.js", true, "handle.cloned_tree");
+//                handle.cloned_tree->dump_tree("tree.js", true, "handle.cloned_tree");
 
                 over_analysis_result usable = transformer.translate_and_run(handle.cloned_tree, false);
 
-                handle.sfogo_node->node_infos.rules_c = old_s_rules;
+                handle.sfogo_node_s->node_infos.rules_c = old_s_rules;
 
                 return usable != over_analysis_result::SAFE;
             }
 
-            bool reduce_node_a_rules(tree &node) {
+            bool test_rule_a(abstract_pruning_handle& handle, std::vector<rulep>& pool, rulep& tested) {
+                std::pair<rulep, bool> test_rule_pair = get_reach_impl_test_rule(pool, tested);
+                tree& node = handle.testing_node_e;
+                std::vector<rulep> old_c = node->node_infos.rules_c;
+
+                bool is_usable = test_node_rule_a(handle, test_rule_pair.first);
+
+
+                node->node_infos.rules_c = old_c;
+
+                if (log->level() <= spdlog::level::info) {
+                    if (test_rule_pair.second) {
+                        std::cout << (!is_usable ? "J" : "-");
+                    } else {
+                        std::cout << (!is_usable ? "A" : "-");
+                    }
+                    std::flush(std::cout);
+                }
+
+                return is_usable;
+            }
+
+            bool reduce_node_a_rules(tree& root, tree &node, bool refine_node_e) {
                 if (!node->is_leaf()) {
                     unexpected("Abstract pruning MUST be performed on leaves only");
                 }
 
-                abstract_pruning_handle abstract_handle = create_abstract(_tree, node);
-
-                std::vector<rulep> to_keep;
                 std::vector<rulep> old_rules_a = node->node_infos.rules_a;
+                std::list<rulep> removed_a;
+                std::vector<rulep> actual_rules_a = node->node_infos.rules_a;
 
-                log->warn("Probing A of node {}:", node->uid);
-                for (auto &&rule_a :old_rules_a) {
-                    bool is_usable = test_node_rule_a(abstract_handle, rule_a);
-
-                    // info -> trace
-                    if (log->level() <= spdlog::level::info) {
-                        std::cout << (!is_usable ? "A" : "-");
-                        std::flush(std::cout);
+                int rule_6_subnodes = -1;
+                if (refine_node_e) {
+                    log->warn("Rule 6 refinement...");
+                    for (auto &&rule_a :old_rules_a) {
+                        rule_6_subnodes = std::max(rule_6_subnodes, (int) rule_a->prec->atoms().size());
                     }
+//                    assert(rule_6_subnodes >= 0);
+                }
 
-                    if (is_usable) {
-                        to_keep.push_back(rule_a);
+                abstract_pruning_handle abstract_handle = create_abstract(root, node, rule_6_subnodes);
+
+
+                log->warn("Probing A of node {}{}:", node->uid, refine_node_e ? " with refinement" : "");
+                for (auto &&rule_a :old_rules_a) {
+                    bool is_usable = test_rule_a(abstract_handle, actual_rules_a, rule_a);
+
+                    if (!is_usable) {
+                        actual_rules_a.erase(std::remove(actual_rules_a.begin(), actual_rules_a.end(), rule_a),
+                                             actual_rules_a.end());
+                        remove_rule_a(abstract_handle.target_node_l, rule_a);
+                        removed_a.push_back(rule_a);
                     }
                 }
 
@@ -1309,161 +1374,189 @@ namespace SMT {
                     std::cout << std::endl;
                 }
 
-                node->node_infos.rules_a = to_keep;
+                node->node_infos.rules_a = actual_rules_a;
 
-                return old_rules_a.size() != to_keep.size();
+                for (auto &&r_rule : removed_a) {
+                    log->debug("{}", *r_rule);
+                }
+
+                return !removed_a.empty();
             }
 
-            std::map<std::pair<atomp, bool>, std::vector<rulep>> partition_rules(tree &_node) {
-                std::map<std::pair<atomp, bool>, std::vector<rulep>> res;
-                for (auto &&rule : _node->node_infos.rules_c) {
-                    std::pair<atomp, bool> key(rule->target, rule->is_ca);
-                    res[key].push_back(rule);
-                }
-                return std::move(res);
-            };
+            // RULE PROBING FUNCTIONS
+            //            bool reduce_node_c_rules(tree& root, tree &node) {
+//                std::vector<rulep> new_rules;
+//                std::vector<rulep> old_rules = node->node_infos.rules_c;
+//                bool old_skip = node->triggers.no_skip;
+//                // warn -> trace
+//                log->warn("Probing C of node {}:", node->uid);
+//                //FORCING NODE TO BE EXECUTED
+//                node->triggers.no_skip = true;
+//                for (auto &&rule :old_rules) {
+//                    std::vector<rulep> probed_rule;
+//                    probed_rule.push_back(rule);
+//                    node->node_infos.rules_c = probed_rule;
+//                    over_analysis_result res = transformer.translate_and_run(root, false);
+//
+//                    // info -> trace
+//                    if (log->level() <= spdlog::level::info) {
+//                        std::cout << (res == over_analysis_result::SAFE ? "X" : "-");
+//                        std::flush(std::cout);
+//                    }
+//
+//                    if (res != over_analysis_result::SAFE) {
+//                        new_rules.push_back(rule);
+//                    }
+//                }
+//                // info -> trace
+//                if (log->level() <= spdlog::level::info) {
+//                    std::cout << std::endl;
+//                }
+//                node->node_infos.rules_c = new_rules;
+//                node->triggers.no_skip = old_skip;
+//
+//                return old_rules.size() != new_rules.size();
+//            }
 
-            bool implied_by_others(tree& node, std::vector<rulep>& original_rules, rulep& tested) {
+            // IMPLIED RULE SIMPLIFICATION FUNCTIONS
+            //            std::map<std::pair<atomp, bool>, std::vector<rulep>> partition_rules(std::vector<rulep>& rules) {
+//                std::map<std::pair<atomp, bool>, std::vector<rulep>> res;
+//                for (auto &&rule : rules) {
+//                    std::pair<atomp, bool> key(rule->target, rule->is_ca);
+//                    res[key].push_back(rule);
+//                }
+//                return std::move(res);
+//            };
+
+            bool test_rule_c(tree& root, tree& node, std::vector<rulep>& pool, rulep& tested) {
+                std::pair<rulep, bool> test_rule_pair = get_reach_impl_test_rule(pool, tested);
+                std::vector<rulep> old_c = node->node_infos.rules_c;
+
                 node->triggers.no_skip = true;
-                Expr other_condition = createConstantFalse();
-                for (auto &&rule : original_rules) {
-                    if (rule != tested) {
-                        other_condition = createOrExpr(other_condition, rule->prec);
-                    }
-                }
-                Expr impl_condition = createAndExpr(tested->prec,
-                                                    createNotExpr(other_condition));
-
-                rulep new_rule(new rule(tested->is_ca,
-                                        createConstantTrue(),
-                                        impl_condition,
-                                        tested->target,
-                                        -1));
-
                 node->node_infos.rules_c.clear();
-                node->node_infos.rules_c.push_back(new_rule);
+                node->node_infos.rules_c.push_back(test_rule_pair.first);
 
-                over_analysis_result res = transformer.translate_and_run(_tree, false);
+                over_analysis_result res = transformer.translate_and_run(root, false);
 
-                return res == over_analysis_result::SAFE;
+
+                node->triggers.no_skip = false;
+                node->node_infos.rules_c = old_c;
+
+                bool useless = res == over_analysis_result::SAFE;
+
+                if (log->level() <= spdlog::level::info) {
+                    if (test_rule_pair.second) {
+                        std::cout << (useless ? "I" : "-");
+                    } else {
+                        std::cout << (useless ? "X" : "-");
+                    }
+                    std::flush(std::cout);
+                }
+
+                return useless;
             }
 
-            std::pair<bool, std::vector<rulep>> reduce_implied_partition(tree& node, std::vector<rulep>& rules) {
+            std::pair<bool, std::vector<rulep>> reduce_implied_c(tree& root, tree& node) {
 
                 bool changed = false;
 
-                std::vector<rulep> actual_rules = rules;
-                for (auto &&rule : rules) {
-                    bool to_remove = implied_by_others(node, actual_rules, rule);
-
-                    // info -> trace
-                    if (log->level() <= spdlog::level::info) {
-                        if (rules.size() > 1) {
-                            std::cout << (to_remove ? "I" : "-");
-                        } else {
-                            std::cout << (to_remove ? "X" : "-");
-                        }
-                        std::flush(std::cout);
-                    }
+                std::vector<rulep> actual_rules = node->node_infos.rules_c;
+                for (auto &&rule : node->node_infos.rules_c) {
+                    bool to_remove = test_rule_c(root, node, actual_rules, rule);
 
                     if (to_remove) {
                         changed = true;
                         actual_rules.erase(std::remove(actual_rules.begin(), actual_rules.end(), rule),
                                            actual_rules.end());
-                        // NOT REQUIRED SINCE IT REMOVE RULES ONLY IF NOT REACHABLE IN THE NODE
-//                        if (actual_rules.size() < 2) {
-//                            break;
-//                        }
                     }
                 }
                 return std::pair<bool, std::vector<rulep>>(changed, actual_rules);
             }
 
-            bool remove_node_implied_rules_c(tree& node) {
+            bool remove_node_implied_rules_c(tree& root, tree& node) {
                 log->warn("Probing implied C of node {}:", node->uid);
                 std::vector<rulep> old_rules = node->node_infos.rules_c;
-                std::map<std::pair<atomp, bool>, std::vector<rulep>> partitions = partition_rules(node);
-                std::vector<rulep> final_rules;
-                bool changed = false;
+//                std::map<std::pair<atomp, bool>, std::vector<rulep>> partitions = partition_rules(node);
 
-                for (auto &&pair : partitions) {
-                    std::vector<rulep> to_be_added = pair.second;
-//                    if (pair.second.size() >=  2) {
-                        // NEED TO CHECK FOR IMPLIED RULES
-                        std::pair<bool, std::vector<rulep>> red_p = reduce_implied_partition(node, pair.second);
-                        changed = changed || red_p.first;
-                        to_be_added = red_p.second;
-//                    }
-//                    else {
-//                        if (log->level() <= spdlog::level::info) {
-//                            std::cout << "o";
-//                            std::flush(std::cout);
-//                        }
-//                    }
-                    for (auto &&rule : to_be_added) {
-                        final_rules.push_back(rule);
-                    }
-                }
+                std::pair<bool, std::vector<rulep>> red_p = reduce_implied_c(root, node);
+                bool changed = red_p.first;
+                std::vector<rulep> final_rules = red_p.second;
+
+
                 if (log->level() <= spdlog::level::info) {
                     std::cout << std::endl;
                     std::flush(std::cout);
                 }
                 for (auto &&rule : old_rules) {
                     if (!contains(final_rules.begin(), final_rules.end(), rule)) {
-                        log->warn("Rule {} will be removed", *rule);
+                        log->debug("Rule {} will be removed", *rule);
                     }
                 }
                 node->node_infos.rules_c = final_rules;
-                node->triggers.no_skip = false;
                 return changed;
             }
 
-            std::list<tree> get_nodes_bfs_reversed() {
+            // TREE EXPLORATION UTILITY FUNCTIONS
+            std::list<tree> get_nodes_bfs_reversed(tree& root) {
                 std::list<tree> internal_nodes;
-                _tree->tree_bfs_iter([&](tree _node) { internal_nodes.push_back(_node); });
+                root->tree_bfs_iter([&](tree _node) { internal_nodes.push_back(_node); });
                 internal_nodes.reverse();
                 return std::move(internal_nodes);
             }
 
-        public:
-            tree_pruner(tree_to_SMT& _transformer,
-                        tree &root) :
-                    transformer(_transformer),
-                    _tree(root) { }
-
-            void reduce_tree_c_rules() {
-                std::list<tree> internal_nodes = get_nodes_bfs_reversed();
-//                bool changed = true;
-//                while (changed) {
-//                    changed = false;
-                for (auto &&node : internal_nodes) {
-                    reduce_node_c_rules(node);
-//                    bool modified = reduce_node_c_rules(node);
-//                    changed = changed || modified;
-                }
+            // MAIN PRUNING FUNCTIONS
+//            void reduce_tree_c_rules(tree& root) {
+//                std::list<tree> internal_nodes = get_nodes_bfs_reversed(root);
+////                bool changed = true;
+////                while (changed) {
+////                    changed = false;
+//                for (auto &&node : internal_nodes) {
+//                    reduce_node_c_rules(root, node);
+////                    bool modified = reduce_node_c_rules(node);
+////                    changed = changed || modified;
 //                }
-            }
+////                }
+//            }
 
-            void remove_implied_rules_c() {
-                std::list<tree> internal_nodes = get_nodes_bfs_reversed();
+            void remove_implied_rules_c(tree& root) {
+                std::list<tree> internal_nodes = get_nodes_bfs_reversed(root);
                 for (auto &&node : internal_nodes) {
-                    remove_node_implied_rules_c(node);
+                    remove_node_implied_rules_c(root, node);
                 }
             }
 
-            void reduce_tree_a_rules() {
-                std::list<tree> internal_nodes = get_nodes_bfs_reversed();
+            void reduce_tree_a_rules(tree& root, bool refine_e) {
+                std::list<tree> internal_nodes = get_nodes_bfs_reversed(root);
 //                bool changed = true;
 //                while (changed) {
 //                    changed = false;
                 for (auto &&node : internal_nodes) {
                     if (node->is_leaf()) {
-                        reduce_node_a_rules(node);
+                        reduce_node_a_rules(root, node, refine_e);
                     }
 //                    bool modified = reduce_node_c_rules(node);
 //                    changed = changed || modified;
                 }
 //                }
+            }
+
+        public:
+            explicit tree_pruner(tree_to_SMT& _transformer) : //, tree &root
+                    transformer(_transformer) { }
+
+            void prune_tree(tree &root, bool apply_c_simplification, bool apply_a_simplification) {
+                if (!apply_a_simplification && !apply_c_simplification) {
+                    log->debug("Skipping pruning");
+                    return;
+                }
+                if (apply_a_simplification) {
+                    reduce_tree_a_rules(root, false);
+                    reduce_tree_a_rules(root, true);
+                }
+                if (apply_c_simplification) {
+//                    reduce_tree_c_rules(root);
+                    remove_implied_rules_c(root);
+                }
             }
         };
 
@@ -1501,114 +1594,42 @@ namespace SMT {
 //            }
         }
 
-        bool refine_tree_core(tree &_node) {
-            if (_node->node_infos.rules_c.empty() && !_node->triggers.no_transition) {
-                //TODO: CONSIDER ALSO REMOVING THE NODE FROM THE FATHER
-                // _node subtree has to be removed
-                log->warn("Removing subtree of node {}", _node->uid);
-                // REMOVE ITS SUBTREE
-                _node->refinement_blocks.clear();
-                // ADD LEAVES INFOS TO IT
-                std::unique_ptr<leaves_infos> new_infos(new leaves_infos());
-                // MARK AS NOT EXPANDABLE
-                new_infos->gap = maybe_bool::NO;
-                _node->leaf_infos = std::move(new_infos);
-                // BLOCK ALL ITS NONDETERMINISM
-                for (auto &&atom :_node->node_infos.atoms_a) {
-                    _node->leaf_infos->nondet_restriction[atom] = std::set<bool>();
-                }
-                return false;
-            }
-            if (!_node->is_leaf()) {
-                bool changed = false;
-                for (auto &&child :_node->refinement_blocks) {
-                    changed = refine_tree_core(child) || changed;
-                }
-                return changed;
-            } else if (overapprox_strategy.depth_strategy == OverapproxOptions::AT_MOST_DEPTH &&
-                       _node->depth >= overapprox_strategy.depth) {
-                return false;
-            } else {
-                if (_node->leaf_infos->gap == maybe_bool::YES) {
-                    int i = 0;
-                    tree_path first_path = _node->path;
-                    first_path.push_back(i);
-                    node_policy_infos node_info(_node->node_infos.rules_a,
-                                                _node->node_infos.rules_a,
-                                                _node->node_infos.all_atoms,
-                                                _node->node_infos.atoms_a,
-                                                _node->node_infos.policy_atoms_count);
-                    std::unique_ptr<leaves_infos> leaf_infos(new leaves_infos());
-                    std::list<w_tree> prec_ancestors = _node->ancestors;
-                    prec_ancestors.push_back(_node);
-
-                    tree actual_child(new node(first_path,
-                                               _node->depth + 1,
-                                               node_info,
-                                               std::move(leaf_infos),
-                                               prec_ancestors,
-                                               _node));
-                    _node->refinement_blocks.push_back(actual_child);
-
-                    int budget = get_budget();
-                    for (++i; i < budget; ++i) {
-                        first_path = _node->path;
-                        first_path.push_back(i);
-                        node_policy_infos act_info(_node->node_infos.rules_a,
-                                                   _node->node_infos.rules_a,
-                                                   _node->node_infos.all_atoms,
-                                                   _node->node_infos.atoms_a,
-                                                   _node->node_infos.policy_atoms_count);
-                        leaf_infos = std::unique_ptr<leaves_infos>(new leaves_infos());
-
-                        prec_ancestors = actual_child->ancestors;
-                        prec_ancestors.push_back(actual_child);
-                        actual_child = tree(new node(first_path,
-                                                     _node->depth + 1,
-                                                     act_info,
-                                                     std::move(leaf_infos),
-                                                     prec_ancestors,
-                                                     _node));
-                        _node->refinement_blocks.push_back(actual_child);
-                    }
-                    _node->leaf_infos = nullptr;
-                    _node->consolidate_tree();
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-        }
-
-        bool refine_tree(tree &_node) {
-            bool res = refine_tree_core(_node);
-            _node->consolidate_tree();
-            return res;
-        }
-
         void set_fake_tree(tree& root, tree_to_SMT& translator) {
-            tree_pruner pruner(translator, root);
-            pruner.reduce_tree_a_rules();
+            tree_pruner pruner(translator);
+            pruner.prune_tree(root, false, true);
 
             root->dump_tree("tree.js", true, "fake");
 
-            root->leaf_infos->gap = maybe_bool::YES;
-            refine_tree(root);
+            log->error("expanding root!");
 
-            pruner.reduce_tree_a_rules();
+            root->leaf_infos->gap = maybe_bool::YES;
+            root->refine_tree(overapprox_strategy.depth, get_budget());
+            pruner.prune_tree(root, false, true);
+
+            root->dump_tree("tree.js", true, "fake");
+            log->error("expanding root_0!");
 
 //            pruner.remove_implied_rules_c();
             root->refinement_blocks[0]->leaf_infos->gap = maybe_bool::YES;
-            refine_tree(root);
-            pruner.reduce_tree_a_rules();
-//            pruner.reduce_tree_c_rules();
-            pruner.remove_implied_rules_c();
+            root->refine_tree(overapprox_strategy.depth, get_budget());
+            pruner.prune_tree(root, false, true);
+
+            root->dump_tree("tree.js", true, "fake");
+            log->error("expanding root_1!");
+
             root->refinement_blocks[1]->leaf_infos->gap = maybe_bool::YES;
-            refine_tree(root);
-//            pruner.reduce_tree_c_rules();
-            pruner.remove_implied_rules_c();
+            root->refine_tree(overapprox_strategy.depth, get_budget());
+            pruner.prune_tree(root, false, true);
+
+            root->dump_tree("tree.js", true, "fake");
+            log->error("expanding root_2!");
+
             root->refinement_blocks[2]->leaf_infos->gap = maybe_bool::YES;
-            refine_tree(root);
+            root->refine_tree(overapprox_strategy.depth, get_budget());
+            pruner.prune_tree(root, false, true);
+
+            root->dump_tree("tree.js", true, "fake");
+            log->error("fake_tree created!");
         }
 
         void create_target_fake_roles(const std::shared_ptr<arbac_policy> &policy) {
@@ -1751,7 +1772,7 @@ namespace SMT {
                                        orig_rules,
                                        policy,
                                        to_check);
-            set_fake_tree(proof, translator);
+//            set_fake_tree(proof, translator);
             bool completed = false;
 
             while (!completed) {
@@ -1769,8 +1790,8 @@ namespace SMT {
 //                }
 
                 log->debug("TESTING OVERAPPROX PROOF");
-                over_analysis_result result = // translator.translate_and_run(proof, true);
-                                              over_analysis_result::UNSAFE_REFINEABLE;
+                over_analysis_result result = translator.translate_and_run(proof, true);
+//                                              over_analysis_result::UNSAFE_REFINEABLE;
                 proof->dump_tree("tree.js", true, "POST OVERAPPROX");
 
 //                std::pair<std::string, std::string> strs = proof->tree_to_full_string();
@@ -1789,17 +1810,17 @@ namespace SMT {
                     case over_analysis_result::UNSAFE_REFINEABLE:
                         log->info("Target role may be reachable...");
                         log->info("... PRUNING");
-                        tree_pruner pruner(translator, proof);
-                        pruner.reduce_tree_c_rules();
-                        pruner.remove_implied_rules_c();
+                        tree_pruner pruner(translator);
+                        pruner.prune_tree(proof, true, true);
+
                         log->info("... REFINING");
 
-                        bool changed = refine_tree(proof);
+                        bool changed = proof->refine_tree(overapprox_strategy.depth, get_budget());
                         //TODO: insert consolidate_tree in refine_tree
                         proof->consolidate_tree();
 
                             proof->dump_tree("tree.js", true, "POST PRUNING AND REFINEMENT");
-                        if (!std::is_same<term_t, TExpr>::value && Config::dump_smt_formula != "") {
+                        if (!std::is_same<term_t, TExpr>::value && !Config::dump_smt_formula.empty()) {
                         }
 
 //                        std::pair<std::string, std::string> strs = proof->tree_to_full_string();
