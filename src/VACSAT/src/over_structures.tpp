@@ -168,9 +168,9 @@ namespace SMT {
             no_transition(false),
             no_skip(false),
             no_priority(false),
+            no_sfogo(false),
             overapprox(maybe_bool::UNKNOWN),
-            check_gap(false),
-            no_sfogo(false) { }
+            check_gap(false) { }
 
     pruning_triggers pruning_triggers::clone() {
         bool _no_transition = no_transition;
