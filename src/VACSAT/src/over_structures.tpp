@@ -169,12 +169,14 @@ namespace SMT {
             no_skip(false),
             no_priority(false),
             overapprox(maybe_bool::UNKNOWN),
-            check_gap(false) { }
+            check_gap(false),
+            no_sfogo(false) { }
 
     pruning_triggers pruning_triggers::clone() {
         bool _no_transition = no_transition;
         bool _no_skip = no_skip;
         bool _no_priority = no_priority;
+        bool _no_sfogo = no_sfogo;
 
         maybe_bool _overapprox = this->overapprox;
         bool _check_gap = this->check_gap;
@@ -221,6 +223,7 @@ namespace SMT {
         res.no_transition = _no_transition;
         res.no_skip = _no_skip;
         res.no_priority = _no_priority;
+        res.no_sfogo = _no_sfogo;
 
         res.overapprox = _overapprox;
         res.check_gap = _check_gap;
@@ -240,6 +243,7 @@ namespace SMT {
         this->no_priority = false;
         this->overapprox = maybe_bool::UNKNOWN;
         this->check_gap = false;
+        this->no_sfogo = false;
     }
 
     bool pruning_triggers::probing_enabled() {
@@ -253,7 +257,8 @@ namespace SMT {
                this->no_skip ||
                this->no_priority ||
                this->overapprox != maybe_bool::UNKNOWN ||
-               this->check_gap;
+               this->check_gap ||
+               this->no_sfogo;
     }
 
     std::string pruning_triggers::JSON_stringify(const std::string& prefix) {
@@ -304,6 +309,7 @@ namespace SMT {
         fmt << i_prefix << "no_transition: " << bool_to_true_false(no_transition) << "," << std::endl;
         fmt << i_prefix << "no_skip: " << bool_to_true_false(no_skip) << "," << std::endl;
         fmt << i_prefix << "no_priority: " << bool_to_true_false(no_priority) << "," << std::endl;
+        fmt << i_prefix << "no_sfogo: " << bool_to_true_false(no_sfogo) << "," << std::endl;
         fmt << i_prefix << "overapprox: " << maybe_bool_to_string(overapprox) << "," << std::endl;
         fmt << i_prefix << "check_gap: " << bool_to_true_false(check_gap) << "," << std::endl;
 

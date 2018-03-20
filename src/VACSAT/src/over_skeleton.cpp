@@ -192,6 +192,8 @@ namespace SMT {
             TExpr zero;
             TExpr one;
 
+            bool merge_rule_in_trans = false;
+
             // ASSERTIONS RELATED FUNCTIONS
             inline void strict_emit_assignment(const variable &var, const TVar &value) {
                 TExpr ass = solver->createEqExpr(var.get_solver_var(), value);
@@ -417,8 +419,33 @@ namespace SMT {
             }
 
             // TRANS RELATED FUNCTIONS
-            TExpr get_rule_assumptions_c(tree &node, int rule_id, TExpr &rule_is_selected) {
-                rulep rule = node->node_infos.rules_c[rule_id];
+            std::vector<rulep> merge_by_target(tree &node) {
+                std::vector<rulep> result;
+                std::map<std::pair<atomp, bool>, std::list<rulep>> rules_by_atom_kind;
+                for (auto &&r_c : node->node_infos.rules_c) {
+                    std::pair<atomp, bool> pair = std::make_pair(r_c->target, r_c->is_ca);
+                    rules_by_atom_kind[pair].push_back(r_c);
+                }
+
+                for (auto &&key_value : rules_by_atom_kind) {
+                    const std::pair<atomp, bool>& atom_is_ca = key_value.first;
+                    Expr cond = createConstantFalse();
+                    for (auto &&rule : key_value.second) {
+                        cond = createOrExpr(cond, rule->prec);
+                    }
+                    rulep merged(new rule(atom_is_ca.second,
+                                          createConstantTrue(),
+                                          cond,
+                                          atom_is_ca.first,
+                                          -1));
+                    result.push_back(merged);
+                }
+
+                return std::move(result);
+            };
+
+            TExpr get_rule_assumptions_c(tree &node, std::pair<rulep, int> rule_id, TExpr &rule_is_selected) {
+                rulep rule = rule_id.first;
                 TExpr rule_precondition = generateSMTFunction(solver,
                                                               rule->prec,
                                                               node->solver_state->vars,
@@ -469,8 +496,8 @@ namespace SMT {
                 parent->solver_state->blocked_by_children[target_idx] = new_blocked;
             }
 
-            void apply_rule_effect_c(tree &node, int rule_id, TExpr &rule_is_selected) {
-                rulep rule = node->node_infos.rules_c[rule_id];
+            void apply_rule_effect_c(tree &node, std::pair<rulep, int> rule_id, TExpr &rule_is_selected) {
+                rulep rule = rule_id.first;
                 atomp target = rule->target;
                 // UPDATE VAR VALUE
                 variable old_var_var = node->solver_state->vars[target->role_array_index];
@@ -507,24 +534,25 @@ namespace SMT {
                 set_priority(node, rule, rule_is_selected);
             }
 
-            void simulate_rule_c(tree &node, int rule_id) {
-                const rulep &rule = node->node_infos.rules_c[rule_id];
+            void simulate_rule_c(tree &node, std::pair<rulep, int> rule_id) {
+                const rulep &rule = rule_id.first;
+                const int r_id = rule_id.second;
                 if (std::is_same<TExpr, z3::expr>::value) {
                     TVar v = solver->createBVVar("Simulating_rule_" + rule->to_new_string(),
                                                  node->solver_state->rule_id.bv_size);
-                    TExpr value = solver->createBVConst(rule_id, node->solver_state->rule_id.bv_size);
+                    TExpr value = solver->createBVConst(r_id, node->solver_state->rule_id.bv_size);
                     solver->assertLater(solver->createEqExpr(v, value));
                 }
                 TExpr is_rule_selected_value =
                         solver->createEqExpr(node->solver_state->rule_id.get_solver_var(),
-                                             solver->createBVConst(rule_id, node->solver_state->rule_id.bv_size));
+                                             solver->createBVConst(r_id, node->solver_state->rule_id.bv_size));
 
                 // This ensures it is printed close to the usage in the model
-                node->solver_state->apply_rule[rule_id] = node->solver_state->apply_rule[rule_id].createFrom();
-                emit_assignment(node, node->solver_state->apply_rule[rule_id], is_rule_selected_value);
+                node->solver_state->apply_rule[r_id] = node->solver_state->apply_rule[r_id].createFrom();
+                emit_assignment(node, node->solver_state->apply_rule[r_id], is_rule_selected_value);
 
 
-                TExpr is_rule_selected = node->solver_state->apply_rule[rule_id].get_solver_var();
+                TExpr is_rule_selected = node->solver_state->apply_rule[r_id].get_solver_var();
 
                 TExpr rule_assumptions = get_rule_assumptions_c(node, rule_id, is_rule_selected);
 
@@ -533,31 +561,44 @@ namespace SMT {
                 apply_rule_effect_c(node, rule_id, is_rule_selected);
             }
 
-            void select_one_rule_c(tree &node) {
+            void select_one_rule_c(tree &node, std::vector<rulep>& rules_c) {
                 //TO BE SURE TO APPLY AT LEAST ONE RULE WE HAVE TO ASSUME THAT RULE_ID <= RULE_COUNT
                 TExpr assumption = solver->createLtExpr(node->solver_state->rule_id.get_solver_var(),
-                                                        solver->createBVConst((int) node->node_infos.rules_c.size(),
+                                                        solver->createBVConst((int) rules_c.size(),
                                                                               node->solver_state->rule_id.bv_size));
                 emit_assumption(node, assumption);
             }
 
             void transition_c(tree &node) {
                 emit_comment("Begin_transition_" + node->uid);
-                select_one_rule_c(node);
-                for (int rule_id = 0; rule_id < node->node_infos.rules_c.size(); ++rule_id) {
-                    if (node->triggers.c_rule_check == nullptr) {
+                std::vector<rulep> rules_c = merge_rule_in_trans ?
+                                             std::move(merge_by_target(node)) :
+                                             node->node_infos.rules_c;
+                select_one_rule_c(node, rules_c);
+
+                if (node->triggers.c_rule_check == nullptr) {
+                    for (int r_id = 0; r_id < rules_c.size(); ++r_id) {
                         //execute all rules
+                        std::pair<rulep, int> rule_id(rules_c[r_id], r_id);
                         simulate_rule_c(node, rule_id);
-                    } else {
-                        //execute only selected rule
-                        if (*node->triggers.c_rule_check == node->node_infos.rules_c[rule_id]) {
-                            // set the id to force role execution
-                            emit_assignment(node,
-                                            node->solver_state->rule_id,
-                                            solver->createBVConst(rule_id, node->solver_state->rule_id.bv_size));
-                            simulate_rule_c(node, rule_id);
-                        }
                     }
+                } else {
+                    if (merge_rule_in_trans) {
+                        throw unexpected("Cannot merge rules if probing is enabled (triggers.c_rule_check)");
+                    }
+                    //execute only selected rule
+                    rulep selected_rule = *node->triggers.c_rule_check;
+                    int selected_id = (int) std::distance(rules_c.begin(),
+                                                          std::find(rules_c.begin(), rules_c.end(), selected_rule));
+
+                    assert(selected_id >= 0 && selected_id < rules_c.size());
+
+                    // set the id to force role execution
+                    emit_assignment(node,
+                                    node->solver_state->rule_id,
+                                    solver->createBVConst(selected_id, node->solver_state->rule_id.bv_size));
+                    simulate_rule_c(node, std::make_pair(rules_c[selected_id], selected_id));
+
                 }
                 emit_comment("End_transition_" + node->uid);
             }
@@ -687,6 +728,7 @@ namespace SMT {
                     TExpr is_unchecked_in_children = zero;
                     // Exclude last child from snd priority
                     //TODO: put condition in last node not used for priority
+//                    for (int j = 0; j < node->refinement_blocks.size(); ++j) {
                     for (int j = 0; j < node->refinement_blocks.size() - 1; ++j) {
                         tree& child = node->refinement_blocks[j];
                         TExpr atom_is_unchecked_in_child = child->solver_state->unchecked_priority[i].get_solver_var();
@@ -736,14 +778,14 @@ namespace SMT {
             /**
              * Computes the first part of the node's exploration strategy
              *   /\
-             *  /  \  (updated_is_subrun[i] /\ priority[i]) ==> blocked_by_children[i]
+             *  /  \  (updated_in_subrun[i] /\ priority[i]) ==> blocked_by_children[i]
              * /    \
              *   i
              * @param node: the node
              * @param primary_priority: specify if priority is primary or secondary
              */
             void rev_es_set_all_updated_priority_set(tree &node, bool primary_priority) {
-                tree& last_node = node->refinement_blocks.back();
+//                tree& last_node = node->refinement_blocks.back();
                 TExpr all_blocked = one;
                 for (auto &&atom : node->node_infos.all_atoms) {
                     int i = atom->role_array_index;
@@ -788,6 +830,10 @@ namespace SMT {
                     variable last_atom_set = last_node->solver_state->var_id;
                     TExpr atom_in_last_op = solver->createEqExpr(solver->createBVConst(i, last_atom_set.bv_size),
                                                                  last_atom_set.get_solver_var());
+                    if (node->triggers.no_sfogo) {
+                        emit_comment("node" + node->uid + "is_marked_no_sfogo");
+                        atom_in_last_op = zero;
+                    }
 
                     TExpr atom_explicitely_set =
                             solver->createAndExpr(node->solver_state->updated_in_subrun[i].get_solver_var(),
@@ -1076,6 +1122,25 @@ namespace SMT {
                 initialize();
             }
 
+            // CONFIG RELATED FUNCTIONS
+            void set_merge_rules(bool annotate, maybe_bool merge_rules) {
+                if (!annotate && merge_rules == maybe_bool::YES) {
+                    throw unexpected("Cannot merge rules in probing mode");
+                }
+                switch (merge_rules) {
+                    case maybe_bool::UNKNOWN:
+                        // If standard run then merge rules
+                        merge_rule_in_trans = annotate;
+                        break;
+                    case maybe_bool::YES:
+                        merge_rule_in_trans = true;
+                        break;
+                    case maybe_bool::NO:
+                        merge_rule_in_trans = false;
+                        break;
+                }
+            }
+
         public:
 
             tree_to_SMT(const std::shared_ptr<arbac_policy> _policy,
@@ -1087,10 +1152,11 @@ namespace SMT {
                     initial_confs(std::move(_initial_confs)),
                     assertions(std::list<TExpr>()) { }
 
-            over_analysis_result translate_and_run(tree &root, bool annotate) {
+            over_analysis_result translate_and_run(tree &root, bool annotate, maybe_bool merge_rules = maybe_bool::UNKNOWN) {
                 over_analysis_result result;
                 solver->deep_clean();
                 cleanup(root);
+                set_merge_rules(annotate, merge_rules);
                 bool over_reachable = is_reachable(root, annotate);
 
                 if (!over_reachable) {

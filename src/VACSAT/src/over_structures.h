@@ -112,6 +112,7 @@ namespace SMT {
         bool no_transition; /// Disable transition
         bool no_skip;       /// Forbids the node to skip
         bool no_priority;   /// Disable node exploration strategy
+        bool no_sfogo;      /// Do not count last node as sfogo
 
         //FOR LEAVES ONLY
         maybe_bool overapprox;    /// Forces/denies/leave free the overapproximation of the leaf
