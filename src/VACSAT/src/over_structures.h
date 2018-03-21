@@ -142,21 +142,21 @@ namespace SMT {
         std::string JSON_stringify(const std::string& prefix = "");
     };
 
-    template <typename SolverState>
-    class proof_node : public std::enable_shared_from_this<proof_node<SolverState>> {//: public node<LayerInfo, BlockInfo> {
+//    template <typename SolverState>
+    class proof_node : public std::enable_shared_from_this<proof_node> {//: public node<LayerInfo, BlockInfo> {
     private:
 
-        std::shared_ptr<proof_node<SolverState>> memberwise_clone();
+        std::shared_ptr<proof_node> memberwise_clone();
 
         void rebuild_weak_ptrs();
 
-        void get_nodes(proof_node<SolverState>* node,
-                       std::list<proof_node<SolverState>*>& list);
+        void get_nodes(proof_node* node,
+                       std::list<proof_node*>& list);
 
-        void filter_nodes_tail(std::list<std::shared_ptr<proof_node<SolverState>>>& acc,
-                               std::function<bool(std::shared_ptr<proof_node<SolverState>>&)> fn);
+        void filter_nodes_tail(std::list<std::shared_ptr<proof_node>>& acc,
+                               std::function<bool(std::shared_ptr<proof_node>&)> fn);
 
-        void get_tree_nodes_tail(std::list<std::shared_ptr<proof_node<SolverState>>>& ret_list);
+        void get_tree_nodes_tail(std::list<std::shared_ptr<proof_node>>& ret_list);
 
         void JSON_stringify_node(std::stringstream& fmt, const std::string& prefix = "");
 
@@ -176,21 +176,20 @@ namespace SMT {
 
         pruning_triggers triggers;
 
-        std::shared_ptr<SolverState> solver_state;
-        std::list<std::weak_ptr<proof_node<SolverState>>> ancestors;
-        std::weak_ptr<proof_node<SolverState>> parent;
-        std::vector<std::shared_ptr<proof_node<SolverState>>> refinement_blocks;
+        std::list<std::weak_ptr<proof_node>> ancestors;
+        std::weak_ptr<proof_node> parent;
+        std::vector<std::shared_ptr<proof_node>> refinement_blocks;
 
-        std::list<std::shared_ptr<proof_node<SolverState>>> get_all_nodes();
+        std::list<std::shared_ptr<proof_node>> get_all_nodes();
 
-        std::list<std::shared_ptr<proof_node<SolverState>>> get_all_leaves();
+        std::list<std::shared_ptr<proof_node>> get_all_leaves();
 
         proof_node(tree_path _path,
                    int _depth,
                    const node_policy_infos& _node_infos,
                    std::unique_ptr<leaves_infos> _leaves_infos,
-                   std::list<std::weak_ptr<proof_node<SolverState>>> _ancestors,
-                   std::weak_ptr<proof_node<SolverState>> _parent);
+                   std::list<std::weak_ptr<proof_node>> _ancestors,
+                   std::weak_ptr<proof_node> _parent);
 
         proof_node(tree_path _path,
                    std::string _uid,
@@ -199,14 +198,13 @@ namespace SMT {
                    const node_policy_infos _node_infos,
                    std::unique_ptr<leaves_infos> _leaf_infos,
                    pruning_triggers _pruning_triggers,
-                   std::shared_ptr<SolverState> _solver_state,
-                   std::list<std::weak_ptr<proof_node<SolverState>>> _ancestors,
-                   std::weak_ptr<proof_node<SolverState>> _parent,
-                   std::vector<std::shared_ptr<proof_node<SolverState>>> _refinement_blocks);
+                   std::list<std::weak_ptr<proof_node>> _ancestors,
+                   std::weak_ptr<proof_node> _parent,
+                   std::vector<std::shared_ptr<proof_node>> _refinement_blocks);
 
         std::string tree_to_string();
 
-        std::shared_ptr<proof_node<SolverState>> clone();
+        std::shared_ptr<proof_node> clone();
 
         bool is_leaf();
 
@@ -214,21 +212,19 @@ namespace SMT {
 
         bool pruning_enabled();
 
-        void tree_pre_order_iter(std::function<void(std::shared_ptr<proof_node<SolverState>>)> fun);
+        void tree_pre_order_iter(std::function<void(std::shared_ptr<proof_node>)> fun);
 
-        void tree_bfs_iter(std::function<void(std::shared_ptr<proof_node<SolverState>>)> fun);
+        void tree_bfs_iter(std::function<void(std::shared_ptr<proof_node>)> fun);
 
-        std::list<std::shared_ptr<proof_node<SolverState>>> get_tree_nodes();
+        std::list<std::shared_ptr<proof_node>> get_tree_nodes();
 
         void clean_pruning_triggers();
-
-        void clean_solver_info_state();
 
         std::string JSON_stringify();
 
         void dump_tree(const std::string& fname, bool javascript_compliant, const std::string heading_name = "");
 
-        std::shared_ptr<proof_node<SolverState>> get_by_path(tree_path path);
+        std::shared_ptr<proof_node> get_by_path(tree_path path);
 
         void consolidate_tree();
 
@@ -236,7 +232,5 @@ namespace SMT {
 
     };
 }
-
-#include "over_structures.tpp"
 
 #endif //VACSAT_OVER_STRUCTURES_H

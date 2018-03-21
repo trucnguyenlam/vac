@@ -88,7 +88,7 @@ set(SOURCE_FILES
         src/over_structures.h
         src/over_skeleton.cpp
 #        )
-        src/SMT_Overapprox_learning.cpp src/over_structures.tpp src/SMTSolvers/cvc4.h src/SMTSolvers/cvc4.cpp)
+        src/SMT_Overapprox_learning.cpp src/over_structures.cpp src/SMTSolvers/cvc4.h src/SMTSolvers/cvc4.cpp)
 
 # Add path for custom modules
 list (APPEND CMAKE_MODULE_PATH
