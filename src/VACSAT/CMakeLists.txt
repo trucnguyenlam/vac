@@ -16,7 +16,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
                      -Wno-unused-parameter \
                      -Wno-comment \
                      -Wno-sign-compare \
-                     -static")
+                     -static\
+                     -ftemplate-backtrace-limit=0")
 
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     message("using Clang")
