@@ -370,13 +370,13 @@ namespace SMT {
         void tree_to_string (std::stringstream& stream, const proof_node* tree) {
             stream << "(" << tree->uid << ")" << std::endl;
 
-            auto ite = tree->refinement_blocks.begin();
+            auto ite = tree->refinement_blocks().begin();
 
-            while (ite != tree->refinement_blocks.end()) {
+            while (ite != tree->refinement_blocks().end()) {
                 const std::shared_ptr<proof_node>& child = *ite;
                 ++ite;
                 stream << depth << " `--";
-                Push( ite != tree->refinement_blocks.end() ? '|' : ' ' );
+                Push( ite != tree->refinement_blocks().end() ? '|' : ' ' );
                 tree_to_string( stream, child.get() );
                 Pop( );
             }
@@ -413,20 +413,19 @@ namespace SMT {
 //            std::weak_ptr<proof_node> c_parent;
         std::shared_ptr<proof_node> c_node(
                 new proof_node(c_path,
-                                            c_uid,
-                                            c_depth,
-                                            c_invariants,
-                                            c_node_infos,
-                                            std::move(c_leaf_infos),
-                                            this->triggers.clone(),
-                                            std::list<std::weak_ptr<proof_node>>(),
-                                            std::weak_ptr<proof_node>(),
-                                            std::vector<std::shared_ptr<proof_node>>()));
+                               c_uid,
+                               c_depth,
+                               c_invariants,
+                               c_node_infos,
+                               std::move(c_leaf_infos),
+                               std::list<std::weak_ptr<proof_node>>(),
+                               std::weak_ptr<proof_node>(),
+                               std::vector<std::shared_ptr<proof_node>>()));
 
-        for (auto &&child : this->refinement_blocks) {
+        for (auto &&child : this->_refinement_blocks) {
             std::shared_ptr<proof_node> c_child = child->memberwise_clone();
-//                c_child->parent = c_node;
-            c_node->refinement_blocks.push_back(c_child);
+//                c_child->_parent = c_node;
+            c_node->_refinement_blocks.push_back(c_child);
         }
 
 
@@ -434,12 +433,12 @@ namespace SMT {
     };
 
     void proof_node::rebuild_weak_ptrs() {
-        std::list<std::weak_ptr<proof_node>> last_ancestors = this->ancestors;
+        std::list<std::weak_ptr<proof_node>> last_ancestors = this->_ancestors;
         std::shared_ptr<proof_node> this_shared(this->shared_from_this());
         last_ancestors.push_back(this_shared);
-        for (auto &&child : this->refinement_blocks) {
-            child->parent = this_shared;
-            child->ancestors = last_ancestors;
+        for (auto &&child : this->_refinement_blocks) {
+            child->_parent = this_shared;
+            child->_ancestors = last_ancestors;
             child->rebuild_weak_ptrs();
             last_ancestors.push_back(child);
         }
@@ -448,7 +447,7 @@ namespace SMT {
     void proof_node::get_nodes(proof_node* node,
                                std::list<proof_node*>& list) {
         list.push_back(node);
-        for (auto &&child : node->refinement_blocks) {
+        for (auto &&child : node->_refinement_blocks) {
             get_nodes(child.get(), list);
         }
     };
@@ -459,14 +458,14 @@ namespace SMT {
         if (fn(_this)) {
             acc.push_back(_this);
         }
-        for (auto &&child : refinement_blocks) {
+        for (auto &&child : _refinement_blocks) {
             filter_nodes_tail(acc, fn);
         }
     }
 
     void proof_node::get_tree_nodes_tail(std::list<std::shared_ptr<proof_node>>& ret_list) {
         ret_list.push_back(this->shared_from_this());
-        for (auto &&child : refinement_blocks) {
+        for (auto &&child : _refinement_blocks) {
             child->get_tree_nodes_tail(ret_list);
         }
     }
@@ -481,18 +480,17 @@ namespace SMT {
         fmt << i_prefix << "node_infos: " << node_infos.JSON_stringify(i_prefix) << "," << std::endl;
         fmt << i_prefix << "leaf_infos: " << (leaf_infos == nullptr ? "null" : leaf_infos->JSON_stringify(i_prefix)) << "," << std::endl;
         fmt << i_prefix << "invariants: " << omissis << "," << std::endl;
-        fmt << i_prefix << "triggers: " << triggers.JSON_stringify(i_prefix) << "," << std::endl;
-        auto shared_parent = parent.lock();
-        fmt << i_prefix << "parent: " << (shared_parent == nullptr ? "null" : shared_parent->uid) << "," << std::endl;
-        fmt << i_prefix << "ancestors: [" << std::endl;
-        for (auto &&w_ancestor : ancestors) {
+        auto shared_parent = _parent.lock();
+        fmt << i_prefix << "_parent: " << (shared_parent == nullptr ? "null" : shared_parent->uid) << "," << std::endl;
+        fmt << i_prefix << "_ancestors: [" << std::endl;
+        for (auto &&w_ancestor : _ancestors) {
             auto ancestor = w_ancestor.lock();
             fmt << i_prefix << "\t" << ancestor->uid << "," << std::endl;
         }
         fmt << i_prefix << "]," << std::endl;
 
-        fmt << i_prefix << "refinement_blocks: [" << std::endl;
-        for (auto &&child : refinement_blocks) {
+        fmt << i_prefix << "_refinement_blocks: [" << std::endl;
+        for (auto &&child : _refinement_blocks) {
             fmt << i_prefix << "\t" << child->uid << "," << std::endl;
         }
         fmt << i_prefix << "]" << std::endl;
@@ -539,12 +537,12 @@ namespace SMT {
                 this->depth >= max_depth &&
                 max_depth > -1) {
             return false;
-        } else if (this->node_infos.rules_c.empty() && !this->triggers.no_transition) {
+        } else if (this->node_infos.rules_c.empty()) {
             //TODO: CONSIDER ALSO REMOVING THE NODE FROM THE FATHER
             // _node subtree has to be removed
             log->warn("Removing subtree of node {}", this->uid);
             // REMOVE ITS SUBTREE
-            this->refinement_blocks.clear();
+            this->_refinement_blocks.clear();
             // ADD LEAVES INFOS TO IT
             std::unique_ptr<leaves_infos> new_infos(new leaves_infos());
             // MARK AS NOT EXPANDABLE
@@ -558,7 +556,7 @@ namespace SMT {
         }
         if (!this->is_leaf()) {
             bool changed = false;
-            for (auto &&child :this->refinement_blocks) {
+            for (auto &&child :this->_refinement_blocks) {
                 changed = child->refine_tree_core(max_depth, child_count) || changed;
             }
             return changed;
@@ -574,7 +572,7 @@ namespace SMT {
                                             this->node_infos.atoms_a,
                                             this->node_infos.policy_atoms_count);
                 std::unique_ptr<leaves_infos> leaf_infos(new leaves_infos());
-                std::list<std::weak_ptr<proof_node>> prec_ancestors = this->ancestors;
+                std::list<std::weak_ptr<proof_node>> prec_ancestors = this->_ancestors;
                 prec_ancestors.push_back(shared_this);
 
                 std::shared_ptr<proof_node> actual_child(
@@ -584,7 +582,7 @@ namespace SMT {
                                                     std::move(leaf_infos),
                                                     prec_ancestors,
                                                     shared_this));
-                this->refinement_blocks.push_back(actual_child);
+                this->_refinement_blocks.push_back(actual_child);
 
                 int budget = child_count;
                 for (++i; i < budget; ++i) {
@@ -597,7 +595,7 @@ namespace SMT {
                                                this->node_infos.policy_atoms_count);
                     leaf_infos = std::make_unique<leaves_infos>(leaves_infos());
 
-                    prec_ancestors = actual_child->ancestors;
+                    prec_ancestors = actual_child->_ancestors;
                     prec_ancestors.push_back(actual_child);
                     actual_child = std::shared_ptr<proof_node>(
                             new proof_node(first_path,
@@ -606,7 +604,7 @@ namespace SMT {
                                                         std::move(leaf_infos),
                                                         prec_ancestors,
                                                         shared_this));
-                    this->refinement_blocks.push_back(actual_child);
+                    this->_refinement_blocks.push_back(actual_child);
                 }
                 this->leaf_infos = nullptr;
                 this->consolidate_tree();
@@ -623,18 +621,17 @@ namespace SMT {
                            int _depth,
                            const node_policy_infos& _node_infos,
                            std::unique_ptr<leaves_infos> _leaves_infos,
-                           std::list<std::weak_ptr<proof_node>> _ancestors,
-                           std::weak_ptr<proof_node> _parent) :
+                           std::list<std::weak_ptr<proof_node>> ancestors,
+                           std::weak_ptr<proof_node> parent) :
+            _ancestors(std::move(ancestors)),
+            _parent(std::move(parent)),
+            _refinement_blocks(std::vector<std::shared_ptr<proof_node>>()),
             path(std::move(_path)),
             uid(tree_path_to_string(path)),
             depth(_depth),
             invariants(node_invariants()),
             node_infos(_node_infos),
-            leaf_infos(std::move(_leaves_infos)),
-            triggers(pruning_triggers()),
-            ancestors(std::move(_ancestors)),
-            parent(_parent),
-            refinement_blocks(std::vector<std::shared_ptr<proof_node>>()) { }
+            leaf_infos(std::move(_leaves_infos)) { }
 
     proof_node::proof_node(tree_path _path,
                            std::string _uid,
@@ -642,20 +639,18 @@ namespace SMT {
                            node_invariants _invariants,
                            const node_policy_infos _node_infos,
                            std::unique_ptr<leaves_infos> _leaf_infos,
-                           pruning_triggers _pruning_triggers,
-                           std::list<std::weak_ptr<proof_node>> _ancestors,
-                           std::weak_ptr<proof_node> _parent,
-                           std::vector<std::shared_ptr<proof_node>> _refinement_blocks):
+                           std::list<std::weak_ptr<proof_node>> ancestors,
+                           std::weak_ptr<proof_node> parent,
+                           std::vector<std::shared_ptr<proof_node>> refinement_blocks):
+            _ancestors(ancestors),
+            _parent(std::move(parent)),
+            _refinement_blocks(std::move(refinement_blocks)),
             path(std::move(_path)),
             uid(std::move(_uid)),
             depth(_depth),
             invariants(std::move(_invariants)),
             node_infos(_node_infos),
-            leaf_infos(std::move(_leaf_infos)),
-            triggers(std::move(_pruning_triggers)),
-            ancestors(_ancestors),
-            parent(_parent),
-            refinement_blocks(_refinement_blocks) { }
+            leaf_infos(std::move(_leaf_infos)) { }
 
     // PRINTING FUNCTIONS
     std::string proof_node::tree_to_string() {
@@ -672,27 +667,27 @@ namespace SMT {
     }
 
     bool proof_node::is_leaf() {
-        return refinement_blocks.empty();
+        return _refinement_blocks.empty();
     }
 
     bool proof_node::is_root() {
         return depth == 0;
     }
 
-    bool proof_node::pruning_enabled() {
-        if (triggers.probing_enabled()) {
-            return true;
-        }
-        for (auto &&child : refinement_blocks) {
-            if (child->pruning_enabled())
-                return true;
-        }
-        return false;
-    }
+//    bool proof_node::pruning_enabled() {
+//        if (triggers.probing_enabled()) {
+//            return true;
+//        }
+//        for (auto &&child : _refinement_blocks) {
+//            if (child->pruning_enabled())
+//                return true;
+//        }
+//        return false;
+//    }
 
     void proof_node::tree_pre_order_iter(std::function<void(std::shared_ptr<proof_node>)> fun) {
         fun(this->shared_from_this());
-        for (auto &&child : this->refinement_blocks) {
+        for (auto &&child : this->_refinement_blocks) {
             child->tree_pre_order_iter(fun);
         }
     }
@@ -704,7 +699,7 @@ namespace SMT {
             std::shared_ptr<proof_node> node = queue.front();
             queue.pop();
             fun(node);
-            for (auto &&child : node->refinement_blocks) {
+            for (auto &&child : node->_refinement_blocks) {
                 queue.push(child);
             }
         }
@@ -716,9 +711,9 @@ namespace SMT {
         return std::move(ret);
     }
 
-    void proof_node::clean_pruning_triggers() {
-        this->tree_pre_order_iter([](std::shared_ptr<proof_node> node) { node->triggers.clean();});
-    }
+//    void proof_node::clean_pruning_triggers() {
+//        this->tree_pre_order_iter([](std::shared_ptr<proof_node> node) { node->triggers.clean();});
+//    }
 
     std::string proof_node::JSON_stringify() {
         std::stringstream fmt;
@@ -760,8 +755,8 @@ namespace SMT {
         int i = path.front();
         path.pop_front();
 
-        if (i < this->refinement_blocks.size()) {
-            return this->refinement_blocks[i]->get_by_path(path);
+        if (i < this->_refinement_blocks.size()) {
+            return this->_refinement_blocks[i]->get_by_path(path);
         } else {
             log->critical("Cannot follow path {} in node {}", i, this->uid);
             throw std::runtime_error("Cannot follow path " + std::to_string(i) + " in node " + this->uid);
