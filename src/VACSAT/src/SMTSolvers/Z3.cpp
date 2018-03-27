@@ -6,6 +6,21 @@
 
 namespace SMT {
     static unsigned int var_counter = 0;
+
+#define z3expr(expr) std::make_shared<z3_expr_t>(z3_expr_t(expr))
+
+    inline const z3::expr& eto_z3(const SMTExpr &expr) {
+#ifdef NDEBUG
+        return std::static_pointer_cast<z3_expr_t>(expr)->e;
+#else
+        Z3Expr e = std::dynamic_pointer_cast<z3_expr_t>(expr);
+        if (e == nullptr) {
+            throw unexpected("Operand is of the wrong type");
+        }
+        return e->e;
+#endif
+    }
+
 //    static std::shared_ptr<z3::config> default_config() {
 ////        - proof  (Boolean)           Enable proof generation
 ////        - debug_ref_count (Boolean)  Enable debug support for Z3_ast reference counting
@@ -35,7 +50,7 @@ namespace SMT {
 //    }
 
 //    std::shared_ptr<z3::config> Z3Solver::config = default_config();
-    Z3Solver::Z3Solver() /*context(new z3::context()),*/  {
+    Z3Solver::Z3Solver() : SMTFactory(Solver::Z3) /*context(new z3::context()),*/  {
         z3::config cfg;
         cfg.set("proof", false);
 //        cfg.set("debug_ref_count", false);
@@ -64,7 +79,7 @@ namespace SMT {
     //     return yices_bv_type(size);
     // }
 
-    expr Z3Solver::createVar2(const std::string name, int size) {
+    SMTExpr Z3Solver::createVar2(const std::string name, int size) {
 //        std::cout << name << std::endl;
         if (size == 1) {
             return createBoolVar(name);
@@ -72,138 +87,139 @@ namespace SMT {
         return createBVVar(name, size);
     }
 
-    expr Z3Solver::createBoolVar(const std::string name) {
+    SMTExpr Z3Solver::createBoolVar(const std::string name) {
 //        std::cout << name << std::endl;
         std::string enum_name = name + "_" + std::to_string(var_counter++);
-        return context.bool_const(enum_name .c_str());
+        return z3expr(context.bool_const(enum_name .c_str()));
     }
 
-    expr Z3Solver::createBVVar(const std::string name, int size) {
+    SMTExpr Z3Solver::createBVVar(const std::string name, int size) {
 //        std::cout << name << std::endl;
         std::string enum_name = name + "_" + std::to_string(var_counter++);
-        return context.bv_const(enum_name .c_str(), size);;
+        return z3expr(context.bv_const(enum_name .c_str(), size));
     }
 
-    expr Z3Solver::createBVConst(int value, int size) {
-        return context.bv_val(value, size);
+    SMTExpr Z3Solver::createBVConst(int value, int size) {
+        return z3expr(context.bv_val(value, size));
     }
-    expr Z3Solver::createBoolConst(int value) {
-        return value ? context.bool_val(true) : context.bool_val(false);
+    SMTExpr Z3Solver::createBoolConst(int value) {
+        return z3expr(value ? context.bool_val(true) : context.bool_val(false));
     }        
-    expr Z3Solver::createTrue() {
+    SMTExpr Z3Solver::createTrue() {
         return createBoolConst(true);
     }
-    expr Z3Solver::createFalse() {
+    SMTExpr Z3Solver::createFalse() {
         return createBoolConst(false);
     }
-    expr Z3Solver::createOrExpr(expr lhs, expr rhs) {
-        expr res =  lhs || rhs;
-        return res;
+    SMTExpr Z3Solver::createOrExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        expr res = eto_z3(lhs) || eto_z3(rhs);
+        return z3expr(res);
     }
-    expr Z3Solver::createXorExpr(expr lhs, expr rhs) {
+    SMTExpr Z3Solver::createXorExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
         //FIXME: check this, or use the logic circuit for XOR
-        expr res = z3::z3_xor(lhs, rhs);
-        return res;
+        expr res = z3::z3_xor(eto_z3(lhs), eto_z3(rhs));
+        return z3expr(res);
     }
-    expr Z3Solver::createAndExpr(expr lhs, expr rhs) {
-        expr res = lhs && rhs;
-        return res;
+    SMTExpr Z3Solver::createAndExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        expr res = eto_z3(lhs) && eto_z3(rhs);
+        return z3expr(res);
     }
-    expr Z3Solver::createNotExpr(expr _expr) {
-        expr res = !_expr;
-        return res;
+    SMTExpr Z3Solver::createNotExpr(const SMTExpr& _expr) {
+        expr res = !eto_z3(_expr);
+        return z3expr(res);
     }
-    expr Z3Solver::createCondExpr(expr cond, expr choice1, expr choice2) {
-        expr res = ite(cond, choice1, choice2);
-        return res;
+    SMTExpr Z3Solver::createCondExpr(const SMTExpr& cond, const SMTExpr& choice1, const SMTExpr& choice2) {
+        expr res = ite(eto_z3(cond), eto_z3(choice1), eto_z3(choice2));
+        return z3expr(res);
     }
-    expr Z3Solver::createEqExpr(expr lhs, expr rhs) {
-        expr res = lhs == rhs;
-        return res;
+    SMTExpr Z3Solver::createEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        expr res = eto_z3(lhs) == eto_z3(rhs);
+        return z3expr(res);
     }
 
-    expr Z3Solver::createGtExpr(expr lhs, expr rhs) {
+    SMTExpr Z3Solver::createGtExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
         // WARNING: default > is signed. Use unsigned!
-        expr res = z3::ugt(lhs, rhs);
-        return res;
+        expr res = z3::ugt(eto_z3(lhs), eto_z3(rhs));
+        return z3expr(res);
     }
-    expr Z3Solver::createGEqExpr(expr lhs, expr rhs) {
+    SMTExpr Z3Solver::createGEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
         // WARNING: default >= is signed. Use unsigned!
-        expr res = z3::uge(lhs, rhs);
-        return res;
+        expr res = z3::uge(eto_z3(lhs), eto_z3(rhs));
+        return z3expr(res);
     }
-    expr Z3Solver::createLtExpr(expr lhs, expr rhs) {
+    SMTExpr Z3Solver::createLtExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
         // WARNING: default < is signed. Use unsigned!
-        expr res = z3::ult(lhs, rhs);
-        return res;
+        expr res = z3::ult(eto_z3(lhs), eto_z3(rhs));
+        return z3expr(res);
     }
-    expr Z3Solver::createLEqExpr(expr lhs, expr rhs) {
+    SMTExpr Z3Solver::createLEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
         // WARNING: default <= is signed. Use unsigned!
-        expr res = z3::ule(lhs, rhs);
-        return res;
+        expr res = z3::ule(eto_z3(lhs), eto_z3(rhs));
+        return z3expr(res);
     }
 
-    expr Z3Solver::createImplExpr(expr lhs, expr rhs) {
-        expr res = implies(lhs, rhs);
-        return res;
+    SMTExpr Z3Solver::createImplExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        expr res = implies(eto_z3(lhs), eto_z3(rhs));
+        return z3expr(res);
     }
 
-    expr Z3Solver::createBitSet(expr container, unsigned int ith, expr value) {
-            expr bit = container.extract(ith, ith);
+    SMTExpr Z3Solver::createBitSet(const SMTExpr& container, unsigned int ith, const SMTExpr& value) {
+        expr bit = eto_z3(container).extract(ith, ith);
+
 //            log->info("bit: {}; value: {}", bit.get_sort(), bit);
-            expr bv_value = createCondExpr(value,
-                                           createBVConst(0, 1),
-                                           createBVConst(1, 1));
+        expr bv_value = ite(eto_z3(value),
+                               context.bv_val(0, 1),
+                               context.bv_val(1, 1));
 //            log->info("bv_value: {}; value: {}", bv_value.get_sort(), bv_value);
-            expr res = createEqExpr(bit, bv_value);
+        expr res = bit == bv_value;
 //            log->info("res: {}; value: {}", res.get_sort(), res);
-            return res;
+        return z3expr(res);
     }
-    expr Z3Solver::createDistinct(std::list<expr> exprs) {
+    SMTExpr Z3Solver::createDistinct(std::list<SMTExpr>& exprs) {
         expr_vector z3_exps(this->context);
 
         for (auto &&expr : exprs) {
-            z3_exps.push_back(expr);
+            z3_exps.push_back(eto_z3(expr));
         }
         expr res = z3::distinct(z3_exps);
-        return res;
+        return z3expr(res);
     }
 
-    expr Z3Solver::joinExprsWithAnd(std::list<expr>& exprs) {
+    SMTExpr Z3Solver::joinExprsWithAnd(std::list<SMTExpr>& exprs) {
         if (exprs.size() < 1) {
             return createTrue();
 //            fprintf(stderr, "Cannot join zero expressions...\n");
 //            throw std::runtime_error("Cannot join zero expressions");
         }
         auto ite = exprs.begin();
-        expr ret = *ite;
+        expr ret = eto_z3(*ite);
         for (++ite; ite != exprs.end(); ++ite) {
-            ret = ret && *ite;
+            ret = ret && eto_z3(*ite);
         }
-        return ret;
+        return z3expr(ret);
     }
-    expr Z3Solver::joinExprsWithOr(std::list<expr>& exprs) {
+    SMTExpr Z3Solver::joinExprsWithOr(std::list<SMTExpr>& exprs) {
         if (exprs.size() < 1) {
             return createTrue();
 //            fprintf(stderr, "Cannot join zero expressions...\n");
 //            throw std::runtime_error("Cannot join zero expressions");
         }
         auto ite = exprs.begin();
-        expr ret = *ite;
+        expr ret = eto_z3(*ite);
         for (++ite; ite != exprs.end(); ++ite) {
-            ret = ret || *ite;
+            ret = ret || eto_z3(*ite);
         }
-        return ret;
+        return z3expr(ret);
     }
 
-    void Z3Solver::assertLater(expr e) {
-        solver.add(e);
+    void Z3Solver::assertLater(const SMTExpr& e) {
+        solver.add(eto_z3(e));
     }
 
-    void Z3Solver::assertNow(expr e) {
+    void Z3Solver::assertNow(const SMTExpr& e) {
         // printf("%p: ", context);
         // yices_pp_term(stdout, expr, 140, 40, 0);
-        solver.add(e);
+        solver.add(eto_z3(e));
     }
 
     SMTResult Z3Solver::solve() {
@@ -217,28 +233,28 @@ namespace SMT {
                 // model_t* model = yices_get_model(context, 1);
                 // yices_pp_model(stdout, model, 120, 40, 0);
                 // yices_free_model(model);
-                return SAT;
+                return SMTResult::SAT;
                 break;
             }
             case unsat:
-                return UNSAT;
+                return SMTResult::UNSAT;
                 break;
             case unknown:
-                return UNKNOWN;
+                return SMTResult::UNKNOWN;
                 break;
 
             default:
             std::cerr << "Error in check_context" << std::endl;
                 break;
         }
-        return ERROR;
+        return SMTResult::ERROR;
     }
 
     void Z3Solver::print_statistics() {
         auto state = this->solver.statistics();
         std::cout << state << std::endl;
     }
-    void Z3Solver::printExpr(expr e) {
+    void Z3Solver::printExpr(const SMTExpr& e) {
         std::cout << e << std::endl;
     }
     void Z3Solver::printModel() {
@@ -246,10 +262,10 @@ namespace SMT {
         std::cout << *model << std::endl;
     }
 
-    bool Z3Solver::get_bool_value(expr expr) {
+    bool Z3Solver::get_bool_value(const SMTExpr& expr) {
         extract_model();
         try {
-            z3::expr res = model->eval(expr, false);
+            z3::expr res = model->eval(eto_z3(expr), false);
             return Z3_get_bool_value(this->context, res) == Z3_L_TRUE;
         } catch (z3::exception &e) {
             // No model value

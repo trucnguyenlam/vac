@@ -23,7 +23,6 @@ namespace SMT {
 
     static int ext_porr = 0;
 
-template <typename TVar, typename TExpr>
 class SuperOverapproxTransformer {
     private:
 
@@ -59,7 +58,7 @@ class SuperOverapproxTransformer {
 
     };
 
-    typedef generic_variable<TVar, TExpr> variable;
+    typedef generic_variable variable;
 
     static std::pair<int, int> get_pc_size_max_value(const std::shared_ptr<arbac_policy>& policy,
                                                      const std::set<Atomp>& tracked_atoms) {
@@ -95,7 +94,7 @@ class SuperOverapproxTransformer {
         variables() = default;
 
         variables(std::shared_ptr<arbac_policy> policy,
-                  SMTFactory<TVar, TExpr>* solver,
+                  SMTFactory* solver,
                   const std::vector<bool>& interesting_roles) :
                 role_vars (std::vector<variable>((unsigned long) policy->atom_count())),
                 role_changed (std::vector<variable>((unsigned long) policy->atom_count())),
@@ -150,7 +149,7 @@ class SuperOverapproxTransformer {
     struct overapprox_status {
         friend class variables;
 
-        SMTFactory<TVar, TExpr>* solver;
+        SMTFactory* solver;
         const std::shared_ptr<arbac_policy>& policy;
         /*--- VALUES ---*/
         variables state;
@@ -217,8 +216,8 @@ class SuperOverapproxTransformer {
             variables old_state = saved_state.top();
 
             //RESTORE GUARDS
-            TVar old_guard = old_state.guard.get_solver_var();
-            TVar frame_guard = state.guard.get_solver_var();
+            SMTExpr old_guard = old_state.guard.get_solver_var();
+            SMTExpr frame_guard = state.guard.get_solver_var();
 //            this->emit_assignment(new_guard, old_guard);
 
             variable new_guard = state.guard.createFrom();
@@ -226,7 +225,7 @@ class SuperOverapproxTransformer {
             state.guard = new_guard;
 
             //RESTORE PC
-            TVar old_program_counter = old_state.program_counter.get_solver_var();
+            SMTExpr old_program_counter = old_state.program_counter.get_solver_var();
             variable new_program_counter = state.program_counter.createFrom();
 //            this->emit_assignment(new_guard, old_guard);
             solver->assertLater(solver->createEqExpr(new_program_counter.get_solver_var(), old_program_counter));
@@ -236,7 +235,7 @@ class SuperOverapproxTransformer {
             for (int i = 0; i < policy->atom_count(); ++i) {
                 if (infos.interesting_roles[i]) {
                     //SET: RESTORE OLD VALUE
-                    TVar old_set_state = old_state.role_sets[i].get_solver_var();
+                    SMTExpr old_set_state = old_state.role_sets[i].get_solver_var();
                     variable new_set_state = state.role_sets[i].createFrom();
                     this->emit_assignment(new_set_state, old_set_state);
                     state.role_sets[i] = new_set_state;
@@ -251,7 +250,7 @@ class SuperOverapproxTransformer {
             for (int i = 0; i < policy->atom_count(); ++i) {
                 if (infos.interesting_roles[i]) {
                     //TRACKED: RESTORE OLD VALUE
-                    TVar old_tracked_state = old_state.role_tracked[i].get_solver_var();
+                    SMTExpr old_tracked_state = old_state.role_tracked[i].get_solver_var();
                     variable new_tracked_state = state.role_tracked[i].createFrom();
                     this->emit_assignment(new_tracked_state, old_tracked_state);
                     state.role_tracked[i] = new_tracked_state;
@@ -264,7 +263,7 @@ class SuperOverapproxTransformer {
 
 //            update_program_counter();
             //RESTORE OLD SKIP
-            TVar old_skip = old_state.skip.get_solver_var();
+            SMTExpr old_skip = old_state.skip.get_solver_var();
             variable new_skip = state.skip.createFrom();
             this->emit_assignment(new_skip, old_skip);
             state.skip = new_skip;
@@ -274,7 +273,7 @@ class SuperOverapproxTransformer {
                 if (infos.interesting_roles[i]) {
                     variable new_changed = state.role_changed[i].createFrom();
                     variable old_changed = old_state.role_changed[i];
-                    TExpr new_changed_value =
+                    SMTExpr new_changed_value =
                             solver->createCondExpr(frame_guard,
                                                    solver->createOrExpr(old_changed.get_solver_var(),
                                                                         state.role_changed[i].get_solver_var()),
@@ -289,28 +288,28 @@ class SuperOverapproxTransformer {
                 if (infos.interesting_roles[i]) {
                     // role_vars
                     variable sync_role_var = state.role_vars[i].createFrom();
-                    TExpr cond_sync_role_var = solver->createCondExpr(frame_guard,
+                    SMTExpr cond_sync_role_var = solver->createCondExpr(frame_guard,
                                                                       state.role_vars[i].get_solver_var(),
                                                                       old_state.role_vars[i].get_solver_var());
                     emit_assignment(sync_role_var, cond_sync_role_var);
                     state.role_vars[i] = sync_role_var;
                     /*// core_value_true
                     variable sync_core_value_true = state.core_value_true[i].createFrom();
-                    TExpr cond_sync_core_value_true = solver->createCondExpr(frame_guard,
+                    SMTExpr cond_sync_core_value_true = solver->createCondExpr(frame_guard,
                                                                              state.core_value_true[i].get_solver_var(),
                                                                              old_state.core_value_true[i].get_solver_var());
                     emit_assignment(sync_core_value_true, cond_sync_core_value_true);
                     state.core_value_true[i] = sync_core_value_true;
                     // core_value_false
                     variable sync_core_value_false = state.core_value_false[i].createFrom();
-                    TExpr cond_sync_core_value_false = solver->createCondExpr(frame_guard,
+                    SMTExpr cond_sync_core_value_false = solver->createCondExpr(frame_guard,
                                                                               state.core_value_false[i].get_solver_var(),
                                                                               old_state.core_value_false[i].get_solver_var());
                     emit_assignment(sync_core_value_false, cond_sync_core_value_false);
                     state.core_value_false[i] = sync_core_value_false;
                     // core_sets
                     variable sync_core_set = state.core_sets[i].createFrom();
-                    TExpr cond_sync_core_set = solver->createCondExpr(frame_guard,
+                    SMTExpr cond_sync_core_set = solver->createCondExpr(frame_guard,
                                                                       state.core_sets[i].get_solver_var(),
                                                                       old_state.core_sets[i].get_solver_var());
                     emit_assignment(sync_core_set, cond_sync_core_set);
@@ -405,38 +404,38 @@ class SuperOverapproxTransformer {
             create_new_clean_tracked_infos();
         }
 
-        void set_guard(TExpr guard) {
+        void set_guard(SMTExpr guard) {
             variable old_guard = state.guard;
             variable new_guard = old_guard.createFrom();
-            TExpr new_val = solver->createAndExpr(old_guard.get_solver_var(), guard);
+            SMTExpr new_val = solver->createAndExpr(old_guard.get_solver_var(), guard);
             solver->assertLater(solver->createEqExpr(new_guard.get_solver_var(), new_val));
             state.guard = new_guard;
         }
 
         void internal_init() {
-            TExpr _false = solver->createFalse();
-            TExpr _true = solver->createTrue();
+            SMTExpr _false = solver->createFalse();
+            SMTExpr _true = solver->createTrue();
             for (int i = 0; i < policy->atom_count(); ++i) {
                 if (infos.interesting_roles[i]) {
-                    TExpr init_role_changed = solver->createEqExpr(state.role_changed[i].get_solver_var(),
+                    SMTExpr init_role_changed = solver->createEqExpr(state.role_changed[i].get_solver_var(),
                                                                    _false);
                     solver->assertLater(init_role_changed);
 
-                    TExpr init_role_sets = solver->createEqExpr(state.role_sets[i].get_solver_var(),
+                    SMTExpr init_role_sets = solver->createEqExpr(state.role_sets[i].get_solver_var(),
                                                                 _false);
                     solver->assertLater(init_role_sets);
 
-                    TExpr init_role_tracked = solver->createEqExpr(state.role_tracked[i].get_solver_var(),
+                    SMTExpr init_role_tracked = solver->createEqExpr(state.role_tracked[i].get_solver_var(),
                                                                    _false);
                     solver->assertLater(init_role_tracked);
                 }
             }
 
-            TExpr init_skip = solver->createEqExpr(state.skip.get_solver_var(), _false);
+            SMTExpr init_skip = solver->createEqExpr(state.skip.get_solver_var(), _false);
             solver->assertLater(init_skip);
-            TExpr init_guard = solver->createEqExpr(state.guard.get_solver_var(), _true);
+            SMTExpr init_guard = solver->createEqExpr(state.guard.get_solver_var(), _true);
             solver->assertLater(init_guard);
-            TExpr init_update_guard = solver->createEqExpr(state.update_guard.get_solver_var(), _true);
+            SMTExpr init_update_guard = solver->createEqExpr(state.update_guard.get_solver_var(), _true);
             solver->assertLater(init_update_guard);
             create_program_counter();
         }
@@ -445,7 +444,7 @@ class SuperOverapproxTransformer {
 
         overapprox_status() = delete;
 
-        overapprox_status(SMTFactory<TExpr, TVar>* _solver,
+        overapprox_status(SMTFactory* _solver,
                           const std::shared_ptr<arbac_policy>& _policy,
                           int _deep,
                           const overapprox_infos infos) :
@@ -461,25 +460,25 @@ class SuperOverapproxTransformer {
             internal_init();
         }
 
-        inline void emit_assignment(const variable& var, const TVar& value) {
-            TExpr ass = solver->createEqExpr(var.get_solver_var(), value);
+        inline void emit_assignment(const variable& var, const SMTExpr& value) {
+            SMTExpr ass = solver->createEqExpr(var.get_solver_var(), value);
             //NOTICE: Do NOT put XOR, IMPLICATION or OR are OK, but NO XOR for the god sake! Otherwise the aserted statement MUST be false!
-            TExpr guarded_ass = solver->createImplExpr(state.guard.get_solver_var(),
+            SMTExpr guarded_ass = solver->createImplExpr(state.guard.get_solver_var(),
                                                        ass);
             solver->assertLater(guarded_ass);
 
         }
 
-        inline void emit_assumption(const TExpr& value) {
+        inline void emit_assumption(const SMTExpr& value) {
             //NOTICE: Do NOT put XOR, IMPLICATION or OR are OK, but NO XOR for the god sake! Otherwise the aserted statement MUST be false!
-            TExpr guarded_ass = solver->createImplExpr(state.guard.get_solver_var(),
+            SMTExpr guarded_ass = solver->createImplExpr(state.guard.get_solver_var(),
                                                       value);
             solver->assertLater(guarded_ass);
         }
 
         inline void emit_comment(const std::string& comment) {
             //Working automatically and only in Z3
-            if (std::is_same<z3::expr, TExpr>::value) {
+            if (solver->solver_name == Solver::Z3) {
                 solver->assertNow(solver->createBoolVar(comment));
                 log->debug("Emitting comment: " + comment);
             }
@@ -492,7 +491,7 @@ class SuperOverapproxTransformer {
 
         void push(Expr _target_expr,
                 /*std::set<rulep> _target_rule, */
-                  TExpr guard,
+                  SMTExpr guard,
                   variable _parent_pc,
                   std::vector<std::pair<Expr, int>> preconditions) {
             log->trace(++ext_porr);
@@ -517,13 +516,13 @@ class SuperOverapproxTransformer {
     };
 
 
-    std::shared_ptr<SMTFactory<TVar, TExpr>> solver;
+    std::shared_ptr<SMTFactory> solver;
     std::shared_ptr<arbac_policy> policy;
 
     overapprox_status state;
 
-    const TExpr zero;
-    const TExpr one;
+    const SMTExpr zero;
+    const SMTExpr one;
 
     static bool is_optional(int atom_idx) {
         return false;
@@ -592,12 +591,12 @@ class SuperOverapproxTransformer {
                                 pc_size_max_value.second);
     }
 
-    inline void emit_assignment(const variable& var, const TExpr& value) {
-//        TExpr assign = solver->createEqExpr(variable.get_solver_var(), value);
+    inline void emit_assignment(const variable& var, const SMTExpr& value) {
+//        SMTExpr assign = solver->createEqExpr(variable.get_solver_var(), value);
         state.emit_assignment(var, value);
     }
 
-    inline void emit_assumption(const TExpr& expr) {
+    inline void emit_assumption(const SMTExpr& expr) {
         state.emit_assumption(expr);
     }
 
@@ -606,9 +605,9 @@ class SuperOverapproxTransformer {
     }
 
     void init_atoms() {
-        TExpr init = solver->createFalse();
+        SMTExpr init = solver->createFalse();
         for (auto &&conf :policy->unique_configurations()) {
-            TExpr conf_expr = solver->createTrue();
+            SMTExpr conf_expr = solver->createTrue();
             for (auto &&atom :policy->atoms()) {
                 if (state.infos.interesting_roles[atom->role_array_index]) {
                     bool has = contains(conf->config(), atom);
@@ -623,23 +622,23 @@ class SuperOverapproxTransformer {
         solver->assertLater(init);
     }
 
-    TExpr generate_PC_prec(int pc) {
+    SMTExpr generate_PC_prec(int pc) {
         // fprintf(outputFile, "    if (!skip && (__cs_pc == %d) &&\n", pc);
         return solver->createEqExpr(state.state.program_counter.get_solver_var(),
                                     solver->createBVConst(pc,
                                                           state.infos.pc_size));
     }
 
-    TExpr generate_from_prec(const Expr& precond) {
-        TExpr res = generateSMTFunction(solver, precond, state.state.role_vars, "");
+    SMTExpr generate_from_prec(const Expr& precond) {
+        SMTExpr res = generateSMTFunction(solver, precond, state.state.role_vars, "");
 
         return res;
     }
 
-//    TExpr get_assignment_cond(const atomp& target_role, int label_index) {
+//    SMTExpr get_assignment_cond(const atomp& target_role, int label_index) {
 //        // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
 //        // fprintf(outputFile, "    /* --- ASSIGNMENT RULES FOR ROLE %s --- */\n", role_array[target_role_index]);
-//        TExpr skip_condition = solver->createNotExpr(state.state.skip.get_solver_var());
+//        SMTExpr skip_condition = solver->createNotExpr(state.state.skip.get_solver_var());
 //        Expr ca_expr;
 //        if (policy->per_role_can_assign_rule(target_role).size() < 1) {
 //            ca_expr = createConstantFalse();
@@ -665,25 +664,25 @@ class SuperOverapproxTransformer {
 ////            generate_main();
 ////            state.pop();
 ////        }
-//        TExpr ca_guards = generate_CA_cond(ca_expr);
+//        SMTExpr ca_guards = generate_CA_cond(ca_expr);
 //
 //        // This user is not in this target role yet
 //        // fprintf(outputFile, "        /* Role not SET yet */\n");
-//        TExpr not_set = solver->createNotExpr(state.state.role_sets[target_role->role_array_index].get_solver_var());
+//        SMTExpr not_set = solver->createNotExpr(state.state.role_sets[target_role->role_array_index].get_solver_var());
 //        // this should prevent dummy set for the last time not changing the value
-//        TExpr was_false = solver->createNotExpr(solver->createEqExpr(state.state.role_vars[target_role->role_array_index].get_solver_var(),
+//        SMTExpr was_false = solver->createNotExpr(solver->createEqExpr(state.state.role_vars[target_role->role_array_index].get_solver_var(),
 //                                                                     one));
-//        TExpr cond = solver->createAndExpr(solver->createAndExpr(skip_condition, ca_guards),
+//        SMTExpr cond = solver->createAndExpr(solver->createAndExpr(skip_condition, ca_guards),
 //                                           solver->createAndExpr(not_set, was_false));
 //        return cond;
 //    }
 //
-//    TExpr get_revoke_cond(const atomp& target_role, int label_index) {
+//    SMTExpr get_revoke_cond(const atomp& target_role, int label_index) {
 //        // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
 //        // fprintf(outputFile, "    /* --- REVOKE RULES FOR ROLE %s --- */\n", role_array[target_role_index]);
 //        Expr cr_expr;
 //
-//        TExpr skip_condition = solver->createNotExpr(state.state.skip.get_solver_var());
+//        SMTExpr skip_condition = solver->createNotExpr(state.state.skip.get_solver_var());
 //
 //        if (policy->per_role_can_revoke_rule(target_role).size() < 1) {
 //            cr_expr = createConstantFalse();
@@ -707,34 +706,34 @@ class SuperOverapproxTransformer {
 ////            state.pop();
 ////        }
 //
-//        TExpr cr_guards = generate_CR_cond(cr_expr);
+//        SMTExpr cr_guards = generate_CR_cond(cr_expr);
 //
 //
 //        // This user is not in this target role yet
 //        // fprintf(outputFile, "        /* Role not SET yet */\n");
-//        TExpr not_set = solver->createNotExpr(state.state.role_sets[target_role->role_array_index].get_solver_var());
+//        SMTExpr not_set = solver->createNotExpr(state.state.role_sets[target_role->role_array_index].get_solver_var());
 //        // this should prevent dummy set for the last time not changing the value
-//        TExpr was_true = solver->createNotExpr(solver->createEqExpr(state.state.role_vars[target_role->role_array_index].get_solver_var(),
+//        SMTExpr was_true = solver->createNotExpr(solver->createEqExpr(state.state.role_vars[target_role->role_array_index].get_solver_var(),
 //                                                                    zero));
-//        TExpr cond = solver->createAndExpr(solver->createAndExpr(skip_condition, cr_guards),
+//        SMTExpr cond = solver->createAndExpr(solver->createAndExpr(skip_condition, cr_guards),
 //                                           solver->createAndExpr(not_set, was_true));
 //        return cond;
 //    }
 //
 //    void simulate_can_assigns(const rulep& rule, int label_index) {
 //        //This forces the transition to happen if pc = label
-//        TExpr pc_precondition = generate_PC_prec(label_index);
+//        SMTExpr pc_precondition = generate_PC_prec(label_index);
 //
 //        //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
-//        TExpr ass_cond = get_assignment_cond(target_role, label_index);
+//        SMTExpr ass_cond = get_assignment_cond(target_role, label_index);
 //
 //        emit_assumption(solver->createImplExpr(pc_precondition, ass_cond));
 //
 //        int target_role_index = target_role->role_array_index;
 //
-//        TExpr new_role_val = solver->createCondExpr(pc_precondition, one, state.state.role_vars[target_role_index].get_solver_var());
-//        TExpr new_changed_val = solver->createCondExpr(pc_precondition, one, state.state.role_changed[target_role_index].get_solver_var());
-//        TExpr new_set_val = solver->createCondExpr(pc_precondition, one, state.state.role_sets[target_role_index].get_solver_var());
+//        SMTExpr new_role_val = solver->createCondExpr(pc_precondition, one, state.state.role_vars[target_role_index].get_solver_var());
+//        SMTExpr new_changed_val = solver->createCondExpr(pc_precondition, one, state.state.role_changed[target_role_index].get_solver_var());
+//        SMTExpr new_set_val = solver->createCondExpr(pc_precondition, one, state.state.role_sets[target_role_index].get_solver_var());
 //
 //
 //        // fprintf(outputFile, "            role_%s = 1;\n", role_array[target_role_index]);
@@ -756,16 +755,16 @@ class SuperOverapproxTransformer {
 //
 //    void simulate_can_revokes(const atomp& target_role, int label_index) {
 //        //This forces the transition to happen if pc = label
-//        TExpr pc_precondition = generate_PC_prec(label_index);
+//        SMTExpr pc_precondition = generate_PC_prec(label_index);
 //
-//        TExpr revoke_cond = get_revoke_cond(target_role, label_index);
+//        SMTExpr revoke_cond = get_revoke_cond(target_role, label_index);
 //
 //        emit_assumption(solver->createImplExpr(pc_precondition, revoke_cond));
 //
 //        int target_role_index = target_role->role_array_index;
 //
-//        TExpr new_role_val = solver->createCondExpr(pc_precondition, zero, state.state.role_vars[target_role_index].get_solver_var());
-//        TExpr new_set_val = solver->createCondExpr(pc_precondition, one, state.state.role_sets[target_role_index].get_solver_var());
+//        SMTExpr new_role_val = solver->createCondExpr(pc_precondition, zero, state.state.role_vars[target_role_index].get_solver_var());
+//        SMTExpr new_set_val = solver->createCondExpr(pc_precondition, one, state.state.role_sets[target_role_index].get_solver_var());
 //
 //        // fprintf(outputFile, "            role_%s = 0;\n", role_array[target_role_index]);
 //        variable new_role_var = state.state.role_vars[target_role_index].createFrom();
@@ -778,13 +777,13 @@ class SuperOverapproxTransformer {
 //        state.state.role_sets[target_role_index] = new_set_var;
 //    }
 
-    TExpr get_rule_cond(const rulep& rule) {
+    SMTExpr get_rule_cond(const rulep& rule) {
         // fprintf(outputFile, "    /* --- RULE %s --- */\n", rule);
         const Atomp& target_role = rule->target;
-        TExpr skip_condition = solver->createNotExpr(state.state.skip.get_solver_var());
+        SMTExpr skip_condition = solver->createNotExpr(state.state.skip.get_solver_var());
         Expr ca_expr = rule->prec;
 
-        TExpr assigned_val = rule->is_ca ? one : zero;
+        SMTExpr assigned_val = rule->is_ca ? one : zero;
 
 //        if (state.deep > 0) {
 ////            log->warn("pushing rule {} with depth {}", *ca_expr, state.deep);
@@ -793,18 +792,18 @@ class SuperOverapproxTransformer {
 //            state.pop();
 //        }
 
-        TExpr ca_guards = generate_from_prec(ca_expr);
+        SMTExpr ca_guards = generate_from_prec(ca_expr);
 
         // This user is not in this target role yet
         // fprintf(outputFile, "        /* Role not SET yet */\n");
-        TExpr not_set = solver->createNotExpr(state.state.role_sets[target_role->role_array_index].get_solver_var());
+        SMTExpr not_set = solver->createNotExpr(state.state.role_sets[target_role->role_array_index].get_solver_var());
         //This role is tracked in this round
-        TExpr tracked = state.state.role_tracked[target_role->role_array_index].get_solver_var();
+        SMTExpr tracked = state.state.role_tracked[target_role->role_array_index].get_solver_var();
         // this should prevent dummy set for the last time not changing the value
-        TExpr has_changed = solver->createNotExpr(
+        SMTExpr has_changed = solver->createNotExpr(
                 solver->createEqExpr(state.state.role_vars[target_role->role_array_index].get_solver_var(),
                                      assigned_val));
-        TExpr cond = solver->createAndExpr(solver->createAndExpr(solver->createAndExpr(skip_condition,
+        SMTExpr cond = solver->createAndExpr(solver->createAndExpr(solver->createAndExpr(skip_condition,
                                                                                        tracked),
                                                                  ca_guards),
                                            solver->createAndExpr(not_set,
@@ -815,27 +814,27 @@ class SuperOverapproxTransformer {
 
     void simulate_rule(const rulep& rule, int rule_index) {
         //This forces the transition to happen if pc = label
-        TExpr pc_precondition = generate_PC_prec(rule_index);
+        SMTExpr pc_precondition = generate_PC_prec(rule_index);
 
         //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
-        TExpr ass_cond = get_rule_cond(rule);
+        SMTExpr ass_cond = get_rule_cond(rule);
 
-        TExpr ass_value = rule->is_ca ? one : zero;
+        SMTExpr ass_value = rule->is_ca ? one : zero;
 
         emit_assumption(solver->createImplExpr(pc_precondition, ass_cond));
 
         int target_index = rule->target->role_array_index;
 
-        TExpr new_role_val = solver->createCondExpr(pc_precondition,
+        SMTExpr new_role_val = solver->createCondExpr(pc_precondition,
                                                     ass_value,
                                                     state.state.role_vars[target_index].get_solver_var());
-        TExpr new_changed_val = solver->createCondExpr(pc_precondition,
+        SMTExpr new_changed_val = solver->createCondExpr(pc_precondition,
                                                        one,
                                                        state.state.role_changed[target_index].get_solver_var());
-        TExpr new_set_val = solver->createCondExpr(pc_precondition,
+        SMTExpr new_set_val = solver->createCondExpr(pc_precondition,
                                                    one,
                                                    state.state.role_sets[target_index].get_solver_var());
-//        TExpr new_tracked_val = solver->createCondExpr(pc_precondition,
+//        SMTExpr new_tracked_val = solver->createCondExpr(pc_precondition,
 //                                                       one,
 //                                                       state.state.role_tracked[target_index].get_solver_var());
 
@@ -869,10 +868,10 @@ class SuperOverapproxTransformer {
         // fprintf(outputFile, "        skip = 1;");
         // fprintf(outputFile, "    }");
         variable new_skip = state.state.skip.createFrom();
-        TExpr cond = solver->createGEqExpr(state.state.program_counter.get_solver_var(),
+        SMTExpr cond = solver->createGEqExpr(state.state.program_counter.get_solver_var(),
                                            solver->createBVConst(state.infos.pc_max_value,
                                                                  state.infos.pc_size));
-        TExpr new_val = solver->createCondExpr(cond, one, state.state.skip.get_solver_var());
+        SMTExpr new_val = solver->createCondExpr(cond, one, state.state.skip.get_solver_var());
 
         emit_assignment(new_skip, new_val);
 
@@ -880,10 +879,10 @@ class SuperOverapproxTransformer {
 
     }
 
-    TExpr generate_check_implication(int role_index) {
+    SMTExpr generate_check_implication(int role_index) {
         //((tracked_r_i /\ changed_r_i) ==> set_r_i)
         ////((role_r_i != init_r_i) \/ ((set_false_r_i /\ init_r_i = 1) \/ (set_true_r_i /\ init_r_i = 0)) ==> set_r_i))
-//        TExpr init_r_i = zero;
+//        SMTExpr init_r_i = zero;
 //        for (auto &&atom : user->config()) {
 //            if (atom->role_array_index == role_index) {
 //                init_r_i = one;
@@ -891,14 +890,14 @@ class SuperOverapproxTransformer {
 //            }
 //        }
 
-//        TExpr init_r_i = init_r_i_var.get_solver_var();
+//        SMTExpr init_r_i = init_r_i_var.get_solver_var();
 
-//        TVar role_var = state.state.role_vars[role_index].get_solver_var();
-        TVar role_set = state.state.role_sets[role_index].get_solver_var();
-        TVar role_tracked = state.state.role_tracked[role_index].get_solver_var();
-        TVar role_changed = state.state.role_changed[role_index].get_solver_var();
+//        SMTExpr role_var = state.state.role_vars[role_index].get_solver_var();
+        SMTExpr role_set = state.state.role_sets[role_index].get_solver_var();
+        SMTExpr role_tracked = state.state.role_tracked[role_index].get_solver_var();
+        SMTExpr role_changed = state.state.role_changed[role_index].get_solver_var();
 
-//        TExpr impl_prec =
+//        SMTExpr impl_prec =
 //            solver->createOrExpr(
 //                solver->createNotExpr(solver->createEqExpr(role_var, init_r_i)),
 //                solver->createOrExpr(
@@ -906,7 +905,7 @@ class SuperOverapproxTransformer {
 //                    solver->createAndExpr(set_true_r_i, solver->createEqExpr(init_r_i, zero))
 //                ));
 
-        TExpr cond = solver->createImplExpr(solver->createAndExpr(role_tracked,
+        SMTExpr cond = solver->createImplExpr(solver->createAndExpr(role_tracked,
                                                                   role_changed),
                                             role_set);
 
@@ -914,19 +913,19 @@ class SuperOverapproxTransformer {
         return cond;
     }
 
-    TExpr generate_guarded_target_assumption() {
-        TExpr final_ass = zero;
+    SMTExpr generate_guarded_target_assumption() {
+        SMTExpr final_ass = zero;
         for (auto &&tpair :state.target_exprs) {
             Expr texpr = tpair.first;
             int tidx = tpair.second;
 
-            TExpr stexpr = generate_from_prec(texpr);
+            SMTExpr stexpr = generate_from_prec(texpr);
 
-            TExpr parent_pc_texpr = solver->createEqExpr(state.parent_pc.get_solver_var(),
+            SMTExpr parent_pc_texpr = solver->createEqExpr(state.parent_pc.get_solver_var(),
                                                          solver->createBVConst(tidx,
                                                                                state.infos.pc_size));
 
-            TExpr ith_expr = solver->createAndExpr(parent_pc_texpr,
+            SMTExpr ith_expr = solver->createAndExpr(parent_pc_texpr,
                                                    stexpr);
             final_ass = solver->createOrExpr(final_ass,
                                              ith_expr);
@@ -944,7 +943,7 @@ class SuperOverapproxTransformer {
 
 //        std::vector<variable> origs = state.saved_state.top().role_vars;
 
-//        TExpr rule_assumption = generate_from_prec(state.target_expr);
+//        SMTExpr rule_assumption = generate_from_prec(state.target_expr);
 //        emit_assumption(rule_assumption);
 
         int user_id = 0;
@@ -955,15 +954,15 @@ class SuperOverapproxTransformer {
         // fprintf(outputFile, "// assume( skip ==>  /  \\          ((tracked_r_i /\ changed_r_i) ==> set_r_i)\n";
         // fprintf(outputFile, "//                  r_i \\in Track\n");
 //        for (auto &&user : policy->unique_configurations()) {
-        TExpr inner_and = one;
+        SMTExpr inner_and = one;
         for (int i = 0; i < policy->atom_count(); i++) {
             if (state.infos.interesting_roles[i]) {
-                TExpr impl_r_ui = generate_check_implication(i);
+                SMTExpr impl_r_ui = generate_check_implication(i);
                 inner_and = solver->createAndExpr(inner_and, impl_r_ui);
             }
         }
-        TExpr target_impl = solver->createImplExpr(state.state.skip.get_solver_var(), inner_and);
-//        TExpr target_impl = inner_and;
+        SMTExpr target_impl = solver->createImplExpr(state.state.skip.get_solver_var(), inner_and);
+//        SMTExpr target_impl = inner_and;
 //        }
         emit_assumption(target_impl);
 
@@ -975,7 +974,7 @@ class SuperOverapproxTransformer {
     void generate_pc_update() {
         variable new_pc = state.state.program_counter.createFrom();
         // If I was skipping continue with old pc value
-        TExpr continue_skipping = solver->createImplExpr(state.state.skip.get_solver_var(),
+        SMTExpr continue_skipping = solver->createImplExpr(state.state.skip.get_solver_var(),
                                                          solver->createEqExpr(new_pc.get_solver_var(),
                                                                               state.state.program_counter.get_solver_var()));
         emit_assumption(continue_skipping);
@@ -1006,8 +1005,8 @@ class SuperOverapproxTransformer {
         variable update_guard_var = state.state.update_guard.createFrom();
         state.state.update_guard = update_guard_var;
         variable do_update = state.create_get_nondet_bool_var();
-        TExpr not_skipping = solver->createNotExpr(state.state.skip.get_solver_var());
-        TExpr update_guard = solver->createAndExpr(not_skipping,
+        SMTExpr not_skipping = solver->createNotExpr(state.state.skip.get_solver_var());
+        SMTExpr update_guard = solver->createAndExpr(not_skipping,
                                                    solver->createAndExpr(solver->createNotExpr(role_set.get_solver_var()),
                                                                          do_update.get_solver_var()));
 
@@ -1019,10 +1018,10 @@ class SuperOverapproxTransformer {
         emit_assignment(update_guard_var, update_guard);
 
 
-        TExpr updated_value = state.create_get_nondet_bool_var().get_solver_var();
+        SMTExpr updated_value = state.create_get_nondet_bool_var().get_solver_var();
 
         //Variable has really changed
-        TExpr constraints = solver->createNotExpr(solver->createEqExpr(role_var.get_solver_var(),
+        SMTExpr constraints = solver->createNotExpr(solver->createEqExpr(role_var.get_solver_var(),
                                                                        updated_value));
 
         // Updated value can be TRUE if |CA(r)| > 0
@@ -1047,7 +1046,7 @@ class SuperOverapproxTransformer {
 
         // Perform update guarded by "update_guard"
         // on role_value
-        TExpr new_val = solver->createCondExpr(update_guard_var.get_solver_var(),
+        SMTExpr new_val = solver->createCondExpr(update_guard_var.get_solver_var(),
                                                updated_value,
                                                role_var.get_solver_var());
         emit_assignment(new_role_var, new_val);
@@ -1056,7 +1055,7 @@ class SuperOverapproxTransformer {
         // on role_changed
         variable old_changed_var = state.state.role_changed[atom->role_array_index];
         variable new_changed_var = state.state.role_changed[atom->role_array_index].createFrom();
-        TExpr new_changed = solver->createCondExpr(update_guard_var.get_solver_var(),
+        SMTExpr new_changed = solver->createCondExpr(update_guard_var.get_solver_var(),
                                                    one,
                                                    old_changed_var.get_solver_var());
         emit_assignment(new_changed_var, new_changed);
@@ -1162,18 +1161,18 @@ class SuperOverapproxTransformer {
         auto choice = state.choicer.classify(atom);
 
         if (choice != RoleChoicer::FREE) {
-            TExpr value = choice == RoleChoicer::REQUIRED ? one : zero;
+            SMTExpr value = choice == RoleChoicer::REQUIRED ? one : zero;
             emit_assignment(state.state.role_tracked[atom_id], value);
             return;
         } else {
-            TExpr tracked_value = zero;
+            SMTExpr tracked_value = zero;
             for (auto &&target_pair :state.target_exprs) {
                 Expr texpr = target_pair.first;
                 int tidx = target_pair.second;
                 if (!contains(texpr->atoms(), atom)) {
                     continue;
                 } else {
-                    TExpr cond = solver->createEqExpr(state.parent_pc.get_solver_var(),
+                    SMTExpr cond = solver->createEqExpr(state.parent_pc.get_solver_var(),
                                                       solver->createBVConst(tidx,
                                                                             state.infos.pc_size));
                     tracked_value = solver->createOrExpr(cond,
@@ -1241,7 +1240,7 @@ class SuperOverapproxTransformer {
 
         generate_layer();
 
-        TExpr target_cond = generate_from_prec(conditions[0].first);
+        SMTExpr target_cond = generate_from_prec(conditions[0].first);
         emit_assumption(target_cond);
     }
 
@@ -1264,19 +1263,19 @@ class SuperOverapproxTransformer {
         log->debug("------------ SMT SOLVED IN {} ms ------------", milliseconds.count());
 
         switch (res) {
-            case SAT:
+            case SMTResult::SAT:
                 log->debug("SAT\n");
 //                solver->printModel();
                 return true;
                 break;
-            case UNSAT:
+            case SMTResult::UNSAT:
                 log->debug("UNSAT\n");
                 return false;
                 break;
-            case UNKNOWN:
+            case SMTResult::UNKNOWN:
                 log->warn("The status is unknown\n");
                 break;
-            case ERROR:
+            case SMTResult::ERROR:
                 log->error("Error in check_context");
                 throw std::runtime_error("BMC: Error in check_context");
                 break;
@@ -1296,7 +1295,7 @@ class SuperOverapproxTransformer {
 
 
     public:
-    SuperOverapproxTransformer(const std::shared_ptr<SMTFactory<TVar, TExpr>> _solver,
+    SuperOverapproxTransformer(const std::shared_ptr<SMTFactory> _solver,
                                   const std::shared_ptr<arbac_policy>& _policy,
                                   const Expr _to_check
                                   /*const std::set<rulep> _to_check_source*/) :
@@ -1334,15 +1333,14 @@ class SuperOverapproxTransformer {
     }
 };
 
-    template <typename TVar, typename TExpr>
-    bool super_overapprox(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+    bool super_overapprox(const std::shared_ptr<SMTFactory>& solver,
                           const std::shared_ptr<arbac_policy>& policy,
                           const Expr& to_check) {
         solver->deep_clean();
         if (is_constant_true(to_check)) {
             return false;
         }
-        SuperOverapproxTransformer<TVar, TExpr> transf(solver, policy, to_check);
+        SuperOverapproxTransformer transf(solver, policy, to_check);
         // std::shared_ptr<SMTFactory<expr, expr>> solver(new Z3Solver());
         // R6Transformer<expr, expr> transf(solver, rule_index, is_ca);
         bool res = transf.apply();
@@ -1350,22 +1348,4 @@ class SuperOverapproxTransformer {
         //     solver->printContext();
         return res;
     }
-
-
-    template bool super_overapprox<term_t, term_t>(const std::shared_ptr<SMTFactory<term_t, term_t>>& solver,
-                                                   const std::shared_ptr<arbac_policy>& policy,
-                                                   const Expr& to_check);
-
-    template bool super_overapprox<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>>& solver,
-                                               const std::shared_ptr<arbac_policy>& policy,
-                                               const Expr& to_check);
-
-    template bool super_overapprox<BoolectorExpr, BoolectorExpr>(const std::shared_ptr<SMTFactory<BoolectorExpr, BoolectorExpr>>& solver,
-                                                                 const std::shared_ptr<arbac_policy>& policy,
-                                                                 const Expr& to_check);
-
-    template bool super_overapprox<msat_term, msat_term>(const std::shared_ptr<SMTFactory<msat_term, msat_term>>& solver,
-                                                         const std::shared_ptr<arbac_policy>& policy,
-                                                         const Expr& to_check);
-
 }

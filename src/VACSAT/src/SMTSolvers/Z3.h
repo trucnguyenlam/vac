@@ -9,10 +9,19 @@
 namespace SMT {
     using namespace z3;
 
-    // class Z3Expr {
-    //     std::shared_ptr<>
-    // }
-    class Z3Solver : public SMTFactory<expr, expr> {
+    class z3_expr_t : public smt_expr_t {
+    public:
+        const z3::expr e;
+        explicit z3_expr_t(z3::expr expr) : e(std::move(expr)) { };
+//        explicit z3_expr_t(const z3::expr& expr) : e(expr) { };
+//        explicit z3_expr_t(z3::expr& expr) : e(expr) { };
+
+        Solver get_solver() override { return Solver::Z3; }
+    };
+
+    typedef std::shared_ptr<z3_expr_t> Z3Expr;
+
+    class Z3Solver : public SMTFactory {
         public:
         static inline const std::string solver_name() {
             return "Z3";
@@ -25,45 +34,45 @@ namespace SMT {
         // sort createBoolType() override;
         // sort createBVType(int size) override;
 
-        expr createVar2(const std::string name, int size) override;
-        expr createBoolVar(const std::string name) override;
-        expr createBVVar(const std::string name, int size) override;
+        SMTExpr createVar2(const std::string name, int size) override;
+        SMTExpr createBoolVar(const std::string name) override;
+        SMTExpr createBVVar(const std::string name, int size) override;
 
-        expr createBVConst(int value, int size) override;
-        expr createBoolConst(int value) override;
-        expr createTrue() override;
-        expr createFalse() override;
-        expr createOrExpr(expr lhs, expr rhs) override;
-        expr createXorExpr(expr lhs, expr rhs) override;
-        expr createAndExpr(expr lhs, expr rhs) override;
-        expr createNotExpr(expr _expr) override;
-        expr createCondExpr(expr cond, expr choice1, expr choice2) override;
-        expr createEqExpr(expr lhs, expr rhs) override;
-        expr createGtExpr(expr lhs, expr rhs) override;
-        expr createGEqExpr(expr lhs, expr rhs) override;
-        expr createLtExpr(expr lhs, expr rhs) override;
-        expr createLEqExpr(expr lhs, expr rhs) override;
-        expr createImplExpr(expr lhs, expr rhs) override;
+        SMTExpr createBVConst(int value, int size) override;
+        SMTExpr createBoolConst(int value) override;
+        SMTExpr createTrue() override;
+        SMTExpr createFalse() override;
+        SMTExpr createOrExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createXorExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createAndExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createNotExpr(const SMTExpr& _expr) override;
+        SMTExpr createCondExpr(const SMTExpr& cond, const SMTExpr& choice1, const SMTExpr& choice2) override;
+        SMTExpr createEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createGtExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createGEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createLtExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createLEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createImplExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
 
-        expr createBitSet(expr container, unsigned int ith, expr value) override;
-        expr createDistinct(std::list<expr> exprs) override;
+        SMTExpr createBitSet(const SMTExpr& container, unsigned int ith, const SMTExpr& value) override;
+        SMTExpr createDistinct(std::list<SMTExpr>& exprs) override;
 
-        expr joinExprsWithAnd(std::list<expr>& exprs) override;
-        expr joinExprsWithOr(std::list<expr>& exprs) override;
+        SMTExpr joinExprsWithAnd(std::list<SMTExpr>& exprs) override;
+        SMTExpr joinExprsWithOr(std::list<SMTExpr>& exprs) override;
 
-        void assertLater(expr e) override;
-        void assertNow(expr e) override;
+        void assertLater(const SMTExpr& e) override;
+        void assertNow(const SMTExpr& e) override;
 
         SMTResult solve() override;
         void printModel() override;
-        bool get_bool_value(expr expr) override;
+        bool get_bool_value(const SMTExpr& expr) override;
 //        unsigned int get_bv_value(expr expr) override;
         void print_statistics() override;
         void loadToSolver() override;
         void clean() override;
         void deep_clean() override;
 
-        void printExpr(expr e) override;
+        void printExpr(const SMTExpr& e) override;
         void printContext() override;
         void printContext(std::string filename) override;
 

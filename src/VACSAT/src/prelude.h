@@ -11,6 +11,7 @@
 #include <set>
 #include <algorithm>
 #include "config.h"
+#include <sstream>
 
 namespace SMT {
 

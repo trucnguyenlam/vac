@@ -28,18 +28,17 @@ namespace SMT {
 //    using std::stringstream;
 //    using std::string;
 
-    template <typename TVar, typename TExpr>
     class InfiniBMCTransformer {
     private:
 
-        typedef generic_variable<TVar, TExpr> variable;
+        typedef generic_variable variable;
 
         int threads_count;
         int use_tracks;
         int pc_size;
         int thread_pc_size;
 
-        std::shared_ptr<SMTFactory<TVar, TExpr>> solver;
+        std::shared_ptr<SMTFactory> solver;
 
         std::stringstream fmt;
 
@@ -67,10 +66,10 @@ namespace SMT {
         Expr to_check_infinite;
         Expr to_check_finite;
 
-        TExpr zero;
-        TExpr one;
+        SMTExpr zero;
+        SMTExpr one;
 
-        std::vector<TExpr> final_assertions;
+        std::vector<SMTExpr> final_assertions;
 
         std::vector<std::pair<userp, bool>> tracked_users;
 
@@ -174,16 +173,16 @@ namespace SMT {
 
         /* SOLVER BASED FUNCTIONS */
 
-        inline void emit_assignment(const variable& variable, TExpr value) {
-            TExpr assign = solver->createEqExpr(variable.get_solver_var(), value);
+        inline void emit_assignment(const variable& variable, SMTExpr value) {
+            SMTExpr assign = solver->createEqExpr(variable.get_solver_var(), value);
             solver->assertLater(assign);
         }
 
-        inline void emit_assumption(TExpr expr) {
+        inline void emit_assumption(SMTExpr expr) {
             solver->assertLater(expr);
         }
 
-        inline void emit_assertion(TExpr assertion) {
+        inline void emit_assertion(SMTExpr assertion) {
             final_assertions.push_back(assertion);
         }
 
@@ -241,24 +240,24 @@ namespace SMT {
         bool equivalent_exprs(const Expr& e1, const Expr& e2) {
             solver->clean();
 
-            std::vector<std::shared_ptr<TVar>> var_vec((ulong) policy->atom_count());
-            TExpr se1 = generateSMTFunction(solver, e1, var_vec, "eq");
-            TExpr se2 = generateSMTFunction(solver, e2, var_vec, "eq");
+            std::vector<SMTExpr> var_vec((ulong) policy->atom_count());
+            SMTExpr se1 = generateSMTFunction(solver, e1, var_vec, "eq");
+            SMTExpr se2 = generateSMTFunction(solver, e2, var_vec, "eq");
 
             // e1 /\ not e2
-            TExpr e1_not_e2 = solver->createAndExpr(se1,
+            SMTExpr e1_not_e2 = solver->createAndExpr(se1,
                                                     solver->createNotExpr(se2));
             // not e1 /\ e2
-            TExpr not_e1_e2 = solver->createAndExpr(solver->createNotExpr(se1),
+            SMTExpr not_e1_e2 = solver->createAndExpr(solver->createNotExpr(se1),
                                                     se2);
 
             // (e1 /\ not e2) \/ (not e1 /\ e2)
-            TExpr final = solver->createOrExpr(e1_not_e2,
+            SMTExpr final = solver->createOrExpr(e1_not_e2,
                                                not_e1_e2);
 
             solver->assertNow(final);
 
-            bool res = solver->solve() == UNSAT;
+            bool res = solver->solve() == SMTResult::UNSAT;
             solver->clean();
 
 //            for (auto &&trackedUser : tracked_users) {
@@ -351,13 +350,13 @@ namespace SMT {
             // emitAssignment(nondet_int);
         }
 
-        std::vector<std::shared_ptr<TExpr>> user_to_lookup_vect(const userp& user) {
-            std::vector<std::shared_ptr<TExpr>> vect((ulong) policy->atom_count());
+        std::vector<SMTExpr> user_to_lookup_vect(const userp& user) {
+            std::vector<SMTExpr> vect((ulong) policy->atom_count());
             for (int i = 0; i < policy->atom_count(); ++i) {
-                vect[i] = std::make_shared<TExpr>(solver->createFalse());
+                vect[i] = solver->createFalse();
             }
             for (auto &&atom : user->config()) {
-                vect[atom->role_array_index] = std::make_shared<TExpr>(solver->createTrue());
+                vect[atom->role_array_index] = solver->createTrue();
             }
 
             return vect;
@@ -368,13 +367,13 @@ namespace SMT {
             for (auto &&global_pair : globals_map) {
                 Expr adm_expr = global_pair.first;
                 variable global_var = global_pair.second;
-                TExpr global_value = solver->createFalse();
+                SMTExpr global_value = solver->createFalse();
                 for (auto &&user : policy->unique_configurations()) {
-                    std::vector<std::shared_ptr<TVar>> var_vect = user_to_lookup_vect(user);
-                    TExpr sadm_expr = generateSMTFunction(solver, adm_expr, var_vect, user->name);
+                    std::vector<SMTExpr> var_vect = user_to_lookup_vect(user);
+                    SMTExpr sadm_expr = generateSMTFunction(solver, adm_expr, var_vect, user->name);
                     //FIXME: added just for debug purposes
-                    TVar user_name = solver->createBoolVar(user->name);
-                    TExpr final_expr = solver->createAndExpr(user_name, sadm_expr);
+                    SMTExpr user_name = solver->createBoolVar(user->name);
+                    SMTExpr final_expr = solver->createAndExpr(user_name, sadm_expr);
                     global_value = solver->createOrExpr(global_value, final_expr);
                 }
 
@@ -448,23 +447,23 @@ namespace SMT {
             fmt << "-------THREAD " << thread_id << " TO USER " << user_id << " (" << *tracked_users[user_id].first << ")-------";
             emitComment(fmt.str());
 
-            TExpr con_e = solver->createBVConst(thread_id, thread_pc_size);
-            TExpr eq_e = solver->createEqExpr(thread_assignment_nondet_int.get_solver_var(), con_e);
-            TExpr not_e = solver->createNotExpr(thread_assigneds[thread_id].get_solver_var());
-            TExpr if_guard = solver->createAndExpr(eq_e,
+            SMTExpr con_e = solver->createBVConst(thread_id, thread_pc_size);
+            SMTExpr eq_e = solver->createEqExpr(thread_assignment_nondet_int.get_solver_var(), con_e);
+            SMTExpr not_e = solver->createNotExpr(thread_assigneds[thread_id].get_solver_var());
+            SMTExpr if_guard = solver->createAndExpr(eq_e,
                                                    not_e);
             variable n_guard = guard.createFrom();
             emit_assignment(n_guard, if_guard);
             guard = n_guard;
 
-            TExpr ass_val = solver->createCondExpr(guard.get_solver_var(), one, thread_assigneds[thread_id].get_solver_var());
+            SMTExpr ass_val = solver->createCondExpr(guard.get_solver_var(), one, thread_assigneds[thread_id].get_solver_var());
 
             variable assigned = thread_assigneds[thread_id].createFrom();
             emit_assignment(assigned, ass_val);
             thread_assigneds[thread_id] = assigned;
 
-            TExpr is_infinite_user = tracked_users[user_id].second ? one : zero;
-            TExpr infin_val = solver->createCondExpr(guard.get_solver_var(), is_infinite_user, from_infinite[thread_id].get_solver_var());
+            SMTExpr is_infinite_user = tracked_users[user_id].second ? one : zero;
+            SMTExpr infin_val = solver->createCondExpr(guard.get_solver_var(), is_infinite_user, from_infinite[thread_id].get_solver_var());
             variable infinite = from_infinite[thread_id].createFrom();
             emit_assignment(infinite, infin_val);
             from_infinite[thread_id] = infinite;
@@ -477,7 +476,7 @@ namespace SMT {
                 //     emit(generateAssignment(glob));
                 //     globals[user_config_array[user_id].array[j]] = glob;
                 // }
-                TExpr loc_val = solver->createCondExpr(guard.get_solver_var(), one, locals[thread_id][atom->role_array_index].get_solver_var());
+                SMTExpr loc_val = solver->createCondExpr(guard.get_solver_var(), one, locals[thread_id][atom->role_array_index].get_solver_var());
                 variable loc = locals[thread_id][atom->role_array_index].createFrom();
                 emit_assignment(loc, loc_val);
                 locals[thread_id][atom->role_array_index] = loc;
@@ -505,7 +504,7 @@ namespace SMT {
                 assign_thread_to_user(i);
             }
 
-            TExpr assume_body = thread_assigneds[0].get_solver_var();
+            SMTExpr assume_body = thread_assigneds[0].get_solver_var();
             for (int i = 1; i < threads_count; i++) {
                 assume_body = solver->createAndExpr(thread_assigneds[i].get_solver_var(), assume_body);
             }
@@ -519,8 +518,8 @@ namespace SMT {
                 variable global_var = global_pair.second;
                 for (auto &&canRevokeRule : policy->can_revoke_rules()) {
                     if (contains(global_expr->atoms(), canRevokeRule->target)) {
-                        TExpr respects = generateSMTFunction(solver, global_expr, locals[thread_id], std::to_string(thread_id));
-                        TExpr value = solver->createOrExpr(global_var.get_solver_var(), respects);
+                        SMTExpr respects = generateSMTFunction(solver, global_expr, locals[thread_id], std::to_string(thread_id));
+                        SMTExpr value = solver->createOrExpr(global_var.get_solver_var(), respects);
                         variable n_glob = global_var.createFrom();
                         emit_assignment(n_glob, value);
                         //FIXME changing a collection while iterating it is considered harmfull
@@ -532,36 +531,36 @@ namespace SMT {
             // glob_Author_d = glob_Author_d || __cs_local_Thread_user3_loc_Author_d;
         }
 
-        TExpr generate_from_prec(int thread_id, const Expr &precond) {
+        SMTExpr generate_from_prec(int thread_id, const Expr &precond) {
 
-            TExpr res = generateSMTFunction(solver, precond, locals[thread_id], "");
+            SMTExpr res = generateSMTFunction(solver, precond, locals[thread_id], "");
 
             return res;
         }
 
-        TExpr generate_rule_cond(int thread_id, const rulep& rule) {
+        SMTExpr generate_rule_cond(int thread_id, const rulep& rule) {
             int j;
-            // TExpr cond = -1;
+            // SMTExpr cond = -1;
             // Admin role must be available
             //Could be dfferent even if it has the same configurations
             Expr globals_map_key = per_rule_admin_expr[rule->original_idx];
 
-            TExpr admin_cond = globals_map[globals_map_key].get_solver_var();
+            SMTExpr admin_cond = globals_map[globals_map_key].get_solver_var();
 
             // Precondition must be satisfied
-            TExpr prec_cond = generate_from_prec(thread_id, rule->prec);
+            SMTExpr prec_cond = generate_from_prec(thread_id, rule->prec);
 
             // Optional this user is not in this target role yet
-            TExpr not_ass =
+            SMTExpr not_ass =
                     rule->is_ca ?
                     solver->createNotExpr(locals[thread_id][rule->target->role_array_index].get_solver_var()) :
                     locals[thread_id][rule->target->role_array_index].get_solver_var();
-            TExpr final_cond = solver->createAndExpr(solver->createAndExpr(admin_cond, prec_cond), not_ass);
+            SMTExpr final_cond = solver->createAndExpr(solver->createAndExpr(admin_cond, prec_cond), not_ass);
             return final_cond;
         }
 
-        TExpr generate_PC_cond(int rule_id) {
-            TExpr cond = solver->createEqExpr(program_counters[0].get_solver_var(),
+        SMTExpr generate_PC_cond(int rule_id) {
+            SMTExpr cond = solver->createEqExpr(program_counters[0].get_solver_var(),
                                               solver->createBVConst(rule_id, pc_size));
             for (int i = 1; i < steps; i++) {
                 cond = solver->createOrExpr(cond,
@@ -574,8 +573,8 @@ namespace SMT {
         void simulate_can_assigns_by_atom(int thread_id, const atomp& target, int rule_id) {
             // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
             int i = 0;
-            TExpr pc_cond, ca_cond, all_cond;
-            // TExpr pc_cond = -1, ca_cond = -1, all_cond = -1;
+            SMTExpr pc_cond, ca_cond, all_cond;
+            // SMTExpr pc_cond = -1, ca_cond = -1, all_cond = -1;
             //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
             clean_fmt();
             fmt << "--- ASSIGNMENT RULES FOR ROLE " << *target << " ---";
@@ -588,7 +587,7 @@ namespace SMT {
                 return;
             }
 
-            TExpr finite_cond;
+            SMTExpr finite_cond;
             // IF TARGET IS NON NEGATIVE
             if (atom_statuses[target->role_array_index]->get_status(0) == atom_status::UNUSED) {
                 // CAN ALWAYS ASSIGN
@@ -605,7 +604,7 @@ namespace SMT {
             ca_cond = solver->createFalse();
 
             for (auto &&rule : policy->per_role_can_assign_rule(target)) {
-                TExpr ith_cond = generate_rule_cond(thread_id, rule);
+                SMTExpr ith_cond = generate_rule_cond(thread_id, rule);
 //            emit_ca_comment(ca_idx);
                 ca_cond = solver->createOrExpr(ca_cond, ith_cond);
             }
@@ -618,7 +617,7 @@ namespace SMT {
             guard = ca_guard;
 
             // UPDATE LOCALS FIRST
-            TExpr nlval = solver->createCondExpr(ca_guard.get_solver_var(), one, locals[thread_id][target->role_array_index].get_solver_var());
+            SMTExpr nlval = solver->createCondExpr(ca_guard.get_solver_var(), one, locals[thread_id][target->role_array_index].get_solver_var());
             variable nloc = locals[thread_id][target->role_array_index].createFrom();
             emit_assignment(nloc, nlval);
             locals[thread_id][target->role_array_index] = nloc;
@@ -628,8 +627,8 @@ namespace SMT {
                 Expr adm_expr = glob_pair.first;
                 variable glob_var = glob_pair.second;
                 if (contains(adm_expr->atoms(), target)) {
-                    TExpr ngval = generateSMTFunction(solver, adm_expr, locals[thread_id], std::to_string(thread_id));
-                    TExpr n_cond_gval = solver->createCondExpr(ca_guard.get_solver_var(), ngval, glob_var.get_solver_var());
+                    SMTExpr ngval = generateSMTFunction(solver, adm_expr, locals[thread_id], std::to_string(thread_id));
+                    SMTExpr n_cond_gval = solver->createCondExpr(ca_guard.get_solver_var(), ngval, glob_var.get_solver_var());
                     variable nglob = glob_var.createFrom();
                     emit_assignment(nglob, n_cond_gval);
                     //FIXME changing a collection while iterating it is considered harmfull
@@ -641,8 +640,8 @@ namespace SMT {
         void simulate_can_revokes_by_atom(int thread_id, const atomp &target, int rule_id) {
             // Precondition: exists always at least one CR that assign the role i.e.: roles_cr_counts[target_role_index] > 1
             int i = 0;
-            TExpr pc_cond, cr_cond, all_cond;
-            // TExpr pc_cond = -1, cr_cond = -1, all_cond = -1;
+            SMTExpr pc_cond, cr_cond, all_cond;
+            // SMTExpr pc_cond = -1, cr_cond = -1, all_cond = -1;
             //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
             clean_fmt();
             fmt << "--- REVOKE RULES FOR ROLE " << *target << " ---";
@@ -656,7 +655,7 @@ namespace SMT {
                 return;
             }
 
-            TExpr finite_cond;
+            SMTExpr finite_cond;
             // IF TARGET IS NON POSITIVE
             if (atom_statuses[target->role_array_index]->get_status(1) == atom_status::UNUSED) {
                 // ALWAYS CAN REMOVE
@@ -673,7 +672,7 @@ namespace SMT {
             cr_cond = solver->createFalse();
 
             for (auto &&rule : policy->per_role_can_revoke_rule(target)) {
-                TExpr ith_cond = generate_rule_cond(thread_id, rule);
+                SMTExpr ith_cond = generate_rule_cond(thread_id, rule);
 //            emit_cr_comment(cr_idx);
                 cr_cond = solver->createOrExpr(cr_cond, ith_cond);
             }
@@ -686,7 +685,7 @@ namespace SMT {
             guard = cr_guard;
 
             // UPDATE LOCALS FIRST
-            TExpr nlval = solver->createCondExpr(cr_guard.get_solver_var(), zero, locals[thread_id][target->role_array_index].get_solver_var());
+            SMTExpr nlval = solver->createCondExpr(cr_guard.get_solver_var(), zero, locals[thread_id][target->role_array_index].get_solver_var());
             variable nloc = locals[thread_id][target->role_array_index].createFrom();
             emit_assignment(nloc, nlval);
             locals[thread_id][target->role_array_index] = nloc;
@@ -696,8 +695,8 @@ namespace SMT {
                 Expr glob_expr = global_pair.first;
                 variable glob_var = global_pair.second;
                 if (contains(glob_expr->atoms(), target)) {
-                    TExpr ngval = generateSMTFunction(solver, glob_expr, locals[thread_id], std::to_string(thread_id));
-                    TExpr n_cond_gval = solver->createCondExpr(cr_guard.get_solver_var(), ngval, glob_var.get_solver_var());
+                    SMTExpr ngval = generateSMTFunction(solver, glob_expr, locals[thread_id], std::to_string(thread_id));
+                    SMTExpr n_cond_gval = solver->createCondExpr(cr_guard.get_solver_var(), ngval, glob_var.get_solver_var());
                     variable nglob_var = glob_var.createFrom();
                     emit_assignment(nglob_var, n_cond_gval);
                     //FIXME changing a collection while iterating it is considered harmfull
@@ -713,16 +712,16 @@ namespace SMT {
 //        fmt << "---------------ERROR CHECK THREAD " << thread_id << " ROLE " << role_array[goal_role_index] << "------------";
 //        emitComment(fmt.str());
 
-            TExpr infinite_term_cond = generateSMTFunction(solver, to_check_infinite, locals[thread_id], "");
-            TExpr finite_term_cond = generateSMTFunction(solver, to_check_finite, locals[thread_id], "");
-            TExpr term_cond = solver->createCondExpr(from_infinite[thread_id].get_solver_var(),
+            SMTExpr infinite_term_cond = generateSMTFunction(solver, to_check_infinite, locals[thread_id], "");
+            SMTExpr finite_term_cond = generateSMTFunction(solver, to_check_finite, locals[thread_id], "");
+            SMTExpr term_cond = solver->createCondExpr(from_infinite[thread_id].get_solver_var(),
                                                      infinite_term_cond,
                                                      finite_term_cond);
 
             variable term_guard = guard.createFrom();
             emit_assignment(term_guard, term_cond);
             guard = term_guard;
-            TExpr assertion_cond = solver->createCondExpr(term_guard.get_solver_var(), zero, one);
+            SMTExpr assertion_cond = solver->createCondExpr(term_guard.get_solver_var(), zero, one);
             emit_assertion(assertion_cond);
         }
 
@@ -791,7 +790,7 @@ namespace SMT {
 
         void create_final_assert() {
             auto aite = final_assertions.begin();
-            TExpr assert_body = solver->createNotExpr(*aite);
+            SMTExpr assert_body = solver->createNotExpr(*aite);
             for (++aite; aite != final_assertions.end(); ++aite) {
                 assert_body = solver->createOrExpr(assert_body, solver->createNotExpr((*aite)));
             }
@@ -857,18 +856,18 @@ namespace SMT {
 
 
             switch (res) {
-                case SAT:
+                case SMTResult::SAT:
 //                    log->trace("SAT\n");
                     return true;
                     break;
-                case UNSAT:
+                case SMTResult::UNSAT:
 //                    log->trace("UNSAT\n");
                     return false;
                     break;
-                case UNKNOWN:
+                case SMTResult::UNKNOWN:
                     log->warn("The status is unknown\n");
                     break;
-                case ERROR:
+                case SMTResult::ERROR:
                     log->error("Error in check_context");
                     throw std::runtime_error("BMC: Error in check_context");
                     break;
@@ -902,7 +901,7 @@ namespace SMT {
          }
 
     public:
-        InfiniBMCTransformer(const std::shared_ptr<SMTFactory<TVar, TExpr>>& _solver,
+        InfiniBMCTransformer(const std::shared_ptr<SMTFactory>& _solver,
                              const std::shared_ptr<arbac_policy>& _policy,
                              const Expr& _to_check,
                              const std::vector<std::shared_ptr<atom_status>>& _atom_statuses) :
@@ -965,8 +964,7 @@ namespace SMT {
         }
     };
 
-    template <typename TVar, typename TExpr>
-    bool apply_infini_admin(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+    bool apply_infini_admin(const std::shared_ptr<SMTFactory>& solver,
                             const std::shared_ptr<arbac_policy>& policy,
                             const Expr& query,
                             const std::vector<std::shared_ptr<atom_status>>& atom_statuses,
@@ -1003,7 +1001,7 @@ namespace SMT {
             throw std::runtime_error("Cannot simulate a number of steps < 1");
         }
 
-        InfiniBMCTransformer<TVar, TExpr> core(solver, policy, query, atom_statuses);
+        InfiniBMCTransformer core(solver, policy, query, atom_statuses);
         bool ret = core.transform_2_bounded_smt(rounds, steps, wanted_threads_count);
 
 //        if (ret) {
@@ -1015,37 +1013,5 @@ namespace SMT {
 
         return ret;
     }
-
-    template bool apply_infini_admin<term_t, term_t>(const std::shared_ptr<SMTFactory<term_t, term_t>>& solver,
-                                                     const std::shared_ptr<arbac_policy>& policy,
-                                                     const Expr& query,
-                                                     const std::vector<std::shared_ptr<atom_status>>& atom_statuses,
-                                                     int steps,
-                                                     int rounds,
-                                                     int wanted_threads_count);
-
-    template bool apply_infini_admin<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>>& solver,
-                                                 const std::shared_ptr<arbac_policy>& policy,
-                                                 const Expr& query,
-                                                 const std::vector<std::shared_ptr<atom_status>>& atom_statuses,
-                                                 int steps,
-                                                 int rounds,
-                                                 int wanted_threads_count);
-
-    template bool apply_infini_admin<BoolectorExpr, BoolectorExpr>(const std::shared_ptr<SMTFactory<BoolectorExpr, BoolectorExpr>>& solver,
-                                                                   const std::shared_ptr<arbac_policy>& policy,
-                                                                   const Expr& query,
-                                                                   const std::vector<std::shared_ptr<atom_status>>& atom_statuses,
-                                                                   int steps,
-                                                                   int rounds,
-                                                                   int wanted_threads_count);
-
-    template bool apply_infini_admin<msat_term, msat_term>(const std::shared_ptr<SMTFactory<msat_term, msat_term>>& solver,
-                                                           const std::shared_ptr<arbac_policy>& policy,
-                                                           const Expr& query,
-                                                           const std::vector<std::shared_ptr<atom_status>>& atom_statuses,
-                                                           int steps,
-                                                           int rounds,
-                                                           int wanted_threads_count);
 
 }

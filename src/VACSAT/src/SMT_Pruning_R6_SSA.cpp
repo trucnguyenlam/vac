@@ -20,13 +20,12 @@
 
 namespace SMT {
 
-template <typename TVar, typename TExpr>
 class R6Transformer {
     private:
 
-    typedef generic_variable<TVar, TExpr> variable;
+    typedef generic_variable variable;
 
-    std::shared_ptr<SMTFactory<TVar, TExpr>> solver;
+    std::shared_ptr<SMTFactory> solver;
     std::stringstream fmt;
 
     void clean_fmt() {
@@ -36,7 +35,7 @@ class R6Transformer {
     /*--- SMT VARIABLE INDEXES ---*/
     /*--- VALUES ARE  ---*/
     std::vector<variable> role_vars;
-//    std::shared_ptr<TVar>* solver_role_vars;
+//    SMTExpr* solver_role_vars;
     std::vector<variable> core_value_true;
     std::vector<variable> core_value_false;
     std::vector<variable> core_sets;
@@ -50,8 +49,8 @@ class R6Transformer {
     std::set<Expr> free;
     userp target_user;
 
-    TExpr zero;
-    TExpr one;
+    SMTExpr zero;
+    SMTExpr one;
 
     bool *core_roles = nullptr;
     int core_roles_size = 0;
@@ -60,12 +59,12 @@ class R6Transformer {
     //int *roles_ca_counts = NULL;
     //int *roles_cr_counts = NULL;
 
-    inline void emit_assignment(const variable& variable, const TExpr& value) {
-        TExpr assign = solver->createEqExpr(variable.get_solver_var(), value);
+    inline void emit_assignment(const variable& variable, const SMTExpr& value) {
+        SMTExpr assign = solver->createEqExpr(variable.get_solver_var(), value);
         solver->assertLater(assign);
     }
 
-    inline void emit_assumption(const TExpr& expr) {
+    inline void emit_assumption(const SMTExpr& expr) {
         solver->assertLater(expr);
     }
 
@@ -130,7 +129,7 @@ class R6Transformer {
     void generate_variables() {
 
         // fprintf(outputFile, "/*---------- INIT GLOBAL VARIABLES ---------*/\n\n");
-        SMTFactory<TVar, TExpr>* _solver_ptr = solver.get();
+        SMTFactory* _solver_ptr = solver.get();
 
         role_vars = std::vector<variable>((unsigned long) policy->atom_count());
         core_sets = std::vector<variable>((unsigned long) policy->atom_count());
@@ -187,15 +186,15 @@ class R6Transformer {
         }
     }
 
-    TExpr generate_if_SKIP_PC(int pc) {
+    SMTExpr generate_if_SKIP_PC(int pc) {
         // fprintf(outputFile, "    if (!skip && (__cs_pc == %d) &&\n", pc);
         return solver->createAndExpr(solver->createNotExpr(skip.get_solver_var()),
                                      solver->createEqExpr(program_counter.get_solver_var(),
                                                           solver->createBVConst(pc, pc_size)));
     }
 
-    TExpr generate_from_prec(const Expr &precond) {
-//        std::shared_ptr<TVar>* array = get_t_array(precond->literals());
+    SMTExpr generate_from_prec(const Expr &precond) {
+//        SMSMTExpr* array = get_t_array(precond->literals());
 
 //        if (log) {
 //            target_rule->print();
@@ -205,7 +204,7 @@ class R6Transformer {
 //            std::cout << std::endl << std::endl;
 //        }
 
-        TExpr res = generateSMTFunction(solver, precond, role_vars, "");
+        SMTExpr res = generateSMTFunction(solver, precond, role_vars, "");
 
 //        delete[] array;
 //        std::cout << "\t" << res << std::endl;
@@ -215,19 +214,19 @@ class R6Transformer {
         return res;
     }
 
-    TExpr generate_CA_cond(const Expr& ca_precond) {
+    SMTExpr generate_CA_cond(const Expr& ca_precond) {
         return generate_from_prec(ca_precond);
     }
 
-    TExpr generate_CR_cond(const Expr& cr_precond) {
+    SMTExpr generate_CR_cond(const Expr& cr_precond) {
         return generate_from_prec(cr_precond);
     }
 
-    TExpr get_assignment_cond_by_role(const atomp& target_role, int label_index) {
+    SMTExpr get_assignment_cond_by_role(const atomp& target_role, int label_index) {
         // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
         // fprintf(outputFile, "    /* --- ASSIGNMENT RULES FOR ROLE %s --- */\n", role_array[target_role_index]);
-        TExpr if_prelude = generate_if_SKIP_PC(label_index);
-        TExpr ca_guards = solver->createFalse();
+        SMTExpr if_prelude = generate_if_SKIP_PC(label_index);
+        SMTExpr ca_guards = solver->createFalse();
 
         for (auto &&rule :policy->per_role_can_assign_rule(target_role)) {
 //            if (excluded_rules != nullptr && (rule->is_ca == target_rule->is_ca) && (rule == target_rule)) {
@@ -242,16 +241,16 @@ class R6Transformer {
 
         // This user is not in this target role yet
         // fprintf(outputFile, "        /* Role not SET yet */\n");
-        TExpr not_set = solver->createNotExpr(core_sets[target_role->role_array_index].get_solver_var());
-        TExpr cond = solver->createAndExpr(solver->createAndExpr(if_prelude, ca_guards), not_set);
+        SMTExpr not_set = solver->createNotExpr(core_sets[target_role->role_array_index].get_solver_var());
+        SMTExpr cond = solver->createAndExpr(solver->createAndExpr(if_prelude, ca_guards), not_set);
         return cond;
     }
 
-    TExpr get_revoke_cond_by_role(const atomp& target_role, int label_index) {
+    SMTExpr get_revoke_cond_by_role(const atomp& target_role, int label_index) {
         // Precondition: exists always at least one CA that assign the role i.e.: roles_ca_counts[target_role_index] > 1
         // fprintf(outputFile, "    /* --- REVOKE RULES FOR ROLE %s --- */\n", role_array[target_role_index]);
-        TExpr if_prelude = generate_if_SKIP_PC(label_index);
-        TExpr cr_guards = solver->createFalse();
+        SMTExpr if_prelude = generate_if_SKIP_PC(label_index);
+        SMTExpr cr_guards = solver->createFalse();
 
         for (auto &&rule :policy->per_role_can_revoke_rule(target_role)) {
 //            if (target_rule != nullptr && (rule->is_ca == target_rule->is_ca) && (rule == target_rule)) {
@@ -264,19 +263,19 @@ class R6Transformer {
 
         // This user is not in this target role yet
         // fprintf(outputFile, "        /* Role not SET yet */\n");
-        TExpr not_set = solver->createNotExpr(core_sets[target_role->role_array_index].get_solver_var());
-        TExpr cond = solver->createAndExpr(solver->createAndExpr(if_prelude, cr_guards), not_set);
+        SMTExpr not_set = solver->createNotExpr(core_sets[target_role->role_array_index].get_solver_var());
+        SMTExpr cond = solver->createAndExpr(solver->createAndExpr(if_prelude, cr_guards), not_set);
         return cond;
     }
 
     void simulate_can_assigns_by_role(const atomp& target_role, int label_index) {
         //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
-        TExpr cond = get_assignment_cond_by_role(target_role, label_index);
+        SMTExpr cond = get_assignment_cond_by_role(target_role, label_index);
 
         int target_role_index = target_role->role_array_index;
 
-        TExpr new_role_val = solver->createCondExpr(cond, one, role_vars[target_role_index].get_solver_var());
-        TExpr new_set_val = solver->createCondExpr(cond, one, core_sets[target_role_index].get_solver_var());
+        SMTExpr new_role_val = solver->createCondExpr(cond, one, role_vars[target_role_index].get_solver_var());
+        SMTExpr new_set_val = solver->createCondExpr(cond, one, core_sets[target_role_index].get_solver_var());
 
 
         // fprintf(outputFile, "            core_%s = 1;\n", role_array[target_role_index]);
@@ -293,12 +292,12 @@ class R6Transformer {
 
     void simulate_can_revokes_by_role(const atomp& target_role, int label_index) {
         //fprintf(outputFile, "tThread_%d_%d:\n", thread_id, label_index);
-        TExpr cond = get_revoke_cond_by_role(target_role, label_index);
+        SMTExpr cond = get_revoke_cond_by_role(target_role, label_index);
 
         int target_role_index = target_role->role_array_index;
 
-        TExpr new_role_val = solver->createCondExpr(cond, zero, role_vars[target_role_index].get_solver_var());
-        TExpr new_set_val = solver->createCondExpr(cond, one, core_sets[target_role_index].get_solver_var());
+        SMTExpr new_role_val = solver->createCondExpr(cond, zero, role_vars[target_role_index].get_solver_var());
+        SMTExpr new_set_val = solver->createCondExpr(cond, one, core_sets[target_role_index].get_solver_var());
 
 
         // fprintf(outputFile, "            core_%s = 0;\n", role_array[target_role_index]);
@@ -318,8 +317,8 @@ class R6Transformer {
         // fprintf(outputFile, "        skip = 1;");
         // fprintf(outputFile, "    }");
         variable new_skip = skip.createFrom();
-        TExpr cond = solver->createGEqExpr(program_counter.get_solver_var(), solver->createBVConst(label_index, pc_size));
-        TExpr new_val = solver->createCondExpr(cond, one, skip.get_solver_var());
+        SMTExpr cond = solver->createGEqExpr(program_counter.get_solver_var(), solver->createBVConst(label_index, pc_size));
+        SMTExpr new_val = solver->createCondExpr(cond, one, skip.get_solver_var());
 
         emit_assignment(new_skip, new_val);
 
@@ -327,9 +326,9 @@ class R6Transformer {
 
     }
 
-    TExpr generate_check_implication(int role_index, const userp& user) {
+    SMTExpr generate_check_implication(int role_index, const userp& user) {
         //((core_r_i != init_r_i) \/ ((set_false_r_i /\ init_r_i = 1) \/ (set_true_r_i /\ init_r_i = 0)) ==> set_r_i))
-        TExpr init_r_i = zero;
+        SMTExpr init_r_i = zero;
         for (auto &&atom : user->config()) {
             if (atom->role_array_index == role_index) {
                 init_r_i = one;
@@ -337,12 +336,12 @@ class R6Transformer {
             }
         }
 
-        TVar role_var = role_vars[role_index].get_solver_var();
-        TVar role_set = core_sets[role_index].get_solver_var();
-        TVar set_false_r_i = core_value_false[role_index].get_solver_var();
-        TVar set_true_r_i = core_value_true[role_index].get_solver_var();
+        SMTExpr role_var = role_vars[role_index].get_solver_var();
+        SMTExpr role_set = core_sets[role_index].get_solver_var();
+        SMTExpr set_false_r_i = core_value_false[role_index].get_solver_var();
+        SMTExpr set_true_r_i = core_value_true[role_index].get_solver_var();
 
-        TExpr impl_prec =
+        SMTExpr impl_prec =
             solver->createOrExpr(
                 solver->createNotExpr(solver->createEqExpr(role_var, init_r_i)),
                 solver->createOrExpr(
@@ -350,7 +349,7 @@ class R6Transformer {
                     solver->createAndExpr(set_true_r_i, solver->createEqExpr(init_r_i, zero))
                 ));
 
-        TExpr cond = solver->createImplExpr(impl_prec,
+        SMTExpr cond = solver->createImplExpr(impl_prec,
                                             role_set);
 
         // fprintf(outputFile, "((core_%s != %d) => set_%s))", role, init_r_i, role);
@@ -362,14 +361,14 @@ class R6Transformer {
         // fprintf(outputFile, "    /*--------------- assume(\\phi) ------------*/\n");
         //FIXME: this if could be removed since if not tampone the free set is empty
         if (!Config::use_tampone) {
-            TExpr rule_assumption = generate_from_prec(target_expr);
+            SMTExpr rule_assumption = generate_from_prec(target_expr);
             emit_assumption(rule_assumption);
         } else {
             std::vector<variable> free_var_vect((ulong) policy->atom_count());
             for (auto &&atom : policy->atoms()) {
                 free_var_vect[atom->role_array_index] = variable("adm_" + atom->name, 0, 1, solver.get(), BOOLEAN);
             }
-            TExpr rule_assumption = generateSMTFunction2(solver, target_expr, free, role_vars, free_var_vect, "", "free");
+            SMTExpr rule_assumption = generateSMTFunction2(solver, target_expr, free, role_vars, free_var_vect, "", "free");
             emit_assumption(rule_assumption);
         }
 
@@ -380,7 +379,7 @@ class R6Transformer {
         // fprintf(outputFile, "//         \\  /          /\\\n");
         // fprintf(outputFile, "// assume(  \\/        ( /  \\          ((core_r_i != init_r_i) \\/ ((set_false_r_i /\\ init_r_i = 1) \\/ (set_true_r_i /\\ init_r_i = 0)) => set_r_i)))\n");
         // fprintf(outputFile, "//        u_i \\in U    r_i \\in \\phi\n");
-        TExpr impl_assumption = zero;
+        SMTExpr impl_assumption = zero;
         std::set<userp, std::function<bool(const userp&, const userp&)>> users;
         if (target_user == nullptr) {
             users = policy->unique_configurations();
@@ -388,10 +387,10 @@ class R6Transformer {
             users.insert(target_user);
         }
         for (auto &&user : users) {
-            TExpr inner_and = one;
+            SMTExpr inner_and = one;
             for (int i = 0; i < policy->atom_count(); i++) {
                 if (core_roles[i]) {
-                    TExpr impl_r_ui = generate_check_implication(i, user);
+                    SMTExpr impl_r_ui = generate_check_implication(i, user);
                     inner_and = solver->createAndExpr(inner_and, impl_r_ui);
                 }
             }
@@ -409,20 +408,20 @@ class R6Transformer {
                 // COULD BE REMOVED
                 nondet_bool = nondet_bool.createFrom();
 
-                TExpr new_val = solver->createCondExpr(core_sets[i].get_solver_var(), role_vars[i].get_solver_var(), nondet_bool.get_solver_var());
+                SMTExpr new_val = solver->createCondExpr(core_sets[i].get_solver_var(), role_vars[i].get_solver_var(), nondet_bool.get_solver_var());
                 emit_assignment(new_core, new_val);
 
                 role_vars[i] = new_core;
 
                 // UPDATE VALUE_TRUE
                 variable new_value_true = core_value_true[i].createFrom();
-                TExpr new_value_true_var = solver->createCondExpr(solver->createEqExpr(role_vars[i].get_solver_var(), one), one, core_value_true[i].get_solver_var());
+                SMTExpr new_value_true_var = solver->createCondExpr(solver->createEqExpr(role_vars[i].get_solver_var(), one), one, core_value_true[i].get_solver_var());
                 emit_assignment(new_value_true, new_value_true_var);
                 core_value_true[i] = new_value_true;
 
                 // UPDATE VALUE_FALSE
                 variable new_value_false = core_value_false[i].createFrom();
-                TExpr new_value_false_var = solver->createCondExpr(solver->createEqExpr(role_vars[i].get_solver_var(), zero), one, core_value_false[i].get_solver_var());
+                SMTExpr new_value_false_var = solver->createCondExpr(solver->createEqExpr(role_vars[i].get_solver_var(), zero), one, core_value_false[i].get_solver_var());
                 emit_assignment(new_value_false, new_value_false_var);
                 core_value_false[i] = new_value_false;
 
@@ -495,12 +494,12 @@ class R6Transformer {
 //
 //        solver->printContext("z3.lisp");
 
-        return res == UNSAT;
+        return res == SMTResult::UNSAT;
     }
 
 
     public:
-    R6Transformer(const std::shared_ptr<SMTFactory<TVar, TExpr>>& _solver,
+    R6Transformer(const std::shared_ptr<SMTFactory>& _solver,
                   const std::shared_ptr<arbac_policy>& _policy,
                   const Expr& _to_check,
                   const std::set<Expr>& _free,
@@ -530,8 +529,7 @@ class R6Transformer {
     }
 };
 
-    template <typename TVar, typename TExpr>
-    bool apply_r6(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+    bool apply_r6(const std::shared_ptr<SMTFactory>& solver,
                   const std::shared_ptr<arbac_policy>& policy,
                   const Expr& to_check,
                   const std::set<Expr>& free,
@@ -540,7 +538,7 @@ class R6Transformer {
         if (is_constant_true(to_check)) {
             return false;
         }
-        R6Transformer<TVar, TExpr> transf(solver, policy, to_check, free, excluded_rules, tracked_user);
+        R6Transformer transf(solver, policy, to_check, free, excluded_rules, tracked_user);
         // std::shared_ptr<SMTFactory<expr, expr>> solver(new Z3Solver());
         // R6Transformer<expr, expr> transf(solver, rule_index, is_ca);
         bool res = transf.apply_r6();
@@ -549,8 +547,7 @@ class R6Transformer {
         return res;
     }
 
-    template <typename TVar, typename TExpr>
-    bool apply_r6(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+    bool apply_r6(const std::shared_ptr<SMTFactory>& solver,
                   const std::shared_ptr<arbac_policy>& policy,
                   const Expr& to_check,
                   const std::set<Expr>& free,
@@ -560,34 +557,5 @@ class R6Transformer {
         excluded.push_back(to_check_source);
         return apply_r6(solver, policy, to_check, free, excluded, tracked_user);
     }
-
-
-    template bool apply_r6<term_t, term_t>(const std::shared_ptr<SMTFactory<term_t, term_t>>& solver,
-                                           const std::shared_ptr<arbac_policy>& policy,
-                                           const Expr& to_check,
-                                           const std::set<Expr>& free,
-                                           const rulep& excluded_rule,
-                                           const userp& tracked_user = nullptr);
-
-    template bool apply_r6<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>>& solver,
-                                       const std::shared_ptr<arbac_policy>& policy,
-                                       const Expr& to_check,
-                                       const std::set<Expr>& free,
-                                       const rulep& excluded_rule,
-                                       const userp& tracked_user = nullptr);
-
-    template bool apply_r6<BoolectorExpr, BoolectorExpr>(const std::shared_ptr<SMTFactory<BoolectorExpr, BoolectorExpr>>& solver,
-                                                         const std::shared_ptr<arbac_policy>& policy,
-                                                         const Expr& to_check,
-                                                         const std::set<Expr>& free,
-                                                         const rulep& excluded_rule,
-                                                         const userp& tracked_user = nullptr);
-
-    template bool apply_r6<msat_term, msat_term>(const std::shared_ptr<SMTFactory<msat_term, msat_term>>& solver,
-                                                 const std::shared_ptr<arbac_policy>& policy,
-                                                 const Expr& to_check,
-                                                 const std::set<Expr>& free,
-                                                 const rulep& excluded_rule,
-                                                 const userp& tracked_user = nullptr);
 
 }

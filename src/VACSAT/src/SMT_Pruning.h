@@ -101,8 +101,7 @@ namespace SMT {
         const std::string name;
     };
 
-    template <typename TVar, typename TExpr>
-    bool apply_infini_admin(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+    bool apply_infini_admin(const std::shared_ptr<SMTFactory>& solver,
                             const std::shared_ptr<arbac_policy>& policy,
                             const Expr& query,
                             const std::vector<std::shared_ptr<atom_status>>& atom_statuses,
@@ -118,8 +117,7 @@ namespace SMT {
      * @param excluded_rules a list of rulep to be excluded from the encoding
      * @param tracked_user (optional) the user to be tracked
      * */
-    template <typename TVar, typename TExpr>
-    bool apply_r6(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+    bool apply_r6(const std::shared_ptr<SMTFactory>& solver,
                   const std::shared_ptr<arbac_policy>& policy,
                   const Expr& to_check,
                   const std::set<Expr>& free,
@@ -134,16 +132,14 @@ namespace SMT {
      * @param excluded_rules a rulep to be excluded from the encoding
      * @param tracked_user (optional) the user to be tracked
      * */
-    template <typename TVar, typename TExpr>
-    bool apply_r6(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+    bool apply_r6(const std::shared_ptr<SMTFactory>& solver,
                   const std::shared_ptr<arbac_policy>& policy,
                   const Expr& to_check,
                   const std::set<Expr>& free,
                   const rulep& excluded_rule,
                   const userp& tracked_user = nullptr);
 
-    template <typename TVar, typename TExpr>
-    void prune_policy(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+    void prune_policy(const std::shared_ptr<SMTFactory>& solver,
                       const std::shared_ptr<arbac_policy>& policy);
 
 }

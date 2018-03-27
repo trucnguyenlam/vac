@@ -6,7 +6,19 @@
 #include <list>
 
 namespace SMT {
-    class YicesSolver : public SMTFactory<term_t, term_t> {
+    class yices_expr_t : public smt_expr_t {
+    public:
+        const term_t e;
+        explicit yices_expr_t(term_t expr) : e(expr) { };
+//        explicit yices_expr_t(const term_t& expr) : e(expr) { };
+//        explicit yices_expr_t(term_t& expr) : e(expr) { };
+
+        Solver get_solver() override { return Solver::YICES; }
+    };
+
+    typedef std::shared_ptr<yices_expr_t> YicesExpr;
+
+    class YicesSolver : public SMTFactory {
         public:
         static inline const std::string solver_name() {
             return "yices";
@@ -18,46 +30,46 @@ namespace SMT {
         // term_t createBoolType() override;
         // term_t createBVType(int size) override;
 
-        term_t createVar2(const std::string name, int size) override;
-        term_t createBoolVar(const std::string name) override;
-        term_t createBVVar(const std::string name, int size) override;
+        SMTExpr createVar2(const std::string name, int size) override;
+        SMTExpr createBoolVar(const std::string name) override;
+        SMTExpr createBVVar(const std::string name, int size) override;
 
-        term_t createBVConst(int value, int size) override;
-        term_t createBoolConst(int value) override;
-        term_t createTrue() override;
-        term_t createFalse() override;
-        term_t createOrExpr(term_t lhs, term_t rhs) override;
-        term_t createXorExpr(term_t lhs, term_t rhs) override;
-        term_t createAndExpr(term_t lhs, term_t rhs) override;
-        term_t createNotExpr(term_t expr) override;
-        term_t createCondExpr(term_t cond, term_t choice1, term_t choice2) override;
-        term_t createEqExpr(term_t lhs, term_t rhs) override;
-        term_t createGtExpr(term_t lhs, term_t rhs) override;
-        term_t createGEqExpr(term_t lhs, term_t rhs) override;
-        term_t createLtExpr(term_t lhs, term_t rhs) override;
-        term_t createLEqExpr(term_t lhs, term_t rhs) override;
-        term_t createImplExpr(term_t lhs, term_t rhs) override;
+        SMTExpr createBVConst(int value, int size) override;
+        SMTExpr createBoolConst(int value) override;
+        SMTExpr createTrue() override;
+        SMTExpr createFalse() override;
+        SMTExpr createOrExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createXorExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createAndExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createNotExpr(const SMTExpr& expr) override;
+        SMTExpr createCondExpr(const SMTExpr& cond, const SMTExpr& choice1, const SMTExpr& choice2) override;
+        SMTExpr createEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createGtExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createGEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createLtExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createLEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createImplExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
 
-        term_t createBitSet(term_t container, unsigned int ith, term_t value) override;
-        term_t createDistinct(std::list<term_t> exprs) override;
+        SMTExpr createBitSet(const SMTExpr& container, unsigned int ith, const SMTExpr& value) override;
+        SMTExpr createDistinct(std::list<SMTExpr>& exprs) override;
 
-        term_t joinExprsWithAnd(std::list<term_t>& exprs) override;
-        term_t joinExprsWithOr(std::list<term_t>& exprs) override;
+        SMTExpr joinExprsWithAnd(std::list<SMTExpr>& exprs) override;
+        SMTExpr joinExprsWithOr(std::list<SMTExpr>& exprs) override;
 
-        void assertLater(term_t expr) override;
-        void assertNow(term_t expr) override;
+        void assertLater(const SMTExpr& expr) override;
+        void assertNow(const SMTExpr& expr) override;
 
         SMTResult solve() override;
-        void printExpr(term_t expr) override;
+        void printExpr(const SMTExpr& expr) override;
         void printModel() override;
-        bool get_bool_value(term_t expr) override;
+        bool get_bool_value(const SMTExpr& expr) override;
         void print_statistics() override;
         void loadToSolver() override;
         void clean() override;
         void deep_clean() override;
         void printContext() override;
         void printContext(std::string filename) override;
-        void printTerm(std::string filename, term_t term);
+        void printTerm(std::string filename, const SMTExpr& term);
 
         // void push() override;
         // void pop() override;

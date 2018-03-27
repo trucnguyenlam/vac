@@ -341,120 +341,63 @@ namespace SMT {
 //    std::list<std::pair<int, Expr>> get_internal_or_expressions(const Expr& expr, int max_level, int level);
 
     // Expr - Solver expr funtions
-    template<typename TVar>
     struct TVarWrapper {
     public:
-        TVarWrapper(std::shared_ptr<TVar> _solver_varp) : solver_varp(_solver_varp) { }
+        explicit TVarWrapper(SMTExpr _solver_varp) : solver_varp(_solver_varp) { }
 
-        inline TVar get_solver_var() const {
+        inline SMTExpr get_solver_var() const {
             if (solver_varp == nullptr)
                 throw std::runtime_error("Null variable");
             else {
-                return *solver_varp;
+                return solver_varp;
             }
         }
 
-        std::shared_ptr<TVar> solver_varp;
+        SMTExpr solver_varp;
     };
 
-    template <typename TVar, typename TLookup>
+    template <typename TLookup>
     TLookup update_tlookup(const TLookup& base_lookup, const TLookup& new_lookup);
 
-    template <typename TVar>
-    std::map<std::string, TVar> update_tlookup(const std::map<std::string, TVar>& base_lookup,
-                                               const std::map<std::string, TVar>& new_lookup) {
-        std::map<std::string, TVar> res(base_lookup);
+    std::map<std::string, SMTExpr> update_tlookup(const std::map<std::string, SMTExpr>& base_lookup,
+                                                  const std::map<std::string, SMTExpr>& new_lookup);
 
-        for (auto ite = new_lookup.begin(); ite != new_lookup.end(); ++ite) {
-            res[ite->first] = ite->second;
-        }
-        return res;
-    };
+    std::vector<SMTExpr> update_tlookup(const std::vector<SMTExpr>& base_lookup,
+                                        const std::vector<SMTExpr>& new_lookup);
 
-    template <typename TVar>
-    std::vector<std::shared_ptr<TVar>> update_tlookup(const std::vector<std::shared_ptr<TVar>>& base_lookup,
-                                                      const std::vector<std::shared_ptr<TVar>>& new_lookup) {
-        if (base_lookup.size() != new_lookup.size()) {
-            log->error("Cannot update vector of different size.");
-            throw std::runtime_error("Cannot update vector of different size.");
-        }
-        std::vector<std::shared_ptr<TVar>> res(base_lookup);
-
-        for (int i = 0; i < new_lookup.size(); ++i) {
-            if (new_lookup[i] != nullptr) {
-                res[i] = new_lookup[i];
-            }
-        }
-        return res;
-    };
-
-    template <typename TVar, typename TExpr, typename TLookup>
-    TExpr generateSMTFunction(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, const Expr& expr, TLookup& lookup,
-                               const std::string suffix);
+    template <typename TLookup>
+    SMTExpr generateSMTFunction(const std::shared_ptr<SMTFactory>& solver, const Expr& expr, TLookup& lookup,
+                                const std::string suffix);
 
 
 
-    template <typename TVar, typename TExpr, typename TLookup>
-    TExpr atomToSMT(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
-                    const Atomp& atom,
-                    TLookup& lookup,
-                    const std::string suffix);
+    template <typename TLookup>
+    SMTExpr atomToSMT(const std::shared_ptr<SMTFactory>& solver,
+                      const Atomp& atom,
+                      TLookup& lookup,
+                      const std::string suffix);
 
-    template <typename TVar, typename TExpr>
-    TExpr atomToSMT(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
-                    const Atomp& atom,
-                    std::vector<std::shared_ptr<TExpr>>& var_vector,
-                    const std::string suffix) {
-        if (atom->get_value() == nullptr) {
-            std::string name = atom->nameWithSuffix(suffix);
-            if (var_vector[atom->role_array_index] != nullptr) {
-                return *var_vector[atom->role_array_index];
-            }
-            else {
-                TVar var = solver->createVar2(name, atom->bv_size);
-                var_vector[atom->role_array_index] = std::make_shared<TVar>(var);
-                // printf("%s not found. Creating it: %d\n", name.c_str(), var);
-                return var;
-            }
-        }
-        else {
-            return generateSMTFunction(solver, atom->get_value(), var_vector, suffix);
-        }
-    }
+    SMTExpr atomToSMT(const std::shared_ptr<SMTFactory>& solver,
+                      const Atomp& atom,
+                      std::vector<SMTExpr>& var_vector,
+                      const std::string suffix);
 
-    template <typename TVar, typename TExpr>
-    TExpr atomToSMT(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
-                    const Atomp& atom,
-                    std::map<std::string, TVar>& var_map,
-                    const std::string suffix) {
-        if (atom->get_value() == nullptr) {
-            std::string name = atom->nameWithSuffix(suffix);
-            if (var_map.find(name) != var_map.end()) {
-                return var_map[name];
-            }
-            else {
-                TVar var = solver->createVar2(name, atom->bv_size);
-                var_map[name] = var;
-                // printf("%s not found. Creating it: %d\n", name.c_str(), var);
-                return var;
-            }
-        }
-        else {
-            return generateSMTFunction(solver, atom->get_value(), var_map, suffix);
-        }
-    }
+    SMTExpr atomToSMT(const std::shared_ptr<SMTFactory>& solver,
+                      const Atomp& atom,
+                      std::map<std::string, SMTExpr>& var_map,
+                      const std::string suffix);
 
-    template <typename TVar, typename TExpr, typename TWrapper>
-    TExpr atomToSMT(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
-                    const Atomp& atom,
-                    std::vector<TWrapper>& var_vector,
-                    const std::string suffix) {
-        static_assert(std::is_base_of<TVarWrapper<TVar>, TWrapper>::value, "TWrapper not derived from TWrapper<TVar>");
+    template <typename TWrapper>
+    SMTExpr atomToSMT(const std::shared_ptr<SMTFactory>& solver,
+                      const Atomp& atom,
+                      std::vector<TWrapper>& var_vector,
+                      const std::string suffix) {
+        static_assert(std::is_base_of<TVarWrapper, TWrapper>::value, "TWrapper not derived from TWrapper<TVar>");
 
         if (atom->get_value() == nullptr) {
             std::string name = atom->nameWithSuffix(suffix);
             if (var_vector[atom->role_array_index].solver_varp != nullptr) {
-                return *var_vector[atom->role_array_index].solver_varp;
+                return var_vector[atom->role_array_index].solver_varp;
             } else {
                 std::stringstream fmt;
                 fmt << "Error in literalToSMT with vector<TWrapper>." << std::endl;
@@ -469,7 +412,7 @@ namespace SMT {
     }
 
 
-    /*template <typename TVar, typename TExpr>
+    /*
     TExpr literalToSMT<std::map<std::string, TVar>>(std::shared_ptr<SMTFactory<TVar, TExpr>> solver, Literalp lit, std::map<std::string, TVar>& var_map, std::string suffix) {
         if (lit->value == nullptr) {
             std::string name = lit->nameWithSuffix(suffix);
@@ -488,9 +431,11 @@ namespace SMT {
         }
     };*/
 
-    template <typename TVar, typename TExpr, typename TLookup>
-    TExpr generateSMTFunction(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver, const Expr& expr, TLookup& lookup,
-                               const std::string suffix) {
+    template <typename TLookup>
+    SMTExpr generateSMTFunction(const std::shared_ptr<SMTFactory>& solver,
+                                const Expr& expr,
+                                TLookup& lookup,
+                                const std::string suffix) {
         if (expr->get_value() != nullptr) {
             return generateSMTFunction(solver, expr->get_value(), lookup, suffix);
         }
@@ -510,38 +455,38 @@ namespace SMT {
             }
             case Exprv::AND_EXPR: {
                 std::shared_ptr<AndExpr> andExpr = std::dynamic_pointer_cast<AndExpr>(expr);
-                TExpr slhs = generateSMTFunction(solver, andExpr->lhs, lookup, suffix);
-                TExpr srhs = generateSMTFunction(solver, andExpr->rhs, lookup, suffix);
+                SMTExpr slhs = generateSMTFunction(solver, andExpr->lhs, lookup, suffix);
+                SMTExpr srhs = generateSMTFunction(solver, andExpr->rhs, lookup, suffix);
                 return solver->createAndExpr(slhs, srhs);
             }
             case Exprv::OR_EXPR: {
                 std::shared_ptr<OrExpr> orExpr = std::dynamic_pointer_cast<OrExpr>(expr);
-                TExpr slhs = generateSMTFunction(solver, orExpr->lhs, lookup, suffix);
-                TExpr srhs = generateSMTFunction(solver, orExpr->rhs, lookup, suffix);
+                SMTExpr slhs = generateSMTFunction(solver, orExpr->lhs, lookup, suffix);
+                SMTExpr srhs = generateSMTFunction(solver, orExpr->rhs, lookup, suffix);
                 return solver->createOrExpr(slhs, srhs);
             }
             case Exprv::IMPL_EXPR: {
                 std::shared_ptr<ImplExpr> implExpr = std::dynamic_pointer_cast<ImplExpr>(expr);
-                TExpr slhs = generateSMTFunction(solver, implExpr->lhs, lookup, suffix);
-                TExpr srhs = generateSMTFunction(solver, implExpr->rhs, lookup, suffix);
+                SMTExpr slhs = generateSMTFunction(solver, implExpr->lhs, lookup, suffix);
+                SMTExpr srhs = generateSMTFunction(solver, implExpr->rhs, lookup, suffix);
                 return solver->createImplExpr(slhs, srhs);
             }
             case Exprv::COND_EXPR: {
                 std::shared_ptr<CondExpr> condExpr = std::dynamic_pointer_cast<CondExpr>(expr);
-                TExpr scond = generateSMTFunction(solver, condExpr->cond, lookup, suffix);
-                TExpr schoice1 = generateSMTFunction(solver, condExpr->choice1, lookup, suffix);
-                TExpr schoice2 = generateSMTFunction(solver, condExpr->choice2, lookup, suffix);
+                SMTExpr scond = generateSMTFunction(solver, condExpr->cond, lookup, suffix);
+                SMTExpr schoice1 = generateSMTFunction(solver, condExpr->choice1, lookup, suffix);
+                SMTExpr schoice2 = generateSMTFunction(solver, condExpr->choice2, lookup, suffix);
                 return solver->createCondExpr(scond, schoice1, schoice2);
             }
             case Exprv::EQ_EXPR: {
                 std::shared_ptr<EqExpr> eqExpr = std::dynamic_pointer_cast<EqExpr>(expr);
-                TExpr slhs = generateSMTFunction(solver, eqExpr->lhs, lookup, suffix);
-                TExpr srhs = generateSMTFunction(solver, eqExpr->rhs, lookup, suffix);
+                SMTExpr slhs = generateSMTFunction(solver, eqExpr->lhs, lookup, suffix);
+                SMTExpr srhs = generateSMTFunction(solver, eqExpr->rhs, lookup, suffix);
                 return solver->createEqExpr(slhs, srhs);
             }
             case Exprv::NOT_EXPR: {
                 std::shared_ptr<NotExpr> notExpr = std::dynamic_pointer_cast<NotExpr>(expr);
-                TExpr sexpr = generateSMTFunction(solver, notExpr->expr, lookup, suffix);
+                SMTExpr sexpr = generateSMTFunction(solver, notExpr->expr, lookup, suffix);
                 return solver->createNotExpr(sexpr);
             }
             default:
@@ -552,8 +497,8 @@ namespace SMT {
     }
 
 
-    template <typename TVar, typename TExpr, typename TLookup>
-    TExpr generateSMTFunction2(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+    template <typename TLookup>
+    SMTExpr generateSMTFunction2(const std::shared_ptr<SMTFactory>& solver,
                                const Expr& expr,
                                const std::set<Expr>& lookup2_exprs,
                                TLookup& lookup1,
@@ -584,38 +529,38 @@ namespace SMT {
             }
             case Exprv::AND_EXPR: {
                 std::shared_ptr<AndExpr> andExpr = std::dynamic_pointer_cast<AndExpr>(expr);
-                TExpr slhs = generateSMTFunction2(solver, andExpr->lhs, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
-                TExpr srhs = generateSMTFunction2(solver, andExpr->rhs, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
+                SMTExpr slhs = generateSMTFunction2(solver, andExpr->lhs, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
+                SMTExpr srhs = generateSMTFunction2(solver, andExpr->rhs, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
                 return solver->createAndExpr(slhs, srhs);
             }
             case Exprv::OR_EXPR: {
                 std::shared_ptr<OrExpr> orExpr = std::dynamic_pointer_cast<OrExpr>(expr);
-                TExpr slhs = generateSMTFunction2(solver, orExpr->lhs, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
-                TExpr srhs = generateSMTFunction2(solver, orExpr->rhs, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
+                SMTExpr slhs = generateSMTFunction2(solver, orExpr->lhs, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
+                SMTExpr srhs = generateSMTFunction2(solver, orExpr->rhs, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
                 return solver->createOrExpr(slhs, srhs);
             }
             case Exprv::IMPL_EXPR: {
                 std::shared_ptr<ImplExpr> implExpr = std::dynamic_pointer_cast<ImplExpr>(expr);
-                TExpr slhs = generateSMTFunction2(solver, implExpr->lhs, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
-                TExpr srhs = generateSMTFunction2(solver, implExpr->rhs, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
+                SMTExpr slhs = generateSMTFunction2(solver, implExpr->lhs, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
+                SMTExpr srhs = generateSMTFunction2(solver, implExpr->rhs, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
                 return solver->createImplExpr(slhs, srhs);
             }
             case Exprv::COND_EXPR: {
                 std::shared_ptr<CondExpr> condExpr = std::dynamic_pointer_cast<CondExpr>(expr);
-                TExpr scond = generateSMTFunction2(solver, condExpr->cond, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
-                TExpr schoice1 = generateSMTFunction2(solver, condExpr->choice1, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
-                TExpr schoice2 = generateSMTFunction2(solver, condExpr->choice2, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
+                SMTExpr scond = generateSMTFunction2(solver, condExpr->cond, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
+                SMTExpr schoice1 = generateSMTFunction2(solver, condExpr->choice1, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
+                SMTExpr schoice2 = generateSMTFunction2(solver, condExpr->choice2, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
                 return solver->createCondExpr(scond, schoice1, schoice2);
             }
             case Exprv::EQ_EXPR: {
                 std::shared_ptr<EqExpr> eqExpr = std::dynamic_pointer_cast<EqExpr>(expr);
-                TExpr slhs = generateSMTFunction2(solver, eqExpr->lhs, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
-                TExpr srhs = generateSMTFunction2(solver, eqExpr->rhs, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
+                SMTExpr slhs = generateSMTFunction2(solver, eqExpr->lhs, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
+                SMTExpr srhs = generateSMTFunction2(solver, eqExpr->rhs, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
                 return solver->createEqExpr(slhs, srhs);
             }
             case Exprv::NOT_EXPR: {
                 std::shared_ptr<NotExpr> notExpr = std::dynamic_pointer_cast<NotExpr>(expr);
-                TExpr sexpr = generateSMTFunction2(solver, notExpr->expr, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
+                SMTExpr sexpr = generateSMTFunction2(solver, notExpr->expr, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
                 return solver->createNotExpr(sexpr);
             }
             default:

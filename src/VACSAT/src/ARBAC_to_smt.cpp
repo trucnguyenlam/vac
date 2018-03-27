@@ -22,7 +22,6 @@ using std::shared_ptr;
 using std::stringstream;
 using std::string;
 
-template <typename TVar, typename TExpr>
 class Transformer {
 
     private:

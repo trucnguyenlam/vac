@@ -4,8 +4,22 @@
 
 #include "boolector.h"
 #include "../config.h"
+#include "../prelude.h"
 
 namespace SMT {
+    #define bto_e(expr) std::make_shared<btor_expr_t>(btor_expr_t(expr))
+
+    inline BoolectorExpr eto_b(const SMTExpr &expr) {
+#ifdef NDEBUG
+        return std::static_pointer_cast<btor_expr_t>(expr)->e;
+#else
+        BtorExpr e = std::dynamic_pointer_cast<btor_expr_t>(expr);
+        if (e == nullptr) {
+            throw unexpected("Operand is of the wrong type");
+        }
+        return e->e;
+#endif
+    }
 
     void BoolectorSolver::mk_config() {
 #ifdef NDEBUG
@@ -35,7 +49,9 @@ namespace SMT {
 
     }
 
-    BoolectorSolver::BoolectorSolver() : context(boolector_new()) {
+    BoolectorSolver::BoolectorSolver() :
+            SMTFactory(Solver::BOOLECTOR),
+            context(boolector_new()) {
         mk_config();
     }
 
@@ -48,151 +64,153 @@ namespace SMT {
 
     static unsigned int var_counter = 0;
 
-    BoolectorExpr BoolectorSolver::createBoolVar(const std::string name) {
+    SMTExpr BoolectorSolver::createBoolVar(const std::string name) {
         std::string enum_name = name + "_" + std::to_string(var_counter++);
         BoolectorSort sort = boolector_bool_sort(context);
         BoolectorExpr ret = boolector_var(context, sort, enum_name.c_str());
-        return ret;
+        return bto_e(ret);
     }
 
-    BoolectorExpr BoolectorSolver::createBVVar(const std::string name, int size) {
+    SMTExpr BoolectorSolver::createBVVar(const std::string name, int size) {
         std::string enum_name = name + "_" + std::to_string(var_counter++);
         BoolectorSort sort = boolector_bitvec_sort(context, size);
         BoolectorExpr ret = boolector_var(context, sort, enum_name.c_str());
-        return ret;
+        return bto_e(ret);
     }
 
-    BoolectorExpr BoolectorSolver::createVar2(const std::string name, int size) {
+    SMTExpr BoolectorSolver::createVar2(const std::string name, int size) {
         return size == 1 ? createBoolVar(name) : createBVVar(name, size);
     }
 
-    BoolectorExpr BoolectorSolver::createBVConst(int value, int size) {
+    SMTExpr BoolectorSolver::createBVConst(int value, int size) {
         BoolectorSort sort = boolector_bitvec_sort(context, size);
         BoolectorExpr ret = boolector_unsigned_int(context, (uint) value, sort);
-        return ret;
+        return bto_e(ret);
     }
 
-    BoolectorExpr BoolectorSolver::createTrue() {
+    SMTExpr BoolectorSolver::createTrue() {
         BoolectorExpr ret = boolector_true(context);
-        return ret;
+        return bto_e(ret);
     }
 
-    BoolectorExpr BoolectorSolver::createFalse() {
+    SMTExpr BoolectorSolver::createFalse() {
         BoolectorExpr ret = boolector_false(context);
-        return ret;
+        return bto_e(ret);
     }
 
-    BoolectorExpr BoolectorSolver::createBoolConst(int value) {
+    SMTExpr BoolectorSolver::createBoolConst(int value) {
         return value ? createTrue() : createFalse();
     }
 
-    BoolectorExpr BoolectorSolver::createOrExpr(BoolectorExpr lhs, BoolectorExpr rhs) {
-        BoolectorExpr ret = boolector_or(context, lhs, rhs);
-        return ret;
+    SMTExpr BoolectorSolver::createOrExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        BoolectorExpr ret = boolector_or(context, eto_b(lhs), eto_b(rhs));
+        return bto_e(ret);
     }
 
-    BoolectorExpr BoolectorSolver::createXorExpr(BoolectorExpr lhs, BoolectorExpr rhs) {
-        BoolectorExpr ret = boolector_xor(context, lhs, rhs);
-        return ret;
+    SMTExpr BoolectorSolver::createXorExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        BoolectorExpr ret = boolector_xor(context, eto_b(lhs), eto_b(rhs));
+        return bto_e(ret);
     }
 
-    BoolectorExpr BoolectorSolver::createAndExpr(BoolectorExpr lhs, BoolectorExpr rhs) {
-        BoolectorExpr ret = boolector_and(context, lhs, rhs);
-        return ret;
+    SMTExpr BoolectorSolver::createAndExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        BoolectorExpr ret = boolector_and(context, eto_b(lhs), eto_b(rhs));
+        return bto_e(ret);
     }
 
-    BoolectorExpr BoolectorSolver::createNotExpr(BoolectorExpr expr) {
-        BoolectorExpr ret = boolector_not(context, expr);
-        return ret;
+    SMTExpr BoolectorSolver::createNotExpr(const SMTExpr& expr) {
+        BoolectorExpr ret = boolector_not(context, eto_b(expr));
+        return bto_e(ret);
     }
 
-    BoolectorExpr BoolectorSolver::createCondExpr(BoolectorExpr cond, BoolectorExpr choice1, BoolectorExpr choice2) {
-        BoolectorExpr ret = boolector_cond(context, cond, choice1, choice2);
-        return ret;
+    SMTExpr BoolectorSolver::createCondExpr(const SMTExpr& cond, const SMTExpr& choice1, const SMTExpr& choice2) {
+        BoolectorExpr ret = boolector_cond(context, eto_b(cond), eto_b(choice1), eto_b(choice2));
+        return bto_e(ret);
     }
 
-    BoolectorExpr BoolectorSolver::createEqExpr(BoolectorExpr lhs, BoolectorExpr rhs) {
-        BoolectorExpr ret = boolector_eq(context, lhs, rhs);
-        return ret;
+    SMTExpr BoolectorSolver::createEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        BoolectorExpr ret = boolector_eq(context, eto_b(lhs), eto_b(rhs));
+        return bto_e(ret);
     }
 
-    BoolectorExpr BoolectorSolver::createGtExpr(BoolectorExpr lhs, BoolectorExpr rhs) {
-        BoolectorExpr ret = boolector_ugt(context, lhs, rhs);
-        return ret;
+    SMTExpr BoolectorSolver::createGtExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        BoolectorExpr ret = boolector_ugt(context, eto_b(lhs), eto_b(rhs));
+        return bto_e(ret);
     }
 
-    BoolectorExpr BoolectorSolver::createGEqExpr(BoolectorExpr lhs, BoolectorExpr rhs) {
-        BoolectorExpr ret = boolector_ugte(context, lhs, rhs);
-        return ret;
-
+    SMTExpr BoolectorSolver::createGEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        BoolectorExpr ret = boolector_ugte(context, eto_b(lhs), eto_b(rhs));
+        return bto_e(ret);
     }
 
-    BoolectorExpr BoolectorSolver::createLtExpr(BoolectorExpr lhs, BoolectorExpr rhs) {
-        BoolectorExpr ret = boolector_ult(context, lhs, rhs);
-        return ret;
+    SMTExpr BoolectorSolver::createLtExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        BoolectorExpr ret = boolector_ult(context, eto_b(lhs), eto_b(rhs));
+        return bto_e(ret);
     }
 
-    BoolectorExpr BoolectorSolver::createLEqExpr(BoolectorExpr lhs, BoolectorExpr rhs) {
-        BoolectorExpr ret = boolector_ulte(context, lhs, rhs);
-        return ret;
+    SMTExpr BoolectorSolver::createLEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        BoolectorExpr ret = boolector_ulte(context, eto_b(lhs), eto_b(rhs));
+        return bto_e(ret);
     }
 
-    BoolectorExpr BoolectorSolver::createImplExpr(BoolectorExpr lhs, BoolectorExpr rhs) {
-        BoolectorExpr ret = boolector_implies(context, lhs, rhs);
-        return ret;
+    SMTExpr BoolectorSolver::createImplExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        BoolectorExpr ret = boolector_implies(context, eto_b(lhs), eto_b(rhs));
+        return bto_e(ret);
     }
 
-    BoolectorExpr BoolectorSolver::createBitSet(BoolectorExpr container, unsigned int ith, BoolectorExpr value) {
-        BoolectorExpr bit = boolector_slice(context, container, ith, ith);
+    SMTExpr BoolectorSolver::createBitSet(const SMTExpr& container, unsigned int ith, const SMTExpr& value) {
+        SMTExpr bit = bto_e(boolector_slice(context, eto_b(container), ith, ith));
 //            log->info("bit: {}; value: {}", bit.get_sort(), bit);
-        BoolectorExpr bv_value = createCondExpr(value,
-                                       createBVConst(0, 1),
-                                       createBVConst(1, 1));
+        SMTExpr b0 = createBVConst(0, 1);
+        SMTExpr b1 = createBVConst(1, 1);
+
+        SMTExpr bv_value = createCondExpr(value,
+                                                b0,
+                                                b1);
 //            log->info("bv_value: {}; value: {}", bv_value.get_sort(), bv_value);
-        BoolectorExpr res = createEqExpr(bit, bv_value);
+        SMTExpr res = createEqExpr(bit, bv_value);
 //            log->info("res: {}; value: {}", res.get_sort(), res);
         return res;
     }
 
-    BoolectorExpr BoolectorSolver::createDistinct(std::list<BoolectorExpr> exprs) {
+    SMTExpr BoolectorSolver::createDistinct(std::list<SMTExpr>& exprs) {
         log->error("Boolector does not support distinct yet");
         throw std::runtime_error("Boolector does not support distinct yet");
     }
 
-    BoolectorExpr BoolectorSolver::joinExprsWithAnd(std::list<BoolectorExpr> &exprs) {
+    SMTExpr BoolectorSolver::joinExprsWithAnd(std::list<SMTExpr> &exprs) {
         if (exprs.size() < 1) {
             return createTrue();
 //            fprintf(stderr, "Cannot join zero expressions...\n");
 //            throw std::runtime_error("Cannot join zero expressions");
         }
         auto ite = exprs.begin();
-        BoolectorExpr ret = *ite;
+        BoolectorExpr ret = eto_b(*ite);
         for (++ite; ite != exprs.end(); ++ite) {
-            ret = boolector_and(context, ret, *ite);
+            ret = boolector_and(context, ret, eto_b(*ite));
         }
-        return ret;
+        return bto_e(ret);
     }
 
-    BoolectorExpr BoolectorSolver::joinExprsWithOr(std::list<BoolectorExpr> &exprs) {
+    SMTExpr BoolectorSolver::joinExprsWithOr(std::list<SMTExpr> &exprs) {
         if (exprs.size() < 1) {
             return createTrue();
 //            fprintf(stderr, "Cannot join zero expressions...\n");
 //            throw std::runtime_error("Cannot join zero expressions");
         }
         auto ite = exprs.begin();
-        BoolectorExpr ret = *ite;
+        BoolectorExpr ret = eto_b(*ite);
         for (++ite; ite != exprs.end(); ++ite) {
-            ret = boolector_or(context, ret, *ite);
+            ret = boolector_or(context, ret, eto_b(*ite));
         }
-        return ret;
+        return bto_e(ret);
     }
 
-    void BoolectorSolver::assertLater(BoolectorExpr expr) {
-        to_be_asserted.push_back(expr);
+    void BoolectorSolver::assertLater(const SMTExpr& expr) {
+        to_be_asserted.push_back(eto_b(expr));
     }
 
-    void BoolectorSolver::assertNow(BoolectorExpr expr) {
-        boolector_assert(context, expr);
+    void BoolectorSolver::assertNow(const SMTExpr& expr) {
+        boolector_assert(context, eto_b(expr));
     }
     static int i = 0;
     SMTResult BoolectorSolver::solve() {
@@ -203,25 +221,25 @@ namespace SMT {
         this->loadToSolver();
         int boolector_res = boolector_sat(context);
         if (boolector_res == BOOLECTOR_SAT) {
-            return SAT;
+            return SMTResult::SAT;
         } else if (boolector_res == BOOLECTOR_UNSAT) {
-            return UNSAT;
+            return SMTResult::UNSAT;
         } else {
             log->error("UNKNOWN Boolector result");
             throw std::runtime_error("UNKNOWN Boolector result");
         }
     }
 
-    void BoolectorSolver::printExpr(BoolectorExpr expr) {
-        boolector_dump_smt2_node(context, stdout, expr);
+    void BoolectorSolver::printExpr(const SMTExpr& expr) {
+        boolector_dump_smt2_node(context, stdout, eto_b(expr));
     }
 
     void BoolectorSolver::printModel() {
         boolector_print_model(context, "smt2", stdout);
     }
 
-    bool BoolectorSolver::get_bool_value(BoolectorExpr expr) {
-        const char *result = boolector_bv_assignment(this->context, expr);
+    bool BoolectorSolver::get_bool_value(const SMTExpr& expr) {
+        const char *result = boolector_bv_assignment(this->context, eto_b(expr));
 
         bool res;
 

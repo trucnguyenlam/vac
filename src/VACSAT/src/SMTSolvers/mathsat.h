@@ -10,7 +10,19 @@
 #define VACSAT_MATHSAT_H
 
 namespace SMT {
-    class MathsatSolver : public SMTFactory<msat_term, msat_term> {
+    class msat_expr_t : public smt_expr_t {
+    public:
+        const msat_term e;
+        explicit msat_expr_t(msat_term expr) : e(expr) { };
+//        explicit yices_expr_t(const term_t& expr) : e(expr) { };
+//        explicit yices_expr_t(term_t& expr) : e(expr) { };
+
+        Solver get_solver() override { return Solver::MATHSAT; }
+    };
+
+    typedef std::shared_ptr<msat_expr_t> MsatExpr;
+
+    class MathsatSolver : public SMTFactory {
     public:
         static inline const std::string solver_name() {
             return "mathsat";
@@ -22,39 +34,39 @@ namespace SMT {
         // term_t createBoolType() override;
         // term_t createBVType(int size) override;
 
-        msat_term createVar2(const std::string name, int size) override;
-        msat_term createBoolVar(const std::string name) override;
-        msat_term createBVVar(const std::string name, int size) override;
+        SMTExpr createVar2(const std::string name, int size) override;
+        SMTExpr createBoolVar(const std::string name) override;
+        SMTExpr createBVVar(const std::string name, int size) override;
 
-        msat_term createBVConst(int value, int size) override;
-        msat_term createBoolConst(int value) override;
-        msat_term createTrue() override;
-        msat_term createFalse() override;
-        msat_term createOrExpr(msat_term lhs, msat_term rhs) override;
-        msat_term createXorExpr(msat_term lhs, msat_term rhs) override;
-        msat_term createAndExpr(msat_term lhs, msat_term rhs) override;
-        msat_term createNotExpr(msat_term expr) override;
-        msat_term createCondExpr(msat_term cond, msat_term choice1, msat_term choice2) override;
-        msat_term createEqExpr(msat_term lhs, msat_term rhs) override;
-        msat_term createGtExpr(msat_term lhs, msat_term rhs) override;
-        msat_term createGEqExpr(msat_term lhs, msat_term rhs) override;
-        msat_term createLtExpr(msat_term lhs, msat_term rhs) override;
-        msat_term createLEqExpr(msat_term lhs, msat_term rhs) override;
-        msat_term createImplExpr(msat_term lhs, msat_term rhs) override;
+        SMTExpr createBVConst(int value, int size) override;
+        SMTExpr createBoolConst(int value) override;
+        SMTExpr createTrue() override;
+        SMTExpr createFalse() override;
+        SMTExpr createOrExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createXorExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createAndExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createNotExpr(const SMTExpr& expr) override;
+        SMTExpr createCondExpr(const SMTExpr& cond, const SMTExpr& choice1, const SMTExpr& choice2) override;
+        SMTExpr createEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createGtExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createGEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createLtExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createLEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createImplExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
 
-        msat_term createBitSet(msat_term container, unsigned int ith, msat_term value) override;
-        msat_term createDistinct(std::list<msat_term> exprs) override;
+        SMTExpr createBitSet(const SMTExpr& container, unsigned int ith, const SMTExpr& value) override;
+        SMTExpr createDistinct(std::list<SMTExpr>& exprs) override;
 
-        msat_term joinExprsWithAnd(std::list<msat_term>& exprs) override;
-        msat_term joinExprsWithOr(std::list<msat_term>& exprs) override;
+        SMTExpr joinExprsWithAnd(std::list<SMTExpr>& exprs) override;
+        SMTExpr joinExprsWithOr(std::list<SMTExpr>& exprs) override;
 
-        void assertLater(msat_term expr) override;
-        void assertNow(msat_term expr) override;
+        void assertLater(const SMTExpr& expr) override;
+        void assertNow(const SMTExpr& expr) override;
 
         SMTResult solve() override;
-        void printExpr(msat_term expr) override;
+        void printExpr(const SMTExpr& expr) override;
         void printModel() override;
-        bool get_bool_value(msat_term expr) override;
+        bool get_bool_value(const SMTExpr& expr) override;
         void print_statistics() override;
         void loadToSolver() override;
         void clean() override;

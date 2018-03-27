@@ -12,36 +12,30 @@
 
 namespace SMT {
 
-    template <typename TVar, typename TExpr>
-    bool arbac_to_smt_bmc(const std::shared_ptr<SMT::SMTFactory<TVar, TExpr>> &solver,
+    bool arbac_to_smt_bmc(const std::shared_ptr<SMT::SMTFactory> &solver,
                           const std::shared_ptr<arbac_policy> &policy,
                           int steps,
                           int rounds,
                           int wanted_threads_count);
 
-    template <typename TVar, typename TExpr>
-    bool overapprox(const std::shared_ptr<SMT::SMTFactory<TVar, TExpr>>& solver,
+    bool overapprox(const std::shared_ptr<SMT::SMTFactory>& solver,
                     const std::shared_ptr<arbac_policy>& policy,
                     const Expr& to_check);
 
-    template <typename TVar, typename TExpr>
-    bool extended_overapprox(const std::shared_ptr<SMT::SMTFactory<TVar, TExpr>>& solver,
+    bool extended_overapprox(const std::shared_ptr<SMT::SMTFactory>& solver,
                              const std::shared_ptr<arbac_policy>& policy,
                              const Expr& to_check);
 
-    template <typename TVar, typename TExpr>
-    bool super_overapprox(const std::shared_ptr<SMT::SMTFactory<TVar, TExpr>>& solver,
+    bool super_overapprox(const std::shared_ptr<SMT::SMTFactory>& solver,
                           const std::shared_ptr<arbac_policy>& policy,
                           const Expr& to_check);
 
-    template <typename TVar, typename TExpr>
-    bool overapprox_admin(const std::shared_ptr<SMT::SMTFactory<TVar, TExpr>>& solver,
+    bool overapprox_admin(const std::shared_ptr<SMT::SMTFactory>& solver,
                           const std::shared_ptr<arbac_policy>& policy,
                           const int user_count,
                           const Expr& to_check);
 
-    template <typename TVar, typename TExpr>
-    bool overapprox_learning(const std::shared_ptr<SMT::SMTFactory<TVar, TExpr>>& solver,
+    bool overapprox_learning(const std::shared_ptr<SMT::SMTFactory>& solver,
                              const std::shared_ptr<arbac_policy>& policy,
                              const std::vector<atomp> atoms,
                              const std::vector<rulep> rules,

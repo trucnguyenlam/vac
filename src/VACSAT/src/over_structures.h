@@ -245,7 +245,6 @@ namespace SMT {
 
     };
 
-
     class proof_checker;
 
     class proof_t {

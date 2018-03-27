@@ -1552,4 +1552,72 @@ namespace SMT {
         return res;
     }
 
+    /* OLD TEMPLATED DETEMPLATED METHODS*/
+    std::map<std::string, SMTExpr> update_tlookup(const std::map<std::string, SMTExpr>& base_lookup,
+                                                  const std::map<std::string, SMTExpr>& new_lookup) {
+        std::map<std::string, SMTExpr> res(base_lookup);
+
+        for (auto ite = new_lookup.begin(); ite != new_lookup.end(); ++ite) {
+            res[ite->first] = ite->second;
+        }
+        return res;
+    };
+
+    std::vector<SMTExpr> update_tlookup(const std::vector<SMTExpr>& base_lookup,
+                                        const std::vector<SMTExpr>& new_lookup) {
+        if (base_lookup.size() != new_lookup.size()) {
+            log->error("Cannot update vector of different size.");
+            throw std::runtime_error("Cannot update vector of different size.");
+        }
+        std::vector<SMTExpr> res(base_lookup);
+
+        for (int i = 0; i < new_lookup.size(); ++i) {
+            if (new_lookup[i] != nullptr) {
+                res[i] = new_lookup[i];
+            }
+        }
+        return res;
+    };
+
+    SMTExpr atomToSMT(const std::shared_ptr<SMTFactory>& solver,
+                      const Atomp& atom,
+                      std::vector<SMTExpr>& var_vector,
+                      const std::string suffix) {
+        if (atom->get_value() == nullptr) {
+            std::string name = atom->nameWithSuffix(suffix);
+            if (var_vector[atom->role_array_index] != nullptr) {
+                return var_vector[atom->role_array_index];
+            }
+            else {
+                SMTExpr var = solver->createVar2(name, atom->bv_size);
+                var_vector[atom->role_array_index] = var;
+                // printf("%s not found. Creating it: %d\n", name.c_str(), var);
+                return var;
+            }
+        }
+        else {
+            return generateSMTFunction(solver, atom->get_value(), var_vector, suffix);
+        }
+    }
+    SMTExpr atomToSMT(const std::shared_ptr<SMTFactory>& solver,
+                      const Atomp& atom,
+                      std::map<std::string, SMTExpr>& var_map,
+                      const std::string suffix) {
+        if (atom->get_value() == nullptr) {
+            std::string name = atom->nameWithSuffix(suffix);
+            if (var_map.find(name) != var_map.end()) {
+                return var_map[name];
+            }
+            else {
+                SMTExpr var = solver->createVar2(name, atom->bv_size);
+                var_map[name] = var;
+                // printf("%s not found. Creating it: %d\n", name.c_str(), var);
+                return var;
+            }
+        }
+        else {
+            return generateSMTFunction(solver, atom->get_value(), var_map, suffix);
+        }
+    }
+
 }

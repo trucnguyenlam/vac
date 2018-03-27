@@ -19,12 +19,11 @@
 
 namespace SMT {
 
-    template <typename TVar, typename TExpr>
     class Pruning {
 
 
 
-        std::shared_ptr<SMTFactory<TVar, TExpr>> solver;
+        std::shared_ptr<SMTFactory> solver;
 
         std::shared_ptr<arbac_policy> policy;
 
@@ -46,15 +45,15 @@ namespace SMT {
                        const std::string& suffix1,
                        const std::string& suffix2,
                        const rulep& rule) {
-            std::vector<std::shared_ptr<TVar>> lookup1((ulong) policy->atom_count());
-            std::vector<std::shared_ptr<TVar>> lookup2((ulong) policy->atom_count());
+            std::vector<SMTExpr> lookup1((ulong) policy->atom_count());
+            std::vector<SMTExpr> lookup2((ulong) policy->atom_count());
             if (!with_tampone) {
                 solver->clean();
-                TExpr solver_expr = generateSMTFunction2(solver, expr, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
+                SMTExpr solver_expr = generateSMTFunction2(solver, expr, lookup2_exprs, lookup1, lookup2, suffix1, suffix2);
                 solver->assertNow(solver_expr);
-                return solver->solve() == SAT;
+                return solver->solve() == SMTResult::SAT;
             } else {
-                return !apply_r6<TVar, TExpr>(solver, policy, expr, lookup2_exprs, rule);
+                return !apply_r6(solver, policy, expr, lookup2_exprs, rule);
             }
 
             log->critical("Uh?");
@@ -63,10 +62,10 @@ namespace SMT {
 
         bool check_sat_simple(const Expr &expr) const {
             solver->clean();
-            std::vector<std::shared_ptr<TVar>> var_vect((ulong) policy->atom_count());
-            TExpr solver_expr = generateSMTFunction(solver, expr, var_vect, "C");
+            std::vector<SMTExpr> var_vect((ulong) policy->atom_count());
+            SMTExpr solver_expr = generateSMTFunction(solver, expr, var_vect, "C");
             solver->assertNow(solver_expr);
-            return solver->solve() != SAT;
+            return solver->solve() != SMTResult::SAT;
         }
 
         bool have_common_atoms(const Expr& e1, const Expr& e2) {
@@ -79,11 +78,11 @@ namespace SMT {
 
         }
 
-        void printLookup(const std::vector<std::shared_ptr<TVar>>& lookup) {
+        void printLookup(const std::vector<SMTExpr>& lookup) {
             for (int i = 0; i < lookup.size(); ++i) {
                 std::cout << i << ": ";
                 if (lookup[i] != nullptr) {
-                    solver->printExpr(*lookup[i]);
+                    solver->printExpr(lookup[i]);
                 }
                 else
                     std::cout << "NULL" << std::endl;
@@ -150,32 +149,32 @@ namespace SMT {
                 //FIXME: add support for tampone
                 solver->clean();
                 // (declare-const tracked_true_atom Bool)
-                TVar wanted_var = solver->createBoolVar("tracked_true_" + atom->fullName());
+                SMTExpr wanted_var = solver->createBoolVar("tracked_true_" + atom->fullName());
                 // (declare-const tracked_false_atom Bool)
-                TVar unwanted_var = solver->createBoolVar("tracked_false_" + atom->fullName());
+                SMTExpr unwanted_var = solver->createBoolVar("tracked_false_" + atom->fullName());
                 //FUTURE: when values other than booleans will be supported change solver->createTrue() to (solver->createBVConst(value))
-                TExpr solver_want_value = wanted_value ? solver->createTrue() : solver->createFalse();
+                SMTExpr solver_want_value = wanted_value ? solver->createTrue() : solver->createFalse();
                 // tracked_true_atom == value
-                TExpr wanted_eq = solver->createEqExpr(wanted_var, solver_want_value);
+                SMTExpr wanted_eq = solver->createEqExpr(wanted_var, solver_want_value);
                 // tracked_false_atom != value
-                TExpr unwanted_eq = solver->createNotExpr(solver->createEqExpr(unwanted_var, solver_want_value));
-                std::vector<std::shared_ptr<TVar>> var_vect((unsigned long) policy->atom_count());
+                SMTExpr unwanted_eq = solver->createNotExpr(solver->createEqExpr(unwanted_var, solver_want_value));
+                std::vector<SMTExpr> var_vect((unsigned long) policy->atom_count());
 
                 // Phi_r_wanted(C)
 
-                var_vect[atom->role_array_index] = std::make_shared<TExpr>(wanted_var);
-                TExpr phi_a_true = generateSMTFunction(solver, expr, var_vect, "C");
+                var_vect[atom->role_array_index] = wanted_var;
+                SMTExpr phi_a_true = generateSMTFunction(solver, expr, var_vect, "C");
 
                 // Phi_r_unwanted(C)
-                var_vect[atom->role_array_index] = std::make_shared<TExpr>(unwanted_var);
-                TExpr phi_a_false = generateSMTFunction(solver, expr, var_vect, "C");
+                var_vect[atom->role_array_index] = unwanted_var;
+                SMTExpr phi_a_false = generateSMTFunction(solver, expr, var_vect, "C");
 
 
                 // Phi_r_true(C) /\ not Phi_r_false(C)
-                TExpr to_check = solver->createAndExpr(phi_a_true,
+                SMTExpr to_check = solver->createAndExpr(phi_a_true,
                                                        solver->createNotExpr(phi_a_false));
 
-//                TExpr solver_final_expr = solver->createAndExpr(to_check,
+//                SMTExpr solver_final_expr = solver->createAndExpr(to_check,
 //                                                                solver->createAndExpr(wanted_eq,
 //                                                                                      unwanted_eq));
 
@@ -183,7 +182,7 @@ namespace SMT {
                 solver->assertNow(to_check);
                 solver->assertNow(wanted_eq);
                 solver->assertNow(unwanted_eq);
-                bool expr_is_counterexample = solver->solve() == SAT;
+                bool expr_is_counterexample = solver->solve() == SMTResult::SAT;
                 if (expr_is_counterexample) {
                     return true;
                 }
@@ -381,23 +380,23 @@ namespace SMT {
             // CHECK IF BOTH ADMIN CONDITION AND CONDITION ARE SATISFIABLE
             solver->clean();
 
-            std::vector<std::shared_ptr<TVar>> adm_vect((unsigned int) policy->atom_count());
-            std::vector<std::shared_ptr<TVar>> prec_vect((unsigned int) policy->atom_count());
+            std::vector<SMTExpr> adm_vect((unsigned int) policy->atom_count());
+            std::vector<SMTExpr> prec_vect((unsigned int) policy->atom_count());
 
             Expr joined = createAndExpr(rule->admin, rule->prec);
             std::set<Expr> part2;
             part2.insert(rule->prec);
 
-//            TExpr solver_adm = generateSMTFunction2(solver, rule->admin, adm_vect, "adm");
-//            TExpr solver_prec = generateSMTFunction2(solver, rule->prec, prec_vect, "prec");
-//            TExpr check = solver->createAndExpr(solver_adm, solver_prec);
+//            SMTExpr solver_adm = generateSMTFunction2(solver, rule->admin, adm_vect, "adm");
+//            SMTExpr solver_prec = generateSMTFunction2(solver, rule->prec, prec_vect, "prec");
+//            SMTExpr check = solver->createAndExpr(solver_adm, solver_prec);
 
-            TExpr solver_joined = generateSMTFunction2(solver, joined, part2, adm_vect, prec_vect, "adm", "prec");
+            SMTExpr solver_joined = generateSMTFunction2(solver, joined, part2, adm_vect, prec_vect, "adm", "prec");
 
             solver->assertNow(solver_joined);
             SMTResult res = solver->solve();
 
-            return res != SAT;
+            return res != SMTResult::SAT;
         }
 
         bool true_condition(const Expr& expr) {
@@ -405,14 +404,14 @@ namespace SMT {
             // CHECK IF AN EXPRESSION IS ALWAYS TRUE
             solver->clean();
 
-            std::vector<std::shared_ptr<TVar>> var_vect((unsigned int) policy->atom_count());
-            TExpr solver_expr = generateSMTFunction(solver, expr, var_vect, "C");
+            std::vector<SMTExpr> var_vect((unsigned int) policy->atom_count());
+            SMTExpr solver_expr = generateSMTFunction(solver, expr, var_vect, "C");
             if (!Config::use_tampone) {
-                TExpr check = solver->createNotExpr(solver_expr);
+                SMTExpr check = solver->createNotExpr(solver_expr);
                 solver->assertNow(check);
                 SMTResult res = solver->solve();
 
-                return res != SAT;
+                return res != SMTResult::SAT;
             } else {
                 std::set<Expr> empty;
                 bool sat = check_sat_tampone(expr, empty, "C", "", nullptr);
@@ -469,8 +468,8 @@ namespace SMT {
                 }
             }
 
-            std::vector<std::shared_ptr<TVar>> adm_var_vec((unsigned long) policy->atom_count());
-            TExpr solver_adm = generateSMTFunction(solver, adm, adm_var_vec, std::string("adm"));
+            std::vector<SMTExpr> adm_var_vec((unsigned long) policy->atom_count());
+            SMTExpr solver_adm = generateSMTFunction(solver, adm, adm_var_vec, std::string("adm"));
 
             for (auto &&expr : other_exprs) {
 
@@ -482,12 +481,12 @@ namespace SMT {
 
                 solver->clean();
 
-                std::vector<std::shared_ptr<TVar>> free_var_vec((unsigned long) policy->atom_count());
-                TExpr solver_exp = generateSMTFunction(solver, expr, free_var_vec, std::string("adm"));
+                std::vector<SMTExpr> free_var_vec((unsigned long) policy->atom_count());
+                SMTExpr solver_exp = generateSMTFunction(solver, expr, free_var_vec, std::string("adm"));
 
-                std::vector<std::shared_ptr<TVar>> updated_vec = update_tlookup(free_var_vec, adm_var_vec);
+                std::vector<SMTExpr> updated_vec = update_tlookup(free_var_vec, adm_var_vec);
 
-                TExpr not_solver_exp = solver->createNotExpr(generateSMTFunction(solver, expr, updated_vec, std::string("adm")));
+                SMTExpr not_solver_exp = solver->createNotExpr(generateSMTFunction(solver, expr, updated_vec, std::string("adm")));
 
                 solver->assertNow(solver_adm);
                 solver->assertNow(solver_exp);
@@ -508,22 +507,22 @@ namespace SMT {
         bool satisfies_using_set_tampone(const Expr& adm, const userp& user, std::vector<std::shared_ptr<atom_status>>& _atom_status) {
             auto lits = adm->atoms();
             for (auto &&atom : adm->atoms()) {
-                std::vector<std::shared_ptr<TExpr>> var_vect((ulong) policy->atom_count());
+                std::vector<SMTExpr> var_vect((ulong) policy->atom_count());
 //                std::shared_ptr<atom_status>& status = _atom_status[lit->role_array_index];
                 if (contains(user->config(), atom) && !atom_used_as_value(atom, false, _atom_status)) {
-                    var_vect[atom->role_array_index] = std::make_shared<TExpr>(solver->createTrue());
+                    var_vect[atom->role_array_index] = solver->createTrue();
                 } else if (!contains(user->config(), atom) && !atom_used_as_value(atom, true, _atom_status)) {
-                    var_vect[atom->role_array_index] = std::make_shared<TExpr>(solver->createFalse());
+                    var_vect[atom->role_array_index] = solver->createFalse();
                 }
 
                 solver->clean();
-                TExpr inner_expr = generateSMTFunction(solver, adm, var_vect, "C");
-                TExpr solver_expr = solver->createNotExpr(inner_expr);
+                SMTExpr inner_expr = generateSMTFunction(solver, adm, var_vect, "C");
+                SMTExpr solver_expr = solver->createNotExpr(inner_expr);
                 solver->assertNow(solver_expr);
 
                 SMTResult res = solver->solve();
 
-                if (res == UNSAT) {
+                if (res == SMTResult::UNSAT) {
                     log->trace("User {} satisfies formula {} without interference", user->to_full_string(), *adm);
                     return true;
                 }
@@ -534,7 +533,7 @@ namespace SMT {
         bool satisfies_using_set_simple(const Expr& adm, const userp& user, std::vector<std::shared_ptr<atom_status>>& _atom_status) {
             auto lits = adm->atoms();
             for (auto &&atom : adm->atoms()) {
-                std::vector<std::shared_ptr<TExpr>> var_vect((ulong) policy->atom_count());
+                std::vector<SMTExpr> var_vect((ulong) policy->atom_count());
 
                 bool set_true = false, set_false = false;
 //                std::shared_ptr<atom_status>& status = _atom_status[lit->role_array_index];
@@ -550,22 +549,22 @@ namespace SMT {
                     log->critical("cannot set the atom to both true and false!");
                     throw unexpected_error("cannot set the atom to both true and false!", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
                 } else if (set_true) {
-                    var_vect[atom->role_array_index] = std::make_shared<TExpr>(solver->createTrue());
+                    var_vect[atom->role_array_index] = solver->createTrue();
                 } else if (set_false) {
-                    var_vect[atom->role_array_index] = std::make_shared<TExpr>(solver->createFalse());
+                    var_vect[atom->role_array_index] = solver->createFalse();
                 } else {
                     //do nothing
                 }
 
 
 
-                TExpr inner_expr = generateSMTFunction(solver, adm, var_vect, "C");
-                TExpr solver_expr = solver->createNotExpr(inner_expr);
+                SMTExpr inner_expr = generateSMTFunction(solver, adm, var_vect, "C");
+                SMTExpr solver_expr = solver->createNotExpr(inner_expr);
                 solver->assertNow(solver_expr);
 
                 SMTResult res = solver->solve();
 
-                if (res == UNSAT) {
+                if (res == SMTResult::UNSAT) {
                     log->trace("User {} satisfies formula {} without interference", user->to_full_string(), *adm);
                     return true;
                 }
@@ -624,20 +623,20 @@ namespace SMT {
         bool immaterial_admin_in_prec(const rulep& rule) {
             // This rule checks if adm is implied in prec. If so we can remove the admin part and replace with TRUE since the check is done on
             solver->clean();
-            std::vector<std::shared_ptr<TVar>> var_vect((ulong) policy->atom_count());
+            std::vector<SMTExpr> var_vect((ulong) policy->atom_count());
 
-            TExpr s_adm = generateSMTFunction(solver, rule->admin, var_vect, "C");
+            SMTExpr s_adm = generateSMTFunction(solver, rule->admin, var_vect, "C");
 
-            TExpr s_prec = generateSMTFunction(solver, rule->prec, var_vect, "C");
+            SMTExpr s_prec = generateSMTFunction(solver, rule->prec, var_vect, "C");
 
-            TExpr to_check = solver->createAndExpr(solver->createNotExpr(s_adm),
+            SMTExpr to_check = solver->createAndExpr(solver->createNotExpr(s_adm),
                                                    s_prec);
 
             solver->assertNow(to_check);
 
             SMTResult res = solver->solve();
 
-            return res == UNSAT;
+            return res == SMTResult::UNSAT;
         }
 
         bool immaterial_adm_k_plus_two(const Expr& adm) {
@@ -649,15 +648,15 @@ namespace SMT {
                 Expr adm_expr = adm;
                 Expr user_expr = policy->user_to_expr(user->original_idx, adm->atoms());
 
-                std::vector<std::shared_ptr<TVar>> var_vect((ulong) policy->atom_count());
+                std::vector<SMTExpr> var_vect((ulong) policy->atom_count());
 
-                TExpr solver_adm_expr = generateSMTFunction(solver, adm_expr, var_vect, user->name);
-                TExpr solver_user_expr = generateSMTFunction(solver, user_expr, var_vect, user->name);
+                SMTExpr solver_adm_expr = generateSMTFunction(solver, adm_expr, var_vect, user->name);
+                SMTExpr solver_user_expr = generateSMTFunction(solver, user_expr, var_vect, user->name);
 
                 solver->assertNow(solver_user_expr);
                 solver->assertNow(solver_adm_expr);
 
-                bool satisfies = solver->solve() == SAT;
+                bool satisfies = solver->solve() == SMTResult::SAT;
 
                 if (satisfies) {
                     int _admin_count = policy->admin_count();
@@ -743,8 +742,8 @@ namespace SMT {
                                const std::list<std::shared_ptr<rule>>& removing_r) {
             //TODO: ADD IRRELEVANT FOR ADMIN HERE
 
-//            std::vector<std::shared_ptr<TVar>> c_vect(policy->atom_count());
-//            std::vector<std::shared_ptr<TVar>> adm_vect(policy->atom_count());
+//            std::vector<SMTExpr> c_vect(policy->atom_count());
+//            std::vector<SMTExpr> adm_vect(policy->atom_count());
 
             Literalp role_lit = createLiteralp(role);
 
@@ -785,8 +784,8 @@ namespace SMT {
 //            log->warn("neg_lhs: {}", *neg_lhs);
 
             for (auto &&ca : assigning_r) {
-//                std::vector<std::shared_ptr<TVar>> c1_vect = c_vect;
-//                std::vector<std::shared_ptr<TVar>> adm1_vect = adm_vect;
+//                std::vector<SMTExpr> c1_vect = c_vect;
+//                std::vector<SMTExpr> adm1_vect = adm_vect;
 
                 //phi'(C)
                 Expr phi1_c = ca->prec;
@@ -814,8 +813,8 @@ namespace SMT {
             std::list<Expr> revoke_and_rhs;
 
             for (auto &&cr  : removing_r) {
-//                std::vector<std::shared_ptr<TVar>> c1_vect = c_vect;
-//                std::vector<std::shared_ptr<TVar>> adm1_vect = adm_vect;
+//                std::vector<SMTExpr> c1_vect = c_vect;
+//                std::vector<SMTExpr> adm1_vect = adm_vect;
 
                 //phi'(C)
                 Expr phi1_c = cr->prec;
@@ -855,7 +854,7 @@ namespace SMT {
                              const std::list<std::shared_ptr<rule>>& assigning_r,
                              const std::list<std::shared_ptr<rule>>& removing_r) {
 
-//            std::vector<std::shared_ptr<TVar>> adm_vect(policy->atom_count());
+//            std::vector<SMTExpr> adm_vect(policy->atom_count());
 
             Literalp role_lit = createLiteralp(role);
 
@@ -885,7 +884,7 @@ namespace SMT {
             std::list<Expr> assign_and_rhs;
 
             for (auto &&ca : assigning_r) {
-//                std::vector<std::shared_ptr<TVar>> adm1_vect = adm_vect;
+//                std::vector<SMTExpr> adm1_vect = adm_vect;
 
                 //phi'(C)
                 Expr phi1_adm = ca->prec;
@@ -906,7 +905,7 @@ namespace SMT {
             std::list<Expr> revoke_and_rhs;
 
             for (auto &&cr  : removing_r) {
-//                std::vector<std::shared_ptr<TVar>> adm1_vect = adm_vect;
+//                std::vector<SMTExpr> adm1_vect = adm_vect;
 
                 //phi'(adm)
                 Expr phi1_adm = cr->prec;
@@ -982,9 +981,9 @@ namespace SMT {
                                                       assigning_r,
                                                       removing_r);
 
-                    std::vector<std::shared_ptr<TVar>> c_vect((ulong) policy->atom_count());
-                    std::vector<std::shared_ptr<TVar>> adm_vect((ulong) policy->atom_count());
-                    TExpr solver_cond = generateSMTFunction2(solver,
+                    std::vector<SMTExpr> c_vect((ulong) policy->atom_count());
+                    std::vector<SMTExpr> adm_vect((ulong) policy->atom_count());
+                    SMTExpr solver_cond = generateSMTFunction2(solver,
                                                              cond_pair.first,
                                                              cond_pair.second,
                                                              c_vect,
@@ -1000,7 +999,7 @@ namespace SMT {
 
                     SMTResult res = solver->solve();
 
-                    if (res == SAT) {
+                    if (res == SMTResult::SAT) {
                         can_remove = false;
                         return false;
                         break;
@@ -1015,13 +1014,13 @@ namespace SMT {
                                                  assigning_r,
                                                  removing_r);
 
-                    std::vector<std::shared_ptr<TVar>> adm_vect((ulong) policy->atom_count());
-                    TExpr solver_cond = generateSMTFunction(solver, cond, adm_vect, "Adm");
+                    std::vector<SMTExpr> adm_vect((ulong) policy->atom_count());
+                    SMTExpr solver_cond = generateSMTFunction(solver, cond, adm_vect, "Adm");
                     solver->assertNow(solver_cond);
 
                     SMTResult res = solver->solve();
 
-                    if (res == SAT) {
+                    if (res == SMTResult::SAT) {
                         can_remove = false;
                         return false;
                         break;
@@ -1056,8 +1055,8 @@ namespace SMT {
         int implied_tampone(const std::shared_ptr<rule>& ca1, const std::shared_ptr<rule>& ca2) {
             //FIXME: tampone
             solver->clean();
-            std::vector<std::shared_ptr<TVar>> c_vect((ulong) policy->atom_count());
-            std::vector<std::shared_ptr<TVar>> adm_vect((ulong) policy->atom_count());
+            std::vector<SMTExpr> c_vect((ulong) policy->atom_count());
+            std::vector<SMTExpr> adm_vect((ulong) policy->atom_count());
             std::string c_suff("C");
             std::string adm_suff("admin");
 
@@ -1077,7 +1076,7 @@ namespace SMT {
 //            solver->assertNow(adm_cond);
 //            SMTResult adm_res = solver->solve();
 //
-//            if (adm_res == SAT) {
+//            if (adm_res == SMTResult::SAT) {
 //                return false;
 //            }
 //            std::cout << "Admin, impl: " << *ca1->admin << " ==> " << *ca2->admin << std::endl;
@@ -1095,7 +1094,7 @@ namespace SMT {
 //            solver->assertNow(cond);
 //            SMTResult cond_res = solver->solve();
 
-//            std::cout << "Prec, impl: " << *ca1->prec << " ==> " << *ca2->prec << ": " << (cond_res == SAT ? "SAT" : "UNSAT") << std::endl;
+//            std::cout << "Prec, impl: " << *ca1->prec << " ==> " << *ca2->prec << ": " << (cond_res == SMTResult::SAT ? "SAT" : "UNSAT") << std::endl;
 //            solver->printExpr(cond);
 
             Expr final_cond = createOrExpr(adm_cond, cond);
@@ -1109,41 +1108,41 @@ namespace SMT {
 
 
 //            // \phi'_a(adm) /\ \phi'(C)
-//            TExpr lhs = solver->createAndExpr(phi2_adm, phi2_pn);
+//            SMTExpr lhs = solver->createAndExpr(phi2_adm, phi2_pn);
 //
 //            // (\not\phi_a(adm)) \/ (\not\phi(c))
 //            // \not (\phi_a(adm) /\ \phi(C))
-//            TExpr rhs = solver->createNotExpr(solver->createAndExpr(phi1_adm, phi1_pn));
+//            SMTExpr rhs = solver->createNotExpr(solver->createAndExpr(phi1_adm, phi1_pn));
 //
 //            // (\phi_a(adm) /\ \phi(C)) /\ ((\not\phi'_a(adm)) \/ (\not\phi'(c)))
-//            TExpr final_cond = solver->createAndExpr(lhs, rhs);
+//            SMTExpr final_cond = solver->createAndExpr(lhs, rhs);
 
 //            solver->assertNow(final_cond);
 //            SMTResult res = solver->solve();
 //            solver->clean();
-//            return res == UNSAT;
+//            return res == SMTResult::UNSAT;
         }
 
         int implied_simple(const std::shared_ptr<rule>& ca1, const std::shared_ptr<rule>& ca2) {
             //FIXME: tampone
             solver->clean();
-            std::vector<std::shared_ptr<TVar>> adm_vect((ulong) policy->atom_count());
+            std::vector<SMTExpr> adm_vect((ulong) policy->atom_count());
             std::string c_suff("C");
             std::string adm_suff("admin");
 
-            TExpr phi1_adm = generateSMTFunction(solver, ca1->admin, adm_vect, adm_suff);
-            TExpr phi2_adm = generateSMTFunction(solver, ca2->admin, adm_vect, adm_suff);
+            SMTExpr phi1_adm = generateSMTFunction(solver, ca1->admin, adm_vect, adm_suff);
+            SMTExpr phi2_adm = generateSMTFunction(solver, ca2->admin, adm_vect, adm_suff);
 
 
             // For performances improvement we test admin first and then the precondition
             // // \phi_a(adm) /\ \not \phi'_a(adm)
-            TExpr adm_cond = solver->createAndExpr(phi2_adm,
+            SMTExpr adm_cond = solver->createAndExpr(phi2_adm,
                                                    solver->createNotExpr(phi1_adm));
 
             solver->assertNow(adm_cond);
             SMTResult adm_res = solver->solve();
 
-            if (adm_res == SAT) {
+            if (adm_res == SMTResult::SAT) {
                 return false;
             }
 //            std::cout << "Admin, impl: " << *ca1->admin << " ==> " << *ca2->admin << std::endl;
@@ -1152,38 +1151,38 @@ namespace SMT {
 //            std::cout << *ca2 << std::endl;
             solver->clean();
 
-            std::vector<std::shared_ptr<TVar>> c_vect((ulong) policy->atom_count());
+            std::vector<SMTExpr> c_vect((ulong) policy->atom_count());
 
-            TExpr phi1_pn = generateSMTFunction(solver, ca1->prec, c_vect, c_suff);
-            TExpr phi2_pn = generateSMTFunction(solver, ca2->prec, c_vect, c_suff);
+            SMTExpr phi1_pn = generateSMTFunction(solver, ca1->prec, c_vect, c_suff);
+            SMTExpr phi2_pn = generateSMTFunction(solver, ca2->prec, c_vect, c_suff);
             // \phi(C) /\ \not \phi'(C)
-            TExpr cond = solver->createAndExpr(phi2_pn,
+            SMTExpr cond = solver->createAndExpr(phi2_pn,
                                                solver->createNotExpr(phi1_pn));
 
             solver->assertNow(cond);
             SMTResult cond_res = solver->solve();
 
-//            std::cout << "Prec, impl: " << *ca1->prec << " ==> " << *ca2->prec << ": " << (cond_res == SAT ? "SAT" : "UNSAT") << std::endl;
+//            std::cout << "Prec, impl: " << *ca1->prec << " ==> " << *ca2->prec << ": " << (cond_res == SMTResult::SAT ? "SAT" : "UNSAT") << std::endl;
 //            solver->printExpr(cond);
-            return cond_res != SAT;
+            return cond_res != SMTResult::SAT;
 
 
 
 
 //            // \phi'_a(adm) /\ \phi'(C)
-//            TExpr lhs = solver->createAndExpr(phi2_adm, phi2_pn);
+//            SMTExpr lhs = solver->createAndExpr(phi2_adm, phi2_pn);
 //
 //            // (\not\phi_a(adm)) \/ (\not\phi(c))
 //            // \not (\phi_a(adm) /\ \phi(C))
-//            TExpr rhs = solver->createNotExpr(solver->createAndExpr(phi1_adm, phi1_pn));
+//            SMTExpr rhs = solver->createNotExpr(solver->createAndExpr(phi1_adm, phi1_pn));
 //
 //            // (\phi_a(adm) /\ \phi(C)) /\ ((\not\phi'_a(adm)) \/ (\not\phi'(c)))
-//            TExpr final_cond = solver->createAndExpr(lhs, rhs);
+//            SMTExpr final_cond = solver->createAndExpr(lhs, rhs);
 
 //            solver->assertNow(final_cond);
 //            SMTResult res = solver->solve();
 //            solver->clean();
-//            return res == UNSAT;
+//            return res == SMTResult::UNSAT;
         }
 
         int implied(const std::shared_ptr<rule>& ca1, const std::shared_ptr<rule>& ca2) {
@@ -1286,24 +1285,24 @@ namespace SMT {
 
             solver->clean();
 
-            std::vector<std::shared_ptr<TVar>> var_vec((ulong) policy->atom_count());
-            TExpr se1 = generateSMTFunction(solver, e1, var_vec, "eq");
-            TExpr se2 = generateSMTFunction(solver, e2, var_vec, "eq");
+            std::vector<SMTExpr> var_vec((ulong) policy->atom_count());
+            SMTExpr se1 = generateSMTFunction(solver, e1, var_vec, "eq");
+            SMTExpr se2 = generateSMTFunction(solver, e2, var_vec, "eq");
 
             // e1 /\ not e2
-            TExpr e1_not_e2 = solver->createAndExpr(se1,
+            SMTExpr e1_not_e2 = solver->createAndExpr(se1,
                                                     solver->createNotExpr(se2));
             // not e1 /\ e2
-            TExpr not_e1_e2 = solver->createAndExpr(solver->createNotExpr(se1),
+            SMTExpr not_e1_e2 = solver->createAndExpr(solver->createNotExpr(se1),
                                                     se2);
 
             // (e1 /\ not e2) \/ (not e1 /\ e2)
-            TExpr final = solver->createOrExpr(e1_not_e2,
+            SMTExpr final = solver->createOrExpr(e1_not_e2,
                                                not_e1_e2);
 
             solver->assertNow(final);
 
-            bool res = solver->solve() == UNSAT;
+            bool res = solver->solve() == SMTResult::UNSAT;
 
 //            if (res) {
 //                std::cout << "Expressions " << *e1 << std::endl;
@@ -1444,9 +1443,9 @@ namespace SMT {
 
         bool always_false(const Expr& expr, const rulep& rule) {
             if (with_tampone) {
-//                return apply_r6<TVar, TExpr>(solver, policy, expr, rule);
+//                return apply_r6(solver, policy, expr, rule);
                 std::set<Expr> empty;
-                return apply_r6<TVar, TExpr>(solver, policy, expr, empty, rule);
+                return apply_r6(solver, policy, expr, empty, rule);
             } else {
                 return check_sat_simple(expr);
             }
@@ -1471,7 +1470,7 @@ namespace SMT {
                                   copy);
 //            log->info("final: {}", *final);
 
-//            bool res = apply_r6<TVar, TExpr>(this->solver, this->policy, final, rule);
+//            bool res = apply_r6(this->solver, this->policy, final, rule);
             bool res;
 
             if (Config::use_tampone) {
@@ -1496,7 +1495,7 @@ namespace SMT {
 
         interactive_split_result apply_remove_simplify(Expr& expr, const rulep& rule, bool admin) {
             // IF RULE IS NEVER FIREABLE THAN REMOVE IT!
-//            if (apply_r6<TVar, TExpr>(this->solver, this->policy, expr, rule)) {
+//            if (apply_r6(this->solver, this->policy, expr, rule)) {
             if (Config::use_tampone) {
                 std::set<Expr> empty;
                 if (!check_sat_tampone(expr, empty, "", "", rule)) {
@@ -1548,7 +1547,7 @@ namespace SMT {
                 }
 
                 solver->clean();
-                interactive_split_result rem_pn = apply_remove_simplify(rule->prec, rule, false); // interactive_split(rule->prec, rule, false); //apply_r6<TVar, TExpr>(this->solver, this->policy, rule->prec, rule);
+                interactive_split_result rem_pn = apply_remove_simplify(rule->prec, rule, false); // interactive_split(rule->prec, rule, false); //apply_r6(this->solver, this->policy, rule->prec, rule);
                 if (do_log) {
                     log->trace("{}", *rule);
                 }
@@ -1559,7 +1558,7 @@ namespace SMT {
                 if (do_log) {
                     log->trace("{}", *rule);
                 }
-                            ; // apply_r6<TVar, TExpr>(this->solver, this->policy, rule->admin, rule);
+                            ; // apply_r6(this->solver, this->policy, rule->admin, rule);
 
                 //                std::cout << ca_adm_formulae[i]->to_string() << std::endl;
 
@@ -1630,29 +1629,29 @@ namespace SMT {
             for (auto &&atom : expr->atoms()) {
                 solver->clean();
 
-                std::vector<std::shared_ptr<TExpr>> var_vect((ulong) policy->atom_count());
+                std::vector<SMTExpr> var_vect((ulong) policy->atom_count());
 
                 //phi_a_true
-                var_vect[atom->role_array_index] = std::make_shared<TExpr>(solver->createTrue());
-                TExpr phi_a_true = generateSMTFunction(solver, expr, var_vect, "C");
+                var_vect[atom->role_array_index] = solver->createTrue();
+                SMTExpr phi_a_true = generateSMTFunction(solver, expr, var_vect, "C");
 
                 //phi_a_false
-                var_vect[atom->role_array_index] = std::make_shared<TExpr>(solver->createFalse());
-                TExpr phi_a_false = generateSMTFunction(solver, expr, var_vect, "C");
+                var_vect[atom->role_array_index] = solver->createFalse();
+                SMTExpr phi_a_false = generateSMTFunction(solver, expr, var_vect, "C");
 
                 // Phi_r_true(C) /\ not Phi_r_false(C)
-                TExpr pos = solver->createAndExpr(phi_a_true,
+                SMTExpr pos = solver->createAndExpr(phi_a_true,
                                                   solver->createNotExpr(phi_a_false));
                 // Phi_r_false(C) /\ not Phi_r_true(C)
-                TExpr neg = solver->createAndExpr(solver->createNotExpr(phi_a_true),
+                SMTExpr neg = solver->createAndExpr(solver->createNotExpr(phi_a_true),
                                                   phi_a_false);
 
-                TExpr to_check = solver->createOrExpr(pos, neg);
+                SMTExpr to_check = solver->createOrExpr(pos, neg);
 
                 solver->assertNow(to_check);
                 SMTResult res = solver->solve();
 
-                if (res == UNSAT) {
+                if (res == SMTResult::UNSAT) {
                     to_remove.push_back(atom);
                 }
             }
@@ -1710,7 +1709,7 @@ namespace SMT {
                         std::cout << ("T");
                         continue;
                     }
-                    bool can_be_admin = !apply_r6<TVar, TExpr>(solver, policy, rule->admin, empty, rule, user);
+                    bool can_be_admin = !apply_r6(solver, policy, rule->admin, empty, rule, user);
                     if (can_be_admin) {
                         arity++;
                     }
@@ -1727,7 +1726,7 @@ namespace SMT {
                         std::cout << ("T");
                         continue;
                     }
-                    bool can_be_admin = !apply_r6<TVar, TExpr>(solver, policy, fst->admin, empty, part, user);
+                    bool can_be_admin = !apply_r6(solver, policy, fst->admin, empty, part, user);
                     if (can_be_admin) {
                         arity++;
                     }
@@ -1994,20 +1993,20 @@ namespace SMT {
         public:
 
         /*void test() {
-            TVar v = solver->createBoolVar("polok");
-            TExpr e1 = v;
+            SMTExpr v = solver->createBoolVar("polok");
+            SMTExpr e1 = v;
 
             solver->assertNow(e1);
-            std::string r1 = solver->solve() == SAT ? "SAT" : "UNSAT";
+            std::string r1 = solver->solve() == SMTResult::SAT ? "SAT" : "UNSAT";
 
             std::cout << r1 << std::endl;
             solver->printModel();
 
             solver->clean();
 
-            TExpr e2 = solver->createNotExpr(v);
+            SMTExpr e2 = solver->createNotExpr(v);
             solver->assertNow(e2);
-            std::string r2 = solver->solve() == SAT ? "SAT" : "UNSAT";
+            std::string r2 = solver->solve() == SMTResult::SAT ? "SAT" : "UNSAT";
 
             std::cout << r2 << std::endl;
             solver->printModel();
@@ -2182,33 +2181,21 @@ namespace SMT {
 
         }
 
-        Pruning(const std::shared_ptr<SMTFactory<TVar, TExpr>>& _solver,
+        Pruning(const std::shared_ptr<SMTFactory>& _solver,
                 const std::shared_ptr<arbac_policy>& policy) :
             solver(_solver),
             policy(policy) { }
     };
 
-    template <typename TVar, typename TExpr>
-    void prune_policy(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+    void prune_policy(const std::shared_ptr<SMTFactory>& solver,
                       const std::shared_ptr<arbac_policy>& policy) {
 
 //        bool res = apply_infini_admin(solver, policy, createAndExpr(policy->can_assign_rules()[0]->admin, policy->can_assign_rules()[1]->admin), 10, 10, -1);
 //        log->debug("{}", res);
 
-        Pruning<TVar, TExpr> core(solver, policy);
+        Pruning core(solver, policy);
 
         core.apply();
     }
 
-    template void prune_policy<term_t, term_t>(const std::shared_ptr<SMTFactory<term_t, term_t>>& solver,
-                                               const std::shared_ptr<arbac_policy>& policy);
-
-    template void prune_policy<expr, expr>(const std::shared_ptr<SMTFactory<expr, expr>>& solver,
-                                           const std::shared_ptr<arbac_policy>& policy);
-
-    template void prune_policy<BoolectorExpr, BoolectorExpr>(const std::shared_ptr<SMTFactory<BoolectorExpr, BoolectorExpr>>& solver,
-                                                             const std::shared_ptr<arbac_policy>& policy);
-
-    template void prune_policy<msat_term, msat_term>(const std::shared_ptr<SMTFactory<msat_term, msat_term>>& solver,
-                                                     const std::shared_ptr<arbac_policy>& policy);
 }

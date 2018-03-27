@@ -1,5 +1,6 @@
 #include "yices.h"
 #include "../config.h"
+#include "../prelude.h"
 #include <stdexcept>
 #include <iostream>
 #include <sstream>
@@ -7,25 +8,39 @@
 
 namespace SMT {
 
+    #define yexp(expr) std::make_shared<yices_expr_t>(yices_expr_t(expr))
+
+    inline const term_t& eto_y(const SMTExpr &expr) {
+#ifdef NDEBUG
+        return std::static_pointer_cast<yices_expr_t>(expr)->e;
+#else
+        YicesExpr e = std::dynamic_pointer_cast<yices_expr_t>(expr);
+        if (e == nullptr) {
+            throw unexpected("Operand is of the wrong type");
+        }
+        return e->e;
+#endif
+    }
+
     void raise_error(const std::string error) {
         throw std::runtime_error(error);
     }
 
-    void yices_fail(const std::string function_name, std::list<term_t> parts) {
+    void yices_fail(const std::string function_name, std::list<SMTExpr>& parts) {
         std::stringstream fmt;
         auto ite = parts.begin();
         fmt << "Error in " << function_name << "! Term is less than 0!";
         if (parts.size() > 0) {
-            fmt << " (parts: " << *ite;
-            for (ite++; ite != parts.end(); ++ite) {
-                fmt << ", " << *ite;
+            fmt << " (parts: " << eto_y(*ite);
+            for (++ite; ite != parts.end(); ++ite) {
+                fmt << ", " << eto_y(*ite);
             }
             fmt << ")";
             fprintf(stderr, "%s\n", fmt.str().c_str());
         }
         fprintf(stderr, "%s\n", fmt.str().c_str());
         for (auto &&part : parts) {
-            yices_pp_term(stderr, part, 160, 80, 0);
+            yices_pp_term(stderr, eto_y(part), 160, 80, 0);
         }
         yices_print_error(stderr);
         throw std::runtime_error(fmt.str());
@@ -81,6 +96,7 @@ namespace SMT {
 
 
     YicesSolver::YicesSolver() :
+        SMTFactory(Solver::YICES),
         model(nullptr) {
         yices_init();
 
@@ -101,242 +117,252 @@ namespace SMT {
     //     return yices_bv_type(size);
     // }
 
-    term_t YicesSolver::createVar2(const std::string name, int size) {
+    SMTExpr YicesSolver::createVar2(const std::string name, int size) {
         if (size == 1) {
             return createBoolVar(name);
         }
         return createBVVar(name, size);
     }
 
-    term_t YicesSolver::createBoolVar(const std::string name) {
+    SMTExpr YicesSolver::createBoolVar(const std::string name) {
         term_t type = yices_bool_type();
         term_t var = yices_new_uninterpreted_term(type);
         yices_set_term_name(var, name.c_str());
         if (var < 0) {
-            yices_fail("YicesSolver::createBoolVar", std::list<term_t>());
+            std::list<SMTExpr> parts;
+            yices_fail("YicesSolver::createBoolVar", parts);
         }
-        return var;
+        return yexp(var);
     }
 
-    term_t YicesSolver::createBVVar(const std::string name, int size) {
+    SMTExpr YicesSolver::createBVVar(const std::string name, int size) {
         term_t type = yices_bv_type(size);
         term_t var = yices_new_uninterpreted_term(type);
         yices_set_term_name(var, name.c_str());
         if (var < 0) {
-            yices_fail("YicesSolver::createBVVar", std::list<term_t>());
+            std::list<SMTExpr> parts;
+            yices_fail("YicesSolver::createBVVar", parts);
         }
-        return var;
+        return yexp(var);
     }
 
-    term_t YicesSolver::createBVConst(int value, int size) {
+    SMTExpr YicesSolver::createBVConst(int value, int size) {
         term_t res = yices_bvconst_uint32(size, value);
         if (res < 0) {
-            yices_fail("YicesSolver::createBVConst", std::list<term_t>());
+            std::list<SMTExpr> parts;
+            yices_fail("YicesSolver::createBVConst", parts);
         }
-        return res;
+        return yexp(res);
     }
-    term_t YicesSolver::createBoolConst(int value) {
+    SMTExpr YicesSolver::createBoolConst(int value) {
         term_t res = value ? yices_true() : yices_false();
         if (res < 0) {
-            yices_fail("YicesSolver::createBoolConst", std::list<term_t>());
+            std::list<SMTExpr> parts;
+            yices_fail("YicesSolver::createBoolConst", parts);
         }
-        return res;
+        return yexp(res);
     }        
-    term_t YicesSolver::createTrue() {
-        return yices_true();
+    SMTExpr YicesSolver::createTrue() {
+        return yexp(yices_true());
     }
-    term_t YicesSolver::createFalse() {
-        return yices_false();
+    SMTExpr YicesSolver::createFalse() {
+        return yexp(yices_false());
     }
-    term_t YicesSolver::createOrExpr(term_t lhs, term_t rhs) {
-        term_t res = yices_or2(lhs, rhs);
+    SMTExpr YicesSolver::createOrExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        term_t res = yices_or2(eto_y(lhs), eto_y(rhs));
         if (res < 0) {
-            std::list<term_t> parts;
+            std::list<SMTExpr> parts;
             parts.push_back(lhs);
             parts.push_back(rhs);
             yices_fail("YicesSolver::createOrExpr", parts);
         }
-        return res;
+        return yexp(res);
     }
-    term_t YicesSolver::createXorExpr(term_t lhs, term_t rhs) {
-        term_t res = yices_xor2(lhs, rhs);
+    SMTExpr YicesSolver::createXorExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        term_t res = yices_xor2(eto_y(lhs), eto_y(rhs));
         if (res < 0) {
-            std::list<term_t> parts;
+            std::list<SMTExpr> parts;
             parts.push_back(lhs);
             parts.push_back(rhs);
             yices_fail("YicesSolver::createOrExpr", parts);
         }
-        return res;
+        return yexp(res);
     }
-    term_t YicesSolver::createAndExpr(term_t lhs, term_t rhs) {
-        term_t res = yices_and2(lhs, rhs);
+    SMTExpr YicesSolver::createAndExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        term_t res = yices_and2(eto_y(lhs), eto_y(rhs));
         if (res < 0) {
-            std::list<term_t> parts;
+            std::list<SMTExpr> parts;
             parts.push_back(lhs);
             parts.push_back(rhs);
             yices_fail("YicesSolver::createAndExpr", parts);
         }
-        return res;
+        return yexp(res);
     }
-    term_t YicesSolver::createNotExpr(term_t expr) {
-        term_t res = yices_not(expr);
+    SMTExpr YicesSolver::createNotExpr(const SMTExpr& expr) {
+        term_t res = yices_not(eto_y(expr));
         if (res < 0) {
-            std::list<term_t> parts;
+            std::list<SMTExpr> parts;
             parts.push_back(expr);
             yices_fail("YicesSolver::createNotExpr", parts);
         }
-        return res;
+        return yexp(res);
     }
-    term_t YicesSolver::createCondExpr(term_t cond, term_t choice1, term_t choice2) {
-        term_t res = yices_ite(cond, choice1, choice2);
+    SMTExpr YicesSolver::createCondExpr(const SMTExpr& cond, const SMTExpr& choice1, const SMTExpr& choice2) {
+        term_t res = yices_ite(eto_y(cond), eto_y(choice1), eto_y(choice2));
         if (res < 0) {
-            std::list<term_t> parts;
+            std::list<SMTExpr> parts;
             parts.push_back(cond);
             parts.push_back(choice1);
             parts.push_back(choice2);
             yices_fail("YicesSolver::createCondExpr", parts);
         }
-        return res;
+        return yexp(res);
     }
-    term_t YicesSolver::createEqExpr(term_t lhs, term_t rhs) {
-        term_t res = yices_eq(lhs, rhs);
+    SMTExpr YicesSolver::createEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        term_t res = yices_eq(eto_y(lhs), eto_y(rhs));
         if (res < 0) {
-            std::list<term_t> parts;
+            std::list<SMTExpr> parts;
             parts.push_back(lhs);
             parts.push_back(rhs);
             yices_fail("YicesSolver::createEqExpr", parts);
         }
-        return res;
+        return yexp(res);
+    }
+    SMTExpr YicesSolver::createImplExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        term_t res = yices_implies(eto_y(lhs), eto_y(rhs));
+        if (res < 0) {
+            std::list<SMTExpr> parts;
+            parts.push_back(lhs);
+            parts.push_back(rhs);
+            yices_fail("YicesSolver::createImplExpr", parts);
+        }
+        return yexp(res);
     }
 
-    term_t YicesSolver::createGtExpr(term_t lhs, term_t rhs) {
+    SMTExpr YicesSolver::createGtExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
         // // WARNING: default Gt is unsigned. Do not use signed!
-        term_t res = yices_bvgt_atom(lhs, rhs);
+        term_t res = yices_bvgt_atom(eto_y(lhs), eto_y(rhs));
         if (res < 0) {
-            std::list<term_t> parts;
+            std::list<SMTExpr> parts;
             parts.push_back(lhs);
             parts.push_back(rhs);
             yices_fail("YicesSolver::createGtExpr", parts);
         }
-        return res;
+        return yexp(res);
     }
-    term_t YicesSolver::createGEqExpr(term_t lhs, term_t rhs) {
+    SMTExpr YicesSolver::createGEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
         // // WARNING: default GEq is unsigned. Do not use signed!
-        term_t res = yices_bvge_atom(lhs, rhs);
+        term_t res = yices_bvge_atom(eto_y(lhs), eto_y(rhs));
         if (res < 0) {
-            std::list<term_t> parts;
+            std::list<SMTExpr> parts;
             parts.push_back(lhs);
             parts.push_back(rhs);
             yices_fail("YicesSolver::createGEqExpr", parts);
         }
-        return res;
+        return yexp(res);
     }
-    term_t YicesSolver::createLtExpr(term_t lhs, term_t rhs) {
+    SMTExpr YicesSolver::createLtExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
         // // WARNING: default Lt is unsigned. Do not use signed!
-        term_t res = yices_bvlt_atom(lhs, rhs);
+        term_t res = yices_bvlt_atom(eto_y(lhs), eto_y(rhs));
         if (res < 0) {
-            std::list<term_t> parts;
+            std::list<SMTExpr> parts;
             parts.push_back(lhs);
             parts.push_back(rhs);
             yices_fail("YicesSolver::createLtExpr", parts);
         }
-        return res;
+        return yexp(res);
     }
-    term_t YicesSolver::createLEqExpr(term_t lhs, term_t rhs) {
+    SMTExpr YicesSolver::createLEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
         // // WARNING: default LEq is unsigned. Do not use signed!
-        term_t res = yices_bvle_atom(lhs, rhs);
+        term_t res = yices_bvle_atom(eto_y(lhs), eto_y(rhs));
         if (res < 0) {
-            std::list<term_t> parts;
+            std::list<SMTExpr> parts;
             parts.push_back(lhs);
             parts.push_back(rhs);
             yices_fail("YicesSolver::createLEqExpr", parts);
         }
-        return res;
+        return yexp(res);
     }
 
-    term_t YicesSolver::createBitSet(term_t container, unsigned int ith, term_t value) {
-        term_t elem = yices_bitextract(container, ith);
-        term_t res = yices_eq(elem, value);
+    SMTExpr YicesSolver::createBitSet(const SMTExpr& container, unsigned int ith, const SMTExpr& value) {
+        SMTExpr elem = yexp(yices_bitextract(eto_y(container), ith));
+        SMTExpr res = yexp(yices_eq(eto_y(elem), eto_y(value)));
         if (res < 0) {
-            std::list<term_t> parts;
+            std::list<SMTExpr> parts;
             parts.push_back(container);
             parts.push_back(value);
             yices_fail("YicesSolver::createBitExtract", parts);
         }
         return res;
     }
-    term_t YicesSolver::createDistinct(std::list<term_t> exprs) {
+
+    SMTExpr YicesSolver::createDistinct(std::list<SMTExpr>& exprs) {
         uint32_t size = (uint32_t) exprs.size();
         if (size > YICES_MAX_ARITY){
-            std::list<term_t> parts;
+            std::list<SMTExpr> parts;
+            for (auto &&expr : exprs) {
+                parts.push_back(expr);
+            }
             yices_fail("YicesSolver::createDistinct, size greater than YICES_MAX_ARITY", parts);
         }
         else if (size <= 0) {
-            std::list<term_t> parts;
+            std::list<SMTExpr> parts;
             yices_fail("YicesSolver::createDistinct, size <= 0", parts);
         }
         term_t* elems = new term_t[size];
         int i = 0;
         for (auto &&expr : exprs) {
-            elems[i++] = expr;
+            elems[i++] = eto_y(expr);
         }
 
         term_t res = yices_distinct(size, elems);
 
         if (res < 0) {
-            std::list<term_t> parts;
+            std::list<SMTExpr> parts;
+            for (auto &&expr : exprs) {
+                parts.push_back(expr);
+            }
             yices_fail("YicesSolver::createDistinct", parts);
         }
-        return res;
+        return yexp(res);
     }
 
-    term_t YicesSolver::createImplExpr(term_t lhs, term_t rhs) {
-        term_t res = yices_implies(lhs, rhs);
-        if (res < 0) {
-            std::list<term_t> parts;
-            parts.push_back(lhs);
-            parts.push_back(rhs);
-            yices_fail("YicesSolver::createImplExpr", parts);
-        }
-        return res;
-    }
-
-    term_t YicesSolver::joinExprsWithAnd(std::list<term_t>& exprs) {
-        if (exprs.size() < 1) {
+    SMTExpr YicesSolver::joinExprsWithAnd(std::list<SMTExpr>& exprs) {
+        if (exprs.empty()) {
             return createTrue();
 //            fprintf(stderr, "Cannot join zero expressions...\n");
 //            throw std::runtime_error("Cannot join zero expressions");
         }
         auto ite = exprs.begin();
-        term_t ret = *ite;
+        term_t ret = eto_y(*ite);
         for (++ite; ite != exprs.end(); ++ite) {
-            ret = yices_and2(ret, *ite);
+            ret = yices_and2(ret, eto_y(*ite));
         }
-        return ret;
+        return yexp(ret);
     }
-    term_t YicesSolver::joinExprsWithOr(std::list<term_t>& exprs) {
-        if (exprs.size() < 1) {
+    SMTExpr YicesSolver::joinExprsWithOr(std::list<SMTExpr>& exprs) {
+        if (exprs.empty()) {
             return createTrue();
 //            fprintf(stderr, "Cannot join zero expressions...\n");
 //            throw std::runtime_error("Cannot join zero expressions");
         }
         auto ite = exprs.begin();
-        term_t ret = *ite;
+        term_t ret = eto_y(*ite);
         for (++ite; ite != exprs.end(); ++ite) {
-            ret = yices_or2(ret, *ite);
+            ret = yices_or2(ret, eto_y(*ite));
         }
-        return ret;
+        return yexp(ret);
     }
 
-    void YicesSolver::assertLater(term_t expr) {
-        to_be_asserted.push_back(expr);
+    void YicesSolver::assertLater(const SMTExpr& expr) {
+        to_be_asserted.push_back(eto_y(expr));
     }
 
-    void YicesSolver::assertNow(term_t expr) {
+    void YicesSolver::assertNow(const SMTExpr& expr) {
         // printf("%p: ", context);
         // yices_pp_term(stdout, expr, 140, 40, 0);
-        yices_assert_formula(context, expr);
-        asserted.push_back(expr);
+        yices_assert_formula(context, eto_y(expr));
+        asserted.push_back(eto_y(expr));
     }        
 
     SMTResult YicesSolver::solve() {
@@ -348,14 +374,14 @@ namespace SMT {
                 // model_t* model = yices_get_model(context, 1);
                 // yices_pp_model(stdout, model, 120, 40, 0);
                 // yices_free_model(model);
-                return SAT;
+                return SMTResult::SAT;
                 break;
             }
             case STATUS_UNSAT:
-                return UNSAT;
+                return SMTResult::UNSAT;
                 break;
             case STATUS_UNKNOWN:
-                return UNKNOWN;
+                return SMTResult::UNKNOWN;
                 break;
 
             case STATUS_IDLE:
@@ -368,7 +394,7 @@ namespace SMT {
                 yices_print_error(stderr);
                 break;
         }
-        return ERROR;
+        return SMTResult::ERROR;
     }
 
     void YicesSolver::extract_model() {
@@ -389,16 +415,16 @@ namespace SMT {
         }
     }
 
-    bool YicesSolver::get_bool_value(term_t expr) {
+    bool YicesSolver::get_bool_value(const SMTExpr& expr) {
         extract_model();
         if (model == NULL) {
             throw std::runtime_error("YICES Model is null");
         }
         int val = -1;
-        int res = yices_get_bool_value(model, expr, &val);
+        int res = yices_get_bool_value(model, eto_y(expr), &val);
 
         if (res < 0) {
-            std::list<term_t> parts;
+            std::list<SMTExpr> parts;
             parts.push_back(expr);
             yices_fail("YicesSolver::get_bool_value", parts);
         }
@@ -408,8 +434,8 @@ namespace SMT {
 
     }
 
-    void YicesSolver::printExpr(term_t expr) {
-        yices_pp_term(stdout, expr, 120, 40, 0);
+    void YicesSolver::printExpr(const SMTExpr& expr) {
+        yices_pp_term(stdout, eto_y(expr), 120, 40, 0);
     }
 
     void YicesSolver::loadToSolver() {
@@ -478,12 +504,12 @@ namespace SMT {
         }
         fclose(out);
     }
-    void YicesSolver::printTerm(std::string filename, term_t term) {
+    void YicesSolver::printTerm(std::string filename, const SMTExpr& term) {
         FILE* out = fopen(filename.c_str(), "w");
         if (out == NULL) {
             throw std::runtime_error("Cannot open file: " + filename);
         }
-        yices_pp_term(out, term, 1600, 20000, 0);
+        yices_pp_term(out, eto_y(term), 1600, 20000, 0);
         fclose(out);
     }
     void YicesSolver::print_statistics() {

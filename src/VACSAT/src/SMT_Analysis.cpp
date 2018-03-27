@@ -12,8 +12,7 @@
 
 namespace SMT {
 
-    template <typename TVar, typename TExpr>
-    bool execute_overapprox(const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+    bool execute_overapprox(const std::shared_ptr<SMTFactory>& solver,
                             const std::shared_ptr<arbac_policy>& policy,
                             const Expr& target_expr,
                             const bmc_config& config) {
@@ -58,15 +57,14 @@ namespace SMT {
                 over_result = overapprox_learning(solver, policy, policy->atoms(), policy->rules(), target_expr);
                 break;
             default:
-                throw unexpected_error("OVERAPPROX VERSION SWITCH MUST BE COMPLETE", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
+                throw unexpected("OVERAPPROX VERSION SWITCH MUST BE COMPLETE");
         }
         return over_result;
     };
 
-    template <typename TVar, typename TExpr>
     bool execute(const std::string& filename,
                  AnalysisType analysis_type,
-                 const std::shared_ptr<SMTFactory<TVar, TExpr>>& solver,
+                 const std::shared_ptr<SMTFactory>& solver,
                  const std::shared_ptr<arbac_policy>& policy,
                  bmc_config config) {
         switch (analysis_type) {
@@ -141,24 +139,25 @@ namespace SMT {
                             const std::string& solver_name,
                             bmc_config config) {
 
+        std::shared_ptr<SMTFactory> solver = nullptr;
         if (str_to_lower(solver_name) == str_to_lower(YicesSolver::solver_name())) {
             log->debug("Using {} as backend", solver_name);
-            std::shared_ptr<SMTFactory<term_t, term_t>> solver(new YicesSolver());
+            std::shared_ptr<SMTFactory> solver(new YicesSolver());
             return execute(filename, analysis_type,solver, policy, config);
         }
         else if (str_to_lower(solver_name) == str_to_lower(Z3Solver::solver_name())) {
             log->debug("Using {} as backend", solver_name);
-            std::shared_ptr<SMTFactory<expr, expr>> solver(new Z3Solver());
+            std::shared_ptr<SMTFactory> solver(new Z3Solver());
             return execute(filename, analysis_type,solver, policy, config);
         }
         else if (str_to_lower(solver_name) == str_to_lower(BoolectorSolver::solver_name())) {
             log->debug("Using {} as backend", solver_name);
-            std::shared_ptr<SMTFactory<BoolectorExpr, BoolectorExpr>> solver(new BoolectorSolver());
+            std::shared_ptr<SMTFactory> solver(new BoolectorSolver());
             return execute(filename, analysis_type,solver, policy, config);
         }
         else if (str_to_lower(solver_name) == str_to_lower(MathsatSolver::solver_name())) {
             log->debug("Using {} as backend", solver_name);
-            std::shared_ptr<SMTFactory<msat_term, msat_term>> solver(new MathsatSolver());
+            std::shared_ptr<SMTFactory> solver(new MathsatSolver());
             return execute(filename, analysis_type,solver, policy, config);
         }
         else {

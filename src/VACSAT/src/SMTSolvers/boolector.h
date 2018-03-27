@@ -12,8 +12,21 @@ extern "C" {
 };
 
 namespace SMT {
+
     typedef BoolectorNode* BoolectorExpr;
-    class BoolectorSolver : public SMTFactory<BoolectorExpr, BoolectorExpr> {
+    class btor_expr_t : public smt_expr_t {
+    public:
+        const BoolectorExpr e;
+        explicit btor_expr_t(BoolectorExpr expr) : e(expr) { };
+//        explicit yices_expr_t(const term_t& expr) : e(expr) { };
+//        explicit yices_expr_t(term_t& expr) : e(expr) { };
+
+        Solver get_solver() override { return Solver::BOOLECTOR; }
+    };
+
+    typedef std::shared_ptr<btor_expr_t> BtorExpr;
+
+    class BoolectorSolver : public SMTFactory {
     public:
         static inline const std::string solver_name() {
             return "boolector";
@@ -25,39 +38,39 @@ namespace SMT {
         // term_t createBoolType() override;
         // term_t createBVType(int size) override;
 
-        BoolectorExpr createVar2(const std::string name, int size) override;
-        BoolectorExpr createBoolVar(const std::string name) override;
-        BoolectorExpr createBVVar(const std::string name, int size) override;
+        SMTExpr createVar2(const std::string name, int size) override;
+        SMTExpr createBoolVar(const std::string name) override;
+        SMTExpr createBVVar(const std::string name, int size) override;
 
-        BoolectorExpr createBVConst(int value, int size) override;
-        BoolectorExpr createBoolConst(int value) override;
-        BoolectorExpr createTrue() override;
-        BoolectorExpr createFalse() override;
-        BoolectorExpr createOrExpr(BoolectorExpr lhs, BoolectorExpr rhs) override;
-        BoolectorExpr createXorExpr(BoolectorExpr lhs, BoolectorExpr rhs) override;
-        BoolectorExpr createAndExpr(BoolectorExpr lhs, BoolectorExpr rhs) override;
-        BoolectorExpr createNotExpr(BoolectorExpr expr) override;
-        BoolectorExpr createCondExpr(BoolectorExpr cond, BoolectorExpr choice1, BoolectorExpr choice2) override;
-        BoolectorExpr createEqExpr(BoolectorExpr lhs, BoolectorExpr rhs) override;
-        BoolectorExpr createGtExpr(BoolectorExpr lhs, BoolectorExpr rhs) override;
-        BoolectorExpr createGEqExpr(BoolectorExpr lhs, BoolectorExpr rhs) override;
-        BoolectorExpr createLtExpr(BoolectorExpr lhs, BoolectorExpr rhs) override;
-        BoolectorExpr createLEqExpr(BoolectorExpr lhs, BoolectorExpr rhs) override;
-        BoolectorExpr createImplExpr(BoolectorExpr lhs, BoolectorExpr rhs) override;
+        SMTExpr createBVConst(int value, int size) override;
+        SMTExpr createBoolConst(int value) override;
+        SMTExpr createTrue() override;
+        SMTExpr createFalse() override;
+        SMTExpr createOrExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createXorExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createAndExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createNotExpr(const SMTExpr& expr) override;
+        SMTExpr createCondExpr(const SMTExpr& cond, const SMTExpr& choice1, const SMTExpr& choice2) override;
+        SMTExpr createEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createGtExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createGEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createLtExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createLEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
+        SMTExpr createImplExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;
 
-        BoolectorExpr createBitSet(BoolectorExpr container, unsigned int ith, BoolectorExpr value) override;
-        BoolectorExpr createDistinct(std::list<BoolectorExpr> exprs) override;
+        SMTExpr createBitSet(const SMTExpr& container, unsigned int ith, const SMTExpr& value) override;
+        SMTExpr createDistinct(std::list<SMTExpr>& exprs) override;
 
-        BoolectorExpr joinExprsWithAnd(std::list<BoolectorExpr>& exprs) override;
-        BoolectorExpr joinExprsWithOr(std::list<BoolectorExpr>& exprs) override;
+        SMTExpr joinExprsWithAnd(std::list<SMTExpr>& exprs) override;
+        SMTExpr joinExprsWithOr(std::list<SMTExpr>& exprs) override;
 
-        void assertLater(BoolectorExpr expr) override;
-        void assertNow(BoolectorExpr expr) override;
+        void assertLater(const SMTExpr& expr) override;
+        void assertNow(const SMTExpr& expr) override;
 
         SMTResult solve() override;
-        void printExpr(BoolectorExpr expr) override;
+        void printExpr(const SMTExpr& expr) override;
         void printModel() override;
-        bool get_bool_value(BoolectorExpr expr) override;
+        bool get_bool_value(const SMTExpr& expr) override;
         void print_statistics() override;
         void loadToSolver() override;
         void clean() override;

@@ -9,6 +9,19 @@
 
 namespace SMT {
 
+    #define mto_e(expr) std::make_shared<msat_expr_t>(msat_expr_t(expr))
+
+    inline const msat_term& eto_m(const SMTExpr &expr) {
+#ifdef NDEBUG
+        return std::static_pointer_cast<msat_expr_t>(expr)->e;
+#else
+        MsatExpr e = std::dynamic_pointer_cast<msat_expr_t>(expr);
+        if (e == nullptr) {
+            throw unexpected("Operand is not of the mathsat type");
+        }
+        return e->e;
+#endif
+    }
 
 //    void raise_error(const std::string error) {
 //        throw std::runtime_error(error);
@@ -83,7 +96,7 @@ namespace SMT {
         return cfg;
     }
 
-    MathsatSolver::MathsatSolver() {
+    MathsatSolver::MathsatSolver() : SMTFactory(Solver::MATHSAT) {
         msat_config cfg = mk_config();
         context = msat_create_env(cfg);
     }
@@ -96,14 +109,14 @@ namespace SMT {
 
 
 
-    msat_term MathsatSolver::createVar2(const std::string name, int size) {
+    SMTExpr MathsatSolver::createVar2(const std::string name, int size) {
         if (size == 1) {
             return createBoolVar(name);
         } else {
             return createBVVar(name, size);
         }
     }
-    msat_term MathsatSolver::createBoolVar(const std::string name) {
+    SMTExpr MathsatSolver::createBoolVar(const std::string name) {
         msat_type sort = msat_get_bool_type(context);
         std::string enum_name = name + "_" + std::to_string(var_counter++);
         msat_decl decl = msat_declare_function(context, enum_name.c_str(), sort);
@@ -111,9 +124,9 @@ namespace SMT {
         if (MSAT_ERROR_DECL(decl) || MSAT_ERROR_TERM(res)) {
             mathsat_fail("Invalid term in MathsatSolver::createBoolVar(" + name + ")...");
         }
-        return res;
+        return mto_e(res);
     }
-    msat_term MathsatSolver::createBVVar(const std::string name, int size) {
+    SMTExpr MathsatSolver::createBVVar(const std::string name, int size) {
         msat_type sort = msat_get_bv_type(context, (size_t) size);
         std::string enum_name = name + "_" + std::to_string(var_counter++);
         msat_decl decl = msat_declare_function(context, enum_name.c_str(), sort);
@@ -121,63 +134,63 @@ namespace SMT {
         if (MSAT_ERROR_DECL(decl) || MSAT_ERROR_TERM(res)) {
             mathsat_fail("Invalid term in MathsatSolver::createBVVar(" + name + ", " + std::to_string(size) + ")...");
         }
-        return res;
+        return mto_e(res);
     }
 
-    msat_term MathsatSolver::createBVConst(int value, int size) {
+    SMTExpr MathsatSolver::createBVConst(int value, int size) {
         msat_term res = msat_make_bv_number(context, std::to_string(value).c_str(), (size_t) size, 10);
         if (MSAT_ERROR_TERM(res)) {
             mathsat_fail("Invalid term in MathsatSolver::createBVConst(" + std::to_string(value) + ", " + std::to_string(size) + ")...");
         }
-        return res;
+        return mto_e(res);
     }
-    msat_term MathsatSolver::createBoolConst(int value) {
+    SMTExpr MathsatSolver::createBoolConst(int value) {
         return value ? createTrue() : createFalse();
     }
-    msat_term MathsatSolver::createTrue() {
+    SMTExpr MathsatSolver::createTrue() {
         msat_term res = msat_make_true(context);
         if (MSAT_ERROR_TERM(res)) {
             mathsat_fail("Invalid term in MathsatSolver::createTrue()...");
         }
-        return res;
+        return mto_e(res);
     }
-    msat_term MathsatSolver::createFalse() {
+    SMTExpr MathsatSolver::createFalse() {
         msat_term res = msat_make_false(context);
         if (MSAT_ERROR_TERM(res)) {
             mathsat_fail("Invalid term in MathsatSolver::createFalse()...");
         }
-        return res;
+        return mto_e(res);
     }
-    msat_term MathsatSolver::createOrExpr(msat_term lhs, msat_term rhs) {
-        msat_term res = msat_make_or(context, lhs, rhs);
+    SMTExpr MathsatSolver::createOrExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        msat_term res = msat_make_or(context, eto_m(lhs), eto_m(rhs));
         if (MSAT_ERROR_TERM(res)) {
             mathsat_fail("Invalid term in MathsatSolver::createOrExpr...");
         }
-        return res;
+        return mto_e(res);
     }
-    msat_term MathsatSolver::createXorExpr(msat_term lhs, msat_term rhs) {
+    SMTExpr MathsatSolver::createXorExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
         //FIXME: check this, or use the logic circuit for XOR
-        msat_term res = msat_make_bv_xor(context, lhs, rhs);
+        msat_term res = msat_make_bv_xor(context, eto_m(lhs), eto_m(rhs));
         if (MSAT_ERROR_TERM(res)) {
             mathsat_fail("Invalid term in MathsatSolver::createOrExpr...");
         }
-        return res;
+        return mto_e(res);
     }
-    msat_term MathsatSolver::createAndExpr(msat_term lhs, msat_term rhs) {
-        msat_term res = msat_make_and(context, lhs, rhs);
+    SMTExpr MathsatSolver::createAndExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        msat_term res = msat_make_and(context, eto_m(lhs), eto_m(rhs));
         if (MSAT_ERROR_TERM(res)) {
             mathsat_fail("Invalid term in MathsatSolver::createAndExpr...");
         }
-        return res;
+        return mto_e(res);
     }
-    msat_term MathsatSolver::createNotExpr(msat_term expr) {
-        msat_term res = msat_make_not(context, expr);
+    SMTExpr MathsatSolver::createNotExpr(const SMTExpr& expr) {
+        msat_term res = msat_make_not(context, eto_m(expr));
         if (MSAT_ERROR_TERM(res)) {
             mathsat_fail("Invalid term in MathsatSolver::createNotExpr...");
         }
-        return res;
+        return mto_e(res);
     }
-    msat_term MathsatSolver::createCondExpr(msat_term cond, msat_term choice1, msat_term choice2) {
+    SMTExpr MathsatSolver::createCondExpr(const SMTExpr& cond, const SMTExpr& choice1, const SMTExpr& choice2) {
         msat_term res;
         if (true) {
             // MathSAT shows a dislike of implementing this with booleans. Follow
@@ -185,120 +198,119 @@ namespace SMT {
             // (with c = cond, t = trueval, f = falseval):
             //
             //   or(and(c,t),and(not(c), f))
-            msat_term land1 = msat_make_and(context, cond, choice1);
+            msat_term land1 = msat_make_and(context, eto_m(cond), eto_m(choice1));
             check_msat_error(land1);
 
-            msat_term notval = msat_make_not(context, cond);
+            msat_term notval = msat_make_not(context, eto_m(cond));
             check_msat_error(notval);
 
-            msat_term land2 = msat_make_and(context, notval, choice2);
+            msat_term land2 = msat_make_and(context, notval, eto_m(choice2));
             check_msat_error(land2);
 
             res = msat_make_or(context, land1, land2);
         } else {
-            res = msat_make_term_ite(context, cond, choice1, choice2);
+            res = msat_make_term_ite(context, eto_m(cond), eto_m(choice1), eto_m(choice2));
         }
         if (MSAT_ERROR_TERM(res)) {
-            auto ty = msat_type_repr(msat_term_get_type(cond));
+            auto ty = msat_type_repr(msat_term_get_type(eto_m(cond)));
             log->warn("{}", ty);
-            msat_to_smtlib2_ext_file(context, cond, "QF_BV", 0, stdout);
-            msat_to_smtlib2_ext_file(context, choice1, "QF_BV", 0, stdout);
-            msat_to_smtlib2_ext_file(context, choice2, "QF_BV", 0, stdout);
+            msat_to_smtlib2_ext_file(context, eto_m(cond), "QF_BV", 0, stdout);
+            msat_to_smtlib2_ext_file(context, eto_m(choice1), "QF_BV", 0, stdout);
+            msat_to_smtlib2_ext_file(context, eto_m(choice2), "QF_BV", 0, stdout);
             mathsat_fail("Invalid term in MathsatSolver::createCondExpr...");
         }
-        return res;
-
+        return mto_e(res);
     }
-    msat_term MathsatSolver::createEqExpr(msat_term lhs, msat_term rhs) {
-        msat_term res = msat_make_eq(context, lhs, rhs);
+    SMTExpr MathsatSolver::createEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        msat_term res = msat_make_eq(context, eto_m(lhs), eto_m(rhs));
         if (MSAT_ERROR_TERM(res)) {
             mathsat_fail("Invalid term in MathsatSolver::createEqExpr...");
         }
-        return res;
+        return mto_e(res);
 
     }
-    msat_term MathsatSolver::createGtExpr(msat_term lhs, msat_term rhs) {
-        msat_term res = msat_make_not(context, msat_make_bv_uleq(context, lhs, rhs));
-        if (MSAT_ERROR_TERM(res)) {
-            mathsat_fail("Invalid term in MathsatSolver::createGtExpr...");
-        }
-        return res;
-
-    }
-    msat_term MathsatSolver::createGEqExpr(msat_term lhs, msat_term rhs) {
-        msat_term res = msat_make_not(context, msat_make_bv_ult(context, lhs, rhs));
-        if (MSAT_ERROR_TERM(res)) {
-            mathsat_fail("Invalid term in MathsatSolver::createGEqExpr...");
-        }
-        return res;
-
-    }
-    msat_term MathsatSolver::createLtExpr(msat_term lhs, msat_term rhs) {
-        msat_term res = msat_make_bv_ult(context, lhs, rhs);
-        if (MSAT_ERROR_TERM(res)) {
-            mathsat_fail("Invalid term in MathsatSolver::createLtExpr...");
-        }
-        return res;
-
-    }
-    msat_term MathsatSolver::createLEqExpr(msat_term lhs, msat_term rhs) {
-        msat_term res = msat_make_bv_uleq(context, lhs, rhs);
-        if (MSAT_ERROR_TERM(res)) {
-            mathsat_fail("Invalid term in MathsatSolver::createLEqExpr...");
-        }
-        return res;
-    }
-    msat_term MathsatSolver::createImplExpr(msat_term lhs, msat_term rhs) {
-        msat_term res = msat_make_or(context, rhs, msat_make_not(context, lhs));
+    SMTExpr MathsatSolver::createImplExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        msat_term res = msat_make_or(context, eto_m(rhs), msat_make_not(context, eto_m(lhs)));
         if (MSAT_ERROR_TERM(res)) {
             mathsat_fail("Invalid term in MathsatSolver::createImplExpr...");
         }
-        return res;
+        return mto_e(res);
 
     }
+    SMTExpr MathsatSolver::createGtExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        msat_term res = msat_make_not(context, msat_make_bv_uleq(context, eto_m(lhs), eto_m(rhs)));
+        if (MSAT_ERROR_TERM(res)) {
+            mathsat_fail("Invalid term in MathsatSolver::createGtExpr...");
+        }
+        return mto_e(res);
 
-    msat_term MathsatSolver::createBitSet(msat_term container, unsigned int ith, msat_term value) {
+    }
+    SMTExpr MathsatSolver::createGEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        msat_term res = msat_make_not(context, msat_make_bv_ult(context, eto_m(lhs), eto_m(rhs)));
+        if (MSAT_ERROR_TERM(res)) {
+            mathsat_fail("Invalid term in MathsatSolver::createGEqExpr...");
+        }
+        return mto_e(res);
+
+    }
+    SMTExpr MathsatSolver::createLtExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        msat_term res = msat_make_bv_ult(context, eto_m(lhs), eto_m(rhs));
+        if (MSAT_ERROR_TERM(res)) {
+            mathsat_fail("Invalid term in MathsatSolver::createLtExpr...");
+        }
+        return mto_e(res);
+
+    }
+    SMTExpr MathsatSolver::createLEqExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
+        msat_term res = msat_make_bv_uleq(context, eto_m(lhs), eto_m(rhs));
+        if (MSAT_ERROR_TERM(res)) {
+            mathsat_fail("Invalid term in MathsatSolver::createLEqExpr...");
+        }
+        return mto_e(res);
+    }
+
+    SMTExpr MathsatSolver::createBitSet(const SMTExpr& container, unsigned int ith, const SMTExpr& value) {
         log->critical("MathsatSolver::createBitSet is not implemented since there is no distinct");
         throw unexpected_error("MathsatSolver::createBitSet is not implemented since there is no distinct", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
     }
-    msat_term MathsatSolver::createDistinct(std::list<msat_term> exprs) {
+    SMTExpr MathsatSolver::createDistinct(std::list<SMTExpr>& exprs) {
         log->critical("MathsatSolver::createDistinct is not implemented since there is no distinct");
         throw unexpected_error("MathsatSolver::createDistinct is not implemented since there is no distinct", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
     }
 
-    msat_term MathsatSolver::joinExprsWithAnd(std::list<msat_term>& exprs) {
+    SMTExpr MathsatSolver::joinExprsWithAnd(std::list<SMTExpr>& exprs) {
         if (exprs.size() < 1) {
             return createTrue();
 //            fprintf(stderr, "Cannot join zero expressions...\n");
 //            throw std::runtime_error("Cannot join zero expressions");
         }
         auto ite = exprs.begin();
-        msat_term ret = *ite;
+        msat_term ret = eto_m(*ite);
         for (++ite; ite != exprs.end(); ++ite) {
-            ret = this->createAndExpr(ret, *ite);
+            ret = msat_make_and(context, ret, eto_m(*ite));
         }
-        return ret;
+        return mto_e(ret);
     }
-    msat_term MathsatSolver::joinExprsWithOr(std::list<msat_term>& exprs) {
+    SMTExpr MathsatSolver::joinExprsWithOr(std::list<SMTExpr>& exprs) {
         if (exprs.size() < 1) {
             return createTrue();
 //            fprintf(stderr, "Cannot join zero expressions...\n");
 //            throw std::runtime_error("Cannot join zero expressions");
         }
         auto ite = exprs.begin();
-        msat_term ret = *ite;
+        msat_term ret = eto_m(*ite);
         for (++ite; ite != exprs.end(); ++ite) {
-            ret = this->createOrExpr(ret, *ite);
+            ret = msat_make_or(context, ret, eto_m(*ite));
         }
-        return ret;
+        return mto_e(ret);
     }
 
-    void MathsatSolver::assertLater(msat_term expr) {
+    void MathsatSolver::assertLater(const SMTExpr& expr) {
 //        msat_assert_formula(context, expr);
-        to_be_asserted.push_back(expr);
+        to_be_asserted.push_back(eto_m(expr));
     }
-    void MathsatSolver::assertNow(msat_term expr) {
-        msat_assert_formula(context, expr);
+    void MathsatSolver::assertNow(const SMTExpr& expr) {
+        msat_assert_formula(context, eto_m(expr));
     }
 
     SMTResult MathsatSolver::solve() {
@@ -309,16 +321,16 @@ namespace SMT {
                 log->error("UNKNOWN RESULT FROM SOLVER");
                 throw std::runtime_error("UNKNOWN RESULT FROM SOLVER");
             case MSAT_UNSAT:
-                return UNSAT;
+                return SMTResult::UNSAT;
             case MSAT_SAT:
-                return SAT;
+                return SMTResult::SAT;
             default:
                 log->critical("Uh?");
                 throw unexpected_error("Uh?", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
         }
     }
-    void MathsatSolver::printExpr(msat_term expr) {
-        char* res = msat_to_smtlib2_term(context, expr);
+    void MathsatSolver::printExpr(const SMTExpr& expr) {
+        char* res = msat_to_smtlib2_term(context, eto_m(expr));
         log->info("{}", res);
         msat_free(res);
     }
@@ -326,8 +338,8 @@ namespace SMT {
         log->critical("MathsatSolver::printModel is not implemented");
         throw unexpected_error("MathsatSolver::printModel is not implemented", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
     }
-    bool MathsatSolver::get_bool_value(msat_term expr) {
-        msat_term t = msat_get_model_value(this->context, expr);
+    bool MathsatSolver::get_bool_value(const SMTExpr& expr) {
+        msat_term t = msat_get_model_value(this->context, eto_m(expr));
         check_msat_error(t);
 
         bool res;

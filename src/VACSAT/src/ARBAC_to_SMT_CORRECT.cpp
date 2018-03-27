@@ -26,7 +26,6 @@ namespace SMT {
 //    using std::stringstream;
 //    using std::string;
 
-    template <typename TVar, typename TExpr>
     class BMCTransformer {
     private:
 
