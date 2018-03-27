@@ -789,4 +789,169 @@ namespace SMT {
         return std::move(res);
     }
 
+    // PROOF_T FUNCTIONS
+    // PRIVATE
+    std::vector<rulep> remove_duplicates_discard_admin(std::vector<rulep>& orig_rules) {
+        std::vector<rulep> res;
+        for (auto &&rule : orig_rules) {
+            bool should_insert = true;
+            for (auto &&selected : res) {
+                if ( selected->is_ca == rule->is_ca &&
+                     selected->target == rule->target &&
+                     selected->prec->equals(rule->prec)) {
+                    should_insert = false;
+                    break;
+                }
+            }
+            if (should_insert) {
+                res.push_back(rule);
+            }
+        }
+        return std::move(res);
+    }
+
+    std::pair<std::vector<atomp>, std::vector<rulep>> slice_policy(const std::vector<atomp> &orig_atoms,
+                                                                   const std::vector<rulep> &orig_rules,
+                                                                   const Expr &target) {
+        bool fixpoint = false;
+        std::set<rulep> rules_to_save_set;
+        std::set<atomp> necessary_atoms_set;
+        necessary_atoms_set.insert(target->atoms().begin(), target->atoms().end());
+        while (!fixpoint) {
+            fixpoint = true;
+            for (auto &&rule : orig_rules) {
+//                    print_collection(necessary_atoms);
+//                    print_collection(to_save);
+//                    std::cout << *rule << ": "_atoms);
+//                    print_collection(to_save);
+//                    std::cout << *rule << ": " << (!contains(to_save, rule) && contains(necessary_atoms, rule->target)) << std::endl;
+                if (!contains(rules_to_save_set, rule) && contains(necessary_atoms_set, rule->target)) {
+//                        print_collection(rule->admin->literals());
+//                        print_collection(rule->prec->literals());
+
+//                        necessary_atoms.insert(rule->admin->atoms().begin(), rule->admin->atoms().end());
+                    necessary_atoms_set.insert(rule->prec->atoms().begin(), rule->prec->atoms().end());
+                    rules_to_save_set.insert(rule);
+                    fixpoint = false;
+                }
+            }
+        }
+
+        std::vector<rulep> rules_to_save(rules_to_save_set.begin(), rules_to_save_set.end());
+        std::vector<atomp> necessary_atoms(necessary_atoms_set.begin(), necessary_atoms_set.end());
+
+        std::vector<rulep> rules_to_save_no_dups = remove_duplicates_discard_admin(rules_to_save);
+
+        return std::pair<std::vector<atomp>, std::vector<rulep>>(std::move(necessary_atoms),
+                                                                 std::move(rules_to_save_no_dups));
+    }
+
+    std::shared_ptr<proof_node> proof_t::init_get_root(const std::vector<atomp>& orig_atoms,
+                                                       const std::vector<rulep>& orig_rules,
+                                                       const std::shared_ptr<arbac_policy>& policy,
+                                                       const Expr& to_check) {
+        std::vector<atomp> used_atoms;
+        std::vector<rulep> used_rules;
+
+        log->warn("Original atoms: {}", orig_atoms.size());
+        log->warn("Original rules: {}", orig_rules.size());
+        if (overapprox_strategy.no_backward_slicing) {
+            used_atoms = orig_atoms;
+            used_rules = orig_rules;
+        } else {
+            auto pair = slice_policy(orig_atoms, orig_rules, to_check);
+            used_atoms = pair.first;
+            used_rules = pair.second;
+
+            log->warn("Applied slicing");
+
+            log->warn("after slicing atoms: {}", used_atoms.size());
+            log->warn("after slicing rules: {}", used_rules.size());
+        }
+        std::shared_ptr<proof_node> proof = create_tree_root(policy->atom_count(), used_atoms, used_rules, to_check);
+        return std::move(proof);
+    }
+
+    std::shared_ptr<proof_node> proof_t::create_tree_root(const int policy_atom_count,
+                                                          const std::vector<atomp> &atoms,
+                                                          const std::vector<rulep> &rules,
+                                                          const Expr &to_check) {
+
+        rulep root_rule(new rule(true,
+                                 createConstantTrue(),
+                                 to_check,
+                                 target_atom,
+                                 -1));
+
+        std::vector<rulep> root_rule_c;
+        root_rule_c.push_back(std::move(root_rule));
+
+        std::vector<atomp> all_atoms = atoms;
+        all_atoms.push_back(target_atom);
+
+        node_policy_infos root_info(rules,
+                                    std::move(root_rule_c),
+                                    std::move(all_atoms),
+                                    atoms,
+                                    policy_atom_count + 2);
+
+        std::unique_ptr<leaves_infos> root_leaf_infos(new leaves_infos());
+
+        std::shared_ptr<proof_node> root(new proof_node(std::list<int>(),
+                                                        0,
+                                                        root_info,
+                                                        std::move(root_leaf_infos),
+                                                        std::list<std::weak_ptr<proof_node>>(),
+                                                        std::weak_ptr<proof_node>()));
+
+        root->consolidate_tree();
+
+        return root;
+    }
+
+    proof_t::proof_t(const OverapproxOptions _overapprox_strategy,
+                     const atomp _target_atom,
+                     std::shared_ptr<proof_node> _proof_tree,
+                     const std::set<userp, std::function<bool(const userp &, const userp &)>> _initial_confs) :
+            overapprox_strategy(_overapprox_strategy),
+            target_atom(_target_atom),
+            proof_tree(std::move(_proof_tree)),
+            initial_confs(_initial_confs) { }
+
+    // PUBLIC
+    proof_t::proof_t(const OverapproxOptions strategy,
+                     const std::vector<atomp>& orig_atoms,
+                     const std::vector<rulep>& orig_rules,
+                     const std::shared_ptr<arbac_policy>& policy,
+                     const Expr& to_check) :
+            overapprox_strategy(strategy),
+            target_atom(createAtomp("__overapprox__target__", policy->atom_count(), 1)),
+            proof_tree(init_get_root(orig_atoms,
+                                     orig_rules,
+                                     policy,
+                                     to_check)),
+            initial_confs(policy->unique_configurations()) { }
+
+    std::shared_ptr<proof_t> proof_t::clone() {
+        OverapproxOptions new_overapprox_strategy = this->overapprox_strategy;
+        atomp new_target_atom = this->target_atom;
+        std::shared_ptr<proof_node> new_proof_tree = this->proof_tree->clone();
+        std::set<userp, std::function<bool(const userp &, const userp &)>> new_initial_confs = this->initial_confs;
+
+        std::shared_ptr<proof_t> ret(new proof_t(std::move(new_overapprox_strategy),
+                                                 std::move(new_target_atom),
+                                                 std::move(new_proof_tree),
+                                                 std::move(new_initial_confs)));
+
+        return ret;
+    }
+
+    std::string proof_t::tree_to_string() {
+        return proof_tree->tree_to_string();
+    }
+
+    void proof_t::dump_tree(const std::string& fname, bool javascript_compliant, const std::string heading_name) {
+        proof_tree->dump_tree(fname, javascript_compliant, heading_name);
+    }
+
 }
