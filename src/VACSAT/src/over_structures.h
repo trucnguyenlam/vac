@@ -230,6 +230,7 @@ namespace SMT {
 
         std::string JSON_stringify();
 
+        const std::string dump_tree_str(bool javascript_compliant, const std::string heading_name = "");
         void dump_tree(const std::string& fname, bool javascript_compliant, const std::string heading_name = "");
 
         std::shared_ptr<proof_node> get_by_path(tree_path path);
@@ -241,6 +242,9 @@ namespace SMT {
         //FIXME: to be removed...
         inline void add_child(std::shared_ptr<proof_node> node) {
             this->_refinement_blocks.push_back(node);
+        }
+        inline void remove_children() {
+            this->_refinement_blocks.clear();
         }
 
     };
@@ -281,7 +285,8 @@ namespace SMT {
 
         std::string tree_to_string();
 
-        void dump_tree(const std::string& fname, bool javascript_compliant, const std::string heading_name = "");
+        const std::string dump_proof_str(bool javascript_compliant, const std::string heading_name = "");
+        void dump_proof(const std::string& fname, bool javascript_compliant, const std::string heading_name = "");
 
     };
 

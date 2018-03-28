@@ -726,10 +726,8 @@ namespace SMT {
         return fmt.str();
     }
 
-    void proof_node::dump_tree(const std::string& fname,
-                               bool javascript_compliant,
-                               const std::string heading_name) {
-        std::ofstream out(fname);
+    const std::string proof_node::dump_tree_str(bool javascript_compliant, const std::string heading_name) {
+        std::stringstream out;
         std::string structure = this->tree_to_string();
         std::string details = this->JSON_stringify();
         if (heading_name != "") {
@@ -745,6 +743,13 @@ namespace SMT {
         }
         out << details << ";";
         out << std::endl << std::endl;
+        return out.str();
+    }
+    void proof_node::dump_tree(const std::string& fname,
+                               bool javascript_compliant,
+                               const std::string heading_name) {
+        std::ofstream out(fname);
+        out << this->dump_tree_str(javascript_compliant, heading_name);
         out.close();
     }
 
@@ -950,8 +955,28 @@ namespace SMT {
         return proof_tree->tree_to_string();
     }
 
-    void proof_t::dump_tree(const std::string& fname, bool javascript_compliant, const std::string heading_name) {
-        proof_tree->dump_tree(fname, javascript_compliant, heading_name);
-    }
+    const std::string proof_t::dump_proof_str(bool javascript_compliant, const std::string heading_name) {
+        std::string completed_heading = heading_name + "\n * " + get_timestamp();
+        std::string tree = proof_tree->dump_tree_str(javascript_compliant, completed_heading);
 
+        std::stringstream fmt;
+        fmt << tree;
+        fmt << "initial_confs = {" << std::endl;
+        std::string indent = "\t";
+        for (auto &&userp : initial_confs) {
+            fmt << indent << userp->name << ": [" << std::endl;
+            for (auto &&atom : userp->config()) {
+                fmt << indent << indent << "\"" << atom->name<< "\"," << std::endl;
+            }
+            fmt << indent << "]," << std::endl;
+        }
+        fmt << "};";
+        fmt << std::endl << std::endl;
+        return fmt.str();
+    }
+    void proof_t::dump_proof(const std::string& fname, bool javascript_compliant, const std::string heading_name) {
+        std::ofstream out(fname);
+        out << this->dump_proof_str(javascript_compliant, heading_name);
+        out.close();
+    }
 }
