@@ -12,6 +12,7 @@
 #include <algorithm>
 #include "config.h"
 #include <sstream>
+#include <iomanip>
 
 namespace SMT {
 
@@ -24,53 +25,16 @@ class unexpected_error : public std::exception {
     const char* function;
     const char* pretty_function;
 public:
-    explicit unexpected_error(std::string msg) :
-            what_message(std::move(msg)),
-            file_name(nullptr),
-            line_number(-1),
-            function(nullptr),
-            pretty_function(nullptr) { }
-    unexpected_error(std::string msg, const char* file, const int line) :
-            what_message(std::move(msg)),
-            file_name(file),
-            line_number(line),
-            function(nullptr),
-            pretty_function(nullptr) {
-        std::stringstream stream;
-        stream << what_message << std::endl;
-        if (file_name != nullptr)  {
-            stream << "\t@ " << file_name << ": " << line_number;
-        }
-        what_message = stream.str();
-    }
+    explicit unexpected_error(std::string msg);
+    unexpected_error(std::string msg, const char* file, const int line);
     unexpected_error(std::string msg,
                      const char* file,
                      const int line,
                      const char* _function,
-                     const char* _pretty_function) :
-            what_message(std::move(msg)),
-            file_name(file),
-            line_number(line),
-            function(_function),
-            pretty_function (_pretty_function) {
-        std::stringstream stream;
-        stream << what_message << std::endl;
-        if (file_name != nullptr)  {
-            stream << "\t@ " << file_name << ": " << line_number << std::endl;
-        }
-        if (function != nullptr) {
-            stream << "\tin function: " << function << std::endl;
-        }
-        if (pretty_function != nullptr) {
-            stream << "\tprettied: " << pretty_function << std::endl;
-        }
-        what_message = stream.str();
-    }
+                     const char* _pretty_function);
 
     //    __PRETTY_FUNCTION__
-    const char* what() const noexcept override {
-        return what_message.c_str();
-    }
+    const char* what() const noexcept override;
 };
 
 # define unexpected(message)							\
@@ -82,20 +46,16 @@ public:
         NO
     };
 
-    static const std::string maybe_bool_to_string(const maybe_bool info) {
-        switch (info) {
-            case maybe_bool::UNKNOWN:
-                return "UNKNOWN";
-            case maybe_bool::YES:
-                return "YES";
-            case maybe_bool::NO:
-                return "NO";
-        }
-        return "uh?";
-    }
+    const std::string maybe_bool_to_string(const maybe_bool info);
+
+    const std::string get_timestamp();
+
+    const std::string bool_to_true_false(bool b);
+
+    const std::string str_to_lower(const std::string &str);
 
 template <typename T, typename TCmp=std::less<T>>
-std::set<T, TCmp> setUnion(const std::set<T, TCmp>& a, const std::set<T, TCmp>& b) {
+static std::set<T, TCmp> setUnion(const std::set<T, TCmp>& a, const std::set<T, TCmp>& b) {
     std::set<T, TCmp> result = a;
     result.insert(b.begin(), b.end());
     return result;
@@ -120,10 +80,6 @@ static inline bool contains(const std::set<T> &set, const T &elem) {
     return set.find(elem) != set.end();
 }
 
-static inline std::string bool_to_true_false(bool b) {
-    return b ? "true" : "false";
-}
-
 //    template <typename T, typename TCmp>
 //    static inline bool contains_ptr(const std::set<std::weak_ptr<T>, TCmp> &set, const std::shared_ptr<T> &elem) {
 //        return set.find(elem) != set.end();
@@ -134,7 +90,6 @@ static inline std::string bool_to_true_false(bool b) {
 //        return set.find(elem.lock()) != set.end();
 //    }
 
-
 template <class InputIterator, class T>
 static inline bool contains(InputIterator first, InputIterator last, const T &val) {
     return std::find(first, last, val) != last;
@@ -144,21 +99,13 @@ static inline bool contains(InputIterator first, InputIterator last, const T &va
 //        std::transform(str.begin(), str.end(), str.begin(), ::tolower);
 //    }
 
-static inline std::string str_to_lower(const std::string &str) {
-    std::string res = "";
-    for (auto &&ch : str) {
-        res += std::tolower(ch);
-    }
-    return res;
-}
-
 template<typename _InputIterator, typename _Predicate>
-bool iterable_exists(_InputIterator first, _InputIterator last, _Predicate p) {
+static bool iterable_exists(_InputIterator first, _InputIterator last, _Predicate p) {
     return std::find_if(first, last, p) != last;
 };
 
 template <typename TVal, typename TComparer>
-void print_collection(const std::set<std::shared_ptr<TVal>, TComparer>& set, std::string prefix = "", spdlog::level::level_enum lvl = spdlog::level::info) {
+static void print_collection(const std::set<std::shared_ptr<TVal>, TComparer>& set, std::string prefix = "", spdlog::level::level_enum lvl = spdlog::level::info) {
 //        typedef std::shared_ptr<TVal> TValp;
 //        static_assert(std::is_base_of<std::vector<TValp>, TCollection<TValp, TComparer>>::value ||
 //                      std::is_base_of<std::list<TValp>, TCollection<TValp, TComparer>>::value   ||
@@ -171,7 +118,7 @@ void print_collection(const std::set<std::shared_ptr<TVal>, TComparer>& set, std
 };
 
 template <template <typename> class TCollection, typename TVal>
-void print_collection(const TCollection<std::shared_ptr<TVal>>& collection, std::string prefix = "", spdlog::level::level_enum lvl = spdlog::level::info) {
+static void print_collection(const TCollection<std::shared_ptr<TVal>>& collection, std::string prefix = "", spdlog::level::level_enum lvl = spdlog::level::info) {
     typedef std::shared_ptr<TVal> TValp;
     static_assert(std::is_base_of<std::vector<TValp>, TCollection<TValp>>::value ||
                   std::is_base_of<std::list<TValp>, TCollection<TValp>>::value   ||

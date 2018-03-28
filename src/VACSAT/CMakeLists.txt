@@ -74,6 +74,7 @@ set(SOURCE_FILES
         src/Policy.h
         src/Policy.cpp
         src/prelude.h
+        src/prelude.cpp
         src/SMT_Analysis.h
         src/SMT_Analysis.cpp
         src/config.h
