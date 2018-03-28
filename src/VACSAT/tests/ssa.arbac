@@ -12,9 +12,8 @@ CR
     ;
 
 CA
-    <adm, r1, r2>
-    <adm, nogoal, r1>
-    <adm, r2, rt>
+    <adm, TRUE, r1>
+    <adm, r1, rt>
 	;
 
 SPEC rt ;

@@ -43,8 +43,6 @@ namespace SMT {
     private:
         typedef generic_variable variable;
 
-        class b_solver_state;
-
         typedef proof_node node;
         typedef proof_node _node;
         typedef std::shared_ptr<proof_node> tree;
@@ -900,7 +898,7 @@ namespace SMT {
             }
 
             void rev_es_check(const tree &node) {
-                if (p_triggers[node].no_priority) {
+                if (p_triggers[node].no_priority || p_triggers[node].no_transition) {
                     emit_comment("Skipping_exploration_strategy_" + node->uid);
                     return;
                 }
@@ -991,10 +989,10 @@ namespace SMT {
                 atomp target_atom = node->node_infos.rules_c[0]->target;
 
                 SMTExpr invariant_expr = generateSMTFunction(solver,
-                                                           createEqExpr(createLiteralp(target_atom),
-                                                                        createConstantTrue()),
-                                                           solver_state[node]->vars,
-                                                           "");
+                                                             createEqExpr(createLiteralp(target_atom),
+                                                                          createConstantTrue()),
+                                                             solver_state[node]->vars,
+                                                             "");
                 assertions.push_back(invariant_expr);
             }
 
@@ -1031,12 +1029,14 @@ namespace SMT {
 
                 auto start = std::chrono::high_resolution_clock::now();
 
+                solver->printContext(Config::dump_smt_formula);
+
                 if (annotate_proof) {
                     if (Config::show_solver_statistics) {
                         solver->print_statistics();
                     }
 
-                    if (!std::is_same<term_t, SMTExpr>::value && !Config::dump_smt_formula.empty()) {
+                    if (solver->solver_name == Solver::Z3 && !Config::dump_smt_formula.empty()) {
                         solver->printContext(Config::dump_smt_formula);
                         log->info("BMC SMT formula dumped at: {}", Config::dump_smt_formula);
                     }
@@ -1045,7 +1045,7 @@ namespace SMT {
                 SMTResult res = solver->solve();
 
                 if (annotate_proof) {
-                    if (std::is_same<term_t, SMTExpr>::value && !Config::dump_smt_formula.empty()) {
+                    if (solver->solver_name == Solver::Z3 && !Config::dump_smt_formula.empty()) {
                         solver->printContext(Config::dump_smt_formula);
                         log->info("BMC SMT formula dumped at: {}", Config::dump_smt_formula);
                         if (res == SMTResult::SAT) {
@@ -1152,6 +1152,7 @@ namespace SMT {
             over_analysis_result verify_proof(proofp proof,
                                               std::map<tree, pruning_triggers>& triggers) override {
                 over_analysis_result result;
+                proof->dump_proof("asd.1", true, "pruning");
                 p_triggers = std::move(triggers);
                 solver->deep_clean();
                 cleanup();
@@ -1184,18 +1185,17 @@ namespace SMT {
                 tree sfogo_node_s;
                 tree testing_node_e;
                 std::map<tree, pruning_triggers> p_triggers;
-                abstract_pruning_handle(
-                        proofp _cloned_proof,
-                        tree& _target_node_l,
-                        tree& _fake_node_f,
-                        tree& _sfogo_node_s,
-                        tree& _testing_node_e,
-                        std::map<tree, pruning_triggers> _p_triggers) :
+                abstract_pruning_handle(proofp _cloned_proof,
+                                        tree _target_node_l,
+                                        tree _fake_node_f,
+                                        tree _sfogo_node_s,
+                                        tree _testing_node_e,
+                                        std::map<tree, pruning_triggers> _p_triggers) :
                     cloned_proof(std::move(_cloned_proof)),
-                    target_node_l(_target_node_l),
-                    fake_node_f(_fake_node_f),
-                    sfogo_node_s(_sfogo_node_s),
-                    testing_node_e(_testing_node_e),
+                    target_node_l(std::move(_target_node_l)),
+                    fake_node_f(std::move(_fake_node_f)),
+                    sfogo_node_s(std::move(_sfogo_node_s)),
+                    testing_node_e(std::move(_testing_node_e)),
                     p_triggers(std::move(_p_triggers)) { }
             };
 
@@ -1250,14 +1250,14 @@ namespace SMT {
 //            tree &_tree;
 
             // ABSTRACT PRUNING FUNCTIONS
-            abstract_pruning_handle create_abstract_handle(tree& node, int rule_6_subnodes) { //, rulep& tested_rule) {
+            abstract_pruning_handle create_abstract_handle(proofp& proof, tree& node, int rule_6_subnodes) { //, rulep& tested_rule) {
 //            tree root = node->clone();
 
                 tree_path f_path = node->path;
                 f_path.push_back(0);
 
                 node_policy_infos f_policy_infos = node->node_infos.clone();
-                auto f_ancestors = node->ancestors();
+                std::list<std::weak_ptr<proof_node>> f_ancestors = node->ancestors();
                 f_ancestors.push_back(node);
 
                 tree abstract_f(new _node(f_path,
@@ -1282,7 +1282,7 @@ namespace SMT {
 //                        s_policy_infos.rules_c.push_back(r);
 //                    }
 //                }
-                auto s_ancestors = f_ancestors;
+                std::list<std::weak_ptr<proof_node>> s_ancestors = f_ancestors;
                 s_ancestors.push_back(abstract_f);
 
                 tree s_sfogo(new _node(s_path,
@@ -1300,9 +1300,8 @@ namespace SMT {
                 e_path.push_back(0);
 
                 node_policy_infos e_policy_infos = node->node_infos.clone();
-                e_policy_infos.rules_c.clear();
-//            e_policy_infos.rules_c.push_back(tested_rule);
-                auto e_ancestors = abstract_f->ancestors();
+//                e_policy_infos.rules_c.clear();
+                std::list<std::weak_ptr<proof_node>> e_ancestors = abstract_f->ancestors();
                 e_ancestors.push_back(abstract_f);
 
                 tree testing_e(new _node(e_path,
@@ -1310,7 +1309,7 @@ namespace SMT {
                                          abstract_f->depth + 1,
                                          node_invariants(),
                                          e_policy_infos,
-                                         std::unique_ptr<leaves_infos>(new leaves_infos()),
+                                         std::make_unique<leaves_infos>(leaves_infos()),
                                          e_ancestors,
                                          abstract_f,
                                          std::vector<tree>()));
@@ -1329,29 +1328,38 @@ namespace SMT {
                 p_triggers[testing_e].no_skip = true;
                 p_triggers[node].no_priority = true;
 
-                return abstract_pruning_handle(nullptr, node, abstract_f, s_sfogo, testing_e, std::move(p_triggers));
+                return abstract_pruning_handle(proof,
+                                               node,
+                                               std::move(abstract_f),
+                                               std::move(s_sfogo),
+                                               std::move(testing_e),
+                                               std::move(p_triggers));
             }
 
             abstract_pruning_handle create_abstract(proofp& proof, tree& tested, int rule_6_subnodes) { //, rulep& tested_rule) {
                 //FIXME: REMOVE CLONE!
-                proofp cloned_proof = proof->clone();
-                tree& cloned = proof->proof_tree;
+//                proofp cloned_proof = proof->clone();
+//                tree& cloned = cloned_proof->proof_tree;
 
-                tree probed_node = cloned->get_by_path(tested->path);
+                tree probed_node = proof->proof_tree->get_by_path(tested->path);
 
-                abstract_pruning_handle ret = create_abstract_handle(probed_node, rule_6_subnodes);
-                ret.cloned_proof = cloned_proof;
+                abstract_pruning_handle ret_handle = create_abstract_handle(proof, probed_node, rule_6_subnodes);
+
+//                auto nodes = proof->proof_tree->get_all_nodes();
+//                for (auto &&orig_node :nodes) {
+//                    log->critical("{}", orig_node->uid);
+//                }
 
                 if (rule_6_subnodes > 0) {
-                    ret.testing_node_e->leaf_infos->gap = maybe_bool::YES;
+                    ret_handle.testing_node_e->leaf_infos->gap = maybe_bool::YES;
 
                     //FIXME: remove this awfull...
-                    ret.testing_node_e->node_infos.rules_c = ret.testing_node_e->node_infos.rules_a;
-                    ret.cloned_proof->proof_tree->refine_tree(-1, rule_6_subnodes);
-                    ret.testing_node_e->node_infos.rules_c.clear();
+                    ret_handle.testing_node_e->node_infos.rules_c = ret_handle.testing_node_e->node_infos.rules_a;
+                    ret_handle.cloned_proof->proof_tree->refine_tree(-1, rule_6_subnodes);
+                    ret_handle.testing_node_e->node_infos.rules_c.clear();
                 }
 
-                return ret;
+                return ret_handle;
             }
 
             bool test_node_rule_a(abstract_pruning_handle& handle, rulep& rule) {
@@ -1369,11 +1377,14 @@ namespace SMT {
 //                handle.testing_node->node_infos.rules_c.push_back(rule);
                 handle.testing_node_e->node_infos.rules_c = testing_c;
 
+//                handle.cloned_proof->dump_proof("asd.1", true, "before");
+
+                handle.p_triggers[handle.target_node_l].no_priority = true;
                 handle.p_triggers[handle.testing_node_e].no_skip = true;
 
 //                handle.cloned_tree->dump_tree("tree.js", true, "handle.cloned_tree");
 
-                log->critical("Testing no_sfogo ");
+//                log->critical("Testing no_sfogo ");
                 handle.p_triggers[handle.testing_node_e].no_sfogo = true;
 
                 over_analysis_result usable = pruner_checker.verify_proof(handle.cloned_proof, handle.p_triggers);
@@ -1389,7 +1400,6 @@ namespace SMT {
                 std::vector<rulep> old_c = node->node_infos.rules_c;
 
                 bool is_usable = test_node_rule_a(handle, test_rule_pair.first);
-
 
                 node->node_infos.rules_c = old_c;
 
@@ -1430,17 +1440,22 @@ namespace SMT {
                 for (auto &&rule_a :old_rules_a) {
                     bool is_usable = test_rule_a(abstract_handle, actual_rules_a, rule_a);
 
+                    abstract_handle.cloned_proof->dump_proof("asd.1", true, "before_remove");
                     if (!is_usable) {
                         actual_rules_a.erase(std::remove(actual_rules_a.begin(), actual_rules_a.end(), rule_a),
                                              actual_rules_a.end());
                         remove_rule_a(abstract_handle.target_node_l, rule_a);
                         removed_a.push_back(rule_a);
                     }
+                    abstract_handle.cloned_proof->dump_proof("asd.2", true, "after_remove");
                 }
 
                 if (log->level() <= spdlog::level::info) {
                     std::cout << std::endl;
                 }
+
+                // Clenaing up
+                abstract_handle.target_node_l->remove_children();
 
                 node->node_infos.rules_a = actual_rules_a;
 
@@ -1611,7 +1626,7 @@ namespace SMT {
             }
 
         public:
-            explicit tree_pruner(std::shared_ptr<SMTFactory> _solver) : //, tree &root
+            explicit tree_pruner(const std::shared_ptr<SMTFactory>& _solver) : //, tree &root
                     pruner_checker(_solver,
                                    false,
                                    maybe_bool::NO) { }
@@ -1726,7 +1741,7 @@ namespace SMT {
                 log->debug("TESTING OVERAPPROX PROOF");
                 over_analysis_result result = proof_translator.verify_proof(_proof);
 //                                              over_analysis_result::UNSAFE_INCOMPLETE;
-                _proof->dump_tree("tree.js", true, "POST OVERAPPROX");
+                _proof->dump_proof("tree.js", true, "POST OVERAPPROX");
 
 //                std::pair<std::string, std::string> strs = proof_t->tree_to_full_string();
 //                log->debug("{}", strs.second);
