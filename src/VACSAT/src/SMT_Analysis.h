@@ -17,12 +17,12 @@
 #include "prelude.h"
 
 namespace SMT {
-    enum AnalysisType {
+    enum class AnalysisType {
         UPDATE_MODEL,
         SHOW_INITIAL_STATISTICS,
         SHOW_AFTERPRUNE_STATISTICS,
         PRUNE_ONLY,
-        BMC_ONLY,
+        ANALYSIS_ONLY,
         FULL_ANALYSIS
     };
 

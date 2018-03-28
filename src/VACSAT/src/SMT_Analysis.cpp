@@ -68,15 +68,15 @@ namespace SMT {
                  const std::shared_ptr<arbac_policy>& policy,
                  bmc_config config) {
         switch (analysis_type) {
-            case UPDATE_MODEL:
+            case AnalysisType::UPDATE_MODEL:
                 log->info(policy->to_new_string());
                 return true;
-            case SHOW_AFTERPRUNE_STATISTICS:
+            case AnalysisType::SHOW_AFTERPRUNE_STATISTICS:
                 prune_policy(solver, policy);
-            case SHOW_INITIAL_STATISTICS:
+            case AnalysisType::SHOW_INITIAL_STATISTICS:
                 policy->show_policy_statistics(config.wanted_threads_count);
                 return true;
-            case PRUNE_ONLY:
+            case AnalysisType::PRUNE_ONLY:
                 prune_policy(solver, policy);
                 if (Config::print_old_model) {
                     log->info(policy->to_arbac_string());
@@ -84,14 +84,14 @@ namespace SMT {
                     log->info(policy->to_new_string());
                 }
                 return true;
-            case BMC_ONLY:
+            case AnalysisType::ANALYSIS_ONLY:
 //                std::cout << *policy;
                 break;
-            case FULL_ANALYSIS:
+            case AnalysisType::FULL_ANALYSIS:
                 prune_policy(solver, policy);
                 break;
             default:
-                throw std::runtime_error("Uh?");
+                throw unexpected("Uh?");
         }
         if (Config::flatten_admin) {
             std::shared_ptr<arbac_policy> flattened = policy->flatten_admin();

@@ -474,17 +474,17 @@ int main(int argc, const char * const *argv) {
         } else if (config.update_model && (config.new_prune_only || config.show_statistics || config.new_reachability_only)) {
             throw std::runtime_error("update-model option is incompatible with prune-only, reachability-only, and show-statistics.");
         } else if (config.update_model) {
-            an_ty = SMT::UPDATE_MODEL;
+            an_ty = SMT::AnalysisType::UPDATE_MODEL;
         } else if (config.new_prune_only && !config.show_statistics) {
-            an_ty = SMT::PRUNE_ONLY;
+            an_ty = SMT::AnalysisType::PRUNE_ONLY;
         } else if (config.new_reachability_only) {
-            an_ty = SMT::BMC_ONLY;
+            an_ty = SMT::AnalysisType::ANALYSIS_ONLY;
         } else if (config.new_prune_only && config.show_statistics) {
-            an_ty = SMT::SHOW_AFTERPRUNE_STATISTICS;
+            an_ty = SMT::AnalysisType::SHOW_AFTERPRUNE_STATISTICS;
         } else if (config.show_statistics) {
-            an_ty = SMT::SHOW_INITIAL_STATISTICS;
+            an_ty = SMT::AnalysisType::SHOW_INITIAL_STATISTICS;
         } else {
-            an_ty = SMT::FULL_ANALYSIS;
+            an_ty = SMT::AnalysisType::FULL_ANALYSIS;
         }
 
         SMT::Config::do_not_merge = config.do_not_merge;
