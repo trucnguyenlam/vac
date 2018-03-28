@@ -307,7 +307,10 @@ namespace SMT {
     void Z3Solver::printContext(std::string filename) {
         std::ofstream myfile;
         myfile.open(filename);
-        myfile << this->solver << std::endl;
+        myfile << "; " << get_timestamp() << std::endl << std::endl;
+        myfile << this->solver << std::endl << std::endl;
+        myfile << "(check-sat)" << std::endl;
+        myfile << "(get-model)" << std::endl << std::endl;
         myfile.close();
     }
 
