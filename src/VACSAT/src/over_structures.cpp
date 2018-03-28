@@ -458,8 +458,8 @@ namespace SMT {
         if (fn(_this)) {
             acc.push_back(_this);
         }
-        for (auto &&child : _refinement_blocks) {
-            filter_nodes_tail(acc, fn);
+        for (auto &&child : this->_refinement_blocks) {
+            child->filter_nodes_tail(acc, fn);
         }
     }
 
@@ -779,7 +779,7 @@ namespace SMT {
 
     std::list<std::shared_ptr<proof_node>> proof_node::get_all_nodes() {
         std::list<std::shared_ptr<proof_node>> res;
-        filter_nodes_tail(res, [] (std::shared_ptr<proof_node>& node) { return true; });
+        get_tree_nodes_tail(res);
         return std::move(res);
     }
 
