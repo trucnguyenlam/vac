@@ -245,6 +245,8 @@ namespace SMT {
         }
         inline void remove_children() {
             this->_refinement_blocks.clear();
+            this->leaf_infos = std::make_unique<leaves_infos>(leaves_infos());
+            this->consolidate_tree();
         }
 
     };
