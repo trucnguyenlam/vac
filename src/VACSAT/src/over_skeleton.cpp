@@ -1145,12 +1145,11 @@ namespace SMT {
 
 
             over_analysis_result verify_proof(proofp proof) override {
-                auto triggers = std::map<tree, pruning_triggers>();
-                return verify_proof(proof, triggers);
+                return verify_proof(proof, std::map<tree, pruning_triggers>());
             }
 
             over_analysis_result verify_proof(proofp proof,
-                                              std::map<tree, pruning_triggers>& triggers) override {
+                                              std::map<tree, pruning_triggers> triggers) override {
                 over_analysis_result result;
                 proof->dump_proof("asd.1", true, "pruning");
                 p_triggers = std::move(triggers);

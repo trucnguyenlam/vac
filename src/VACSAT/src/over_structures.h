@@ -304,7 +304,7 @@ namespace SMT {
     class proof_checker {
         virtual over_analysis_result verify_proof(proofp proof) = 0;
         virtual over_analysis_result verify_proof(proofp proof,
-                                                  std::map<std::shared_ptr<proof_node>, pruning_triggers>& triggers) = 0;
+                                                  std::map<std::shared_ptr<proof_node>, pruning_triggers> triggers) = 0;
     };
 }
 
