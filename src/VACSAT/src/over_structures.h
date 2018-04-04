@@ -122,9 +122,10 @@ namespace SMT {
 
         void clean();
 
-        bool probing_enabled();
+        bool probing_enabled() const;
 
-        std::string JSON_stringify(const std::string& prefix = "");
+//        std::string JSON_stringify(const std::string& prefix = "");
+        std::string JSON_stringify(const std::string& prefix = "", bool only_active = true) const;
 
         pruning_triggers();
     };

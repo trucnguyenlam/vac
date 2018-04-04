@@ -246,7 +246,7 @@ namespace SMT {
         this->no_sfogo = false;
     }
 
-    bool pruning_triggers::probing_enabled() {
+    bool pruning_triggers::probing_enabled() const {
         return this->c_rule_check != nullptr ||
                this->pre_A_check != nullptr ||
                this->A_C_check != nullptr ||
@@ -261,8 +261,8 @@ namespace SMT {
                this->no_sfogo;
     }
 
-    std::string pruning_triggers::JSON_stringify(const std::string& prefix) {
-        if (!this->probing_enabled()) {
+    std::string JSON_stringify_all(const pruning_triggers& pt, const std::string& prefix) {
+        if (!pt.probing_enabled()) {
             return "false";
         }
         std::stringstream fmt;
@@ -271,47 +271,105 @@ namespace SMT {
         i_prefix = prefix + "\t";
 
         fmt << i_prefix << "c_rule_check: ";
-        if (this->c_rule_check != nullptr) {
-            fmt << (*c_rule_check)->to_string() << "," << std::endl;
+        if (pt.c_rule_check != nullptr) {
+            fmt << (*pt.c_rule_check)->to_string() << "," << std::endl;
         } else {
             fmt << "null," <<std::endl;
         }
         fmt << i_prefix << "pre_A_check: ";
-        if (this->pre_A_check != nullptr) {
-            fmt << "{" << pre_A_check->first->name << ", " << pre_A_check->second << "}," << std::endl;
+        if (pt.pre_A_check != nullptr) {
+            fmt << "{" << pt.pre_A_check->first->name << ", " << pt.pre_A_check->second << "}," << std::endl;
         } else {
             fmt << "null," <<std::endl;
         }
         fmt << i_prefix << "A_C_check: ";
-        if (this->A_C_check != nullptr) {
-            fmt << "{" << A_C_check->first->name << ", " << A_C_check->second << "}," << std::endl;
+        if (pt.A_C_check != nullptr) {
+            fmt << "{" << pt.A_C_check->first->name << ", " << pt.A_C_check->second << "}," << std::endl;
         } else {
             fmt << "null," <<std::endl;
         }
         fmt << i_prefix << "post_A_check: ";
-        if (this->post_A_check != nullptr) {
-            fmt << "{" << post_A_check->first->name << ", " << post_A_check->second << "}," << std::endl;
+        if (pt.post_A_check != nullptr) {
+            fmt << "{" << pt.post_A_check->first->name << ", " << pt.post_A_check->second << "}," << std::endl;
         } else {
             fmt << "null," <<std::endl;
         }
         fmt << i_prefix << "pre_A_blocked_check: ";
-        if (this->pre_A_blocked_check != nullptr) {
-            fmt << "{" << pre_A_blocked_check->first->name << ", " << pre_A_blocked_check->second << "}," << std::endl;
+        if (pt.pre_A_blocked_check != nullptr) {
+            fmt << "{" << pt.pre_A_blocked_check->first->name << ", " << pt.pre_A_blocked_check->second << "}," << std::endl;
         } else {
             fmt << "null," <<std::endl;
         }
         fmt << i_prefix << "post_A_blocked_check: ";
-        if (this->post_A_blocked_check != nullptr) {
-            fmt << "{" << post_A_blocked_check->first->name << ", " << post_A_blocked_check->second << "}," << std::endl;
+        if (pt.post_A_blocked_check != nullptr) {
+            fmt << "{" << pt.post_A_blocked_check->first->name << ", " << pt.post_A_blocked_check->second << "}," << std::endl;
         } else {
             fmt << "null," <<std::endl;
         }
-        fmt << i_prefix << "no_transition: " << bool_to_true_false(no_transition) << "," << std::endl;
-        fmt << i_prefix << "no_skip: " << bool_to_true_false(no_skip) << "," << std::endl;
-        fmt << i_prefix << "no_priority: " << bool_to_true_false(no_priority) << "," << std::endl;
-        fmt << i_prefix << "no_sfogo: " << bool_to_true_false(no_sfogo) << "," << std::endl;
-        fmt << i_prefix << "overapprox: " << maybe_bool_to_string(overapprox) << "," << std::endl;
-        fmt << i_prefix << "check_gap: " << bool_to_true_false(check_gap) << "," << std::endl;
+        fmt << i_prefix << "no_transition: " << bool_to_true_false(pt.no_transition) << "," << std::endl;
+        fmt << i_prefix << "no_skip: " << bool_to_true_false(pt.no_skip) << "," << std::endl;
+        fmt << i_prefix << "no_priority: " << bool_to_true_false(pt.no_priority) << "," << std::endl;
+        fmt << i_prefix << "no_sfogo: " << bool_to_true_false(pt.no_sfogo) << "," << std::endl;
+        fmt << i_prefix << "overapprox: " << maybe_bool_to_string(pt.overapprox) << "," << std::endl;
+        fmt << i_prefix << "check_gap: " << bool_to_true_false(pt.check_gap) << "," << std::endl;
+
+        fmt << prefix << "}";
+
+        return fmt.str();
+    }
+
+    std::string pruning_triggers::JSON_stringify(const std::string& prefix, bool only_active) const {
+        if (!only_active)
+            return JSON_stringify_all(*this, prefix);
+        pruning_triggers def;
+        std::stringstream fmt;
+        std::string i_prefix = prefix;
+        fmt << "{" << std::endl;
+        i_prefix = prefix + "\t";
+
+        if (this->c_rule_check != def.c_rule_check) {
+            fmt << i_prefix << "c_rule_check: ";
+            fmt << (*c_rule_check)->to_string() << "," << std::endl;
+        }
+        if (this->pre_A_check != def.pre_A_check) {
+            fmt << i_prefix << "pre_A_check: ";
+            fmt << "{" << pre_A_check->first->name << ", " << pre_A_check->second << "}," << std::endl;
+        }
+        if (this->A_C_check != def.A_C_check) {
+            fmt << i_prefix << "A_C_check: ";
+            fmt << "{" << A_C_check->first->name << ", " << A_C_check->second << "}," << std::endl;
+        }
+        if (this->post_A_check != def.post_A_check) {
+            fmt << i_prefix << "post_A_check: ";
+            fmt << "{" << post_A_check->first->name << ", " << post_A_check->second << "}," << std::endl;
+        }
+        if (this->pre_A_blocked_check != def.pre_A_blocked_check) {
+            fmt << i_prefix << "pre_A_blocked_check: ";
+            fmt << "{" << pre_A_blocked_check->first->name << ", " << pre_A_blocked_check->second << "}," << std::endl;
+        }
+        if (this->post_A_blocked_check != def.post_A_blocked_check) {
+            fmt << i_prefix << "post_A_blocked_check: ";
+            fmt << "{" << post_A_blocked_check->first->name << ", " << post_A_blocked_check->second << "}," << std::endl;
+        }
+
+        if (this->no_transition != def.no_transition) {
+            fmt << i_prefix << "no_transition: " << bool_to_true_false(no_transition) << "," << std::endl;
+        }
+        if (this->no_skip != def.no_skip) {
+            fmt << i_prefix << "no_skip: " << bool_to_true_false(no_skip) << "," << std::endl;
+        }
+        if (this->no_priority != def.no_priority) {
+            fmt << i_prefix << "no_priority: " << bool_to_true_false(no_priority) << "," << std::endl;
+        }
+        if (this->no_sfogo != def.no_sfogo) {
+            fmt << i_prefix << "no_sfogo: " << bool_to_true_false(no_sfogo) << "," << std::endl;
+        }
+        if (this->overapprox != def.overapprox) {
+            fmt << i_prefix << "overapprox: " << maybe_bool_to_string(overapprox) << "," << std::endl;
+        }
+        if (this->check_gap != def.check_gap) {
+            fmt << i_prefix << "check_gap: " << bool_to_true_false(check_gap) << "," << std::endl;
+        }
 
         fmt << prefix << "}";
 
