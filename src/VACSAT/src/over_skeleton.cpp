@@ -247,10 +247,10 @@ namespace SMT {
                 }
             }
 
-            /*
+            /**
              * This function copies the values from source to dest if the condition holds,
              * Otherwise it takes the value from dest
-             * */
+             * **/
             void cond_save_mask(const tree &node,
                                 std::vector<variable> &source,
                                 std::vector<variable> &dest,
@@ -273,10 +273,10 @@ namespace SMT {
                 }
             }
 
-            /*
+            /**
              * This function set variables in dest to the OR of source1 and source2 if the condition holds,
              * Otherwise it takes the value from dest
-             * */
+             * **/
             void cond_save_ored_mask(const tree &node,
                                      std::vector<variable> &source1,
                                      std::vector<variable> &source2,
@@ -322,6 +322,7 @@ namespace SMT {
                 //IF THE ATOM IS UPDATEABLE
                 if (!node->leaf_infos->nondet_restriction[var].empty()) {
                     //GUARD FOR NONDET UPDATE
+                    emit_comment("Nondet_update_role_" + var->name);
                     tmp_bool = tmp_bool.createFrom();
                     SMTExpr update_guard =
                             solver->createAndExpr(solver->createNotExpr(
@@ -358,7 +359,7 @@ namespace SMT {
                     solver_state[node]->updated_in_subrun[var->role_array_index] = new_updated_in_subrun;
                 } else {
                     //IF THE ATOM IS STATICALLY NOT UPDATEABLE
-                    emit_comment("Node_" + var->name + "_is_not_updateable");
+                    emit_comment("Role_" + var->name + "_is_not_updateable");
                     tmp_bool = tmp_bool.createFrom();
                     emit_assignment(node, tmp_bool, zero);
                 }
@@ -1048,9 +1049,9 @@ namespace SMT {
                     if (solver->solver_name == Solver::Z3 && !Config::dump_smt_formula.empty()) {
                         solver->printContext(Config::dump_smt_formula);
                         log->info("BMC SMT formula dumped at: {}", Config::dump_smt_formula);
-                        if (res == SMTResult::SAT) {
-                            solver->printModel();
-                        }
+//                        if (res == SMTResult::SAT) {
+//                            solver->printModel();
+//                        }
                     }
 
                     auto end = std::chrono::high_resolution_clock::now();
