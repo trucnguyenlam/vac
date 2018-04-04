@@ -1325,7 +1325,9 @@ namespace SMT {
 
                 std::map<tree, pruning_triggers> p_triggers;
                 p_triggers[abstract_f].no_transition = true;
+                p_triggers[abstract_f].no_priority = true;
                 p_triggers[testing_e].no_skip = true;
+                p_triggers[testing_e].no_sfogo = true;
                 p_triggers[node].no_priority = true;
 
                 return abstract_pruning_handle(proof,
@@ -1379,8 +1381,8 @@ namespace SMT {
 
 //                handle.cloned_proof->dump_proof("asd.1", true, "before");
 
-                handle.p_triggers[handle.target_node_l].no_priority = true;
-                handle.p_triggers[handle.testing_node_e].no_skip = true;
+//                handle.p_triggers[handle.target_node_l].no_priority = true;
+//                handle.p_triggers[handle.testing_node_e].no_skip = true;
 
 //                handle.cloned_tree->dump_tree("tree.js", true, "handle.cloned_tree");
 
@@ -1467,6 +1469,7 @@ namespace SMT {
             }
 
             // RULE PROBING FUNCTIONS
+
             //            bool reduce_node_c_rules(tree& root, tree &node) {
 //                std::vector<rulep> new_rules;
 //                std::vector<rulep> old_rules = node->node_infos.rules_c;
@@ -1590,6 +1593,7 @@ namespace SMT {
             }
 
             // MAIN PRUNING FUNCTIONS
+
             //            void reduce_tree_c_rules(tree& root) {
 //                std::list<tree> internal_nodes = get_nodes_bfs_reversed(root);
 ////                bool changed = true;
