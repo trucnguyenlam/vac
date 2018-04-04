@@ -1387,9 +1387,14 @@ namespace SMT {
 //                handle.cloned_tree->dump_tree("tree.js", true, "handle.cloned_tree");
 
 //                log->critical("Testing no_sfogo ");
-                handle.p_triggers[handle.testing_node_e].no_sfogo = true;
+//                handle.p_triggers[handle.testing_node_e].no_sfogo = true;
+                //FIXME: REMOVE THIS AWFULL
+                std::map<tree, pruning_triggers> triggers;
+                for (auto &&pair : handle.p_triggers) {
+                    triggers[pair.first] = std::move(pair.second.clone());
+                }
 
-                over_analysis_result usable = pruner_checker.verify_proof(handle.cloned_proof, handle.p_triggers);
+                over_analysis_result usable = pruner_checker.verify_proof(handle.cloned_proof, std::move(triggers));
 
                 handle.sfogo_node_s->node_infos.rules_c = old_s_rules;
 
@@ -1442,14 +1447,14 @@ namespace SMT {
                 for (auto &&rule_a :old_rules_a) {
                     bool is_usable = test_rule_a(abstract_handle, actual_rules_a, rule_a);
 
-                    abstract_handle.cloned_proof->dump_proof("asd.1", true, "before_remove");
+//                    abstract_handle.cloned_proof->dump_proof("asd.1.js", true, "before_remove");
                     if (!is_usable) {
                         actual_rules_a.erase(std::remove(actual_rules_a.begin(), actual_rules_a.end(), rule_a),
                                              actual_rules_a.end());
                         remove_rule_a(abstract_handle.target_node_l, rule_a);
                         removed_a.push_back(rule_a);
                     }
-                    abstract_handle.cloned_proof->dump_proof("asd.2", true, "after_remove");
+//                    abstract_handle.cloned_proof->dump_proof("asd.2.js", true, "after_remove");
                 }
 
                 if (log->level() <= spdlog::level::info) {
