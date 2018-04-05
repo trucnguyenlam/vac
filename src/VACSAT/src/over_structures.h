@@ -103,12 +103,12 @@ namespace SMT {
 
     class pruning_triggers {
     public:
-        std::unique_ptr<rulep> c_rule_check;
-        std::unique_ptr<std::pair<atomp, bool>> pre_A_check;
-        std::unique_ptr<std::pair<atomp, bool>> A_C_check;
-        std::unique_ptr<std::pair<atomp, bool>> post_A_check;
-        std::unique_ptr<std::pair<atomp, bool>> pre_A_blocked_check;
-        std::unique_ptr<std::pair<atomp, bool>> post_A_blocked_check;
+        std::shared_ptr<rulep> c_rule_check;
+        std::shared_ptr<std::pair<atomp, bool>> pre_A_check;
+        std::shared_ptr<std::pair<atomp, bool>> A_C_check;
+        std::shared_ptr<std::pair<atomp, bool>> post_A_check;
+        std::shared_ptr<std::pair<atomp, bool>> pre_A_blocked_check;
+        std::shared_ptr<std::pair<atomp, bool>> post_A_blocked_check;
         bool no_transition; /// Disable transition
         bool no_skip;       /// Forbids the node to skip
         bool no_priority;   /// Disable node exploration strategy
@@ -134,7 +134,7 @@ namespace SMT {
     public:
 
         std::map<atomp, std::set<bool>> nondet_restriction;
-        maybe_bool gap;
+        bool gap;
 
         leaves_infos clone();
 
@@ -145,6 +145,7 @@ namespace SMT {
 
     class proof_node : public std::enable_shared_from_this<proof_node> {//: public node<LayerInfo, BlockInfo> {
     private:
+        friend class proof_t;
 
         std::shared_ptr<proof_node> memberwise_clone();
 
@@ -162,7 +163,7 @@ namespace SMT {
 
         void update_leaves_infos();
 
-        bool refine_tree_core(int max_depth, int child_count);
+        bool refine_node(int max_depth, int child_count);
 
         std::list<std::weak_ptr<proof_node>> _ancestors;
         std::weak_ptr<proof_node> _parent;
@@ -238,7 +239,7 @@ namespace SMT {
 
         void consolidate_tree();
 
-        bool refine_tree(int max_depth, int child_count);
+//        bool refine_tree(std::list<std::shared_ptr<proof_node>>& nodes, int max_depth, int child_count);
 
         //FIXME: to be removed...
         inline void add_child(std::shared_ptr<proof_node> node) {
@@ -256,7 +257,6 @@ namespace SMT {
 
     class proof_t {
     private:
-
         std::shared_ptr<proof_node> init_get_root(const std::vector<atomp>& orig_atoms,
                                                  const std::vector<rulep>& orig_rules,
                                                  const std::shared_ptr<arbac_policy>& policy,
@@ -287,6 +287,8 @@ namespace SMT {
         std::shared_ptr<proof_t> clone();
 
         std::string tree_to_string();
+
+        bool refine_proof(std::list<std::shared_ptr<proof_node>>& nodes, int max_depth, int child_count);
 
         const std::string dump_proof_str(bool javascript_compliant, const std::string heading_name = "");
         void dump_proof(const std::string& fname, bool javascript_compliant, const std::string heading_name = "");

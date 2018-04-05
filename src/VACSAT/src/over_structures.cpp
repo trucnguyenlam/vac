@@ -183,35 +183,35 @@ namespace SMT {
 
         pruning_triggers res;
 
-        std::unique_ptr<rulep> _c_rule_check = nullptr;
+        std::shared_ptr<rulep> _c_rule_check = nullptr;
         if (this->c_rule_check != nullptr) {
             rulep _c_rule_check_cnt = *this->c_rule_check;
-            _c_rule_check = std::make_unique<rulep>(_c_rule_check_cnt);
+            _c_rule_check = std::make_shared<rulep>(_c_rule_check_cnt);
         }
-        std::unique_ptr<std::pair<atomp, bool>> _pre_A_check = nullptr;
+        std::shared_ptr<std::pair<atomp, bool>> _pre_A_check = nullptr;
         if (this->pre_A_check != nullptr) {
             std::pair<atomp, bool> _pre_A_check_cnt = *this->pre_A_check;
-            _pre_A_check = std::make_unique<std::pair<atomp, bool>>(_pre_A_check_cnt);
+            _pre_A_check = std::make_shared<std::pair<atomp, bool>>(_pre_A_check_cnt);
         }
-        std::unique_ptr<std::pair<atomp, bool>> _A_C_check = nullptr;
+        std::shared_ptr<std::pair<atomp, bool>> _A_C_check = nullptr;
         if (this->A_C_check != nullptr) {
             std::pair<atomp, bool> _A_C_check_cnt = *this->A_C_check;
-            _A_C_check = std::make_unique<std::pair<atomp, bool>>(_A_C_check_cnt);
+            _A_C_check = std::make_shared<std::pair<atomp, bool>>(_A_C_check_cnt);
         }
-        std::unique_ptr<std::pair<atomp, bool>> _post_A_check = nullptr;
+        std::shared_ptr<std::pair<atomp, bool>> _post_A_check = nullptr;
         if (this->post_A_check != nullptr) {
             std::pair<atomp, bool> _post_A_check_cnt = *this->post_A_check;
-            _post_A_check = std::make_unique<std::pair<atomp, bool>>(_post_A_check_cnt);
+            _post_A_check = std::make_shared<std::pair<atomp, bool>>(_post_A_check_cnt);
         }
-        std::unique_ptr<std::pair<atomp, bool>> _pre_A_blocked_check = nullptr;
+        std::shared_ptr<std::pair<atomp, bool>> _pre_A_blocked_check = nullptr;
         if (this->pre_A_blocked_check != nullptr) {
             std::pair<atomp, bool> _pre_A_blocked_check_cnt = *this->pre_A_blocked_check;
-            _pre_A_blocked_check = std::make_unique<std::pair<atomp, bool>>(_pre_A_blocked_check_cnt);
+            _pre_A_blocked_check = std::make_shared<std::pair<atomp, bool>>(_pre_A_blocked_check_cnt);
         }
-        std::unique_ptr<std::pair<atomp, bool>> _post_A_blocked_check = nullptr;
+        std::shared_ptr<std::pair<atomp, bool>> _post_A_blocked_check = nullptr;
         if (this->post_A_blocked_check != nullptr) {
             std::pair<atomp, bool> _post_A_blocked_check_cnt = *this->post_A_blocked_check;
-            _post_A_blocked_check = std::make_unique<std::pair<atomp, bool>>(_post_A_blocked_check_cnt);
+            _post_A_blocked_check = std::make_shared<std::pair<atomp, bool>>(_post_A_blocked_check_cnt);
         }
 
         res.c_rule_check = std::move(_c_rule_check);
@@ -590,15 +590,18 @@ namespace SMT {
 //            tree->leaf_infos->nondet_restriction = std::move(map);
     }
 
-    bool proof_node::refine_tree_core(int max_depth, int child_count) {
+    bool proof_node::refine_node(int max_depth, int child_count) {
         if ( // overapprox_strategy.depth_strategy == OverapproxOptions::AT_MOST_DEPTH &&
                 this->depth >= max_depth &&
                 max_depth > -1) {
             return false;
+        } else if (this->node_infos.rules_a.empty()) {
+            log->warn("No need to refine node {} since A is empty", this->uid);
+            return false;
         } else if (this->node_infos.rules_c.empty()) {
             //TODO: CONSIDER ALSO REMOVING THE NODE FROM THE FATHER
             // _node subtree has to be removed
-            log->warn("Removing subtree of node {}", this->uid);
+            log->warn("Node {} has empty C. Removing subtree...", this->uid);
             // REMOVE ITS SUBTREE
             this->_refinement_blocks.clear();
             // ADD LEAVES INFOS TO IT
@@ -613,63 +616,53 @@ namespace SMT {
             return false;
         }
         if (!this->is_leaf()) {
-            bool changed = false;
-            for (auto &&child :this->_refinement_blocks) {
-                changed = child->refine_tree_core(max_depth, child_count) || changed;
-            }
-            return changed;
+            throw unexpected("Cannot refine non leaf node: " + this->uid);
         } else {
-            if (this->leaf_infos->gap == maybe_bool::YES) {
-                std::shared_ptr<proof_node> shared_this = this->shared_from_this();
-                int i = 0;
-                tree_path first_path = this->path;
-                first_path.push_back(i);
-                node_policy_infos node_info(this->node_infos.rules_a,
-                                            this->node_infos.rules_a,
-                                            this->node_infos.all_atoms,
-                                            this->node_infos.atoms_a,
-                                            this->node_infos.policy_atoms_count);
-                std::unique_ptr<leaves_infos> leaf_infos(new leaves_infos());
-                std::list<std::weak_ptr<proof_node>> prec_ancestors = this->_ancestors;
-                prec_ancestors.push_back(shared_this);
-
-                std::shared_ptr<proof_node> actual_child(
-                        new proof_node(first_path,
-                                                    this->depth + 1,
-                                                    node_info,
-                                                    std::move(leaf_infos),
-                                                    prec_ancestors,
-                                                    shared_this));
-                this->_refinement_blocks.push_back(actual_child);
-
-                int budget = child_count;
-                for (++i; i < budget; ++i) {
-                    first_path = this->path;
-                    first_path.push_back(i);
-                    node_policy_infos act_info(this->node_infos.rules_a,
-                                               this->node_infos.rules_a,
-                                               this->node_infos.all_atoms,
-                                               this->node_infos.atoms_a,
-                                               this->node_infos.policy_atoms_count);
-                    leaf_infos = std::make_unique<leaves_infos>(leaves_infos());
-
-                    prec_ancestors = actual_child->_ancestors;
-                    prec_ancestors.push_back(actual_child);
-                    actual_child = std::shared_ptr<proof_node>(
-                            new proof_node(first_path,
-                                                        this->depth + 1,
-                                                        act_info,
-                                                        std::move(leaf_infos),
-                                                        prec_ancestors,
-                                                        shared_this));
-                    this->_refinement_blocks.push_back(actual_child);
-                }
-                this->leaf_infos = nullptr;
-                this->consolidate_tree();
-                return true;
-            } else {
+            if (this->leaf_infos->gap == maybe_bool::NO) {
+                log->critical("Node {} is leaf but marked as non gap", this->uid);
                 return false;
             }
+
+            // This node is not a leaf anymore
+            this->leaf_infos = nullptr;
+
+            std::shared_ptr<proof_node> shared_this = this->shared_from_this();
+            int i = 0;
+            tree_path first_path = this->path;
+            first_path.push_back(i);
+            node_policy_infos node_info = this->node_infos.clone();
+            std::unique_ptr<leaves_infos> leaf_infos(new leaves_infos());
+            std::list<std::weak_ptr<proof_node>> prec_ancestors = this->_ancestors;
+            prec_ancestors.push_back(shared_this);
+
+            std::shared_ptr<proof_node> actual_child(
+                    new proof_node(first_path,
+                                   this->depth + 1,
+                                   node_info,
+                                   std::move(leaf_infos),
+                                   prec_ancestors,
+                                   shared_this));
+            this->_refinement_blocks.push_back(actual_child);
+
+            for (++i; i < child_count; ++i) {
+                first_path = this->path;
+                first_path.push_back(i);
+                node_info = this->node_infos.clone();
+                leaf_infos = std::make_unique<leaves_infos>(leaves_infos());
+
+                prec_ancestors = actual_child->_ancestors;
+                prec_ancestors.push_back(actual_child);
+                actual_child = std::make_shared<proof_node>(
+                        proof_node(first_path,
+                                   this->depth + 1,
+                                   node_info,
+                                   std::move(leaf_infos),
+                                   prec_ancestors,
+                                   shared_this));
+                this->_refinement_blocks.push_back(actual_child);
+            }
+            this->consolidate_tree();
+            return true;
         }
     }
 
@@ -831,14 +824,14 @@ namespace SMT {
 //            expand_invariants(_tree);
     }
 
-    bool proof_node::refine_tree(int max_depth, int child_count) {
-        if (child_count < 0) {
-            throw unexpected("Child count cannot be less than zero");
-        }
-        bool res = this->refine_tree_core(max_depth, child_count);
-        this->consolidate_tree();
-        return res;
-    }
+//    bool proof_node::refine_tree(int max_depth, int child_count) {
+//        if (child_count < 0) {
+//            throw unexpected("Child count cannot be less than zero");
+//        }
+//        bool res = this->refine_tree_core(max_depth, child_count);
+//        this->consolidate_tree();
+//        return res;
+//    }
 
     std::list<std::shared_ptr<proof_node>> proof_node::get_all_nodes() {
         std::list<std::shared_ptr<proof_node>> res;
@@ -1011,6 +1004,31 @@ namespace SMT {
 
     std::string proof_t::tree_to_string() {
         return proof_tree->tree_to_string();
+    }
+
+    bool proof_t::refine_proof(std::list<std::shared_ptr<proof_node>>& nodes, int max_depth, int child_count) {
+        if (child_count < 0) {
+            throw unexpected("Child count cannot be less than zero");
+        }
+        //TODO: restore ifndef
+//#ifndef NDEBUG
+        std::list<std::shared_ptr<proof_node>> leaves = this->proof_tree->get_all_leaves();
+        for (auto &&node : nodes) {
+            auto findIter = std::find(leaves.begin(), leaves.end(), node);
+            if (findIter == leaves.end()) {
+                log->critical("Node {} is not a leaf.", node->uid);
+                throw unexpected("Node " + node->uid + " is not a leaf.");
+            }
+        }
+//#endif
+        bool res = false;
+        for (auto &&node : nodes) {
+            bool tmp = node->refine_node(max_depth, child_count);
+            res = res || tmp;
+        }
+
+        proof_tree->consolidate_tree();
+        return res;
     }
 
     const std::string proof_t::dump_proof_str(bool javascript_compliant, const std::string heading_name) {

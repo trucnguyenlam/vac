@@ -1030,7 +1030,6 @@ namespace SMT {
 
                 auto start = std::chrono::high_resolution_clock::now();
 
-                solver->printContext(Config::dump_smt_formula);
 
                 if (annotate_proof) {
                     if (Config::show_solver_statistics) {
@@ -1062,26 +1061,32 @@ namespace SMT {
                 return res == SMTResult::SAT;
             }
 
-            bool set_node_refinement_from_model(const tree &node) {
+            std::list<tree> set_node_refinement_from_model(const tree &node) {
+                std::list<tree> refineable_leaves;
                 if (node->node_infos.rules_c.empty() && !p_triggers[node].no_transition) {
                     // the node has not been expanded
                     if (node->is_leaf()) {
                         node->leaf_infos->gap = maybe_bool::NO;
                     }
-                    return false;
+                    return refineable_leaves;
                 } else if (!node->is_leaf()) {
-                    bool refineable_subtree = false;
                     for (auto &&child : node->refinement_blocks()) {
-                        refineable_subtree = set_node_refinement_from_model(child) || refineable_subtree;
+                        std::list<tree> refineable_subtree = set_node_refinement_from_model(child);
+                        for (auto &&new_leaves : refineable_subtree) {
+                            refineable_leaves.push_back(new_leaves);
+                        }
                     }
-                    return refineable_subtree;
+                    return refineable_leaves;
                 } else {
-                    bool is_node_refineable = node->leaf_infos->gap == maybe_bool::YES;
+//                    bool is_node_refineable = node->leaf_infos->gap == maybe_bool::YES;
+                    std::list<tree> refineable;
                     if (node->leaf_infos->gap == maybe_bool::UNKNOWN) {
-                        is_node_refineable = solver->get_bool_value(solver_state[node]->refineable.get_solver_var());
-                        node->leaf_infos->gap = is_node_refineable ? maybe_bool::YES : maybe_bool::UNKNOWN;
+                        bool is_node_refineable = solver->get_bool_value(solver_state[node]->refineable.get_solver_var());
+                        if (is_node_refineable) {
+                            refineable.push_back(node);
+                        }
                     }
-                    if (is_node_refineable) {
+                    if (!refineable.empty()) {
                         log->warn("Node {} is refineable", node->uid);
                     }
 
@@ -1090,11 +1095,11 @@ namespace SMT {
 //                    if (node->infos->solverInfo->increase_budget == b_solver_info::YES) {
 //                        log->warn("Node {} budget should be increased", node->uid);
 //                    }
-                    return is_node_refineable;
+                    return refineable;
                 }
             }
 
-            bool anotate_refineable(tree &root) {
+            std::list<tree> anotate_refineable(tree &root) {
                 return set_node_refinement_from_model(root);
             }
 
@@ -1145,14 +1150,13 @@ namespace SMT {
                     merge_rule_in_trans(get_merge_value(annotate, merge_rules)) { }
 
 
-            over_analysis_result verify_proof(proofp proof) override {
+            std::pair<over_analysis_result, std::list<tree>> verify_proof(proofp proof) override {
                 return verify_proof(proof, std::map<tree, pruning_triggers>());
             }
 
             over_analysis_result verify_proof(proofp proof,
                                               std::map<tree, pruning_triggers> triggers) override {
                 over_analysis_result result;
-                proof->dump_proof("asd.1", true, "pruning");
                 p_triggers = std::move(triggers);
                 solver->deep_clean();
                 cleanup();
@@ -1353,11 +1357,11 @@ namespace SMT {
 //                }
 
                 if (rule_6_subnodes > 0) {
-                    ret_handle.testing_node_e->leaf_infos->gap = maybe_bool::YES;
-
-                    //FIXME: remove this awfull...
+                    //FIXME: remove this awful...
                     ret_handle.testing_node_e->node_infos.rules_c = ret_handle.testing_node_e->node_infos.rules_a;
-                    ret_handle.cloned_proof->proof_tree->refine_tree(-1, rule_6_subnodes);
+                    std::list<tree> l;
+                    l.push_back(ret_handle.testing_node_e);
+                    ret_handle.cloned_proof->refine_proof(l, -1, rule_6_subnodes);
                     ret_handle.testing_node_e->node_infos.rules_c.clear();
                 }
 
@@ -1379,22 +1383,14 @@ namespace SMT {
 //                handle.testing_node->node_infos.rules_c.push_back(rule);
                 handle.testing_node_e->node_infos.rules_c = testing_c;
 
-//                handle.cloned_proof->dump_proof("asd.1", true, "before");
-
 //                handle.p_triggers[handle.target_node_l].no_priority = true;
 //                handle.p_triggers[handle.testing_node_e].no_skip = true;
-
-//                handle.cloned_tree->dump_tree("tree.js", true, "handle.cloned_tree");
 
 //                log->critical("Testing no_sfogo ");
 //                handle.p_triggers[handle.testing_node_e].no_sfogo = true;
                 //FIXME: REMOVE THIS AWFULL
-                std::map<tree, pruning_triggers> triggers;
-                for (auto &&pair : handle.p_triggers) {
-                    triggers[pair.first] = std::move(pair.second.clone());
-                }
 
-                over_analysis_result usable = pruner_checker.verify_proof(handle.cloned_proof, std::move(triggers));
+                over_analysis_result usable = pruner_checker.verify_proof(handle.cloned_proof, handle.p_triggers);
 
                 handle.sfogo_node_s->node_infos.rules_c = old_s_rules;
 
@@ -1447,14 +1443,12 @@ namespace SMT {
                 for (auto &&rule_a :old_rules_a) {
                     bool is_usable = test_rule_a(abstract_handle, actual_rules_a, rule_a);
 
-//                    abstract_handle.cloned_proof->dump_proof("asd.1.js", true, "before_remove");
                     if (!is_usable) {
                         actual_rules_a.erase(std::remove(actual_rules_a.begin(), actual_rules_a.end(), rule_a),
                                              actual_rules_a.end());
                         remove_rule_a(abstract_handle.target_node_l, rule_a);
                         removed_a.push_back(rule_a);
                     }
-//                    abstract_handle.cloned_proof->dump_proof("asd.2.js", true, "after_remove");
                 }
 
                 if (log->level() <= spdlog::level::info) {
@@ -1749,8 +1743,9 @@ namespace SMT {
 
                 log->debug("TESTING OVERAPPROX PROOF");
                 over_analysis_result result = proof_translator.verify_proof(_proof);
+
 //                                              over_analysis_result::UNSAFE_INCOMPLETE;
-                _proof->dump_proof("tree.js", true, "POST OVERAPPROX");
+//                _proof->dump_proof("tree.js", true, "POST OVERAPPROX");
 
 //                std::pair<std::string, std::string> strs = proof_t->tree_to_full_string();
 //                log->debug("{}", strs.second);
@@ -1772,13 +1767,10 @@ namespace SMT {
                         pruner.prune_tree(_proof, true, true);
 
                         log->info("... REFINING");
+                        bool changed = _proof->refine_proof(_proof->overapprox_strategy.depth, get_budget(_proof));
 
-                        bool changed = _proof->proof_tree->refine_tree(_proof->overapprox_strategy.depth, get_budget(_proof));
-                        //TODO: insert consolidate_tree in refine_tree
-                        _proof->proof_tree->consolidate_tree();
-
-                        _proof->proof_tree->dump_tree("tree.js", true, "POST PRUNING AND REFINEMENT");
                         if (solver->solver_name == Solver::Z3 && !Config::dump_smt_formula.empty()) {
+                            _proof->dump_proof("tree.js", true, "POST PRUNING AND REFINEMENT");
                         }
 
 //                        std::pair<std::string, std::string> strs = proof_t->tree_to_full_string();
