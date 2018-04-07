@@ -16,8 +16,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
                      -Wno-unused-parameter \
                      -Wno-comment \
                      -Wno-sign-compare \
-                     -static\
-                     -ftemplate-backtrace-limit=0")
+                     -ftemplate-backtrace-limit=0 ")#\
+#                     -static")
 
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     message("using Clang")
@@ -89,8 +89,9 @@ set(SOURCE_FILES
         src/SMT_Overapprox_admin.cpp
         src/over_structures.h
         src/over_skeleton.cpp
-#        )
-        src/over_structures.cpp src/SMTSolvers/cvc4.h src/SMTSolvers/cvc4.cpp)
+        src/over_structures.cpp
+        src/SMTSolvers/cvc4.h
+        src/SMTSolvers/cvc4.cpp)
 
 # Add path for custom modules
 list (APPEND CMAKE_MODULE_PATH
@@ -100,11 +101,11 @@ set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ${CMAKE_FIND_LIBRARY_SUFFIXES})
 
 # Set local prefix for local libraries
 set(ANTLR3C_PREFIX ${DEPS_DIR}/antlr3c)
-set(YICES_PREFIX ${DEPS_DIR}/yices_2.5.2_static)
-set(Z3_PREFIX ${DEPS_DIR}/z3_static)
 set(CCL_PREFIX ${DEPS_DIR}/ccl)
-set(BOOLECTOR_PREFIX ${DEPS_DIR}/boolector)
-set(MATHSAT_PREFIX ${DEPS_DIR}/mathsat)
+#set(BOOLECTOR_PREFIX ${DEPS_DIR}/boolector)
+#set(MATHSAT_PREFIX ${DEPS_DIR}/mathsat)
+# FIXME: REMOVE THIS
+set(SOLVER_PREFIX /home/esteffin/solvers)
 
 # For each required library call its find macro
 find_package(ANTLR3C REQUIRED)
@@ -142,8 +143,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 # Add local libraries linking directories
 link_directories(${YICES_LIBRARY_DIR}
                  ${Z3_LIBRARY_DIR}
-                 ${BOOLECTOR_LIBRARY}
-                 ${MATHSAT_LIBRARY}
+                 ${BOOLECTOR_LIBRARY_DIR}
+                 ${MATHSAT_LIBRARY_DIR}
                  ${CCL_LIBRARY_DIR}
                  ${ANTLR3C_LIBRARY_DIR})
 

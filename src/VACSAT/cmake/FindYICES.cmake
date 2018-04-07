@@ -1,10 +1,11 @@
 set(YICES_PREFIX "${YICES_PREFIX}" CACHE PATH "path ")
 
 find_path(YICES_INCLUDE_DIR yices.h
-    PATHS ${YICES_PREFIX}/include /usr/include /usr/local/include NO_DEFAULT_PATH)
+    PATHS ${SOLVER_PREFIX}/include ${YICES_PREFIX}/include /usr/include /usr/local/include NO_DEFAULT_PATH)
 
 find_library(YICES_LIBRARY NAMES yices
-    PATHS ${YICES_PREFIX}/lib /usr/lib /usr/local/lib NO_DEFAULT_PATH)
+    PATHS ${SOLVER_PREFIX}/lib ${YICES_PREFIX}/lib /usr/lib /usr/local/lib NO_DEFAULT_PATH)
+
 
 if(YICES_INCLUDE_DIR AND YICES_LIBRARY)
     get_filename_component(YICES_LIBRARY_DIR ${YICES_LIBRARY} PATH)

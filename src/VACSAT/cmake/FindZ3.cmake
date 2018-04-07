@@ -1,11 +1,10 @@
 set(Z3_PREFIX "${Z3_PREFIX}" CACHE PATH "path ")
 
-
-find_path(Z3_INCLUDE_DIR z3pp.h
-    PATHS ${Z3_PREFIX}/include /usr/include /usr/local/include NO_DEFAULT_PATH)
+find_path(Z3_INCLUDE_DIR z3.h
+    PATHS ${SOLVER_PREFIX}/include ${Z3_PREFIX}/include /usr/include /usr/local/include NO_DEFAULT_PATH)
 
 find_library(Z3_LIBRARY NAMES z3
-    PATHS ${Z3_PREFIX}/lib /usr/lib /usr/local/lib NO_DEFAULT_PATH)
+    PATHS ${SOLVER_PREFIX}/lib ${Z3_PREFIX}/lib /usr/lib /usr/local/lib NO_DEFAULT_PATH)
 
 
 if(Z3_INCLUDE_DIR AND Z3_LIBRARY)

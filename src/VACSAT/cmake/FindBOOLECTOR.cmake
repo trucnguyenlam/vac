@@ -1,10 +1,11 @@
 set(BOOLECTOR_PREFIX "${BOOLECTOR_PREFIX}" CACHE PATH "path ")
 
 find_path(BOOLECTOR_INCLUDE_DIR boolector.h
-        PATHS ${BOOLECTOR_PREFIX}/include /usr/include /usr/local/include NO_DEFAULT_PATH)
+        PATHS ${SOLVER_PREFIX}/include ${BOOLECTOR_PREFIX}/include /usr/include /usr/local/include NO_DEFAULT_PATH)
 
-find_path(BOOLECTOR_LIBRARY NAMES libboolector.a
-        PATHS ${BOOLECTOR_PREFIX}/lib /usr/lib /usr/local/lib NO_DEFAULT_PATH)
+find_library(BOOLECTOR_LIBRARY NAMES boolector
+        PATHS ${SOLVER_PREFIX}/lib ${BOOLECTOR_PREFIX}/lib /usr/lib /usr/local/lib NO_DEFAULT_PATH)
+
 
 if(BOOLECTOR_INCLUDE_DIR AND BOOLECTOR_LIBRARY)
     get_filename_component(BOOLECTOR_LIBRARY_DIR ${BOOLECTOR_LIBRARY} PATH)

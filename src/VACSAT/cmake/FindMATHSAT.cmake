@@ -1,10 +1,11 @@
 set(MATHSAT_PREFIX "${MATHSAT_PREFIX}" CACHE PATH "path ")
 
 find_path(MATHSAT_INCLUDE_DIR mathsat.h
-        PATHS ${MATHSAT_PREFIX}/include /usr/include /usr/local/include NO_DEFAULT_PATH)
+        PATHS ${SOLVER_PREFIX}/include ${MATHSAT_PREFIX}/include /usr/include /usr/local/include NO_DEFAULT_PATH)
 
-find_path(MATHSAT_LIBRARY NAMES libmathsat.a
-        PATHS ${MATHSAT_PREFIX}/lib /usr/lib /usr/local/lib NO_DEFAULT_PATH)
+find_library(MATHSAT_LIBRARY NAMES mathsat
+        PATHS ${SOLVER_PREFIX}/lib ${MATHSAT_PREFIX}/lib /usr/lib /usr/local/lib NO_DEFAULT_PATH)
+
 
 if(MATHSAT_INCLUDE_DIR AND MATHSAT_LIBRARY)
     get_filename_component(MATHSAT_LIBRARY_DIR ${MATHSAT_LIBRARY} PATH)
