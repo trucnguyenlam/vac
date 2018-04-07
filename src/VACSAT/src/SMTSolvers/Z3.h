@@ -81,6 +81,7 @@ namespace SMT {
         // void pop() override;
 
         private:
+        z3::config cfg;
         z3::context context;
         z3::solver solver;
         std::shared_ptr<z3::model> model;

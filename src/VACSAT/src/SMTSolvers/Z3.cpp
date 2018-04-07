@@ -50,8 +50,8 @@ namespace SMT {
 //    }
 
 //    std::shared_ptr<z3::config> Z3Solver::config = default_config();
-    Z3Solver::Z3Solver() : SMTFactory(Solver::Z3) /*context(new z3::context()),*/  {
-        z3::config cfg;
+
+    static z3::config& get_default_conf(z3::config& cfg) {
         cfg.set("proof", false);
 //        cfg.set("debug_ref_count", false);
         cfg.set("trace", false);
@@ -62,8 +62,16 @@ namespace SMT {
         cfg.set("model", true);
         cfg.set("model_validate", false);
         cfg.set("unsat_core", false);
-        context.init(cfg, false);
-        solver = z3::solver(context);
+        return cfg;
+    }
+
+    Z3Solver::Z3Solver() :
+            SMTFactory(Solver::Z3),
+            context(get_default_conf(this->cfg)),
+            solver(context) {
+
+//        context.init(cfg, false);
+//        solver = z3::solver(context);
         z3::params p(context);
         p.set("relevancy", (unsigned int) 0);
         p.set("model", true);
@@ -117,7 +125,7 @@ namespace SMT {
     }
     SMTExpr Z3Solver::createXorExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
         //FIXME: check this, or use the logic circuit for XOR
-        expr res = z3::z3_xor(eto_z3(lhs), eto_z3(rhs));
+        expr res = eto_z3(lhs) ^ eto_z3(rhs);
         return z3expr(res);
     }
     SMTExpr Z3Solver::createAndExpr(const SMTExpr& lhs, const SMTExpr& rhs) {
