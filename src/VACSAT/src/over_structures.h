@@ -134,7 +134,7 @@ namespace SMT {
     public:
 
         std::map<atomp, std::set<bool>> nondet_restriction;
-        bool gap;
+        bool no_gap;
 
         leaves_infos clone();
 

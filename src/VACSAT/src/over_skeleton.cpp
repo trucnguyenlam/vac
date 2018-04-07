@@ -395,7 +395,8 @@ namespace SMT {
             }
 
             void update_unblocked_vars_a(const tree &node) {
-                if (node->leaf_infos->gap != maybe_bool::NO &&
+//                if (node->leaf_infos->gap != maybe_bool::NO &&
+                if (!node->leaf_infos->no_gap &&
                     p_triggers[node].overapprox != maybe_bool::NO) {
                     emit_comment("Begin_nondet_assignment");
                     std::list<variable> update_guards;
@@ -1066,7 +1067,8 @@ namespace SMT {
                 if (node->node_infos.rules_c.empty() && !p_triggers[node].no_transition) {
                     // the node has not been expanded
                     if (node->is_leaf()) {
-                        node->leaf_infos->gap = maybe_bool::NO;
+//                        node->leaf_infos->gap = maybe_bool::NO;
+                        node->leaf_infos->no_gap = true;
                     }
                     return refineable_leaves;
                 } else if (!node->is_leaf()) {
@@ -1080,7 +1082,7 @@ namespace SMT {
                 } else {
 //                    bool is_node_refineable = node->leaf_infos->gap == maybe_bool::YES;
                     std::list<tree> refineable;
-                    if (node->leaf_infos->gap == maybe_bool::UNKNOWN) {
+                    if (!node->leaf_infos->no_gap) {
                         bool is_node_refineable = solver->get_bool_value(solver_state[node]->refineable.get_solver_var());
                         if (is_node_refineable) {
                             refineable.push_back(node);

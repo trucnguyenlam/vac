@@ -379,20 +379,20 @@ namespace SMT {
     // LEAVES_INFOS FUNCTIONS
     leaves_infos::leaves_infos():
             nondet_restriction(std::map<atomp, std::set<bool>>()),
-            gap(maybe_bool::UNKNOWN) { }
+            no_gap(false) { }
 
     leaves_infos leaves_infos::clone() {
         std::map<atomp, std::set<bool>> _nondet_restriction = this->nondet_restriction;
         leaves_infos res;
         res.nondet_restriction = _nondet_restriction;
-        res.gap = this->gap;
+        res.no_gap = this->no_gap;
         return res;
     }
 
     std::string leaves_infos::JSON_stringify(const std::string& prefix) {
         std::stringstream fmt;
         fmt << "{" << std::endl;
-        fmt << prefix << "\tgap: " << maybe_bool_to_string(gap) << "," << std::endl;
+        fmt << prefix << "\tgap: " << bool_to_true_false(no_gap) << "," << std::endl;
         fmt << prefix << "\tnondet_restriction: {" << std::endl; //"..." << std::endl;
         std::string nprefix = prefix + "\t";
         for (auto &&kv : nondet_restriction) {
@@ -607,7 +607,7 @@ namespace SMT {
             // ADD LEAVES INFOS TO IT
             std::unique_ptr<leaves_infos> new_infos(new leaves_infos());
             // MARK AS NOT EXPANDABLE
-            new_infos->gap = maybe_bool::NO;
+            new_infos->no_gap = true;
             this->leaf_infos = std::move(new_infos);
             // BLOCK ALL ITS NONDETERMINISM
             for (auto &&atom :this->node_infos.atoms_a) {
@@ -618,8 +618,8 @@ namespace SMT {
         if (!this->is_leaf()) {
             throw unexpected("Cannot refine non leaf node: " + this->uid);
         } else {
-            if (this->leaf_infos->gap == maybe_bool::NO) {
-                log->critical("Node {} is leaf but marked as non gap", this->uid);
+            if (this->leaf_infos->no_gap) {
+                log->critical("Node {}, to be refined, is leaf but marked as non gap", this->uid);
                 return false;
             }
 
