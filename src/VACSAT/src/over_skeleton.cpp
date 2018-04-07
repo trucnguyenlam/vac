@@ -1149,33 +1149,46 @@ namespace SMT {
                     annotate_proof(annotate),
                     merge_rule_in_trans(get_merge_value(annotate, merge_rules)) { }
 
+            std::pair<over_analysis_result, std::list<tree>>
+                verify_proof_get_refinement(proofp proof) override {
+                over_analysis_result result;
+                p_triggers = std::map<tree, pruning_triggers>();
+                solver->deep_clean();
+                cleanup();
+                bool over_reachable = is_reachable(proof);
 
-            std::pair<over_analysis_result, std::list<tree>> verify_proof(proofp proof) override {
+                std::list<tree> refinement_nodes;
+                if (!over_reachable) {
+                    result = over_analysis_result::SAFE;
+                } else {
+
+                        refinement_nodes = anotate_refineable(proof->proof_tree);
+                        result = (refinement_nodes.size() > 0) ?
+                                 over_analysis_result::UNSAFE_INCOMPLETE :
+                                 over_analysis_result::UNSAFE;
+                    }
+
+                cleanup();
+
+                return std::make_pair(result, refinement_nodes);
+            };
+
+            over_analysis_result verify_proof(proofp proof) override {
                 return verify_proof(proof, std::map<tree, pruning_triggers>());
             }
 
             over_analysis_result verify_proof(proofp proof,
                                               std::map<tree, pruning_triggers> triggers) override {
-                over_analysis_result result;
                 p_triggers = std::move(triggers);
                 solver->deep_clean();
                 cleanup();
                 bool over_reachable = is_reachable(proof);
 
-                if (!over_reachable) {
-                    result = over_analysis_result::SAFE;
-                } else {
-                    if (annotate_proof) {
-                        bool is_refineable = anotate_refineable(proof->proof_tree);
-                        result = is_refineable ? over_analysis_result::UNSAFE_INCOMPLETE : over_analysis_result::UNSAFE;
-                    } else {
-                        result = over_analysis_result::UNSAFE;
-                    }
-                }
-
                 cleanup();
 
-                return result;
+                return over_reachable ?
+                       over_analysis_result::UNSAFE :
+                       over_analysis_result::SAFE;
             }
         };
 
@@ -1742,14 +1755,15 @@ namespace SMT {
 //                }
 
                 log->debug("TESTING OVERAPPROX PROOF");
-                over_analysis_result result = proof_translator.verify_proof(_proof);
+                std::pair<over_analysis_result, std::list<tree>>
+                        result_refineables = proof_translator.verify_proof_get_refinement(_proof);
 
 //                                              over_analysis_result::UNSAFE_INCOMPLETE;
 //                _proof->dump_proof("tree.js", true, "POST OVERAPPROX");
 
 //                std::pair<std::string, std::string> strs = proof_t->tree_to_full_string();
 //                log->debug("{}", strs.second);
-                switch (result) {
+                switch (result_refineables.first) {
                     case over_analysis_result::SAFE:
                         log->info("Target role is not reachable");
                         completed = true;
@@ -1767,7 +1781,9 @@ namespace SMT {
                         pruner.prune_tree(_proof, true, true);
 
                         log->info("... REFINING");
-                        bool changed = _proof->refine_proof(_proof->overapprox_strategy.depth, get_budget(_proof));
+                        bool changed = _proof->refine_proof(result_refineables.second,
+                                                            _proof->overapprox_strategy.depth,
+                                                            get_budget(_proof));
 
                         if (solver->solver_name == Solver::Z3 && !Config::dump_smt_formula.empty()) {
                             _proof->dump_proof("tree.js", true, "POST PRUNING AND REFINEMENT");
