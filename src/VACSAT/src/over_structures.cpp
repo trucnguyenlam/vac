@@ -631,6 +631,7 @@ namespace SMT {
             tree_path first_path = this->path;
             first_path.push_back(i);
             node_policy_infos node_info = this->node_infos.clone();
+            node_info.rules_c = this->node_infos.rules_a;
             std::unique_ptr<leaves_infos> leaf_infos(new leaves_infos());
             std::list<std::weak_ptr<proof_node>> prec_ancestors = this->_ancestors;
             prec_ancestors.push_back(shared_this);
@@ -648,6 +649,7 @@ namespace SMT {
                 first_path = this->path;
                 first_path.push_back(i);
                 node_info = this->node_infos.clone();
+                node_info.rules_c = this->node_infos.rules_a;
                 leaf_infos = std::make_unique<leaves_infos>(leaves_infos());
 
                 prec_ancestors = actual_child->_ancestors;
