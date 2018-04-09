@@ -3,7 +3,7 @@ set(BOOLECTOR_PREFIX "${BOOLECTOR_PREFIX}" CACHE PATH "path ")
 find_path(BOOLECTOR_INCLUDE_DIR boolector.h
         PATHS ${SOLVER_PREFIX}/include ${BOOLECTOR_PREFIX}/include /usr/include /usr/local/include NO_DEFAULT_PATH)
 
-find_library(BOOLECTOR_LIBRARY NAMES boolector
+find_library(BOOLECTOR_LIBRARY NAMES boolector lgl
         PATHS ${SOLVER_PREFIX}/lib ${BOOLECTOR_PREFIX}/lib /usr/lib /usr/local/lib NO_DEFAULT_PATH)
 
 
