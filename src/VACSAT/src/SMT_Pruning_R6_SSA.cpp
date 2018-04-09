@@ -8,15 +8,11 @@
 
 #include "SMT.h"
 #include "SMT_Pruning.h"
-#include "SMTSolvers/yices.h"
-#include "SMTSolvers/Z3.h"
 #include "Logics.h"
 #include "SMT_BMC_Struct.h"
 #include "Policy.h"
-#include "SMTSolvers/boolector.h"
 
 #include <chrono>
-#include <mathsat.h>
 
 namespace SMT {
 

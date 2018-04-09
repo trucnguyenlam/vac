@@ -10,10 +10,6 @@
 #include "ARBACTransform.h"
 #include "old_parser/ARBACExact.h"
 #include "SMT.h"
-#include "SMTSolvers/Z3.h"
-#include "SMTSolvers/yices.h"
-#include "SMTSolvers/boolector.h"
-#include "SMTSolvers/mathsat.h"
 #include "prelude.h"
 
 namespace SMT {

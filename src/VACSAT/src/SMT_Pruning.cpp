@@ -13,9 +13,6 @@
 #include "SMT.h"
 #include "Logics.h"
 #include "Policy.h"
-#include "SMTSolvers/yices.h"
-#include "SMTSolvers/Z3.h"
-#include "SMTSolvers/boolector.h"
 
 namespace SMT {
 

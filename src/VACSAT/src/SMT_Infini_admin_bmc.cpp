@@ -9,14 +9,11 @@
 #include "Logics.h"
 #include "SMT_BMC_Struct.h"
 #include "SMT_Analysis_functions.h"
-#include "SMTSolvers/yices.h"
-#include "SMTSolvers/Z3.h"
+#include "SMT.h"
 #include "Policy.h"
 #include "SMT_Pruning.h"
-#include "SMTSolvers/boolector.h"
 
 #include <chrono>
-#include <mathsat.h>
 
 // #include "Templated.h"
 // #include "dummy_esbmc.h"

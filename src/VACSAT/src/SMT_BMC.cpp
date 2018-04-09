@@ -10,10 +10,6 @@
 #include "SMT_BMC_Struct.h"
 #include "SMT_Analysis_functions.h"
 #include "SMT.h"
-#include "SMTSolvers/yices.h"
-#include "SMTSolvers/Z3.h"
-#include "SMTSolvers/boolector.h"
-#include "SMTSolvers/mathsat.h"
 #include "Policy.h"
 
 #include <chrono>

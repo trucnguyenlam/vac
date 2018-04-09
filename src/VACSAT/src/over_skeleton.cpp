@@ -5,10 +5,7 @@
 #include "over_structures.h"
 #include "prelude.h"
 #include "SMT_BMC_Struct.h"
-#include "SMTSolvers/yices.h"
-#include "SMTSolvers/Z3.h"
-#include "SMTSolvers/mathsat.h"
-#include "SMTSolvers/boolector.h"
+#include "SMT.h"
 
 namespace SMT {
 
