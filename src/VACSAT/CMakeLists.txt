@@ -49,6 +49,16 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
                      -ftemplate-backtrace-limit=0 ")#\
 #                     -static")
 
+option(STATIC "Make statically linked binary" OFF) #OFF by default
+
+#unset(STATIC CACHE) # <---- this is the important!!
+
+if (STATIC)
+    message(STATUS "Making statically linked binary")
+    # If STATIC requires only .a libs
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+endif(STATIC)
 
 
 set(DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps")
@@ -99,7 +109,7 @@ set(SOURCE_FILES
 list (APPEND CMAKE_MODULE_PATH
         "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # put static libraries first
-set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ${CMAKE_FIND_LIBRARY_SUFFIXES})
+
 
 # Set local prefix for local libraries
 set(ANTLR3C_PREFIX ${DEPS_DIR}/antlr3c)
