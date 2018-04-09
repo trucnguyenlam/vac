@@ -8,7 +8,23 @@
 #include "SMT_Pruning.h"
 #include "parser/translator.h"
 #include "SMT_Analysis_functions.h"
+#include "SMT.h"
+
+#ifdef USE_Z3
+#include "SMTSolvers/Z3.h"
+#endif
+#ifdef USE_BOOLECTOR
+#include "SMTSolvers/boolector.h"
+#endif
+#ifdef USE_YICES
+#include "SMTSolvers/yices.h"
+#endif
+#ifdef USE_MATHSAT
 #include "SMTSolvers/mathsat.h"
+#endif
+#ifdef USE_CVC4
+#include "SMTSolvers/cvc4.h"
+#endif
 
 namespace SMT {
 
@@ -140,31 +156,42 @@ namespace SMT {
                             bmc_config config) {
 
         std::shared_ptr<SMTFactory> solver = nullptr;
-        if (str_to_lower(solver_name) == str_to_lower(YicesSolver::solver_name())) {
-            log->debug("Using {} as backend", solver_name);
-            std::shared_ptr<SMTFactory> solver(new YicesSolver());
-            return execute(filename, analysis_type,solver, policy, config);
+        if (false) {
+            throw unexpected("if (false) ???");
         }
+#ifdef USE_Z3
         else if (str_to_lower(solver_name) == str_to_lower(Z3Solver::solver_name())) {
             log->debug("Using {} as backend", solver_name);
             std::shared_ptr<SMTFactory> solver(new Z3Solver());
             return execute(filename, analysis_type,solver, policy, config);
         }
+#endif
+#ifdef USE_BOOLECTOR
         else if (str_to_lower(solver_name) == str_to_lower(BoolectorSolver::solver_name())) {
             log->debug("Using {} as backend", solver_name);
             std::shared_ptr<SMTFactory> solver(new BoolectorSolver());
             return execute(filename, analysis_type,solver, policy, config);
         }
+#endif
+#ifdef USE_YICES
+        else if (str_to_lower(solver_name) == str_to_lower(YicesSolver::solver_name())) {
+            log->debug("Using {} as backend", solver_name);
+            std::shared_ptr<SMTFactory> solver(new YicesSolver());
+            return execute(filename, analysis_type,solver, policy, config);
+        }
+#endif
+#ifdef USE_MATHSAT
         else if (str_to_lower(solver_name) == str_to_lower(MathsatSolver::solver_name())) {
             log->debug("Using {} as backend", solver_name);
             std::shared_ptr<SMTFactory> solver(new MathsatSolver());
             return execute(filename, analysis_type,solver, policy, config);
         }
+#endif
         else {
             log->error("Backend {} is not supported.", solver_name);
             throw std::runtime_error("Backend " + solver_name + " is not supported.");
         }
-
+        throw unexpected("Uh?");
     };
 
     std::shared_ptr<arbac_policy> parse_old(const std::string& filename) {

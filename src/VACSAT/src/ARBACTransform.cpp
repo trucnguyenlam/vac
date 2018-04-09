@@ -47,7 +47,6 @@ void exit_with_result(bool res) {
 
 namespace po = boost::program_options;
 
-
 class options {
 public:
     const std::string output_file;
@@ -189,6 +188,36 @@ static arg_obj<bool> create_arg_obj_bool(std::string name, std::string descripti
     return arg_obj<bool>(name, false, description);
 }
 
+static arg_obj<std::string> get_backend_arg_obj() {
+    std::string argname("backend,b");
+    std::string default_backend =
+#ifdef USE_YICES
+            "yices";
+#else
+    "z3";
+#endif
+    std::string choices =
+            ""
+            #ifdef USE_Z3
+            "Z3"
+            #endif
+            #ifdef USE_BOOLECTOR
+            ", BOOLECTOR"
+            #endif
+            #ifdef USE_YICES
+            ", YICES"
+            #endif
+            #ifdef USE_MATHSAT
+            ", MATHSAT"
+            #endif
+            #ifdef USE_CVC4
+            ", CVC4"
+            #endif
+            "";
+    arg_obj<std::string> res = create_arg_obj_string(argname, default_backend, "SMT backend (" + choices + ")");
+    return std::move(res);
+}
+
 template <typename TArg>
 static void add_option_description(arg_obj<TArg>& arg, po::options_description& desc);
 static void add_option_description(po::options_description& desc, arg_obj<std::string>& arg) {
@@ -234,7 +263,7 @@ static options parse_args(int ac, const char* const* av) {
 
     arg_obj<std::string> output_file = create_arg_obj_string("out,o", "Specify the output file");
     arg_obj<bool> old_inline = create_arg_obj_bool("inline", "Inline the program (lazycseq only)");
-    arg_obj<std::string> new_backend = create_arg_obj_string("backend,b", "yices", "SMT backend (Z3, YICES, BOOLECTOR, MATHSAT)");
+    arg_obj<std::string> new_backend = get_backend_arg_obj();
     arg_obj<bool> old_parser = create_arg_obj_bool("old-parser,O", "Use the VAC1.0 policy format");
     arg_obj<bool> new_prune_only = create_arg_obj_bool("prune-only,p", "Prune the policy using sat based approaches only");
     arg_obj<bool> use_tampone = create_arg_obj_bool("tampone,E", "Use the tampone pruning system (testing)");

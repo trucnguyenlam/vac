@@ -50,6 +50,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
 #                     -static")
 
 option(STATIC "Make statically linked binary" OFF) #OFF by default
+option(ENABLE_GPL "permit GPL dependences, if available" ON) #OFF by default
 
 #unset(STATIC CACHE) # <---- this is the important!!
 
@@ -65,14 +66,6 @@ set(DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps")
 
 set(SOURCE_FILES
         src/SMT.h
-        src/SMTSolvers/yices.h
-        src/SMTSolvers/yices.cpp
-        src/SMTSolvers/Z3.h
-        src/SMTSolvers/Z3.cpp
-        src/SMTSolvers/boolector.h
-        src/SMTSolvers/boolector.cpp
-        src/SMTSolvers/mathsat.h
-        src/SMTSolvers/mathsat.cpp
         src/Logics.h
         src/Logics.cpp
         src/SMT_Pruning.h
@@ -101,9 +94,8 @@ set(SOURCE_FILES
         src/SMT_Overapprox_admin.cpp
         src/over_structures.h
         src/over_skeleton.cpp
-        src/over_structures.cpp
-        src/SMTSolvers/cvc4.h
-        src/SMTSolvers/cvc4.cpp)
+        src/over_structures.cpp)
+
 
 # Add path for custom modules
 list (APPEND CMAKE_MODULE_PATH
@@ -121,12 +113,65 @@ set(SOLVER_PREFIX /home/esteffin/solvers)
 
 # For each required library call its find macro
 find_package(ANTLR3C REQUIRED)
-find_package(GMP REQUIRED)
-find_package(YICES REQUIRED)
-find_package(MATHSAT REQUIRED)
 find_package(Z3 REQUIRED)
-find_package(BOOLECTOR REQUIRED)
+find_package(BOOLECTOR)
+# Look for GPL solvers only if required
+if (ENABLE_GPL)
+    find_package(YICES)
+    find_package(MATHSAT)
+    find_package(CVC4)
+    if(YICES_FOUND OR MATHSAT_FOUND OR CVC4_FOUND)
+        find_package(GMP REQUIRED)
+    endif()
+endif()
 find_package(CCL REQUIRED)
+
+# Set compilation flags for each solver
+if (Z3_FOUND)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_Z3")
+        set(SOLVER_SOURCES
+                ${SOLVER_SOURCES}
+                src/SMTSolvers/Z3.h
+                src/SMTSolvers/Z3.cpp)
+    include_directories("${Z3_INCLUDE_DIR}")
+    link_directories("${Z3_LIBRARY_DIR}")
+endif()
+if (BOOLECTOR_FOUND)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_BOOLECTOR")
+    set(SOLVER_SOURCES
+            ${SOLVER_SOURCES}
+            src/SMTSolvers/boolector.h
+                src/SMTSolvers/boolector.cpp)
+    include_directories("${BOOLECTOR_INCLUDE_DIR}")
+    link_directories("${BOOLECTOR_LIBRARY_DIR}")
+endif()
+if (YICES_FOUND)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_YICES")
+    set(SOLVER_SOURCES
+            ${SOLVER_SOURCES}
+            src/SMTSolvers/yices.h
+                src/SMTSolvers/yices.cpp)
+    include_directories("${YICES_INCLUDE_DIR}")
+    link_directories("${YICES_LIBRARY_DIR}")
+endif()
+if (MATHSAT_FOUND)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_MATHSAT")
+    set(SOLVER_SOURCES
+            ${SOLVER_SOURCES}
+            src/SMTSolvers/mathsat.h
+            src/SMTSolvers/mathsat.cpp)
+    include_directories("${MATHSAT_INCLUDE_DIR}")
+    link_directories("${MATHSAT_LIBRARY_DIR}")
+endif()
+if (CVC4_FOUND)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_CVC4")
+    set(SOLVER_SOURCES
+            ${SOLVER_SOURCES}
+            src/SMTSolvers/cvc4.h
+            src/SMTSolvers/cvc4.cpp)
+    include_directories("${CVC4_INCLUDE_DIR}")
+    link_directories("${CVC4_LIBRARY_DIR}")
+endif()
 
 # Add spdlog library for logging
 set(CMAKE_PREFIX_PATH ${DEPS_DIR}/spdlog)
@@ -138,11 +183,7 @@ FIND_PACKAGE( Boost COMPONENTS program_options REQUIRED )
 INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 
 # Add include directories for local libraries
-include_directories("${YICES_INCLUDE_DIR}"
-                    "${Z3_INCLUDE_DIR}"
-                    "${BOOLECTOR_INCLUDE_DIR}"
-                    "${MATHSAT_INCLUDE_DIR}"
-                    "${CCL_INCLUDE_DIR}"
+include_directories("${CCL_INCLUDE_DIR}"
                     "${ANTLR3C_INCLUDE_DIR}")
 
 # Add OpenMP (used by Z3)
@@ -153,11 +194,7 @@ include_directories("${YICES_INCLUDE_DIR}"
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 
 # Add local libraries linking directories
-link_directories(${YICES_LIBRARY_DIR}
-                 ${Z3_LIBRARY_DIR}
-                 ${BOOLECTOR_LIBRARY_DIR}
-                 ${MATHSAT_LIBRARY_DIR}
-                 ${CCL_LIBRARY_DIR}
+link_directories(${CCL_LIBRARY_DIR}
                  ${ANTLR3C_LIBRARY_DIR})
 
 set(PARSER_SOURCES
@@ -170,11 +207,31 @@ set(PARSER_SOURCES
 )
 
 
-add_executable(vacsat ${SOURCE_FILES} ${PARSER_SOURCES})
+add_executable(vacsat ${SOURCE_FILES} ${SOLVER_SOURCES} ${PARSER_SOURCES})
 add_subdirectory(src/old_parser)
 # Set the link libraries (GMP MUST BE THE LAST)
+# Set compilation flags for each solver
+if (Z3_FOUND)
+    target_link_libraries(vacsat PUBLIC z3)
+endif()
+if (BOOLECTOR_FOUND)
+    target_link_libraries(vacsat PUBLIC boolector lgl)
+endif()
+if (YICES_FOUND)
+    target_link_libraries(vacsat PUBLIC yices)
+endif()
+if (MATHSAT_FOUND)
+    target_link_libraries(vacsat PUBLIC mathsat)
+endif()
+if (CVC4_FOUND)
+    target_link_libraries(vacsat PUBLIC cvc4)
+endif()
+if(YICES_FOUND OR MATHSAT_FOUND OR CVC4_FOUND)
+    target_link_libraries(vacsat PUBLIC gmp)
+endif()
+
 target_link_libraries(vacsat PRIVATE vacsat_old)
-target_link_libraries(vacsat PUBLIC yices z3 boolector lgl mathsat gmpxx gmp stdc++)
+#target_link_libraries(vacsat PUBLIC       gmpxx  stdc++)
 target_link_libraries(vacsat PUBLIC ccl antlr3c ${Boost_LIBRARIES} spdlog::spdlog ${CMAKE_THREAD_LIBS_INIT})
 
 
