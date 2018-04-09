@@ -2,11 +2,41 @@
 cmake_minimum_required(VERSION 3.0)
 project(vacsat)
 
-#set(CMAKE_CXX_STANDARD 11)  # enable C++11 standard
+# SET FLAGS FOR EACH COMPILER
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+    message(STATUS "using Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+                         -Wno-parentheses-equality")
+elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
+    message(STATUS "using GCC")
+elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Intel")
+    message(STATUS "using Intel C++")
+elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
+    message(STATUS "using Visual Studio C++")
+endif()
+
+# TRY TO USE GOLD AS LINKER (FASTER) INSTEAD OF LD
+find_program(GOLD_FOUND gold)
+if (GOLD_FOUND)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
+    message(STATUS "gold found! Faster linking!")
+else (GOLD_FOUND)
+    message(WARNING "gold not found! Slower linking!")
+endif (GOLD_FOUND)
+
+# TRY TO USE CCACHE FOR FASTER COMPILATION
+find_program(CCACHE_FOUND ccache)
+if (CCACHE_FOUND)
+    message(STATUS "ccache found! Faster compilation!")
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK    ccache)
+else (CCACHE_FOUND)
+    message(WARNING "ccache not found! Slower compilation!")
+endif (CCACHE_FOUND)
+
+
 set(CMAKE_CXX_STANDARD 14)  # enable C++14 standard
 
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -fpermissive -Wwrite-strings")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused -Wno-unused-parameter -Wno-comment -Wno-sign-compare -Wno-c++1z-extensions -static")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
                      -Wno-write-strings \
                      -Wall \
@@ -19,35 +49,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
                      -ftemplate-backtrace-limit=0 ")#\
 #                     -static")
 
-if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-    message("using Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-                         -Wno-parentheses-equality")
-elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
-    message("using GCC")
-elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Intel")
-    message("using Intel C++")
-elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
-    message("using Visual Studio C++")
-endif()
 
-find_program(GOLD_FOUND gold)
-if (GOLD_FOUND)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
-    message(STATUS "gold found! Faster linking!")
-else (GOLD_FOUND)
-    message(WARNING "gold not found! Slower linking!")
-endif (GOLD_FOUND)
-
-
-find_program(CCACHE_FOUND ccache)
-if (CCACHE_FOUND)
-    message(STATUS "ccache found! Faster compilation!")
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK    ccache)
-else (CCACHE_FOUND)
-    message(WARNING "ccache not found! Slower compilation!")
-endif (CCACHE_FOUND)
 
 set(DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps")
 
