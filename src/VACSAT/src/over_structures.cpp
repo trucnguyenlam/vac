@@ -759,7 +759,7 @@ namespace SMT {
     std::list<std::shared_ptr<proof_node>> proof_node::get_tree_nodes() {
         std::list<std::shared_ptr<proof_node>> ret;
         get_tree_nodes_tail(ret);
-        return std::move(ret);
+        return ret;
     }
 
 //    void proof_node::clean_pruning_triggers() {
@@ -836,13 +836,13 @@ namespace SMT {
     std::list<std::shared_ptr<proof_node>> proof_node::get_all_nodes() {
         std::list<std::shared_ptr<proof_node>> res;
         get_tree_nodes_tail(res);
-        return std::move(res);
+        return res;
     }
 
     std::list<std::shared_ptr<proof_node>> proof_node::get_all_leaves() {
         std::list<std::shared_ptr<proof_node>> res;
         filter_nodes_tail(res, [] (std::shared_ptr<proof_node>& node) { return node->is_leaf(); });
-        return std::move(res);
+        return res;
     }
 
     // PROOF_T FUNCTIONS
@@ -863,7 +863,7 @@ namespace SMT {
                 res.push_back(rule);
             }
         }
-        return std::move(res);
+        return res;
     }
 
     std::pair<std::vector<atomp>, std::vector<rulep>> slice_policy(const std::vector<atomp> &orig_atoms,
@@ -925,7 +925,7 @@ namespace SMT {
             log->warn("after slicing rules: {}", used_rules.size());
         }
         std::shared_ptr<proof_node> proof = create_tree_root(policy->atom_count(), used_atoms, used_rules, to_check);
-        return std::move(proof);
+        return proof;
     }
 
     std::shared_ptr<proof_node> proof_t::create_tree_root(const int policy_atom_count,

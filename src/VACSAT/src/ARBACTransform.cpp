@@ -215,7 +215,7 @@ static arg_obj<std::string> get_backend_arg_obj() {
             #endif
             "";
     arg_obj<std::string> res = create_arg_obj_string(argname, default_backend, "SMT backend (" + choices + ")");
-    return std::move(res);
+    return res;
 }
 
 template <typename TArg>

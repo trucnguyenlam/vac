@@ -433,7 +433,7 @@ namespace SMT {
                     result.push_back(merged);
                 }
 
-                return std::move(result);
+                return result;
             };
 
             SMTExpr get_rule_assumptions_c(const tree &node, std::pair<rulep, int> rule_id, SMTExpr &rule_is_selected) {
@@ -564,7 +564,7 @@ namespace SMT {
             void transition_c(const tree &node) {
                 emit_comment("Begin_transition_" + node->uid);
                 std::vector<rulep> rules_c = merge_rule_in_trans ?
-                                             std::move(merge_by_target(node)) :
+                                             merge_by_target(node) :
                                              node->node_infos.rules_c;
                 select_one_rule_c(node, rules_c);
 
@@ -1600,7 +1600,7 @@ namespace SMT {
                 std::list<tree> internal_nodes;
                 root->tree_bfs_iter([&](tree _node) { internal_nodes.push_back(_node); });
                 internal_nodes.reverse();
-                return std::move(internal_nodes);
+                return internal_nodes;
             }
 
             // MAIN PRUNING FUNCTIONS
