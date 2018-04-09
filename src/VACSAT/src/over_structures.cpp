@@ -392,7 +392,7 @@ namespace SMT {
     std::string leaves_infos::JSON_stringify(const std::string& prefix) {
         std::stringstream fmt;
         fmt << "{" << std::endl;
-        fmt << prefix << "\tgap: " << bool_to_true_false(no_gap) << "," << std::endl;
+        fmt << prefix << "\tno_gap: " << bool_to_true_false(no_gap) << "," << std::endl;
         fmt << prefix << "\tnondet_restriction: {" << std::endl; //"..." << std::endl;
         std::string nprefix = prefix + "\t";
         for (auto &&kv : nondet_restriction) {
