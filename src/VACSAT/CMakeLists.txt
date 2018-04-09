@@ -2,11 +2,23 @@
 cmake_minimum_required(VERSION 3.0)
 project(vacsat)
 
-# SET FLAGS FOR EACH COMPILER
+set(CMAKE_CXX_STANDARD 14)  # enable C++14 standard
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+                     -Wno-write-strings \
+                     -Wall \
+                     -Wextra \
+                     -Werror \
+                     -Wno-unused \
+                     -Wno-unused-parameter \
+                     -Wno-comment \
+                     -Wno-sign-compare \
+                     -ftemplate-backtrace-limit=0 ")
+
+# SET SPECIFIC FLAGS FOR EACH COMPILER
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     message(STATUS "using Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-                         -Wno-parentheses-equality")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-parentheses-equality")
 elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
     message(STATUS "using GCC")
 elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Intel")
@@ -34,20 +46,6 @@ else (CCACHE_FOUND)
     message(WARNING "ccache not found! Slower compilation!")
 endif (CCACHE_FOUND)
 
-
-set(CMAKE_CXX_STANDARD 14)  # enable C++14 standard
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-                     -Wno-write-strings \
-                     -Wall \
-                     -Wextra \
-                     -Werror \
-                     -Wno-unused \
-                     -Wno-unused-parameter \
-                     -Wno-comment \
-                     -Wno-sign-compare \
-                     -ftemplate-backtrace-limit=0 ")#\
-#                     -static")
 
 option(STATIC "Make statically linked binary" OFF) #OFF by default
 option(ENABLE_GPL "permit GPL dependences, if available" ON) #OFF by default
