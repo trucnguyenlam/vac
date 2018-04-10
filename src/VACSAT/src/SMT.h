@@ -23,7 +23,8 @@ namespace SMT {
         YICES,
         Z3,
         MATHSAT,
-        BOOLECTOR
+        BOOLECTOR,
+        CVC4
     };
 
     class smt_expr_t {

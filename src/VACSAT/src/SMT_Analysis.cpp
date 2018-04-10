@@ -187,6 +187,13 @@ namespace SMT {
             return execute(filename, analysis_type,solver, policy, config);
         }
 #endif
+#ifdef USE_CVC4
+        else if (str_to_lower(solver_name) == str_to_lower(Cvc4Solver::solver_name())) {
+            log->debug("Using {} as backend", solver_name);
+            std::shared_ptr<SMTFactory> solver(new Cvc4Solver());
+            return execute(filename, analysis_type,solver, policy, config);
+        }
+#endif
         else {
             log->error("Backend {} is not supported.", solver_name);
             throw std::runtime_error("Backend " + solver_name + " is not supported.");
