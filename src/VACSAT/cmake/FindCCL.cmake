@@ -10,7 +10,7 @@ find_library(CCL_LIBRARY NAMES ccl
 
 if(CCL_INCLUDE_DIR AND CCL_LIBRARY)
     get_filename_component(CCL_LIBRARY_DIR ${CCL_LIBRARY} PATH)
-    set(CCL_FOUND TRUE)
+    set(CCL_FOUND TRUE INTERNAL CACHE BOOLEAN "" FORCE)
 endif()
 
 if(CCL_FOUND)

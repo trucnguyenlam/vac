@@ -9,7 +9,7 @@ find_library(Z3_LIBRARY NAMES z3
 
 if(Z3_INCLUDE_DIR AND Z3_LIBRARY)
     get_filename_component(Z3_LIBRARY_DIR ${Z3_LIBRARY} PATH)
-    set(Z3_FOUND TRUE)
+    set(Z3_FOUND TRUE INTERNAL CACHE BOOLEAN "" FORCE)
 endif()
 
 if(Z3_FOUND)

@@ -10,7 +10,7 @@ find_library(GMP_LIBRARY NAMES gmp libgmp
 
 if(GMP_INCLUDE_DIR AND GMP_LIBRARY)
     get_filename_component(GMP_LIBRARY_DIR ${GMP_LIBRARY} PATH)
-    set(GMP_FOUND TRUE)
+    set(GMP_FOUND TRUE INTERNAL CACHE BOOLEAN "" FORCE)
 endif()
 
 if(GMP_FOUND)

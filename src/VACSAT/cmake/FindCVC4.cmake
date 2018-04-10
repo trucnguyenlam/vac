@@ -1,6 +1,6 @@
 set(CVC4_PREFIX "${CVC4_PREFIX}" CACHE PATH "path ")
 
-find_path(CVC4_INCLUDE_DIR cvc4/cvc4_public.h
+find_path(CVC4_INCLUDE_DIR cvc4/cvc4.h
     PATHS ${SOLVER_PREFIX}/include ${CVC4_PREFIX}/include /usr/include /usr/local/include NO_DEFAULT_PATH)
 
 find_library(CVC4_LIBRARY NAMES cvc4
@@ -9,7 +9,7 @@ find_library(CVC4_LIBRARY NAMES cvc4
 
 if(CVC4_INCLUDE_DIR AND CVC4_LIBRARY)
     get_filename_component(CVC4_LIBRARY_DIR ${CVC4_LIBRARY} PATH)
-    set(CVC4_FOUND TRUE)
+    set(CVC4_FOUND TRUE INTERNAL CACHE BOOLEAN "" FORCE)
 endif()
 
 if(CVC4_FOUND)
