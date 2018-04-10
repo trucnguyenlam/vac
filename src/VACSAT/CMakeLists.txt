@@ -1,5 +1,20 @@
 #cmake_minimum_required(VERSION 3.7)
 cmake_minimum_required(VERSION 3.0)
+
+function(find_solver SOLVER_NAME SOLVER_STATUS)
+    message(STATUS "${SOLVER_NAME}: ${SOLVER_STATUS}")
+    if ((SOLVER_STATUS STREQUAL REQUIRED) OR (SOLVER_STATUS STREQUAL R))
+        message(STATUS "Forced to use ${SOLVER_NAME}")
+        find_package(${SOLVER_NAME} REQUIRED)
+    elseif((SOLVER_STATUS STREQUAL OPTIONAL) OR (SOLVER_STATUS STREQUAL O))
+        find_package(${SOLVER_NAME})
+    elseif((SOLVER_STATUS STREQUAL EXCLUDED) OR (SOLVER_STATUS STREQUAL E))
+        message(STATUS "${SOLVER_NAME} excluded from the build")
+    else()
+        message(FATAL_ERROR "Wrong specification for SOLVER_NAME")
+    endif()
+endfunction(find_solver)
+
 project(vacsat)
 
 set(CMAKE_CXX_STANDARD 14)  # enable C++14 standard
@@ -47,8 +62,20 @@ else (CCACHE_FOUND)
 endif (CCACHE_FOUND)
 
 
-option(STATIC "Make statically linked binary" OFF) #OFF by default
-option(ENABLE_GPL "permit GPL dependences, if available" ON) #OFF by default
+set(STATIC OFF CACHE BOOL "Make statically linked binary") #OFF by default
+set(ENABLE_GPL ON CACHE BOOL "permit GPL dependences, if available") #ON by default
+
+set(BOOLECTOR OPTIONAL CACHE STRING "Force to use BOOLECTOR SMT backend ((R)EQUIRED|(O)PTIONAL|(E)XCLUDED) (DEFAULT O)")
+set_property(CACHE BOOLECTOR PROPERTY STRINGS REQUIRED OPTIONAL EXCLUDED)
+
+set(YICES OPTIONAL CACHE STRING "Force to use YICES SMT backend ((R)EQUIRED|(O)PTIONAL|(E)XCLUDED) (DEFAULT O)")
+set_property(CACHE YICES PROPERTY STRINGS REQUIRED OPTIONAL EXCLUDED)
+
+set(MATHSAT OPTIONAL CACHE STRING "Force to use MATHSAT SMT backend ((R)EQUIRED|(O)PTIONAL|(E)XCLUDED) (DEFAULT O)")
+set_property(CACHE MATHSAT PROPERTY STRINGS REQUIRED OPTIONAL EXCLUDED)
+
+set(CVC4 OPTIONAL CACHE STRING "Force to use CVC4 SMT backend ((R)EQUIRED|(O)PTIONAL|(E)XCLUDED) (DEFAULT O)")
+set_property(CACHE CVC4 PROPERTY STRINGS REQUIRED OPTIONAL EXCLUDED)
 
 #unset(STATIC CACHE) # <---- this is the important!!
 
@@ -112,12 +139,13 @@ set(SOLVER_PREFIX /home/esteffin/solvers)
 # For each required library call its find macro
 find_package(ANTLR3C REQUIRED)
 find_package(Z3 REQUIRED)
-find_package(BOOLECTOR)
+find_solver(BOOLECTOR ${BOOLECTOR})
+
 # Look for GPL solvers only if required
 if (ENABLE_GPL)
-    find_package(YICES)
-    find_package(MATHSAT)
-    find_package(CVC4)
+        find_solver(YICES ${YICES})
+        find_solver(MATHSAT ${MATHSAT})
+        find_solver(CVC4 ${CVC4})
     if(YICES_FOUND OR MATHSAT_FOUND OR CVC4_FOUND)
         find_package(GMP REQUIRED)
     endif()
