@@ -28,6 +28,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
                      -Wno-unused-parameter \
                      -Wno-comment \
                      -Wno-sign-compare \
+                     -Wno-ignored-qualifiers \
+                     -Wno-deprecated \
                      -ftemplate-backtrace-limit=0 ")
 
 # SET SPECIFIC FLAGS FOR EACH COMPILER

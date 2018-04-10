@@ -212,8 +212,7 @@ namespace SMT {
     }
 
     void Cvc4Solver::printModel() {
-        extract_model();
-        std::cout << *model << std::endl;
+        std::cout << solver.getAssignment() << std::endl;
     }
 
     bool Cvc4Solver::get_bool_value(const SMTExpr& expr) {
