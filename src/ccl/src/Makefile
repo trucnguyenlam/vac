@@ -4,7 +4,7 @@
 # 
 #---------------------------------------------------
 # Optimized CFLAGS setting
-CFLAGS=-O2 -Wno-pointer-sign -DUNIX -Wall -D__MAC_OSX
+CFLAGS=-O2 -Wno-pointer-sign -DUNIX -Wall -D__MAC_OSX -fPIC
 CC=gcc
 # Debug CFLAGS setting
 #CFLAGS=-Wno-pointer-sign -DUNIX -Wall -g
