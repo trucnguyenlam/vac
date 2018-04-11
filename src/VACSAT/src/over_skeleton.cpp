@@ -1104,8 +1104,8 @@ namespace SMT {
 
             void initialize() {
                 tmp_bool = generic_variable("tmp_bool", 0, 1, solver.get(), BOOLEAN);
-                zero = solver->createBoolConst(0);
-                one = solver->createBoolConst(1);
+                zero = solver->createBoolConst(false);
+                one = solver->createBoolConst(true);
             }
 
             void cleanup() {

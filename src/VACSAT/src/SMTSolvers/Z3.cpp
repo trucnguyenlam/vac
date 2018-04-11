@@ -111,7 +111,7 @@ namespace SMT {
     SMTExpr Z3Solver::createBVConst(int value, int size) {
         return z3expr(context.bv_val(value, size));
     }
-    SMTExpr Z3Solver::createBoolConst(int value) {
+    SMTExpr Z3Solver::createBoolConst(bool value) {
         return z3expr(value ? context.bool_val(true) : context.bool_val(false));
     }        
     SMTExpr Z3Solver::createTrue() {

@@ -40,7 +40,7 @@ namespace SMT {
         SMTExpr createBVVar(const std::string name, int size) override;
 
         SMTExpr createBVConst(int value, int size) override;
-        SMTExpr createBoolConst(int value) override;
+        SMTExpr createBoolConst(bool value) override;
         SMTExpr createTrue() override;
         SMTExpr createFalse() override;
         SMTExpr createOrExpr(const SMTExpr& lhs, const SMTExpr& rhs) override;

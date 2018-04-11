@@ -98,7 +98,7 @@ namespace SMT {
         return bto_e(ret);
     }
 
-    SMTExpr BoolectorSolver::createBoolConst(int value) {
+    SMTExpr BoolectorSolver::createBoolConst(bool value) {
         return value ? createTrue() : createFalse();
     }
 

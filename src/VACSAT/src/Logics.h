@@ -443,7 +443,7 @@ namespace SMT {
             case Exprv::CONSTANT: {
                 std::shared_ptr<Constant> c = std::dynamic_pointer_cast<Constant>(expr);
                 if (c->bv_size == 1) {
-                    return solver->createBoolConst(c->value);
+                    return solver->createBoolConst((bool) c->value);
                 } else {
                     return solver->createBVConst(c->value, c->bv_size);
                 }

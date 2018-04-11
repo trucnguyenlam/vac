@@ -73,7 +73,7 @@ namespace SMT {
         return cto_e(ret);
     }
 
-    SMTExpr Cvc4Solver::createBoolConst(int value) {
+    SMTExpr Cvc4Solver::createBoolConst(bool value) {
         return value ? createTrue() : createFalse();
     }
 

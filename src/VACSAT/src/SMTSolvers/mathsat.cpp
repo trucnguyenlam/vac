@@ -144,7 +144,7 @@ namespace SMT {
         }
         return mto_e(res);
     }
-    SMTExpr MathsatSolver::createBoolConst(int value) {
+    SMTExpr MathsatSolver::createBoolConst(bool value) {
         return value ? createTrue() : createFalse();
     }
     SMTExpr MathsatSolver::createTrue() {

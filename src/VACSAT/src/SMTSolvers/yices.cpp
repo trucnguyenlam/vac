@@ -154,7 +154,7 @@ namespace SMT {
         }
         return yexp(res);
     }
-    SMTExpr YicesSolver::createBoolConst(int value) {
+    SMTExpr YicesSolver::createBoolConst(bool value) {
         term_t res = value ? yices_true() : yices_false();
         if (res < 0) {
             std::list<SMTExpr> parts;

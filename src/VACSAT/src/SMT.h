@@ -45,7 +45,7 @@ namespace SMT {
         virtual SMTExpr createBVVar(const std::string name, int bv_size) = 0;
 
         virtual SMTExpr createBVConst(int value, int size) = 0;
-        virtual SMTExpr createBoolConst(int value) = 0;
+        virtual SMTExpr createBoolConst(bool value) = 0;
         virtual SMTExpr createTrue() = 0;
         virtual SMTExpr createFalse() = 0;
         virtual SMTExpr createOrExpr(const SMTExpr& lhs, const SMTExpr& rhs) = 0;
