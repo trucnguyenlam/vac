@@ -37,8 +37,8 @@ namespace SMT {
 
     bool overapprox_learning(const std::shared_ptr<SMT::SMTFactory>& solver,
                              const std::shared_ptr<arbac_policy>& policy,
-                             const std::vector<atomp> atoms,
-                             const std::vector<rulep> rules,
+                             const std::vector<atomp>& atoms,
+                             const std::vector<rulep>& rules,
                              const Expr& to_check);
 
 }

@@ -81,7 +81,7 @@ namespace SMT {
         virtual void printContext(std::string filename) = 0;
 
         SMTFactory() = delete;
-        SMTFactory(Solver _solver_name) : solver_name(_solver_name) { }
+        explicit SMTFactory(Solver _solver_name) : solver_name(_solver_name) { }
 
         const Solver solver_name;
 

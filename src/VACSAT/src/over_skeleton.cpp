@@ -251,7 +251,7 @@ namespace SMT {
             void cond_save_mask(const tree &node,
                                 std::vector<variable> &source,
                                 std::vector<variable> &dest,
-                                SMTExpr condition) {
+                                const SMTExpr& condition) {
                 if (source.size() != dest.size()) {
                     throw unexpected("Cannot sync two container of different sizes");
                 }
@@ -278,7 +278,7 @@ namespace SMT {
                                      std::vector<variable> &source1,
                                      std::vector<variable> &source2,
                                      std::vector<variable> &dest,
-                                     SMTExpr condition) {
+                                     const SMTExpr& condition) {
                 if (source1.size() != source2.size() || source1.size() != dest.size()) {
                     throw unexpected("Cannot sync two container of different sizes");
                 }
@@ -655,15 +655,16 @@ namespace SMT {
 
                 subrun(child);
 
+                const SMTExpr guard = solver_state[child]->guard.get_solver_var();
                 cond_save_mask(node,
                                solver_state[child]->vars,
                                solver_state[node]->vars,
-                               solver_state[child]->guard.get_solver_var());
+                               guard);
                 cond_save_ored_mask(node,
                                     solver_state[node]->updated_in_subrun,
                                     solver_state[child]->updated_in_subrun,
                                     solver_state[node]->updated_in_subrun,
-                                    solver_state[child]->guard.get_solver_var());
+                                    guard);
 
 //                update_node_var_blocked_after_child(node, child);
             }
@@ -681,7 +682,7 @@ namespace SMT {
             }
 
             // PRIORITY RELATED FUNCTIONS
-            void set_priority(const tree &node, rulep& rule, SMTExpr rule_selected) {
+            void set_priority(const tree &node, rulep& rule, const SMTExpr& rule_selected) {
                 SMTExpr all_atoms_priority_set = one;
                 for (auto &&atom : node->node_infos.all_atoms) {
                     int i = atom->role_array_index;
@@ -1128,9 +1129,8 @@ namespace SMT {
                         return true;
                     case maybe_bool::NO:
                         return false;
-                    default:
-                        throw unexpected("uh?");
                 }
+                throw unexpected("Uh?");
             }
 
         public:
@@ -1162,7 +1162,7 @@ namespace SMT {
                 } else {
 
                         refinement_nodes = anotate_refineable(proof->proof_tree);
-                        result = (refinement_nodes.size() > 0) ?
+                        result = (!refinement_nodes.empty()) ?
                                  over_analysis_result::UNSAFE_INCOMPLETE :
                                  over_analysis_result::UNSAFE;
                     }
@@ -1824,8 +1824,8 @@ namespace SMT {
 
     bool overapprox_learning(const std::shared_ptr<SMTFactory>& solver,
                              const std::shared_ptr<arbac_policy>& policy,
-                             const std::vector<atomp> atoms,
-                             const std::vector<rulep> rules,
+                             const std::vector<atomp>& atoms,
+                             const std::vector<rulep>& rules,
                              const Expr& to_check) {
         OverapproxOptions strategy = {
             .version = OverapproxOptions::LEARNING,
