@@ -200,6 +200,7 @@ static arg_obj<std::string> get_backend_arg_obj() {
             ""
             #ifdef USE_Z3
             "Z3"
+            ", Z3Fast"
             #endif
             #ifdef USE_BOOLECTOR
             ", BOOLECTOR"

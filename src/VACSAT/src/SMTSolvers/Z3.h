@@ -26,9 +26,12 @@ namespace SMT {
         static inline const std::string solver_name() {
             return "Z3";
         };
-        static std::shared_ptr<z3::config> config;
+        static inline const std::string fast_solver_name() {
+            return "Z3Fast";
+        };
+//        static std::shared_ptr<z3::config> config;
 
-        Z3Solver();
+        explicit Z3Solver(bool _fast);
         ~Z3Solver();
 
         // sort createBoolType() override;
@@ -85,6 +88,8 @@ namespace SMT {
         z3::context context;
         z3::solver solver;
         std::shared_ptr<z3::model> model;
+        bool fast;
+        std::vector<z3::expr> to_be_asserted;
 
         void extract_model();
     };

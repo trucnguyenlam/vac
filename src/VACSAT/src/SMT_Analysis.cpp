@@ -162,7 +162,12 @@ namespace SMT {
 #ifdef USE_Z3
         else if (str_to_lower(solver_name) == str_to_lower(Z3Solver::solver_name())) {
             log->debug("Using {} as backend", solver_name);
-            std::shared_ptr<SMTFactory> solver(new Z3Solver());
+            std::shared_ptr<SMTFactory> solver(new Z3Solver(false));
+            return execute(filename, analysis_type,solver, policy, config);
+        }
+        else if (str_to_lower(solver_name) == str_to_lower(Z3Solver::fast_solver_name())) {
+            log->debug("Using {} as backend", solver_name);
+            std::shared_ptr<SMTFactory> solver(new Z3Solver(true));
             return execute(filename, analysis_type,solver, policy, config);
         }
 #endif

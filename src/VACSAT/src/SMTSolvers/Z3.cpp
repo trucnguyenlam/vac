@@ -65,10 +65,11 @@ namespace SMT {
         return cfg;
     }
 
-    Z3Solver::Z3Solver() :
+    Z3Solver::Z3Solver(bool _fast) :
             SMTFactory(Solver::Z3),
             context(get_default_conf(this->cfg)),
-            solver(context) {
+            solver(context),
+            fast(_fast) {
 
 //        context.init(cfg, false);
 //        solver = z3::solver(context);
@@ -221,7 +222,11 @@ namespace SMT {
     }
 
     void Z3Solver::assertLater(const SMTExpr& e) {
-        solver.add(eto_z3(e));
+        if (!fast) {
+            solver.add(eto_z3(e));
+        } else {
+            to_be_asserted.push_back(eto_z3(e));
+        }
     }
 
     void Z3Solver::assertNow(const SMTExpr& e) {
@@ -294,7 +299,22 @@ namespace SMT {
 //        }
 //    }
 
-    void Z3Solver::loadToSolver() { }
+    void Z3Solver::loadToSolver() {
+        if (fast) {
+            if (to_be_asserted.empty()) {
+                return;
+            } else {
+                auto ite = to_be_asserted.begin();
+                z3::expr body = *ite;
+                for (++ite; ite != to_be_asserted.end(); ++ite) {
+                    body = body && *ite;
+                }
+                solver.add(body);
+                // yices_pp_term(stderr, body, 120, 40, 0);
+                this->to_be_asserted.clear();
+            }
+        }
+    }
 
     void Z3Solver::clean() {
         //TODO: both var_counter and context should be cleaned
@@ -303,6 +323,7 @@ namespace SMT {
     }
     void Z3Solver::deep_clean() {
         var_counter = 0;
+        to_be_asserted.clear();
         //FIXME: nondtext should be regenerated
         /*delete context;
         context = new z3::context();*/
