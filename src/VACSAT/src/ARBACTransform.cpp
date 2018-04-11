@@ -114,9 +114,9 @@ public:
             bool _show_help,
             std::string _input_file,
             std::string _dump_smt_formula
-    ) : output_file(_output_file),
+    ) : output_file(std::move(_output_file)),
         old_inline(_old_inline),
-        new_backend(_new_backend),
+        new_backend(std::move(_new_backend)),
         old_parser(_old_parser),
         new_prune_only(_new_prune_only),
         use_tampone(_use_tampone),
@@ -125,7 +125,7 @@ public:
         rule_6_max_depth(_rule_6_max_depth),
         overapprox_depth(_overapprox_depth),
         no_overapprox_slicing(_no_overapprox_slicing),
-        overapprox_version(_overapprox_version),
+        overapprox_version(std::move(_overapprox_version)),
         overapprox_blocks_count(_overapprox_blocks_count),
         experimental_simplify_toplevel_or(_experimental_simplify_toplevel_or),
         bmc_rounds_count(_bmc_rounds_count),
@@ -134,7 +134,7 @@ public:
         no_infinity_bmc(_no_infinity_bmc),
         infinity_bmc_rounds_count(_infinity_bmc_rounds_count),
         infinity_bmc_steps_count(_infinity_bmc_steps_count),
-        mem_limit(_mem_limit),
+        mem_limit(std::move(_mem_limit)),
         verbosity(_verbosity),
         profile(_profile),
         print_old_model(_print_old_model),
@@ -143,8 +143,8 @@ public:
         solver_statistics(_solver_statistics),
         show_statistics(_show_statistics),
         show_help(_show_help),
-        input_file(_input_file),
-        dump_smt_formula(_dump_smt_formula) { }
+        input_file(std::move(_input_file)),
+        dump_smt_formula(std::move(_dump_smt_formula)) { }
 
 };
 
@@ -173,19 +173,19 @@ public:
 };
 
 static arg_obj<std::string> create_arg_obj_string(std::string name, std::string default_value, std::string description) {
-    return arg_obj<std::string>(name, default_value, description);
+    return arg_obj<std::string>(std::move(name), std::move(default_value), std::move(description));
 }
 static arg_obj<std::string> create_arg_obj_string(std::string name, std::string description) {
-    return arg_obj<std::string>(name, "", description);
+    return arg_obj<std::string>(std::move(name), "", std::move(description));
 }
 static arg_obj<int> create_arg_obj_int(std::string name, int def, std::string description) {
-    return arg_obj<int>(name, def, description);
+    return arg_obj<int>(std::move(name), def, std::move(description));
 }
 static arg_obj<int> create_arg_obj_int(std::string name, std::string description) {
-    return arg_obj<int>(name, -1, description);
+    return arg_obj<int>(std::move(name), -1, std::move(description));
 }
 static arg_obj<bool> create_arg_obj_bool(std::string name, std::string description) {
-    return arg_obj<bool>(name, false, description);
+    return arg_obj<bool>(std::move(name), false, std::move(description));
 }
 
 static arg_obj<std::string> get_backend_arg_obj() {
