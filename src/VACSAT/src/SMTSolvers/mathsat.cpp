@@ -192,7 +192,7 @@ namespace SMT {
     }
     SMTExpr MathsatSolver::createCondExpr(const SMTExpr& cond, const SMTExpr& choice1, const SMTExpr& choice2) {
         msat_term res;
-        if (true) {
+//        if (true) {
             // MathSAT shows a dislike of implementing this with booleans. Follow
             // CBMC's CNF flattening and make this
             // (with c = cond, t = trueval, f = falseval):
@@ -208,9 +208,9 @@ namespace SMT {
             check_msat_error(land2);
 
             res = msat_make_or(context, land1, land2);
-        } else {
-            res = msat_make_term_ite(context, eto_m(cond), eto_m(choice1), eto_m(choice2));
-        }
+//        } else {
+//            res = msat_make_term_ite(context, eto_m(cond), eto_m(choice1), eto_m(choice2));
+//        }
         if (MSAT_ERROR_TERM(res)) {
             auto ty = msat_type_repr(msat_term_get_type(eto_m(cond)));
             log->warn("{}", ty);
@@ -279,7 +279,7 @@ namespace SMT {
     }
 
     SMTExpr MathsatSolver::joinExprsWithAnd(std::list<SMTExpr>& exprs) {
-        if (exprs.size() < 1) {
+        if (exprs.empty()) {
             return createTrue();
 //            fprintf(stderr, "Cannot join zero expressions...\n");
 //            throw std::runtime_error("Cannot join zero expressions");
@@ -292,7 +292,7 @@ namespace SMT {
         return mto_e(ret);
     }
     SMTExpr MathsatSolver::joinExprsWithOr(std::list<SMTExpr>& exprs) {
-        if (exprs.size() < 1) {
+        if (exprs.empty()) {
             return createTrue();
 //            fprintf(stderr, "Cannot join zero expressions...\n");
 //            throw std::runtime_error("Cannot join zero expressions");
@@ -344,9 +344,9 @@ namespace SMT {
 
         bool res;
 
-        if (msat_term_is_true(this->context, t)) {
+        if ((bool) msat_term_is_true(this->context, t)) {
             res = true;
-        } else if (msat_term_is_false(this->context, t)) {
+        } else if ((bool) msat_term_is_false(this->context, t)) {
             res = false;
         } else {
             throw std::runtime_error("Boolean model value is neither true or false");
