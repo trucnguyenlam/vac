@@ -251,10 +251,14 @@ namespace SMT {
     }
 
     void Cvc4Solver::clean() {
+        to_be_asserted.clear();
         solver.resetAssertions();
     }
 
     void Cvc4Solver::deep_clean() {
+        var_counter = 0;
+        to_be_asserted.clear();
+        solver.resetAssertions();
         solver.reset();
         mk_config();
     }

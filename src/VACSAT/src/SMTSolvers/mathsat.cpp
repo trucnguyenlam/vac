@@ -382,6 +382,7 @@ namespace SMT {
         msat_reset_env(context);
     }
     void MathsatSolver::deep_clean() {
+        var_counter = 0;
         msat_reset_env(context);
         msat_destroy_env(context);
         context = msat_create_env(mk_config());
