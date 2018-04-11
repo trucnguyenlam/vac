@@ -343,7 +343,7 @@ namespace SMT {
     // Expr - Solver expr funtions
     struct TVarWrapper {
     public:
-        explicit TVarWrapper(SMTExpr _solver_varp) : solver_varp(_solver_varp) { }
+        explicit TVarWrapper(SMTExpr _solver_varp) : solver_varp(std::move(_solver_varp)) { }
 
         inline SMTExpr get_solver_var() const {
             if (solver_varp == nullptr)
