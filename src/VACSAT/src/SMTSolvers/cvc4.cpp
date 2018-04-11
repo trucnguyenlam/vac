@@ -197,9 +197,9 @@ namespace SMT {
 //        }
         this->loadToSolver();
         CVC4::Result cvc4_res = solver.checkSat();
-        if (cvc4_res.isSat()) {
+        if (cvc4_res.isSat() == CVC4::Result::SAT) {
             return SMTResult::SAT;
-        } else if (!cvc4_res.isSat()) {
+        } else if (cvc4_res.isSat() == CVC4::Result::UNSAT) {
             return SMTResult::UNSAT;
         } else {
             log->error("UNKNOWN CVC4 result");
