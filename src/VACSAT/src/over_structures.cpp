@@ -691,11 +691,11 @@ namespace SMT {
                            int _depth,
                            node_invariants _invariants,
                            const node_policy_infos _node_infos,
-                           std::unique_ptr<leaves_infos> _leaf_infos,
+                           std::unique_ptr<leaves_infos> _leaves_infos,
                            std::list<std::weak_ptr<proof_node>> ancestors,
                            std::weak_ptr<proof_node> parent,
                            std::vector<std::shared_ptr<proof_node>> refinement_blocks):
-            _ancestors(ancestors),
+            _ancestors(std::move(ancestors)),
             _parent(std::move(parent)),
             _refinement_blocks(std::move(refinement_blocks)),
             path(std::move(_path)),
@@ -703,7 +703,7 @@ namespace SMT {
             depth(_depth),
             invariants(std::move(_invariants)),
             node_infos(_node_infos),
-            leaf_infos(std::move(_leaf_infos)) { }
+            leaf_infos(std::move(_leaves_infos)) { }
 
     // PRINTING FUNCTIONS
     std::string proof_node::tree_to_string() {
