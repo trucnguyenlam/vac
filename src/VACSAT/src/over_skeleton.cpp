@@ -916,6 +916,45 @@ namespace SMT {
                 emit_comment("End_exploration_strategy_" + node->uid);
             }
 
+            // LAST MOVEMENT PRIORITY CHECK
+            SMTExpr last_move_skipped_last_child(const tree& node) {
+                if (node->is_leaf()) {
+                    throw unexpected("Exploration strategy cannot be called on leaves");
+                }
+                tree last_child = node->refinement_blocks().back();
+                return solver_state[last_child]->skip.get_solver_var();
+            }
+
+            void last_move_set_all_done(const tree &node) {
+                SMTExpr all_set = one;
+                for (auto &&atom : node->node_infos.all_atoms) {
+                    int i = atom->role_array_index;
+                    variable updated_atom = solver_state[node]->updated_in_subrun[i];
+                    variable blocked_atom = solver_state[node]->blocked_by_children[i];
+
+                    SMTExpr if_upd_then_blocked = solver->createImplExpr(updated_atom.get_solver_var(),
+                                                                         blocked_atom.get_solver_var());
+
+                    all_set = solver->createAndExpr(all_set, if_upd_then_blocked);
+                }
+                emit_assignment(node, solver_state[node]->es_all_atoms_set, all_set);
+            }
+
+            /**
+             *   skipped_last_child => es_all_atoms_set
+             * @param node
+             */
+            void last_move_set_if_skip_all_done(const tree &node) {
+                SMTExpr skipped_last_child = last_move_skipped_last_child(node);
+                last_move_set_all_done(node);
+
+                SMTExpr if_skip_all_done = solver->createImplExpr(skipped_last_child,
+                                                                  solver_state[node]->es_all_atoms_set.get_solver_var());
+                emit_assignment(node, solver_state[node]->es_skip_impl_all_atoms_set, if_skip_all_done);
+            }
+
+
+
             // SUBRUN FUNCTION
             void subrun(const tree &node) {
                 emit_comment("Begin_subrun_" + node->uid);
