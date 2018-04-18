@@ -51,7 +51,7 @@ namespace SMT {
 
 //    std::shared_ptr<z3::config> Z3Solver::config = default_config();
 
-    static z3::config& get_default_conf(z3::config& cfg) {
+    static void get_default_conf(z3::config& cfg) {
         cfg.set("proof", false);
 //        cfg.set("debug_ref_count", false);
         cfg.set("trace", false);
@@ -62,12 +62,12 @@ namespace SMT {
         cfg.set("model", true);
         cfg.set("model_validate", false);
         cfg.set("unsat_core", false);
-        return cfg;
+        return (void) 0;
     }
 
     Z3Solver::Z3Solver(bool _fast) :
             SMTFactory(Solver::Z3),
-            context(get_default_conf(this->cfg)),
+            context((get_default_conf(this->cfg), this->cfg)),
             solver(context),
             fast(_fast) {
 
