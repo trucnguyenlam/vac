@@ -44,14 +44,17 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
     message(STATUS "using Visual Studio C++")
 endif()
 
-# TRY TO USE GOLD AS LINKER (FASTER) INSTEAD OF LD
-find_program(GOLD_FOUND gold)
-if (GOLD_FOUND)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
-    message(STATUS "gold found! Faster linking!")
-else (GOLD_FOUND)
-    message(WARNING "gold not found! Slower linking!")
-endif (GOLD_FOUND)
+# IF USING GNU GCC
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
+#    TRY TO USE GOLD AS LINKER (FASTER) INSTEAD OF LD
+    find_program(GOLD_FOUND gold)
+    if (GOLD_FOUND)
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
+        message(STATUS "gold found! Faster linking!")
+    else (GOLD_FOUND)
+        message(WARNING "gold not found! Slower linking!")
+    endif (GOLD_FOUND)
+endif()
 
 # TRY TO USE CCACHE FOR FASTER COMPILATION
 find_program(CCACHE_FOUND ccache)
@@ -257,6 +260,30 @@ endif()
 if(YICES_FOUND OR MATHSAT_FOUND OR CVC4_FOUND)
     target_link_libraries(vacsat PUBLIC gmp)
 endif()
+
+
+#include(cotire)
+#cotire(vacsat)
+
+# cotire sets the following properties
+#get_target_property(_unitySource vacsat COTIRE_CXX_UNITY_SOURCE)
+#get_target_property(_prefixHeader vacsat COTIRE_CXX_PREFIX_HEADER)
+#get_target_property(_precompiledHeader vacsat COTIRE_CXX_PRECOMPILED_HEADER)
+#get_target_property(_unityTargetName vacsat COTIRE_UNITY_TARGET_NAME)
+
+#if (_unitySource)
+#	message(STATUS "example unity source: ${_unitySource}")
+#endif()
+#if (_prefixHeader)
+#	message(STATUS "example prefix header: ${_prefixHeader}")
+#endif()
+#if (_precompiledHeader)
+#	message(STATUS "example precompiled header: ${_precompiledHeader}")
+#endif()
+#if (TARGET ${_unityTargetName})
+#	message(STATUS "example unity target: ${_unityTargetName}")
+#endif()
+
 
 target_link_libraries(vacsat PRIVATE vacsat_old)
 #target_link_libraries(vacsat PUBLIC       gmpxx  stdc++)
