@@ -139,7 +139,7 @@ set(CCL_PREFIX ${DEPS_DIR}/ccl)
 #set(BOOLECTOR_PREFIX ${DEPS_DIR}/boolector)
 #set(MATHSAT_PREFIX ${DEPS_DIR}/mathsat)
 # FIXME: REMOVE THIS
-set(SOLVER_PREFIX /home/esteffin/solvers)
+set(SOLVER_PREFIX "$ENV{HOME}/solvers")
 
 # For each required library call its find macro
 find_package(ANTLR3C REQUIRED)
@@ -234,8 +234,7 @@ set(PARSER_SOURCES
     ${PROJECT_SOURCE_DIR}/src/parser/Tokens.cpp
     ${PROJECT_SOURCE_DIR}/src/parser/Lexer.cpp
     ${PROJECT_SOURCE_DIR}/src/parser/Parser.cpp
-    ${PROJECT_SOURCE_DIR}/src/parser/translator.cpp
-)
+    ${PROJECT_SOURCE_DIR}/src/parser/translator.cpp)
 
 
 add_executable(vacsat ${SOURCE_FILES} ${SOLVER_SOURCES} ${PARSER_SOURCES})
@@ -283,6 +282,12 @@ endif()
 #if (TARGET ${_unityTargetName})
 #	message(STATUS "example unity target: ${_unityTargetName}")
 #endif()
+
+#add_custom_command(TARGET vacsat POST_BUILD
+#        COMMAND "ls"
+#        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#        COMMENT "Hi!"
+#        )
 
 
 target_link_libraries(vacsat PRIVATE vacsat_old)
