@@ -502,13 +502,13 @@ namespace SMT {
         }
     }
 
-    void proof_node::get_nodes(proof_node* node,
-                               std::list<proof_node*>& list) {
-        list.push_back(node);
-        for (auto &&child : node->_refinement_blocks) {
-            get_nodes(child.get(), list);
-        }
-    };
+//    void proof_node::get_nodes(proof_node* node,
+//                               std::list<proof_node*>& list) {
+//        list.push_back(node);
+//        for (auto &&child : node->_refinement_blocks) {
+//            get_nodes(child.get(), list);
+//        }
+//    };
 
     void proof_node::filter_nodes_tail(std::list<std::shared_ptr<proof_node>>& acc,
                                        std::function<bool(std::shared_ptr<proof_node>&)> fn) {

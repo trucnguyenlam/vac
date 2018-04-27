@@ -151,8 +151,8 @@ namespace SMT {
 
         void rebuild_weak_ptrs();
 
-        void get_nodes(proof_node* node,
-                       std::list<proof_node*>& list);
+//        void get_nodes(proof_node* node,
+//                       std::list<proof_node*>& list);
 
         void filter_nodes_tail(std::list<std::shared_ptr<proof_node>>& acc,
                                std::function<bool(std::shared_ptr<proof_node>&)> fn);
