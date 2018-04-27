@@ -51,7 +51,7 @@ namespace SMT {
         class SMT_proof_checker : public proof_checker {
         private:
 
-            class b_solver_state {
+            class last_k_solver_state {
             private:
 
                 void init(SMTFactory* solver, const tree &node) {
@@ -79,27 +79,17 @@ namespace SMT {
                     }
 
                     for (auto &&atom : node->node_infos.all_atoms) {
+                        std::string blocked_before_name = "blocked_before_" + node_id + "_" + atom->name;
+                        blocked_before[atom->role_array_index] = variable(blocked_before_name, 0, 1, solver, BOOLEAN);
+                    }
+                    for (auto &&atom : node->node_infos.all_atoms) {
                         std::string blocked_by_children_name = "blocked_by_children_" + node_id + "_" + atom->name;
-                        blocked_by_children[atom->role_array_index] = variable(blocked_by_children_name, 0, 1, solver,
-                                                                               BOOLEAN);
+                        blocked_by_children[atom->role_array_index] = variable(blocked_by_children_name, 0, 1, solver, BOOLEAN);
                     }
                     for (auto &&atom : node->node_infos.all_atoms) {
-                        std::string unchecked_priority_name = "unchecked_priority_" + node_id + "_" + atom->name;
-                        unchecked_priority[atom->role_array_index] = variable(unchecked_priority_name, 0, 1, solver, BOOLEAN);
+                        std::string unchecked_priority_name = "abstract_available_updates_" + node_id + "_" + atom->name;
+                        abstract_available_updates[atom->role_array_index] = variable(unchecked_priority_name, 0, 1, solver, BOOLEAN);
                     }
-                    for (auto &&atom : node->node_infos.all_atoms) {
-                        std::string priority_name = "priority_" + node_id + "_" + atom->name;
-                        priority[atom->role_array_index] = variable(priority_name, 0, 1, solver, BOOLEAN);
-                    }
-                    for (auto &&atom : node->node_infos.all_atoms) {
-                        std::string second_priority_name = "second_priority_" + node_id + "_" + atom->name;
-                        second_priority[atom->role_array_index] = variable(second_priority_name, 0, 1, solver, BOOLEAN);
-                    }
-//                for (auto &&atom : node->node_infos.all_atoms) {
-//                    std::string priority_not_blocked_name = "priority_not_blocked_" + node_id + "_" + atom->name;
-//                    priority_not_blocked[atom->role_array_index] = variable(priority_not_blocked_name, 0, 1, solver,
-//                                                                            BOOLEAN);
-//                }
 
                     //TODO: can be decreased only to actual atom count, but everything should be updated accordingly
                     var_id = variable("var_id_" + node_id, 0, bits_count(node->node_infos.policy_atoms_count), solver,
@@ -110,29 +100,19 @@ namespace SMT {
                     guard = variable("guard_" + node_id, 0, 1, solver, BOOLEAN);
                     refineable = variable("refineable_" + node_id, 0, 1, solver, BOOLEAN);
                     increase_budget = variable("increase_budget_" + node_id, 0, 1, solver, BOOLEAN);
-
-                    //EXPLORATION STRATEGY SUPPORT VALUES
-                    es_all_atoms_set = variable("all_atoms_set_" + node_id, 0, 1, solver, BOOLEAN);
-                    es_skip_impl_all_atoms_set = variable("skip_impl_all_atoms_set_" + node_id, 0, 1, solver, BOOLEAN);
-                    es_all_primary_priority_set = variable("all_primary_priority_set_" + node_id, 0, 1, solver, BOOLEAN);
-                    es_only_primary_priority_set = variable("only_primary_priority_set_" + node_id, 0, 1, solver, BOOLEAN);
-                    es_all_secondary_priority_set = variable("all_secondary_priority_set_" + node_id, 0, 1, solver, BOOLEAN);
-                    es_only_both_priority_set = variable("only_both_priority_set_" + node_id, 0, 1, solver, BOOLEAN);
-                    es_primary_priority_check = variable("primary_priority_check_" + node_id, 0, 1, solver, BOOLEAN);
-                    es_both_priority_check = variable("both_priority_check_" + node_id, 0, 1, solver, BOOLEAN);
                 }
 
             public:
                 std::string &node_id;
                 std::vector<variable> vars;
+                //TODO: can be removed
                 std::vector<variable> updated_in_subrun;
 //            std::vector<variable> blocked;
                 std::vector<variable> apply_rule;
+                std::vector<variable> blocked_before;
                 std::vector<variable> blocked_by_children;
-                std::vector<variable> unchecked_priority;
-                std::vector<variable> priority;
-                std::vector<variable> second_priority;
-//            std::vector<variable> priority_not_blocked;
+                std::vector<variable> abstract_available_updates;
+
                 variable var_id;
                 variable rule_id;
                 variable skip;
@@ -140,36 +120,24 @@ namespace SMT {
                 variable refineable;
                 variable increase_budget;
 
-                //Exploration_strategy tmp variables
-                variable es_skip_impl_all_atoms_set;
-                variable es_all_atoms_set;
-                variable es_all_primary_priority_set;
-                variable es_only_primary_priority_set;
-                variable es_all_secondary_priority_set;
-                variable es_only_both_priority_set;
-                variable es_primary_priority_check;
-                variable es_both_priority_check;
+                last_k_solver_state() = delete;
 
-                b_solver_state() = delete;
-
-                b_solver_state(const tree &node,
-//                           const std::shared_ptr<arbac_policy>& policy,
-                               SMTFactory* solver) :
+                last_k_solver_state(const tree &node,
+                                    SMTFactory* solver) :
                         node_id(node->uid),
                         vars(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
                         updated_in_subrun(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
 //                    blocked(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
                         apply_rule(std::vector<variable>((uint) node->node_infos.rules_c.size())),
+                        blocked_before(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
                         blocked_by_children(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
-                        unchecked_priority(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
-                        priority(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
-                        second_priority(std::vector<variable>((uint) node->node_infos.policy_atoms_count)) {
+                        abstract_available_updates(std::vector<variable>((uint) node->node_infos.policy_atoms_count)) {
                     init(solver, node);
 //                set_guards();
                 }
             };
 
-            std::map<tree, std::unique_ptr<b_solver_state>> solver_state;
+            std::map<tree, std::unique_ptr<last_k_solver_state>> solver_state;
             std::map<tree, pruning_triggers> p_triggers;
 //            const std::shared_ptr<arbac_policy> policy;
             std::shared_ptr<SMTFactory> solver;
@@ -194,7 +162,7 @@ namespace SMT {
                 SMTExpr ass = solver->createEqExpr(var.get_solver_var(), value);
                 //NOTICE: Do NOT put XOR, IMPLICATION or OR are OK, but NO XOR for the god sake! Otherwise the aserted statement MUST be false!
                 SMTExpr guarded_ass = solver->createImplExpr(solver_state[node]->guard.get_solver_var(),
-                                                           ass);
+                                                             ass);
                 solver->assertLater(guarded_ass);
 
             }
@@ -202,12 +170,12 @@ namespace SMT {
             inline void emit_assumption(const tree &node, const SMTExpr &value) {
                 //NOTICE: Do NOT put XOR, IMPLICATION or OR are OK, but NO XOR for the god sake! Otherwise the aserted statement MUST be false!
                 SMTExpr guarded_ass = solver->createImplExpr(solver_state[node]->guard.get_solver_var(),
-                                                           value);
+                                                             value);
                 solver->assertLater(guarded_ass);
             }
 
             inline void emit_comment(const std::string &comment) {
-                //Working automatically and only in Z3
+                // Working only in with Z3
                 if (solver->solver_name == Solver::Z3) {
                     solver->assertNow(solver->createBoolVar(comment));
 //                    log->debug("Emitting comment: " + comment);
@@ -217,8 +185,8 @@ namespace SMT {
             // STATE AND MASKS RELATED FUNCTIONS
             void set_empty_node_state(const tree &node) {
                 assert(solver_state[node] == nullptr);
-                b_solver_state node_state = b_solver_state(node, solver.get());
-                solver_state[node] = std::make_unique<b_solver_state>(node_state);
+                last_k_solver_state node_state = last_k_solver_state(node, solver.get());
+                solver_state[node] = std::make_unique<last_k_solver_state>(node_state);
             }
 
             void set_zero(const tree &node, std::vector<variable> &vars) {
@@ -231,6 +199,12 @@ namespace SMT {
                 }
             }
 
+            /**
+             * Copy the mask source to dest of the target node
+             * @param node: the node having the guard
+             * @param source: the source mask
+             * @param dest: the target mask
+             */
             void copy_mask(const tree &node, std::vector<variable> &source, std::vector<variable> &dest) {
                 if (source.size() != dest.size()) {
                     throw unexpected("Cannot copy from container of different sizes");
@@ -313,45 +287,46 @@ namespace SMT {
             }
 
             variable update_var_a(const tree &node, const Atomp &var) {
-                if (!node->is_leaf()) {
+                if (!node->is_leaf() && !node->nondet_after_trans) {
                     throw unexpected("var update must be located to leaves only");
                 }
                 //IF THE ATOM IS UPDATEABLE
                 if (!node->leaf_infos->nondet_restriction[var].empty()) {
-                    //GUARD FOR NONDET UPDATE
+                    //GUARD FOR NONDET UPDATE: (! blocked_before ) /\ abstract_available_updates /\ *
                     emit_comment("Nondet_update_role_" + var->name);
                     tmp_bool = tmp_bool.createFrom();
                     SMTExpr update_guard =
-                            solver->createAndExpr(solver->createNotExpr(
-                                    solver_state[node]->blocked_by_children[var->role_array_index].get_solver_var()),
-                                                  tmp_bool.get_solver_var());
+                            solver->createAndExpr(
+                                    solver->createAndExpr(
+                                        solver->createNotExpr(solver_state[node]->blocked_before[var->role_array_index].get_solver_var()),
+                                        solver_state[node]->abstract_available_updates[var->role_array_index].get_solver_var()),
+                                    tmp_bool.get_solver_var());
                     emit_assignment(node, tmp_bool, update_guard);
-
 
                     //VAR VALUE UPDATE
                     variable old_var_val = solver_state[node]->vars[var->role_array_index];
                     variable new_var_val = old_var_val.createFrom();
                     SMTExpr guarded_val = solver->createCondExpr(tmp_bool.get_solver_var(),
-                                                               new_var_val.get_solver_var(),
-                                                               old_var_val.get_solver_var());
+                                                                 new_var_val.get_solver_var(),
+                                                                 old_var_val.get_solver_var());
                     emit_assignment(node, new_var_val, guarded_val);
                     solver_state[node]->vars[var->role_array_index] = new_var_val;
 
                     //NEW VAR VALUE ASSUMPTIONS
                     SMTExpr value_was_changed = solver->createNotExpr(solver->createEqExpr(old_var_val.get_solver_var(),
-                                                                                         new_var_val.get_solver_var()));
+                                                                                           new_var_val.get_solver_var()));
                     SMTExpr value_invariant = get_variable_invariant_from_node(node, var);
                     SMTExpr assumption_body = solver->createImplExpr(tmp_bool.get_solver_var(),
-                                                                   solver->createAndExpr(value_was_changed,
-                                                                                         value_invariant));
+                                                                     solver->createAndExpr(value_was_changed,
+                                                                                           value_invariant));
                     emit_assumption(node, assumption_body);
 
                     //SAVE THE FACT THAT THE VARIABLE HAS BEEN CHANGED
                     variable old_updated_in_subrun = solver_state[node]->updated_in_subrun[var->role_array_index];
                     variable new_updated_in_subrun = old_updated_in_subrun.createFrom();
                     SMTExpr new_updated_value = solver->createCondExpr(tmp_bool.get_solver_var(),
-                                                                     one,
-                                                                     old_updated_in_subrun.get_solver_var());
+                                                                       one,
+                                                                       old_updated_in_subrun.get_solver_var());
                     emit_assignment(node, new_updated_in_subrun, new_updated_value);
                     solver_state[node]->updated_in_subrun[var->role_array_index] = new_updated_in_subrun;
                 } else {
@@ -391,7 +366,7 @@ namespace SMT {
                 }
             }
 
-            void update_unblocked_vars_a(const tree &node) {
+            void nondet_update_unblocked_vars_a(const tree &node, bool _save_refineable_condition) {
 //                if (node->leaf_infos->gap != maybe_bool::NO &&
                 if (!node->leaf_infos->no_gap &&
                     p_triggers[node].overapprox != maybe_bool::NO) {
@@ -402,7 +377,9 @@ namespace SMT {
                         update_guards.push_back(update_guard);
                     }
 
-                    save_refineable_condition(node, update_guards);
+                    if (_save_refineable_condition) {
+                        save_refineable_condition(node, update_guards);
+                    }
                     emit_comment("End_nondet_assignment");
                 } else {
                     emit_comment("Nondet_assignment_suppressed");
@@ -439,12 +416,16 @@ namespace SMT {
             SMTExpr get_rule_assumptions_c(const tree &node, std::pair<rulep, int> rule_id, SMTExpr &rule_is_selected) {
                 rulep rule = rule_id.first;
                 SMTExpr rule_precondition = generateSMTFunction(solver,
-                                                              rule->prec,
-                                                              solver_state[node]->vars,
-                                                              "");
+                                                                rule->prec,
+                                                                solver_state[node]->vars,
+                                                                "");
                 SMTExpr target_not_blocked =
                         solver->createNotExpr(
-                                solver_state[node]->blocked_by_children[rule->target->role_array_index].get_solver_var());
+                                solver_state[node]->blocked_before[rule->target->role_array_index].get_solver_var());
+                SMTExpr target_updateable_in_parent =
+                        node->is_root() ?
+                                one :
+                                solver_state[node->parent().lock()]->abstract_available_updates[rule->target->role_array_index].get_solver_var();
                 SMTExpr rule_target_value = rule->is_ca ? one : zero;
                 SMTExpr target_is_changed =
                         solver->createNotExpr(
@@ -456,7 +437,9 @@ namespace SMT {
                         solver->createImplExpr(rule_is_selected,
                                                solver->createAndExpr(rule_precondition,
                                                                      solver->createAndExpr(target_not_blocked,
-                                                                                           target_is_changed)));
+                                                                                           solver->createAndExpr(
+                                                                                                   target_updateable_in_parent,
+                                                                                                   target_is_changed))));
                 return final_assumption;
             }
 
@@ -468,7 +451,7 @@ namespace SMT {
              */
             void update_parent_blocked(const tree &node, rulep &rule, SMTExpr &is_rule_selected) {
                 // UPDATE PARENT BLOCKED
-                emit_comment("Blocked _parent node");
+                emit_comment("Blocked_parent_node");
                 if (node->is_root()) {
                     return;
                 }
@@ -510,20 +493,19 @@ namespace SMT {
                 emit_assignment(node, new_updated_in_subrun_var, new_updated_value);
                 solver_state[node]->updated_in_subrun[target->role_array_index] = new_updated_in_subrun_var;
 
-                // UPDATE PARENT BLOCKED
-                update_parent_blocked(node, rule, rule_is_selected);
+                // IF NOT NONDET_AFTER NODE (PRUNING) UPDATE PARENT BLOCKED
+                if (!node->nondet_after_trans) {
+                    update_parent_blocked(node, rule, rule_is_selected);
+                }
 
                 //SAVE VAR_ID
                 variable &var_id_var = solver_state[node]->var_id;
                 SMTExpr rule_var_id_value = solver->createBVConst(rule->target->role_array_index, var_id_var.bv_size);
                 SMTExpr rule_selected_impl_var_id = solver->createImplExpr(rule_is_selected,
-                                                                         solver->createEqExpr(
-                                                                                 var_id_var.get_solver_var(),
-                                                                                 rule_var_id_value));
+                                                                           solver->createEqExpr(
+                                                                                   var_id_var.get_solver_var(),
+                                                                                   rule_var_id_value));
                 emit_assumption(node, rule_selected_impl_var_id);
-
-                // SET PRIORITY OF THE NODE
-                set_priority(node, rule, rule_is_selected);
             }
 
             void simulate_rule_c(const tree &node, std::pair<rulep, int> rule_id) {
@@ -606,10 +588,19 @@ namespace SMT {
                 tmp_bool = tmp_bool.createFrom();
                 SMTExpr skip_child_value = tmp_bool.get_solver_var();
 
-                for (auto &&w_ancestor :node->ancestors()) {
-                    const tree ancestor = w_ancestor.lock();
+//                for (auto &&w_ancestor :node->ancestors()) {
+//                    const tree ancestor = w_ancestor.lock();
+//                    skip_child_value = solver->createOrExpr(skip_child_value,
+//                                                            solver_state[ancestor]->skip.get_solver_var());
+//                }
+
+                skip_child_value = solver->createOrExpr(skip_child_value,
+                                                        solver_state[node->parent().lock()]->skip.get_solver_var());
+
+                if (!node->right_siblings().empty()) {
+                    const tree right_sibling = node->right_siblings().front().lock();
                     skip_child_value = solver->createOrExpr(skip_child_value,
-                                                            solver_state[ancestor]->skip.get_solver_var());
+                                                            solver_state[right_sibling]->skip.get_solver_var());
                 }
 
                 if (p_triggers[node].no_skip) {
@@ -646,11 +637,12 @@ namespace SMT {
             }*/
 
             void simulate_child(const tree &node, const tree &child) {
-                set_empty_node_state(child);
+                assert(solver_state[node] != nullptr && "Solver state has not been initialized yet...");
 
                 set_skip(child);
                 copy_mask(child, solver_state[node]->vars, solver_state[child]->vars);
                 copy_mask(child, solver_state[node]->blocked_by_children, solver_state[child]->blocked_by_children);
+                copy_mask(child, solver_state[node]->blocked_by_children, solver_state[child]->blocked_before);
 
 
                 subrun(child);
@@ -670,8 +662,12 @@ namespace SMT {
             }
 
             void simulate_children(const tree &node) {
+                //creating the memory upfront (since generation references right variables)
+                for (auto &&child : node->refinement_blocks()) {
+                    set_empty_node_state(child);
+                }
                 for (auto &&child :node->refinement_blocks()) {
-                    if (node->node_infos.rules_c.empty() && !p_triggers[node].no_transition) {
+                    if (node->node_infos.rules_c.empty()) {
                         emit_comment("Child_" + child->uid + "_not_generated_since_C_is_empty");
                         log->warn("Child_{}_not_generated_since_C_is_empty", child->uid);
                     }
@@ -681,307 +677,57 @@ namespace SMT {
                 }
             }
 
-            // PRIORITY RELATED FUNCTIONS
-            void set_priority(const tree &node, rulep& rule, const SMTExpr& rule_selected) {
-                SMTExpr all_atoms_priority_set = one;
+            // AVAILABILITY RELATED FUNCTIONS
+            void set_availability(const tree &node) {
+//#pragma message "Remove this and add a proper method"
+                bool is_leftmost_sibling = node->is_leftmost_child();
                 for (auto &&atom : node->node_infos.all_atoms) {
                     int i = atom->role_array_index;
-                    SMTExpr value = (contains(rule->prec->atoms(), atom)) ? one : zero;
+                    SMTExpr value;
+                    if (is_leftmost_sibling) {
+                        value = one;
+                    } else {
+                        SMTExpr old_value =
+                                node->right_siblings().empty() ?
+                                zero :
+                                solver_state[node->right_siblings().front().lock()]->abstract_available_updates[i].get_solver_var();
 
-                    SMTExpr priority_i_set = solver->createEqExpr(solver_state[node]->priority[i].get_solver_var(),
-                                                                value);
-                    all_atoms_priority_set = solver->createAndExpr(all_atoms_priority_set, priority_i_set);
-                }
-                SMTExpr if_rule_selected_priority_is_set = solver->createImplExpr(rule_selected, all_atoms_priority_set);
-                emit_assumption(node, if_rule_selected_priority_is_set);
-            }
+                        //FIXME: remove the multiplexer if possible
+                        SMTExpr is_atom_selected = solver->createEqExpr(solver_state[node]->var_id.get_solver_var(),
+                                                                        solver->createBVConst(i, solver_state[node]->var_id.bv_size));
 
-            void set_unchecked_priority(const tree &node) {
-                for (auto &&atom : node->node_infos.all_atoms) {
-                    int i = atom->role_array_index;
-                    SMTExpr atom_in_priority = solver_state[node]->priority[i].get_solver_var();
-                    SMTExpr atom_blocked_by_children = solver_state[node]->blocked_by_children[i].get_solver_var();
-
-                    // If leaf all priority is unchecked
-                    SMTExpr atom_in_p_not_checked = node->is_leaf() ?
-                                                  atom_in_priority :
-                                                  solver->createAndExpr(atom_in_priority,
-                                                                        solver->createNotExpr(atom_blocked_by_children));
-                    variable& unchecked_atom = solver_state[node]->unchecked_priority[i];
-                    emit_assignment(node, unchecked_atom, atom_in_p_not_checked);
-                }
-            }
-
-            void set_second_priority(const tree &node) {
-                if (node->is_leaf()) {
-                    unexpected("Leaves do not have second priority");
-                }
-                for (auto &&atom : node->node_infos.all_atoms) {
-                    int i = atom->role_array_index;
-                    SMTExpr is_unchecked_in_children = zero;
-                    // Exclude last child from snd priority
-                    //TODO: put condition in last node not used for priority
-//                    for (int j = 0; j < node->_refinement_blocks.size(); ++j) {
-                    for (int j = 0; j < node->refinement_blocks().size() - 1; ++j) {
-                        const tree& child = node->refinement_blocks()[j];
-                        SMTExpr atom_is_unchecked_in_child = solver_state[child]->unchecked_priority[i].get_solver_var();
-                        is_unchecked_in_children = solver->createOrExpr(is_unchecked_in_children, atom_is_unchecked_in_child);
+                        SMTExpr rule_value =
+                                solver->createCondExpr(is_atom_selected, one, zero);
+                        value = solver->createOrExpr(old_value, rule_value);
                     }
-                    emit_assignment(node, solver_state[node]->second_priority[i], is_unchecked_in_children);
+                    emit_assignment(node, solver_state[node]->abstract_available_updates[i], value);
                 }
             }
-
-            // MULTY PRIORITY EXPLORATION STRATEGY REVISITED
-            SMTExpr rev_skipped_last_child(const tree& node) {
-                if (node->is_leaf()) {
-                    throw unexpected("Exploration strategy cannot be called on leaves");
-                }
-                tree last_child = node->refinement_blocks().back();
-                return solver_state[last_child]->skip.get_solver_var();
-            }
-
-            void rev_es_set_all_done(const tree &node) {
-                SMTExpr all_set = one;
-                for (auto &&atom : node->node_infos.all_atoms) {
-                    int i = atom->role_array_index;
-                    variable updated_atom = solver_state[node]->updated_in_subrun[i];
-                    variable blocked_atom = solver_state[node]->blocked_by_children[i];
-
-                    SMTExpr if_upd_then_blocked = solver->createImplExpr(updated_atom.get_solver_var(),
-                                                                       blocked_atom.get_solver_var());
-
-                    all_set = solver->createAndExpr(all_set, if_upd_then_blocked);
-                }
-                emit_assignment(node, solver_state[node]->es_all_atoms_set, all_set);
-            }
-
-            /**
-             *   skipped_last_child => es_all_atoms_set
-             * @param node
-             */
-            void rev_es_set_if_skip_all_done(const tree &node) {
-                SMTExpr skipped_last_child = rev_skipped_last_child(node);
-                rev_es_set_all_done(node);
-
-                SMTExpr if_skip_all_done = solver->createImplExpr(skipped_last_child,
-                                                                solver_state[node]->es_all_atoms_set.get_solver_var());
-                emit_assignment(node, solver_state[node]->es_skip_impl_all_atoms_set, if_skip_all_done);
-            }
-
-            /**
-             * Computes the first part of the node's exploration strategy
-             *   /\
-             *  /  \  (updated_in_subrun[i] /\ priority[i]) ==> blocked_by_children[i]
-             * /    \
-             *   i
-             * @param node: the node
-             * @param primary_priority: specify if priority is primary or secondary
-             */
-            void rev_es_set_all_updated_priority_set(const tree &node, bool primary_priority) {
-//                tree& last_node = node->_refinement_blocks.back();
-                SMTExpr all_blocked = one;
-                for (auto &&atom : node->node_infos.all_atoms) {
-                    int i = atom->role_array_index;
-                    SMTExpr updated_and_priority = solver->createAndExpr(
-                            solver_state[node]->updated_in_subrun[i].get_solver_var(),
-                            primary_priority ?
-                            solver_state[node]->priority[i].get_solver_var() :
-                            solver_state[node]->second_priority[i].get_solver_var());
-
-                    SMTExpr required_blocked = solver->createImplExpr(updated_and_priority,
-                                                                    solver_state[node]->blocked_by_children[i].get_solver_var());
-
-                    all_blocked = solver->createAndExpr(all_blocked,
-                                                        required_blocked);
-                }
-
-                variable& es_all_priority_set =
-                        primary_priority ?
-                        solver_state[node]->es_all_primary_priority_set :
-                        solver_state[node]->es_all_secondary_priority_set;
-                emit_assignment(node, es_all_priority_set, all_blocked);
-            }
-
-            /**
-             * Computes the second part of the node's exploration strategy
-             *   /\
-             *  /  \  (updated_in_subrun[i] /\ blocked_by_children[i] /\ (!blocked_in_last_child)) ==> priority_ored[i]
-             * /    \
-             *   i
-             *  updated_in_subrun[i] /\ blocked_by_children[i] is used instead of blocked_by_children[i] to allow to use blocked
-             *  (!blocked_in_last_child) allows to have a free action in the last child
-             *  priority_ored = primary_priority ? primary : (primary \/ secondary)
-             * @param node: the node
-             * @param primary_priority: specify if priority is primary or primary and secondary
-             */
-            void rev_es_set_only_priority_blocked(const tree &node, bool primary_priority) {
-                const tree& last_node = node->refinement_blocks().back();
-                SMTExpr only_priority = one;
-                for (auto &&atom : node->node_infos.all_atoms) {
-                    int i = atom->role_array_index;
-
-                    variable last_atom_set = solver_state[last_node]->var_id;
-                    SMTExpr atom_in_last_op = solver->createEqExpr(solver->createBVConst(i, last_atom_set.bv_size),
-                                                                 last_atom_set.get_solver_var());
-                    if (p_triggers[node].no_sfogo) {
-                        emit_comment("node" + node->uid + "is_marked_no_sfogo");
-                        atom_in_last_op = zero;
-                    }
-
-                    SMTExpr atom_explicitely_set =
-                            solver->createAndExpr(solver_state[node]->updated_in_subrun[i].get_solver_var(),
-                                                  solver_state[node]->blocked_by_children[i].get_solver_var());
-
-                    SMTExpr blocked_not_in_last = solver->createAndExpr(atom_explicitely_set,
-                                                                      solver->createNotExpr(atom_in_last_op));
-
-
-                    SMTExpr atom_in_required_priority =
-                            primary_priority ?
-                            solver_state[node]->priority[i].get_solver_var() :
-                            solver->createOrExpr(solver_state[node]->priority[i].get_solver_var(),
-                                                 solver_state[node]->second_priority[i].get_solver_var());
-
-                    SMTExpr blocked_not_last_in_priorities =
-                            solver->createImplExpr(blocked_not_in_last,
-                                                   atom_in_required_priority);
-
-                    only_priority = solver->createAndExpr(only_priority,
-                                                          blocked_not_last_in_priorities);
-                }
-
-                variable& es_only_priority_set =
-                        primary_priority ?
-                        solver_state[node]->es_only_primary_priority_set :
-                        solver_state[node]->es_only_both_priority_set;
-
-                emit_assignment(node, es_only_priority_set, only_priority);
-            }
-
-            /**
-             *
-             *   (!all_priority_set) ==> (!skipped_last_child) /\ only_priority_set
-             *
-             * @param node: the node
-             * @param primary_priority: specify if priority is primary or primary and secondary
-             */
-            void rev_es_set_all_priority_blocked(const tree &node, bool primary_priority) {
-                const tree& last_node = node->refinement_blocks().back();
-
-                rev_es_set_all_updated_priority_set(node, primary_priority);
-                rev_es_set_only_priority_blocked(node, primary_priority);
-
-                variable& es_all_priority_set =
-                        primary_priority ?
-                            solver_state[node]->es_all_primary_priority_set :
-                            solver_state[node]->es_all_secondary_priority_set;
-
-                variable& es_only_priority_set =
-                        primary_priority ?
-                            solver_state[node]->es_only_primary_priority_set :
-                            solver_state[node]->es_only_both_priority_set;
-
-                variable& es_priority_check =
-                        primary_priority ?
-                            solver_state[node]->es_primary_priority_check :
-                            solver_state[node]->es_both_priority_check;
-
-                SMTExpr skipped_last_child = rev_skipped_last_child(node);
-                SMTExpr priority_check =
-                        solver->createImplExpr(
-                                solver->createNotExpr(es_all_priority_set.get_solver_var()),
-                                solver->createAndExpr(
-                                        solver->createNotExpr(skipped_last_child),
-                                        es_only_priority_set.get_solver_var()));
-
-                emit_assignment(node, es_priority_check, priority_check);
-            }
-
-            void rev_es_check(const tree &node) {
-                if (p_triggers[node].no_priority || p_triggers[node].no_transition) {
-                    emit_comment("Skipping_exploration_strategy_" + node->uid);
-                    return;
-                }
-                set_second_priority(node);
-
-                emit_comment("Begin_exploration_strategy_" + node->uid);
-
-                rev_es_set_all_priority_blocked(node, true);
-                emit_assumption(node, solver_state[node]->es_primary_priority_check.get_solver_var());
-                rev_es_set_all_priority_blocked(node, false);
-                emit_assumption(node, solver_state[node]->es_both_priority_check.get_solver_var());
-                rev_es_set_if_skip_all_done(node);
-                emit_assumption(node, solver_state[node]->es_skip_impl_all_atoms_set.get_solver_var());
-
-                emit_comment("End_exploration_strategy_" + node->uid);
-            }
-
-            // LAST MOVEMENT PRIORITY CHECK
-            SMTExpr last_move_skipped_last_child(const tree& node) {
-                if (node->is_leaf()) {
-                    throw unexpected("Exploration strategy cannot be called on leaves");
-                }
-                tree last_child = node->refinement_blocks().back();
-                return solver_state[last_child]->skip.get_solver_var();
-            }
-
-            void last_move_set_all_done(const tree &node) {
-                SMTExpr all_set = one;
-                for (auto &&atom : node->node_infos.all_atoms) {
-                    int i = atom->role_array_index;
-                    variable updated_atom = solver_state[node]->updated_in_subrun[i];
-                    variable blocked_atom = solver_state[node]->blocked_by_children[i];
-
-                    SMTExpr if_upd_then_blocked = solver->createImplExpr(updated_atom.get_solver_var(),
-                                                                         blocked_atom.get_solver_var());
-
-                    all_set = solver->createAndExpr(all_set, if_upd_then_blocked);
-                }
-                emit_assignment(node, solver_state[node]->es_all_atoms_set, all_set);
-            }
-
-            /**
-             *   skipped_last_child => es_all_atoms_set
-             * @param node
-             */
-            void last_move_set_if_skip_all_done(const tree &node) {
-                SMTExpr skipped_last_child = last_move_skipped_last_child(node);
-                last_move_set_all_done(node);
-
-                SMTExpr if_skip_all_done = solver->createImplExpr(skipped_last_child,
-                                                                  solver_state[node]->es_all_atoms_set.get_solver_var());
-                emit_assignment(node, solver_state[node]->es_skip_impl_all_atoms_set, if_skip_all_done);
-            }
-
 
 
             // SUBRUN FUNCTION
             void subrun(const tree &node) {
                 emit_comment("Begin_subrun_" + node->uid);
                 set_zero(node, solver_state[node]->updated_in_subrun);
+
                 if (node->is_leaf()) {
                     emit_comment("Node_" + node->uid + "_is_leaf");
-                    update_unblocked_vars_a(node);
-                    if (p_triggers[node].no_transition) {
-                        emit_comment("Transition_disabled_by_pruning");
-                    } else {
-                        transition_c(node);
-                    }
-                    set_unchecked_priority(node);
+                    nondet_update_unblocked_vars_a(node, true);
                 } else {
                     emit_comment("Node_" + node->uid + "_is_internal");
                     simulate_children(node);
-//                    exploration_strategy(node);
-//                    multi_priority_exploration_strategy(node);
-
-                    rev_es_check(node);
-                    if (p_triggers[node].no_transition) {
-                        emit_comment("Transition_disabled_by_pruning");
-                    } else {
-                        transition_c(node);
-                    }
-                    set_unchecked_priority(node);
                 }
+
+                transition_c(node);
+
+                if (node->nondet_after_trans) {
+                    emit_comment("Begin_node_" + node->uid + "_nondet_after_trans");
+                    nondet_update_unblocked_vars_a(node, false);
+                    emit_comment("End_node_" + node->uid + "_nondet_after_trans");
+                }
+
+                set_availability(node);
+
                 emit_comment("End_subrun_" + node->uid);
             }
 
@@ -1101,7 +847,7 @@ namespace SMT {
 
             std::list<tree> set_node_refinement_from_model(const tree &node) {
                 std::list<tree> refineable_leaves;
-                if (node->node_infos.rules_c.empty() && !p_triggers[node].no_transition) {
+                if (node->node_infos.rules_c.empty()) {
                     // the node has not been expanded
                     if (node->is_leaf()) {
 //                        node->leaf_infos->gap = maybe_bool::NO;
@@ -1574,7 +1320,7 @@ namespace SMT {
                 node->node_infos.rules_c.clear();
                 node->node_infos.rules_c.push_back(test_rule_pair.first);
 
-                over_analysis_result res = pruner_checker.verify_proof(proof);
+                over_analysis_result res = pruner_checker.verify_proof(proof, p_triggers);
 
 
                 p_triggers[node].no_skip = false;
@@ -1816,6 +1562,7 @@ namespace SMT {
                         log->info("Target role may be reachable...");
                         log->info("... PRUNING");
                         tree_pruner pruner(solver);
+//                        pruner.prune_tree(_proof, true, true);
                         pruner.prune_tree(_proof, true, true);
 
                         log->info("... REFINING");
