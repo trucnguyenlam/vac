@@ -163,6 +163,12 @@ namespace SMT {
 
         void update_leaves_infos();
 
+        /**
+         * Function that expand a leaf of the tree if less than max_depth adding #child_count refinement children
+         * @param max_depth: the max depth for the refinement (< 0) for unlimited
+         * @param child_count: The number of child of the node
+         * @return true if the node has been refined, false otherways
+         **/
         bool refine_node(int max_depth, int child_count);
 
         std::list<std::weak_ptr<proof_node>> _ancestors;
