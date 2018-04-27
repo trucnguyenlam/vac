@@ -109,10 +109,7 @@ namespace SMT {
         std::shared_ptr<std::pair<atomp, bool>> post_A_check;
         std::shared_ptr<std::pair<atomp, bool>> pre_A_blocked_check;
         std::shared_ptr<std::pair<atomp, bool>> post_A_blocked_check;
-        bool no_transition; /// Disable transition
-        bool no_skip;       /// Forbids the node to skip
-        bool no_priority;   /// Disable node exploration strategy
-        bool no_sfogo;      /// Do not count last node as sfogo
+        bool no_skip;               /// Forbids the node to skip
 
         //FOR LEAVES ONLY
         maybe_bool overapprox;    /// Forces/denies/leave free the overapproximation of the leaf
@@ -187,6 +184,7 @@ namespace SMT {
         node_policy_infos node_infos;
         std::unique_ptr<leaves_infos> leaf_infos;
 
+        const bool nondet_after_trans;
 //        pruning_triggers triggers;
 
         const inline std::list<std::weak_ptr<proof_node>>& ancestors() const {
@@ -242,7 +240,8 @@ namespace SMT {
                    std::unique_ptr<leaves_infos> _leaves_infos,
                    std::list<std::weak_ptr<proof_node>> ancestors,
                    std::weak_ptr<proof_node> parent,
-                   std::vector<std::shared_ptr<proof_node>> refinement_blocks);
+                   std::vector<std::shared_ptr<proof_node>> refinement_blocks,
+                   bool _nondet_after_trans = false);
 
         std::string tree_to_string();
 
