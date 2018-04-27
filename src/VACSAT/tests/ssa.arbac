@@ -1,19 +1,19 @@
-Roles adm r1 r2 r3 rt nogoal rj;
+Roles r1 r2 rt;
 
 Users u1;
 
 UA
-    <u1, adm>
-    <u1, r3>
     ;
 
 CR
-
+    <r1, r1>
+    <r1, r2>
     ;
 
 CA
-    <adm, TRUE, r1>
-    <adm, r1, rt>
+    <r1, -r2, r1>
+    <r1, -r1, r2>
+    <r1, r1, rt>
 	;
 
 SPEC rt ;
