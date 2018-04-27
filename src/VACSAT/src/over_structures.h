@@ -172,6 +172,7 @@ namespace SMT {
         bool refine_node(int max_depth, int child_count);
 
         std::list<std::weak_ptr<proof_node>> _ancestors;
+        std::list<std::weak_ptr<proof_node>> _right_siblings;
         std::weak_ptr<proof_node> _parent;
         std::vector<std::shared_ptr<proof_node>> _refinement_blocks;
 
@@ -181,21 +182,46 @@ namespace SMT {
         std::string uid;
         const int depth;
 
+
         node_invariants invariants;
         node_policy_infos node_infos;
         std::unique_ptr<leaves_infos> leaf_infos;
 
 //        pruning_triggers triggers;
 
-        const std::list<std::weak_ptr<proof_node>>& ancestors() const {
+        const inline std::list<std::weak_ptr<proof_node>>& ancestors() const {
             return _ancestors;
         }
-        const std::weak_ptr<proof_node>& parent() const {
+        const inline std::weak_ptr<proof_node>& parent() const {
             return _parent;
         }
-        const std::vector<std::shared_ptr<proof_node>>& refinement_blocks() const {
+        const inline std::list<std::weak_ptr<proof_node>>& right_siblings() {
+            if (this->is_root()) {
+                return _right_siblings;
+            }
+
+            // Lazy initialize _right_siblings
+            if (_right_siblings.empty()) {
+                std::shared_ptr<proof_node> thisp = this->shared_from_this();
+                std::shared_ptr<proof_node> parent = this->parent().lock();
+                bool passed = false;
+                for (auto &&sibling : parent->_refinement_blocks) {
+                    if (passed) {
+                        _right_siblings.push_back(sibling);
+                    }
+                    if (sibling == thisp) {
+                        passed = true;
+                    }
+                }
+            }
+
+            return _right_siblings;
+        }
+        const inline std::vector<std::shared_ptr<proof_node>>& refinement_blocks() const {
             return _refinement_blocks;
         }
+        bool is_leftmost_child() const;
+
 
         std::list<std::shared_ptr<proof_node>> get_all_nodes();
 
@@ -222,9 +248,9 @@ namespace SMT {
 
         std::shared_ptr<proof_node> clone();
 
-        bool is_leaf();
+        bool is_leaf() const;
 
-        bool is_root();
+        bool is_root() const;
 
 //        bool pruning_enabled();
 

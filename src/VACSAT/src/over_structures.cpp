@@ -591,9 +591,8 @@ namespace SMT {
     }
 
     bool proof_node::refine_node(int max_depth, int child_count) {
-        if ( // overapprox_strategy.depth_strategy == OverapproxOptions::AT_MOST_DEPTH &&
-                this->depth >= max_depth &&
-                max_depth > -1) {
+        if (this->depth >= max_depth &&
+            max_depth > -1) {
             return false;
         } else if (this->node_infos.rules_a.empty()) {
             log->warn("No need to refine node {} since A is empty", this->uid);
@@ -719,11 +718,11 @@ namespace SMT {
         return cloned;
     }
 
-    bool proof_node::is_leaf() {
+    bool proof_node::is_leaf() const {
         return _refinement_blocks.empty();
     }
 
-    bool proof_node::is_root() {
+    bool proof_node::is_root() const {
         return depth == 0;
     }
 
@@ -783,7 +782,7 @@ namespace SMT {
         std::stringstream out;
         std::string structure = this->tree_to_string();
         std::string details = this->JSON_stringify();
-        if (heading_name != "") {
+        if (!heading_name.empty()) {
             out << "/**" << std::endl;
             out << " * " << heading_name << std::endl;
             out << " */" << std::endl;
@@ -798,6 +797,7 @@ namespace SMT {
         out << std::endl << std::endl;
         return out.str();
     }
+
     void proof_node::dump_tree(const std::string& fname,
                                bool javascript_compliant,
                                const std::string heading_name) {
@@ -834,6 +834,18 @@ namespace SMT {
 //        this->consolidate_tree();
 //        return res;
 //    }
+
+    bool proof_node::is_leftmost_child() const {
+        if (is_root()) {
+            return true;
+        }
+
+        std::shared_ptr<const proof_node> thisp = shared_from_this();
+
+        std::shared_ptr<const proof_node> leftmost_child = this->parent().lock()->refinement_blocks().front();
+
+        return thisp == leftmost_child;
+    }
 
     std::list<std::shared_ptr<proof_node>> proof_node::get_all_nodes() {
         std::list<std::shared_ptr<proof_node>> res;
