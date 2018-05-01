@@ -270,6 +270,14 @@ namespace SMT {
     void Z3Solver::printExpr(const SMTExpr& e) {
         std::cout << e << std::endl;
     }
+    std::string Z3Solver::exprValueAsString(const SMTExpr& expr) {
+        extract_model();
+
+        std::stringstream fmt;
+        z3::expr value = model->eval(eto_z3(expr), false);
+        fmt << value;
+        return fmt.str();
+    }
     void Z3Solver::printModel() {
         extract_model();
         std::cout << *model << std::endl;

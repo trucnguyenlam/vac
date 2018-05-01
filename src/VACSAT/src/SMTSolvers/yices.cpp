@@ -437,6 +437,25 @@ namespace SMT {
     void YicesSolver::printExpr(const SMTExpr& expr) {
         yices_pp_term(stdout, eto_y(expr), 120, 40, 0);
     }
+    std::string YicesSolver::exprValueAsString(const SMTExpr& expr) {
+        extract_model();
+
+        std::stringstream fmt;
+        bool is_bool = true;
+        int val = -1;
+        int res = yices_get_bool_value(model, eto_y(expr), &val);
+        if (res < 0) {
+            res = yices_get_bv_value(model, eto_y(expr), &val);
+            is_bool = false;
+            if (res < 0) {
+                std::list<SMTExpr> parts;
+                parts.push_back(expr);
+                yices_fail("YicesSolver::printExprValue", parts);
+            }
+        }
+        fmt << (is_bool ? bool_to_true_false((bool) val) : std::to_string(val));
+        return fmt.str();
+    }
 
     void YicesSolver::loadToSolver() {
         //TODO: consider using 
