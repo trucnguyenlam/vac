@@ -52,6 +52,7 @@ namespace SMT {
         private:
 
             class last_k_solver_state {
+
             private:
 
                 void init(SMTFactory* solver, const tree &node) {
@@ -136,6 +137,7 @@ namespace SMT {
 //                set_guards();
                 }
             };
+
 
             std::map<tree, std::unique_ptr<last_k_solver_state>> solver_state;
             std::map<tree, pruning_triggers> p_triggers;
@@ -422,10 +424,12 @@ namespace SMT {
                 SMTExpr target_not_blocked =
                         solver->createNotExpr(
                                 solver_state[node]->blocked_before[rule->target->role_array_index].get_solver_var());
+
                 SMTExpr target_updateable_in_parent =
                         node->is_root() ?
                                 one :
                                 solver_state[node->parent().lock()]->abstract_available_updates[rule->target->role_array_index].get_solver_var();
+
                 SMTExpr rule_target_value = rule->is_ca ? one : zero;
                 SMTExpr target_is_changed =
                         solver->createNotExpr(
@@ -458,7 +462,7 @@ namespace SMT {
                 const tree parent = node->parent().lock();
                 int target_idx = rule->target->role_array_index;
 
-                variable old_blocked = solver_state[parent]->blocked_by_children[target_idx];
+                variable old_blocked = solver_state[parent]->blocked_before[target_idx];
                 variable new_blocked = old_blocked.createFrom();
                 // add node guard to avoid free value if node is skipping
                 SMTExpr new_blocked_value =
@@ -468,7 +472,7 @@ namespace SMT {
                                 one,
                                 old_blocked.get_solver_var());
                 strict_emit_assignment(new_blocked, new_blocked_value);
-                solver_state[parent]->blocked_by_children[target_idx] = new_blocked;
+                solver_state[parent]->blocked_before[target_idx] = new_blocked;
             }
 
             void apply_rule_effect_c(const tree &node, std::pair<rulep, int> rule_id, SMTExpr &rule_is_selected) {
