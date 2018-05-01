@@ -69,6 +69,7 @@ namespace SMT {
         virtual void assertNow(const SMTExpr& expr) = 0;
         virtual SMTResult solve() = 0;
         virtual void printExpr(const SMTExpr& expr) = 0;
+        virtual std::string exprValueAsString(const SMTExpr& expr) = 0;
         virtual void printModel() = 0;
         virtual void print_statistics() = 0;
         virtual bool get_bool_value(const SMTExpr& expr) = 0;
