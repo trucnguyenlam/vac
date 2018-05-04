@@ -2,6 +2,7 @@
 // Created by esteffin on 12/5/17.
 //
 
+#include <z3++.h>
 #include "over_structures.h"
 #include "prelude.h"
 #include "SMT_BMC_Struct.h"
@@ -142,7 +143,7 @@ namespace SMT {
             std::map<tree, std::unique_ptr<last_k_solver_state>> solver_state;
             std::map<tree, pruning_triggers> p_triggers;
 //            const std::shared_ptr<arbac_policy> policy;
-            std::shared_ptr<SMTFactory> solver;
+            const std::shared_ptr<SMTFactory> solver;
 //            const std::set<userp, std::function<bool(const userp &, const userp &)>> initial_confs;
 
             std::list<SMTExpr> assertions;
@@ -151,7 +152,8 @@ namespace SMT {
             SMTExpr zero;
             SMTExpr one;
 
-            bool annotate_proof = false;
+            const bool annotate_proof; // = false;
+            const bool overapprox_nondet_gaps; // = true;
             bool merge_rule_in_trans = false;
 
             // ASSERTIONS RELATED FUNCTIONS
@@ -370,7 +372,8 @@ namespace SMT {
 
             void nondet_update_unblocked_vars_a(const tree &node, bool _save_refineable_condition) {
 //                if (node->leaf_infos->gap != maybe_bool::NO &&
-                if (!node->leaf_infos->no_gap &&
+                if (overapprox_nondet_gaps &&
+                    !node->leaf_infos->no_gap &&
                     p_triggers[node].overapprox != maybe_bool::NO) {
                     emit_comment("Begin_nondet_assignment");
                     std::list<variable> update_guards;
@@ -462,7 +465,7 @@ namespace SMT {
                 const tree parent = node->parent().lock();
                 int target_idx = rule->target->role_array_index;
 
-                variable old_blocked = solver_state[parent]->blocked_before[target_idx];
+                variable old_blocked = solver_state[parent]->blocked_by_children[target_idx];
                 variable new_blocked = old_blocked.createFrom();
                 // add node guard to avoid free value if node is skipping
                 SMTExpr new_blocked_value =
@@ -472,7 +475,7 @@ namespace SMT {
                                 one,
                                 old_blocked.get_solver_var());
                 strict_emit_assignment(new_blocked, new_blocked_value);
-                solver_state[parent]->blocked_before[target_idx] = new_blocked;
+                solver_state[parent]->blocked_by_children[target_idx] = new_blocked;
             }
 
             void apply_rule_effect_c(const tree &node, std::pair<rulep, int> rule_id, SMTExpr &rule_is_selected) {
@@ -922,39 +925,65 @@ namespace SMT {
                 throw unexpected("Uh?");
             }
 
-        public:
+            // DEBUG RELATED FUNCTIONS
+            void print_tree_assignment(const proofp& proof) {
+                std::list<tree> nodes = proof->proof_tree->get_all_nodes();
+                for (auto &&node : nodes) {
+                    auto state = solver_state[node].get();
+                    log->info("{}: ", node->uid);
+                    log->info("\t{}: {}", state->guard.full_name, solver->exprValueAsString(state->guard.get_solver_var()));
+                    log->info("\t{}: {}", state->skip.full_name, solver->exprValueAsString(state->skip.get_solver_var()));
+                    log->info("\t{}: {}", state->rule_id.full_name, solver->exprValueAsString(state->rule_id.get_solver_var()));
+                    log->info("\t{}: {}", state->var_id.full_name, solver->exprValueAsString(state->var_id.get_solver_var()));
+                    log->info("\t{}: {}", state->refineable.full_name, solver->exprValueAsString(state->refineable.get_solver_var()));
+                }
+            }
 
-            SMT_proof_checker(//const std::shared_ptr<arbac_policy> _policy,
-                              std::shared_ptr<SMTFactory> _solver,
-//                              const std::set<userp, std::function<bool(const userp &,
-//                                                                       const userp &)>> _initial_confs,
+        public:
+            /**
+             * Create a SMT-based proof checker used to get the satisfiability of a given proof and
+             * parametrized on its parameters.
+             * @param _solver: the SMT solver object used to check the satisfiability
+             * @param annotate: if annotate (or not) the SMT formula to know if a nondeterministically gap is used
+             * @param _overapprox_nondet_gaps: overapproximate (or underapproximate) the gaps on the formula (false to check correctness)
+             * @param merge_rules: merge the rules according to the target role (disjuncting the preconditions)
+             */
+            SMT_proof_checker(std::shared_ptr<SMTFactory> _solver,
                               bool annotate,
+                              bool _overapprox_nondet_gaps,
                               maybe_bool merge_rules = maybe_bool::UNKNOWN) :
 //                    policy(_policy),
                     solver(std::move(_solver)),
 //                    initial_confs(std::move(_initial_confs)),
                     assertions(std::list<SMTExpr>()),
                     annotate_proof(annotate),
+                    overapprox_nondet_gaps(_overapprox_nondet_gaps),
                     merge_rule_in_trans(get_merge_value(annotate, merge_rules)) { }
 
             std::pair<over_analysis_result, std::list<tree>>
                 verify_proof_get_refinement(proofp proof) override {
+                if (!this->overapprox_nondet_gaps) {
+                    throw unexpected("Cannot get refinement of a proof if overapprox_nondet_gaps is true");
+                }
                 over_analysis_result result;
                 p_triggers = std::map<tree, pruning_triggers>();
                 solver->deep_clean();
                 cleanup();
                 bool over_reachable = is_reachable(proof);
 
+                solver->printContext("asd.lisp");
+
                 std::list<tree> refinement_nodes;
                 if (!over_reachable) {
                     result = over_analysis_result::SAFE;
                 } else {
 
-                        refinement_nodes = anotate_refineable(proof->proof_tree);
-                        result = (!refinement_nodes.empty()) ?
-                                 over_analysis_result::UNSAFE_INCOMPLETE :
-                                 over_analysis_result::UNSAFE;
-                    }
+                    refinement_nodes = anotate_refineable(proof->proof_tree);
+                    this->print_tree_assignment(proof);
+                    result = (!refinement_nodes.empty()) ?
+                             over_analysis_result::UNSAFE_INCOMPLETE :
+                             over_analysis_result::UNSAFE;
+                }
 
                 cleanup();
 
@@ -971,6 +1000,11 @@ namespace SMT {
                 solver->deep_clean();
                 cleanup();
                 bool over_reachable = is_reachable(proof);
+//                if (over_reachable) {
+//                    print_tree_assignment(proof);
+//                    solver->printContext("asd.lisp");
+//                    proof->dump_proof("asd.js", true, "c_pre");
+//                }
 
                 cleanup();
 
@@ -1260,9 +1294,7 @@ namespace SMT {
                 }
 
                 // Clenaing up
-                abstract_handle.cloned_proof->dump_proof("asd.js", true, "pre");
                 abstract_handle.target_node_l->remove_children();
-                abstract_handle.cloned_proof->dump_proof("asd1.js", true, "post");
 
                 node->node_infos.rules_a = actual_rules_a;
 
@@ -1436,7 +1468,7 @@ namespace SMT {
 
         public:
             explicit tree_pruner(const std::shared_ptr<SMTFactory>& _solver) :
-                    pruner_checker(_solver, false, maybe_bool::NO) { }
+                    pruner_checker(_solver, false, true, maybe_bool::NO) { }
 
            /**
             * Prune the proof applying the simplification of the concrete part C and of the abstract one A
@@ -1450,8 +1482,10 @@ namespace SMT {
                     return;
                 }
                 if (apply_a_simplification) {
+                    _proof->dump_proof("asd.js", true, "a_pre");
                     reduce_tree_a_rules(_proof, false);
-                    reduce_tree_a_rules(_proof, true);
+                    _proof->dump_proof("asd1.js", true, "a_post");
+//                    reduce_tree_a_rules(_proof, true);
                 }
                 if (apply_c_simplification) {
 //                    reduce_tree_c_rules(root);
@@ -1483,51 +1517,61 @@ namespace SMT {
 //            }
         }
 
-//        void set_fake_tree(tree& root, std::& translator) {
-//            tree_pruner pruner(translator);
-//            pruner.prune_tree(root, false, true);
-//
-//            root->dump_tree("tree.js", true, "fake");
-//
-//            log->error("expanding root!");
-//
-//            root->leaf_infos->gap = maybe_bool::YES;
-//            root->refine_tree(overapprox_strategy.depth, get_budget());
-//            pruner.prune_tree(root, false, true);
-//
-//            root->dump_tree("tree.js", true, "fake");
-//            log->error("expanding root_0!");
-//
-////            pruner.remove_implied_rules_c();
-//            root->_refinement_blocks[0]->leaf_infos->gap = maybe_bool::YES;
-//            root->refine_tree(overapprox_strategy.depth, get_budget());
-//            pruner.prune_tree(root, false, true);
-//
-//            root->dump_tree("tree.js", true, "fake");
-//            log->error("expanding root_1!");
-//
-//            root->_refinement_blocks[1]->leaf_infos->gap = maybe_bool::YES;
-//            root->refine_tree(overapprox_strategy.depth, get_budget());
-//            pruner.prune_tree(root, false, true);
-//
-//            root->dump_tree("tree.js", true, "fake");
+        void set_fake_tree(proofp& proof, const std::shared_ptr<SMTFactory>& solver) {
+            tree_pruner pruner(solver);
+            pruner.prune_tree(proof, true, false);
+
+            proof->dump_proof("tree.js", true, "fake");
+
+            log->error("expanding root!");
+
+            {
+                std::list<tree> refinement;
+                refinement.push_back(proof->proof_tree);
+                proof->refine_proof(refinement, -1, 4);
+                log->error("{}", proof->tree_to_string());
+            }
+            pruner.prune_tree(proof, true, false);
+
+            proof->dump_proof("tree.js", true, "fake");
+
+            log->error("expanding root_2!");
+            {
+                std::list<tree> refinement;
+                refinement.push_back(proof->proof_tree->refinement_blocks()[2]);
+                proof->refine_proof(refinement, -1, 4);
+                log->error("{}", proof->tree_to_string());
+            }
+            pruner.prune_tree(proof, true, false);
+
+            proof->dump_proof("tree.js", true, "fake");
+            log->error("expanding root_1!");
+            {
+                std::list<tree> refinement;
+                refinement.push_back(proof->proof_tree->refinement_blocks()[1]);
+                proof->refine_proof(refinement, -1, 4);
+                log->error("{}", proof->tree_to_string());
+            }
+            pruner.prune_tree(proof, true, false);
+
+            proof->dump_proof("tree.js", true, "fake");
+
 //            log->error("expanding root_2!");
 //
 //            root->_refinement_blocks[2]->leaf_infos->gap = maybe_bool::YES;
 //            root->refine_tree(overapprox_strategy.depth, get_budget());
 //            pruner.prune_tree(root, false, true);
-//
 //            root->dump_tree("tree.js", true, "fake");
-//            log->error("fake_tree created!");
-//        }
+            log->error("fake_tree created!");
+        }
 
         bool check_program(const std::shared_ptr<SMTFactory>& solver,
                            const std::vector<atomp>& orig_atoms,
                            const std::vector<rulep>& orig_rules,
                            const std::shared_ptr<arbac_policy>& policy,
                            const Expr& to_check) {
-            SMT_proof_checker proof_translator(solver, true, maybe_bool::YES);
-
+            SMT_proof_checker overapprox_proof_translator(solver, true, true, maybe_bool::YES);
+            int round = 0;
 
             proofp _proof(new proof_t(strategy,
                                       orig_atoms,
@@ -1551,9 +1595,20 @@ namespace SMT {
 //                    return true;
 //                }
 
+                set_fake_tree(_proof, solver);
+
                 log->debug("TESTING OVERAPPROX PROOF");
                 std::pair<over_analysis_result, std::list<tree>>
-                        result_refineables = proof_translator.verify_proof_get_refinement(_proof);
+                        result_refineables = overapprox_proof_translator.verify_proof_get_refinement(_proof);
+
+                log->critical(++round);
+                _proof->dump_proof("pruned_asd.js", true, "pruned_" + std::to_string(round));
+
+                if (round == 4) {
+                    exit(0);
+                }
+
+
 
 //                                              over_analysis_result::UNSAFE_INCOMPLETE;
 //                _proof->dump_proof("tree.js", true, "POST OVERAPPROX");
@@ -1575,8 +1630,8 @@ namespace SMT {
                         log->info("Target role may be reachable...");
                         log->info("... PRUNING");
                         tree_pruner pruner(solver);
-//                        pruner.prune_tree(_proof, true, true);
-                        pruner.prune_tree(_proof, true, true);
+//                        pruner.prune_tree(_proof, false, true);
+//                        pruner.prune_tree(_proof, true, false);
 
                         log->info("... REFINING");
                         bool changed = _proof->refine_proof(result_refineables.second,

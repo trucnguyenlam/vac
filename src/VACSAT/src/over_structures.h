@@ -334,10 +334,33 @@ namespace SMT {
         UNSAFE_INCOMPLETE
     };
 
+    /**
+     * The abstract class extended by the proof checkers
+     */
     class proof_checker {
+
+        /**
+         * Verifies if the given proof is satisfiable and
+         * returns a pair containing the result and the refineable nodes (nodes where the gap is over-approximated)
+         * @param proof: the proof to be checked
+         * @return: a pair containing the result and the refineable nodes (nodes where the gap is over-approximated)
+         */
         virtual std::pair<over_analysis_result, std::list<std::shared_ptr<proof_node>>>
                 verify_proof_get_refinement(proofp proof) = 0;
+
+        /**
+         * Verifies if the given proof is satisfiable
+         * @param proof: the proof to be checked
+         * @return: the result of the satisfiability of the proof
+         */
         virtual over_analysis_result verify_proof(proofp proof) = 0;
+
+        /**
+         * Verifies if the given proof parametrized by some triggers is satisfiable
+         * @param proof: the proof to be checked
+         * @param triggers: a map from proof node to pruning triggers parametrizing the proof
+         * @return: the result of the satisfiability of the proof
+         */
         virtual over_analysis_result verify_proof(proofp proof,
                                                   std::map<std::shared_ptr<proof_node>, pruning_triggers> triggers) = 0;
     };
