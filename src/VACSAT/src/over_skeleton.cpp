@@ -1000,11 +1000,11 @@ namespace SMT {
                 solver->deep_clean();
                 cleanup();
                 bool over_reachable = is_reachable(proof);
-//                if (over_reachable) {
-//                    print_tree_assignment(proof);
+                if (over_reachable) {
+                    print_tree_assignment(proof);
 //                    solver->printContext("asd.lisp");
 //                    proof->dump_proof("asd.js", true, "c_pre");
-//                }
+                }
 
                 cleanup();
 
@@ -1597,9 +1597,12 @@ namespace SMT {
 
                 set_fake_tree(_proof, solver);
 
+                SMT_proof_checker under_proof_translator(solver, false, false, maybe_bool::UNKNOWN);
+
                 log->debug("TESTING OVERAPPROX PROOF");
                 std::pair<over_analysis_result, std::list<tree>>
                         result_refineables = overapprox_proof_translator.verify_proof_get_refinement(_proof);
+//                result_refineables.first = under_proof_translator.verify_proof(_proof);
 
                 log->critical(++round);
                 _proof->dump_proof("pruned_asd.js", true, "pruned_" + std::to_string(round));
