@@ -67,6 +67,10 @@ namespace SMT {
                         updated_in_subrun[atom->role_array_index] = variable(updated_in_subrun_name, 0, 1, solver,
                                                                              BOOLEAN);
                     }
+                    for (auto &&atom : node->node_infos.all_atoms) {
+                        std::string changed_not_used_name = "changed_not_used_" + node_id + "_" + atom->name;
+                        updated_not_used[atom->role_array_index] = variable(changed_not_used_name, 0, 1, solver, BOOLEAN);
+                    }
 
 //                for (auto &&atom : node->node_infos.all_atoms) {
 //                    std::string blocked_name = "blocked_" + node_id + "_" + atom->name;
@@ -107,6 +111,7 @@ namespace SMT {
             public:
                 std::string &node_id;
                 std::vector<variable> vars;
+                std::vector<variable> updated_not_used;
                 //TODO: can be removed
                 std::vector<variable> updated_in_subrun;
 //            std::vector<variable> blocked;
@@ -128,6 +133,7 @@ namespace SMT {
                                     SMTFactory* solver) :
                         node_id(node->uid),
                         vars(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
+                        updated_not_used(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
                         updated_in_subrun(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
 //                    blocked(std::vector<variable>((uint) node->node_infos.policy_atoms_count)),
                         apply_rule(std::vector<variable>((uint) node->node_infos.rules_c.size())),
@@ -154,6 +160,7 @@ namespace SMT {
 
             const bool annotate_proof; // = false;
             const bool overapprox_nondet_gaps; // = true;
+            const bool use_updated_not_used; // = true;
             bool merge_rule_in_trans = false;
 
             // ASSERTIONS RELATED FUNCTIONS
@@ -305,6 +312,13 @@ namespace SMT {
                                         solver->createNotExpr(solver_state[node]->blocked_before[var->role_array_index].get_solver_var()),
                                         solver_state[node]->abstract_available_updates[var->role_array_index].get_solver_var()),
                                     tmp_bool.get_solver_var());
+
+                    if (use_updated_not_used) {
+                        update_guard =
+                                solver->createAndExpr(
+                                        solver->createNotExpr(solver_state[node]->updated_not_used[var->role_array_index].get_solver_var()),
+                                        update_guard);
+                    }
                     emit_assignment(node, tmp_bool, update_guard);
 
                     //VAR VALUE UPDATE
@@ -333,6 +347,18 @@ namespace SMT {
                                                                        old_updated_in_subrun.get_solver_var());
                     emit_assignment(node, new_updated_in_subrun, new_updated_value);
                     solver_state[node]->updated_in_subrun[var->role_array_index] = new_updated_in_subrun;
+
+
+                    if (use_updated_not_used) {
+                        // VAR UPDATED_NOT_USED VALUE UPDATE
+                        variable old_updated_not_used = solver_state[node]->updated_not_used[var->role_array_index];
+                        variable new_updated_not_used = old_updated_not_used.createFrom();
+                        SMTExpr new_updated_not_used_value = solver->createCondExpr(tmp_bool.get_solver_var(),
+                                                                                    one,
+                                                                                    old_updated_not_used.get_solver_var());
+                        emit_assignment(node, new_updated_not_used, new_updated_not_used_value);
+                        solver_state[node]->updated_not_used[var->role_array_index] = new_updated_not_used;
+                    }
                 } else {
                     //IF THE ATOM IS STATICALLY NOT UPDATEABLE
                     emit_comment("Role_" + var->name + "_is_not_updateable");
@@ -433,6 +459,11 @@ namespace SMT {
                                 one :
                                 solver_state[node->parent().lock()]->abstract_available_updates[rule->target->role_array_index].get_solver_var();
 
+                SMTExpr target_not_updated_not_used =
+                        use_updated_not_used ?
+                        solver->createNotExpr(solver_state[node]->updated_not_used[rule->target->role_array_index].get_solver_var()) :
+                        one;
+
                 SMTExpr rule_target_value = rule->is_ca ? one : zero;
                 SMTExpr target_is_changed =
                         solver->createNotExpr(
@@ -443,10 +474,10 @@ namespace SMT {
                 SMTExpr final_assumption =
                         solver->createImplExpr(rule_is_selected,
                                                solver->createAndExpr(rule_precondition,
-                                                                     solver->createAndExpr(target_not_blocked,
-                                                                                           solver->createAndExpr(
-                                                                                                   target_updateable_in_parent,
-                                                                                                   target_is_changed))));
+                                               solver->createAndExpr(target_not_blocked,
+                                               solver->createAndExpr(target_not_updated_not_used,
+                                               solver->createAndExpr(target_updateable_in_parent,
+                                                                     target_is_changed)))));
                 return final_assumption;
             }
 
@@ -495,10 +526,34 @@ namespace SMT {
                 variable old_updated_in_subrun_var = solver_state[node]->updated_in_subrun[target->role_array_index];
                 variable new_updated_in_subrun_var = old_updated_in_subrun_var.createFrom();
                 SMTExpr new_updated_value = solver->createCondExpr(rule_is_selected,
-                                                                 one,
-                                                                 old_updated_in_subrun_var.get_solver_var());
+                                                                   one,
+                                                                   old_updated_in_subrun_var.get_solver_var());
                 emit_assignment(node, new_updated_in_subrun_var, new_updated_value);
                 solver_state[node]->updated_in_subrun[target->role_array_index] = new_updated_in_subrun_var;
+
+                if (use_updated_not_used) {
+                    // DISCHARGE ALL ROLES IN THE PRECONDITION FROM updated_not_used
+                    for (auto &&prec_atom : rule->prec->atoms()) {
+                        variable old_prec_updated_not_used_var =
+                                solver_state[node]->updated_not_used[prec_atom->role_array_index];
+                        variable new_prec_updated_not_used_var = old_prec_updated_not_used_var.createFrom();
+                        SMTExpr new_prec_updated_not_used_value =
+                                solver->createCondExpr(rule_is_selected,
+                                                       zero,
+                                                       old_prec_updated_not_used_var.get_solver_var());
+                        emit_assignment(node, new_prec_updated_not_used_var, new_prec_updated_not_used_value);
+                        solver_state[node]->updated_not_used[prec_atom->role_array_index] = new_prec_updated_not_used_var;
+                    }
+
+                    // UPDATE updated_not_used VALUE
+                    variable old_updated_not_used_var = solver_state[node]->updated_not_used[target->role_array_index];
+                    variable new_updated_not_used_var = old_updated_not_used_var.createFrom();
+                    SMTExpr new_updated_not_used_value = solver->createCondExpr(rule_is_selected,
+                                                                                one,
+                                                                                old_updated_not_used_var.get_solver_var());
+                    emit_assignment(node, new_updated_not_used_var, new_updated_not_used_value);
+                    solver_state[node]->updated_not_used[target->role_array_index] = new_updated_not_used_var;
+                }
 
                 // IF NOT NONDET_AFTER NODE (PRUNING) UPDATE PARENT BLOCKED
                 if (!node->nondet_after_trans) {
@@ -648,6 +703,7 @@ namespace SMT {
 
                 set_skip(child);
                 copy_mask(child, solver_state[node]->vars, solver_state[child]->vars);
+                copy_mask(child, solver_state[node]->updated_not_used, solver_state[child]->updated_not_used);
                 copy_mask(child, solver_state[node]->blocked_by_children, solver_state[child]->blocked_by_children);
                 copy_mask(child, solver_state[node]->blocked_by_children, solver_state[child]->blocked_before);
 
@@ -658,6 +714,10 @@ namespace SMT {
                 cond_save_mask(node,
                                solver_state[child]->vars,
                                solver_state[node]->vars,
+                               guard);
+                cond_save_mask(node,
+                               solver_state[child]->updated_not_used,
+                               solver_state[node]->updated_not_used,
                                guard);
                 cond_save_ored_mask(node,
                                     solver_state[node]->updated_in_subrun,
@@ -780,12 +840,24 @@ namespace SMT {
                 assert(node->is_root());
                 atomp target_atom = node->node_infos.rules_c[0]->target;
 
-                SMTExpr invariant_expr = generateSMTFunction(solver,
-                                                             createEqExpr(createLiteralp(target_atom),
-                                                                          createConstantTrue()),
-                                                             solver_state[node]->vars,
-                                                             "");
-                assertions.push_back(invariant_expr);
+                SMTExpr final_assertion = generateSMTFunction(solver,
+                                                              createEqExpr(createLiteralp(target_atom),
+                                                                           createConstantTrue()),
+                                                              solver_state[node]->vars,
+                                                              "");
+                if (use_updated_not_used) {
+                    // AT THE END ALL UPDATED ATOM MUST BE USED UNLESS THEY ARE THE TARGET ATOM
+                    SMTExpr one_updated_not_used = zero;
+                    for (auto &&atom : node->node_infos.all_atoms) {
+                        if (atom != target_atom) {
+                            one_updated_not_used =
+                                    solver->createOrExpr(one_updated_not_used,
+                                                         solver_state[node]->updated_not_used[atom->role_array_index].get_solver_var());
+                        }
+                    }
+                    final_assertion = solver->createAndExpr(final_assertion, solver->createNotExpr(one_updated_not_used));
+                }
+                assertions.push_back(final_assertion);
             }
 
             void root_subrun(const tree &root,
@@ -799,6 +871,7 @@ namespace SMT {
 
                 assert_invariant_pre_subrun(root);
                 set_zero(root, solver_state[root]->blocked_by_children);
+                set_zero(root, solver_state[root]->updated_not_used);
                 subrun(root);
                 assert_invariant_post_subrun(root);
             }
@@ -946,11 +1019,13 @@ namespace SMT {
              * @param _solver: the SMT solver object used to check the satisfiability
              * @param annotate: if annotate (or not) the SMT formula to know if a nondeterministically gap is used
              * @param _overapprox_nondet_gaps: overapproximate (or underapproximate) the gaps on the formula (false to check correctness)
+             * @param _use_updated_not_used: add constraint on changed but not used roles
              * @param merge_rules: merge the rules according to the target role (disjuncting the preconditions)
              */
             SMT_proof_checker(std::shared_ptr<SMTFactory> _solver,
                               bool annotate,
                               bool _overapprox_nondet_gaps,
+                              bool _use_updated_not_used,
                               maybe_bool merge_rules = maybe_bool::UNKNOWN) :
 //                    policy(_policy),
                     solver(std::move(_solver)),
@@ -958,8 +1033,10 @@ namespace SMT {
                     assertions(std::list<SMTExpr>()),
                     annotate_proof(annotate),
                     overapprox_nondet_gaps(_overapprox_nondet_gaps),
+                    use_updated_not_used(_use_updated_not_used),
                     merge_rule_in_trans(get_merge_value(annotate, merge_rules)) { }
 
+                    //FIXME: consider putting overapprox_nondet_gaps here
             std::pair<over_analysis_result, std::list<tree>>
                 verify_proof_get_refinement(proofp proof) override {
                 if (!this->overapprox_nondet_gaps) {
@@ -970,8 +1047,6 @@ namespace SMT {
                 solver->deep_clean();
                 cleanup();
                 bool over_reachable = is_reachable(proof);
-
-                solver->printContext("asd.lisp");
 
                 std::list<tree> refinement_nodes;
                 if (!over_reachable) {
@@ -996,15 +1071,18 @@ namespace SMT {
 
             over_analysis_result verify_proof(proofp proof,
                                               std::map<tree, pruning_triggers> triggers) override {
+                if (use_updated_not_used) {
+                    throw unexpected("use_updated_not_used is not allowed during pruning yet");
+                }
                 p_triggers = std::move(triggers);
                 solver->deep_clean();
                 cleanup();
                 bool over_reachable = is_reachable(proof);
-                if (over_reachable) {
-                    print_tree_assignment(proof);
+//                if (over_reachable) {
+//                    print_tree_assignment(proof);
 //                    solver->printContext("asd.lisp");
 //                    proof->dump_proof("asd.js", true, "c_pre");
-                }
+//                }
 
                 cleanup();
 
@@ -1468,7 +1546,7 @@ namespace SMT {
 
         public:
             explicit tree_pruner(const std::shared_ptr<SMTFactory>& _solver) :
-                    pruner_checker(_solver, false, true, maybe_bool::NO) { }
+                    pruner_checker(_solver, false, true, false, maybe_bool::NO) { }
 
            /**
             * Prune the proof applying the simplification of the concrete part C and of the abstract one A
@@ -1570,7 +1648,7 @@ namespace SMT {
                            const std::vector<rulep>& orig_rules,
                            const std::shared_ptr<arbac_policy>& policy,
                            const Expr& to_check) {
-            SMT_proof_checker overapprox_proof_translator(solver, true, true, maybe_bool::YES);
+            SMT_proof_checker overapprox_proof_translator(solver, true, true, true, maybe_bool::YES);
             int round = 0;
 
             proofp _proof(new proof_t(strategy,
@@ -1595,9 +1673,9 @@ namespace SMT {
 //                    return true;
 //                }
 
-                set_fake_tree(_proof, solver);
+//                set_fake_tree(_proof, solver);
 
-                SMT_proof_checker under_proof_translator(solver, false, false, maybe_bool::UNKNOWN);
+                SMT_proof_checker under_proof_translator(solver, false, false, false, maybe_bool::UNKNOWN);
 
                 log->debug("TESTING OVERAPPROX PROOF");
                 std::pair<over_analysis_result, std::list<tree>>
@@ -1606,10 +1684,10 @@ namespace SMT {
 
                 log->critical(++round);
                 _proof->dump_proof("pruned_asd.js", true, "pruned_" + std::to_string(round));
-
-                if (round == 4) {
-                    exit(0);
-                }
+//
+//                if (round == 4) {
+//                    exit(0);
+//                }
 
 
 
