@@ -1003,11 +1003,41 @@ namespace SMT {
                 std::list<tree> nodes = proof->proof_tree->get_all_nodes();
                 for (auto &&node : nodes) {
                     auto state = solver_state[node].get();
+                    bool skip = solver->get_bool_value(state->skip.get_solver_var());
+
+                    std::vector<rulep> rules_c = merge_rule_in_trans ?
+                                                 merge_by_target(node) :
+                                                 node->node_infos.rules_c;
+                    rulep target_rule = nullptr;
+                    int rule_id = -1;
+                    if (!skip) {
+                        rule_id = solver->exprValueAsInt(state->rule_id.get_solver_var());
+                        target_rule = rule_id >= 0 && rule_id < rules_c.size() ?
+                                      rules_c[rule_id] : nullptr;
+                    }
+
+                    atomp target = nullptr;
+                    int var_id = -1;
+                    if (!skip) {
+                        var_id = solver->exprValueAsInt(state->var_id.get_solver_var());
+                        for (auto &&atom : node->node_infos.all_atoms) {
+                            if (atom->role_array_index == var_id) {
+                                target = atom;
+                            }
+                        }
+                    }
+
                     log->info("{}: ", node->uid);
                     log->info("\t{}: {}", state->guard.full_name, solver->exprValueAsString(state->guard.get_solver_var()));
                     log->info("\t{}: {}", state->skip.full_name, solver->exprValueAsString(state->skip.get_solver_var()));
-                    log->info("\t{}: {}", state->rule_id.full_name, solver->exprValueAsString(state->rule_id.get_solver_var()));
-                    log->info("\t{}: {}", state->var_id.full_name, solver->exprValueAsString(state->var_id.get_solver_var()));
+                    log->info("\t{}: {}: {}",
+                              state->rule_id.full_name,
+                              solver->exprValueAsString(state->rule_id.get_solver_var()),
+                              (target_rule != nullptr ? target_rule->to_string() : "nullptr"));
+                    log->info("\t{}: {}: {}",
+                              state->var_id.full_name,
+                              solver->exprValueAsString(state->var_id.get_solver_var()),
+                              (target != nullptr ? target->to_string() : "nullptr"));
                     log->info("\t{}: {}", state->refineable.full_name, solver->exprValueAsString(state->refineable.get_solver_var()));
                 }
             }
@@ -1648,7 +1678,7 @@ namespace SMT {
                            const std::vector<rulep>& orig_rules,
                            const std::shared_ptr<arbac_policy>& policy,
                            const Expr& to_check) {
-            SMT_proof_checker overapprox_proof_translator(solver, true, true, true, maybe_bool::YES);
+            SMT_proof_checker overapprox_proof_translator(solver, true, true, true, maybe_bool::NO);
             int round = 0;
 
             proofp _proof(new proof_t(strategy,
@@ -1713,6 +1743,7 @@ namespace SMT {
                         tree_pruner pruner(solver);
 //                        pruner.prune_tree(_proof, false, true);
 //                        pruner.prune_tree(_proof, true, false);
+//                        pruner.prune_tree(_proof, true, true);
 
                         log->info("... REFINING");
                         bool changed = _proof->refine_proof(result_refineables.second,
