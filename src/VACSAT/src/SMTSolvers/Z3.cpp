@@ -278,6 +278,19 @@ namespace SMT {
         fmt << value;
         return fmt.str();
     }
+    int Z3Solver::exprValueAsInt(const SMTExpr& expr) {
+        extract_model();
+
+        z3::expr value = model->eval(eto_z3(expr), false);
+
+        // Not a numeral? Let's not try to convert it
+        if(Z3_get_ast_kind(this->context, value) != Z3_NUMERAL_AST) {
+            return (int) get_bool_value(expr);
+        }
+
+        int val = std::stoi(Z3_get_numeral_decimal_string(this->context, value, 64));
+        return val;
+    }
     void Z3Solver::printModel() {
         extract_model();
         std::cout << *model << std::endl;

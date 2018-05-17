@@ -338,6 +338,10 @@ namespace SMT {
         log->critical("MathsatSolver::exprValueAsString is not implemented");
         throw unexpected("MathsatSolver::exprValueAsString is not implemented");
     }
+    int MathsatSolver::exprValueAsInt(const SMTExpr& expr) {
+        log->critical("MathsatSolver::exprValueAsInt is not implemented");
+        throw unexpected("MathsatSolver::exprValueAsInt is not implemented");
+    }
     void MathsatSolver::printModel() {
         log->critical("MathsatSolver::printModel is not implemented");
         throw unexpected("MathsatSolver::printModel is not implemented");

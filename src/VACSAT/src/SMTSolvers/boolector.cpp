@@ -242,6 +242,10 @@ namespace SMT {
         log->critical("BoolectorSolver::exprValueAsString is not implemented");
         throw unexpected("BoolectorSolver::exprValueAsString is not implemented");
     }
+    int BoolectorSolver::exprValueAsInt(const SMTExpr& expr) {
+        log->critical("BoolectorSolver::exprValueAsInt is not implemented");
+        throw unexpected("BoolectorSolver::exprValueAsInt is not implemented");
+    }
 
     bool BoolectorSolver::get_bool_value(const SMTExpr& expr) {
         const char *result = boolector_bv_assignment(this->context, eto_b(expr));

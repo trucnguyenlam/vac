@@ -214,6 +214,10 @@ namespace SMT {
         log->critical("Cvc4Solver::exprValueAsString is not implemented");
         throw unexpected("Cvc4Solver::exprValueAsString is not implemented");
     }
+    int Cvc4Solver::exprValueAsInt(const SMTExpr& expr) {
+        log->critical("Cvc4Solver::exprValueAsInt is not implemented");
+        throw unexpected("Cvc4Solver::exprValueAsInt is not implemented");
+    }
 
     void Cvc4Solver::printModel() {
         std::cout << solver.getAssignment() << std::endl;
