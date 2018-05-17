@@ -117,11 +117,11 @@ namespace SMT {
         }
 
 
-        std::string name;
+        const std::string name;
         // Index in the role_array
         int role_array_index;
         // VarType type;
-        int bv_size;
+        const int bv_size;
         std::string suffix;
 
     private:
