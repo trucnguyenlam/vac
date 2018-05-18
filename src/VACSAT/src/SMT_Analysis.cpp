@@ -89,6 +89,7 @@ namespace SMT {
                 return true;
             case AnalysisType::SHOW_AFTERPRUNE_STATISTICS:
                 prune_policy(solver, policy);
+                /* FALLTHRU */
             case AnalysisType::SHOW_INITIAL_STATISTICS:
                 policy->show_policy_statistics(config.wanted_threads_count);
                 return true;
