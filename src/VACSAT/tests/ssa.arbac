@@ -1,4 +1,4 @@
-Roles r1 r2 rt;
+Roles un not r1 r2 r3 r4 rt;
 
 Users u1;
 
@@ -6,14 +6,17 @@ UA
     ;
 
 CR
-    <r1, r1>
-    <r1, r2>
     ;
 
 CA
-    <r1, -r2, r1>
-    <r1, -r1, r2>
-    <r1, r1, rt>
+    <r1, not, un>
+    <r1, un, r1>
+    <r1, un, r2>
+    <r1, un, r3>
+    <r1, r1, r4>
+    <r1, r2, r4>
+    <r1, r3, r4>
+    <r1, r4, rt>
 	;
 
 SPEC rt ;

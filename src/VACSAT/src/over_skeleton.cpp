@@ -537,10 +537,27 @@ namespace SMT {
                         variable old_prec_updated_not_used_var =
                                 solver_state[node]->updated_not_used[prec_atom->role_array_index];
                         variable new_prec_updated_not_used_var = old_prec_updated_not_used_var.createFrom();
+                        // With bitvector attributes change this with a new variable different
+                        tmp_bool = tmp_bool.createFrom();
+                        emit_assignment(node,
+                                        tmp_bool,
+                                        solver->createNotExpr(solver_state[node]->vars[prec_atom->role_array_index].get_solver_var()));
+
+                        std::vector<variable> var_vect = solver_state[node]->vars;
+                        var_vect[prec_atom->role_array_index] = tmp_bool;
+                        SMTExpr prec_sat_with_not_atom = generateSMTFunction(solver, rule->prec, var_vect, "");
+
                         SMTExpr new_prec_updated_not_used_value =
-                                solver->createCondExpr(rule_is_selected,
+                                solver->createCondExpr(
+                                        solver->createAndExpr(rule_is_selected,
+                                                              solver->createNotExpr(prec_sat_with_not_atom)),
                                                        zero,
                                                        old_prec_updated_not_used_var.get_solver_var());
+
+//                        SMTExpr new_prec_updated_not_used_value =
+//                                solver->createCondExpr(rule_is_selected,
+//                                                       zero,
+//                                                       old_prec_updated_not_used_var.get_solver_var());
                         emit_assignment(node, new_prec_updated_not_used_var, new_prec_updated_not_used_value);
                         solver_state[node]->updated_not_used[prec_atom->role_array_index] = new_prec_updated_not_used_var;
                     }
@@ -1678,7 +1695,7 @@ namespace SMT {
                            const std::vector<rulep>& orig_rules,
                            const std::shared_ptr<arbac_policy>& policy,
                            const Expr& to_check) {
-            SMT_proof_checker overapprox_proof_translator(solver, true, true, true, maybe_bool::NO);
+            SMT_proof_checker overapprox_proof_translator(solver, true, true, true, maybe_bool::YES);
             int round = 0;
 
             proofp _proof(new proof_t(strategy,
@@ -1712,10 +1729,10 @@ namespace SMT {
                         result_refineables = overapprox_proof_translator.verify_proof_get_refinement(_proof);
 //                result_refineables.first = under_proof_translator.verify_proof(_proof);
 
-                log->critical(++round);
+                log->error(++round);
                 _proof->dump_proof("pruned_asd.js", true, "pruned_" + std::to_string(round));
 //
-//                if (round == 4) {
+//                if (round == 3) {
 //                    exit(0);
 //                }
 
