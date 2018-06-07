@@ -29,6 +29,7 @@ namespace SMT {
 
     class smt_expr_t {
     public:
+        virtual ~smt_expr_t() = default;
         virtual Solver get_solver() = 0;
     };
 
@@ -36,6 +37,8 @@ namespace SMT {
 
     class SMTFactory {
         public:
+
+        virtual ~SMTFactory() = default;
 
         // virtual TType createBoolType() = 0;
         // virtual TType createBVType(int size) = 0;

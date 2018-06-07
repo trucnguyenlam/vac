@@ -148,6 +148,8 @@ namespace SMT {
 
         Exprv(ExprType ty, std::set<Atomp> literals);
 
+        virtual ~Exprv() = default;
+
         virtual bool equals(const Expr& other) const = 0;
 
 
