@@ -91,6 +91,48 @@ if (STATIC)
     set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
 endif(STATIC)
 
+macro(add_cxx_sanitize_flag flagname)
+    set(CMAKE_CXX_SANITIZE_FLAGS "${CMAKE_CXX_SANITIZE_FLAGS} ${flagname}")
+endmacro()
+
+option(SANITIZE "Use Clang sanitizers. This is possible only with clang++ as the compiler" OFF)
+if (SANITIZE)
+    if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+    # Set in Cache so user can tweak it later
+#    SET(CMAKE_CXX_COMPILER "/usr/bin/clang++" CACHE FILEPATH "" FORCE)
+        message("Using clang sanitizer")
+        add_cxx_sanitize_flag("-fsanitize=alignment")
+        add_cxx_sanitize_flag("-fsanitize=bool")
+        add_cxx_sanitize_flag("-fsanitize=builtin")
+        add_cxx_sanitize_flag("-fsanitize=bounds")
+        add_cxx_sanitize_flag("-fsanitize=enum")
+        add_cxx_sanitize_flag("-fsanitize=float-cast-overflow")
+        add_cxx_sanitize_flag("-fsanitize=float-divide-by-zero")
+        add_cxx_sanitize_flag("-fsanitize=function")
+        add_cxx_sanitize_flag("-fsanitize=integer-divide-by-zero")
+        add_cxx_sanitize_flag("-fsanitize=nonnull-attribute")
+        add_cxx_sanitize_flag("-fsanitize=null")  # ?
+        add_cxx_sanitize_flag("-fsanitize=nullability-arg")
+        add_cxx_sanitize_flag("-fsanitize=nullability-assign")
+        add_cxx_sanitize_flag("-fsanitize=nullability-return")
+        add_cxx_sanitize_flag("-fsanitize=object-size")
+        add_cxx_sanitize_flag("-fsanitize=pointer-overflow")
+        add_cxx_sanitize_flag("-fsanitize=return")
+        add_cxx_sanitize_flag("-fsanitize=returns-nonnull-attribute")
+        add_cxx_sanitize_flag("-fsanitize=shift")
+        add_cxx_sanitize_flag("-fsanitize=signed-integer-overflow")
+        add_cxx_sanitize_flag("-fsanitize=unreachable")
+        add_cxx_sanitize_flag("-fsanitize=unsigned-integer-overflow")
+        add_cxx_sanitize_flag("-fsanitize=vla-bound")
+        add_cxx_sanitize_flag("-fsanitize=vptr") # ?
+        add_cxx_sanitize_flag("-fsanitize=undefined")
+        add_cxx_sanitize_flag("-fsanitize=integer")
+        add_cxx_sanitize_flag("-fsanitize=nullability")
+#        add_cxx_sanitize_flag("-Wno-bitfield-constant-conversion")
+    else()
+        message(FATAL_ERROR "Sanitize must be used with clang++ compiler only")
+    endif()
+endif()
 
 set(DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps")
 
@@ -223,6 +265,9 @@ include_directories("${CCL_INCLUDE_DIR}"
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 # Otherwise use this
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+
+set(CMAKE_CXX_FLAGS_BASE "${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_BASE} ${CMAKE_CXX_SANITIZE_FLAGS}")
 
 # Add local libraries linking directories
 link_directories(${CCL_LIBRARY_DIR}
