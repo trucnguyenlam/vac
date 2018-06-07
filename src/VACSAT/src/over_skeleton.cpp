@@ -1760,7 +1760,7 @@ namespace SMT {
                         tree_pruner pruner(solver);
 //                        pruner.prune_tree(_proof, false, true);
 //                        pruner.prune_tree(_proof, true, false);
-//                        pruner.prune_tree(_proof, true, true);
+                        pruner.prune_tree(_proof, true, true);
 
                         log->info("... REFINING");
                         bool changed = _proof->refine_proof(result_refineables.second,
