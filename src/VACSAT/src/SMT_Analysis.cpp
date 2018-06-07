@@ -2,7 +2,6 @@
 // Created by esteffin on 11/05/17.
 //
 
-#include <mathsat.h>
 #include "SMT_Analysis.h"
 #include "Policy.h"
 #include "SMT_Pruning.h"
