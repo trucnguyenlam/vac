@@ -279,7 +279,8 @@ set(CMAKE_CXX_FLAGS_BASE "${CMAKE_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_BASE} ${CMAKE_CXX_SANITIZE_FLAGS}")
 
 # Add local libraries linking directories
-link_directories(${CCL_LIBRARY_DIR}
+link_directories(${GMP_LIBRARY_DIR}
+                 ${CCL_LIBRARY_DIR}
                  ${ANTLR3C_LIBRARY_DIR})
 
 set(PARSER_SOURCES
