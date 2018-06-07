@@ -54,17 +54,26 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
     else (GOLD_FOUND)
         message(WARNING "gold not found! Slower linking!")
     endif (GOLD_FOUND)
+else()
+    set(GOLD_FOUND 0)
+    message(WARNING "Using ${CMAKE_CXX_COMPILER_ID} compiler, so no choice of the linker...")
 endif()
 
-# TRY TO USE CCACHE FOR FASTER COMPILATION
-find_program(CCACHE_FOUND ccache)
-if (CCACHE_FOUND)
-    message(STATUS "ccache found! Faster compilation!")
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK    ccache)
-else (CCACHE_FOUND)
-    message(WARNING "ccache not found! Slower compilation!")
-endif (CCACHE_FOUND)
+# IF USING GNU GCC
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
+    # TRY TO USE CCACHE FOR FASTER COMPILATION
+    find_program(CCACHE_FOUND ccache)
+    if (CCACHE_FOUND)
+        message(STATUS "ccache found! Faster compilation!")
+        set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+        set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK    ccache)
+    else (CCACHE_FOUND)
+        message(WARNING "ccache not found! Slower compilation!")
+    endif (CCACHE_FOUND)
+else()
+    set(CCACHE_FOUND 0)
+    message(WARNING "Using ${CMAKE_CXX_COMPILER_ID} compiler, so not using ccache...")
+endif()
 
 
 set(STATIC OFF CACHE BOOL "Make statically linked binary") #OFF by default
