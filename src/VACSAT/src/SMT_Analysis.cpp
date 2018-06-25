@@ -85,7 +85,8 @@ namespace SMT {
                  bmc_config config) {
         switch (analysis_type) {
             case AnalysisType::UPDATE_MODEL:
-                log->info(policy->to_new_string());
+//                log->info(policy->to_new_string());
+                log->info(policy->to_vac_plus_string(true, true));
                 return true;
             case AnalysisType::SHOW_AFTERPRUNE_STATISTICS:
                 prune_policy(solver, policy);
@@ -97,7 +98,8 @@ namespace SMT {
                 if (Config::print_old_model) {
                     log->info(policy->to_arbac_string());
                 } else {
-                    log->info(policy->to_new_string());
+                    log->info(policy->to_vac_plus_string(true, true));
+//                    log->info(policy->to_new_string());
                 }
                 return true;
             case AnalysisType::ANALYSIS_ONLY:

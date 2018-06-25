@@ -97,7 +97,44 @@ namespace SMT {
 
         return fmt.str();
 
-}
+    }
+
+    const std::string rule::to_vac_plus_string() const {
+        std::stringstream fmt;
+
+        fmt << "\t<: ";
+
+        fmt << "ut";
+        Expr simpl_admin = simplifyExpr(this->admin);
+        Expr simpl_prec = simplifyExpr(this->prec);
+
+        if (is_constant_true(simpl_admin) || !simpl_admin->atoms().empty()) {
+            // there is admin...
+            fmt << ", ua";
+        }
+        fmt << ": ";
+
+
+        std::string adm("ua");
+        std::string user("ut");
+
+        if (simpl_admin->atoms().empty() && simpl_prec->atoms().empty()) {
+            fmt << "true";
+        } else if (simpl_prec->atoms().empty()) {
+            fmt << simpl_admin->to_new_string(adm);
+        } else if (simpl_admin->atoms().empty()) {
+            fmt << simpl_prec->to_new_string(adm);
+        } else {
+            fmt << simpl_admin->to_new_string(adm) << " && " << simpl_prec->to_new_string(user);
+        }
+
+        fmt << " : ";
+        fmt << user << "." << this->target->name << " := " << (this->is_ca ? "1_1" : "0_1");
+
+        fmt << " :>" << std::endl;
+
+        return fmt.str();
+    }
 
     const std::string rule::get_type() const {
         return this->is_ca ? "CA" : "CR";
@@ -1002,6 +1039,108 @@ namespace SMT {
         }
 
         update();
+    }
+
+    const std::string print_ua(const arbac_policy* pol, const std::set<Atomp>& atoms, bool light_users) {
+        std::stringstream fmt;
+        if (light_users) {
+            if (!atoms.empty()) {
+                auto ite = atoms.begin();
+                fmt << (*ite)->name << " := 1";
+                for (++ite; ite != atoms.end(); ++ite) {
+                    fmt << ", " << (*ite)->name << " := 1";
+                }
+            }
+            return fmt.str();
+        } else {
+            if (!pol->atoms().empty()) {
+                auto ite = pol->atoms().begin();
+                fmt << (*ite)->name << " := " << (contains(atoms, *ite) ? "1" : "0");
+                for (++ite; ite != pol->atoms().end(); ++ite) {
+                    fmt << ", " << (*ite)->name << " := " << (contains(atoms, *ite) ? "1" : "0");
+                }
+            }
+            return fmt.str();
+        }
+    }
+
+    const std::string print_zipped_users(const arbac_policy* pol, bool light_users) {
+        std::stringstream fmt;
+
+        std::map<std::set<atomp>, std::pair<std::string, int>> classes;
+
+        for (auto &&user : pol->users()) {
+            if (classes.find(user->config()) == classes.end()) {
+                classes[user->config()] = std::pair<std::string, int>(user->name, 1);
+            } else {
+                std::pair<std::string, int>& old_class = classes[user->config()];
+                classes[user->config()] =
+                        std::pair<std::string, int>(old_class.first, old_class.second + 1);
+            }
+        }
+
+        for (auto &&class_pair : classes) {
+            fmt << "\t" << class_pair.second.first << "[" << class_pair.second.second << "]";
+            if (!class_pair.first.empty()) {
+                fmt << ": ";
+                fmt << print_ua(pol, class_pair.first, light_users);
+            }
+            fmt << std::endl;
+        }
+
+        return fmt.str();
+    }
+
+    const std::string print_all_users(const arbac_policy* pol, bool light_users) {
+        std::stringstream fmt;
+
+        for (auto &&user : pol->users()) {
+            fmt << "\t" << user->name << "[1]";
+            if (!user->config().empty()) {
+                fmt << ": ";
+                fmt << print_ua(pol, user->config(), light_users);
+            }
+            fmt << std::endl;
+        }
+
+        return fmt.str();
+    }
+
+    const std::string arbac_policy::to_vac_plus_string(bool light_users, bool zip_users) const {
+        std::stringstream fmt;
+
+        fmt << "// *" << std::endl;
+        fmt << "// * " << "Policy generated from: " << this->filename << std::endl;
+        fmt << "// *" << std::endl << std::endl;
+
+        fmt << "Attributes:" << std::endl;
+        for (auto &&atom : _atoms) {
+            fmt << "\t" << atom->name << "[1] := 0" << std::endl;
+        }
+        fmt << "\t;" << std::endl << std::endl;
+
+        fmt << "Globals:" << std::endl;
+        fmt << "\t;" << std::endl << std::endl;
+
+        fmt << "Users:" << std::endl;
+        if (zip_users) {
+            fmt << print_zipped_users(this, light_users);
+        } else {
+            fmt << print_all_users(this, light_users);
+        }
+        fmt << "\t;" << std::endl << std::endl;
+
+        fmt << "Rules:" << std::endl;
+        for (auto &&rule : this->_rules) {
+            fmt << rule->to_vac_plus_string();
+        }
+        fmt << "\t;" << std::endl << std::endl;
+
+        fmt << "Query:" << std::endl;
+        fmt << "\tany: " << "any." << this->goal_role->name << " == 1_1" << std::endl;
+        fmt << "\t;" << std::endl << std::endl;
+
+        return fmt.str();
     }
 
 }

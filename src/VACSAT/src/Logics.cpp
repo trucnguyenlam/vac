@@ -148,7 +148,7 @@ namespace SMT {
         return this->name;
     }
     std::string Atom::to_new_string(std::string& uname) const {
-        return uname + "." + this->name + "=1";
+        return uname + "." + this->name + " == 1_1";
     }
 
     std::ostream & operator<<(std::ostream & out, Atom const & atom) {
@@ -331,7 +331,8 @@ namespace SMT {
     }
     std::string Constant::to_new_string(std::string& uname) const {
         if (bv_size == 1) {
-            return this->value ? "1" : "0";
+            return this->value ? "true" : "false";
+//            return this->value ? "1" : "0";
         }
         return std::to_string(value);
     }

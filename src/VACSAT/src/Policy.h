@@ -25,6 +25,7 @@ namespace SMT {
 
         const std::string to_string() const;
         const std::string to_new_string() const;
+        const std::string to_vac_plus_string() const;
         const std::string to_arbac_string() const;
         const std::string get_type() const;
 
@@ -178,6 +179,7 @@ namespace SMT {
         const std::string to_string() const;
         const std::string to_arbac_string();
         const std::string to_new_string() const;
+        const std::string to_vac_plus_string(bool light_users, bool zip_users) const;
 
         void print_cache();
 

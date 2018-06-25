@@ -20,20 +20,20 @@ namespace SMT {
     class Defs {
         public:
             static constexpr char line_end[] = ";";
-            static constexpr char and_op[] = " & ";
-            static constexpr char or_op[] = " | ";
+            static constexpr char and_op[] = " && ";
+            static constexpr char or_op[] = " || ";
             static constexpr char not_op[] = "!";
             static constexpr char assign_op[] = " = ";
-            static constexpr char eq_op[] = "=";
-            static constexpr char impl_op[] = " => ";
+            static constexpr char eq_op[] = "==";
+            static constexpr char impl_op[] = " ==> ";
             static constexpr char open_comment[] = "// ";
             static constexpr char assume_str[] = "__VERIFIER_assume";
             static constexpr char assert_str[] = "assert";
             static constexpr char nondet_str[] = "nondet_";
             static constexpr char int_ty_str[] = "int";
             static constexpr char bool_ty_str[] = "_Bool";
-            static constexpr char true_str[] = "TRUE";
-            static constexpr char false_str[] = "FALSE";
+            static constexpr char true_str[] = "true";
+            static constexpr char false_str[] = "false";
             // static constexpr char true_str[] = "TRUE";
             // static constexpr char false_str[] = "FALSE";
     };
