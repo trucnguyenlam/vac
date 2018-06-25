@@ -117,11 +117,11 @@ namespace SMT {
         }
 
 
-        std::string name;
+        const std::string name;
         // Index in the role_array
         int role_array_index;
         // VarType type;
-        int bv_size;
+        const int bv_size;
         std::string suffix;
 
     private:
@@ -147,6 +147,8 @@ namespace SMT {
             };
 
         Exprv(ExprType ty, std::set<Atomp> literals);
+
+        virtual ~Exprv() = default;
 
         virtual bool equals(const Expr& other) const = 0;
 

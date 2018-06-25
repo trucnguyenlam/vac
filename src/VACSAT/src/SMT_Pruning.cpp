@@ -6,7 +6,6 @@
 #include <iostream>
 #include <utility>
 #include <algorithm>
-#include <mathsat.h>
 
 //#include "old_parser/ARBACExact.h"
 #include "SMT_Pruning.h"

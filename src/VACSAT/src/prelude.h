@@ -48,7 +48,7 @@ public:
 
     const std::string maybe_bool_to_string(const maybe_bool info);
 
-    const std::string get_timestamp();
+    const std::string get_timestamp(bool millisecond = true);
 
     const std::string bool_to_true_false(bool b);
 

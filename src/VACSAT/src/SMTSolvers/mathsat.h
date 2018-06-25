@@ -65,6 +65,8 @@ namespace SMT {
 
         SMTResult solve() override;
         void printExpr(const SMTExpr& expr) override;
+        std::string exprValueAsString(const SMTExpr& expr) override;
+        int exprValueAsInt(const SMTExpr& expr) override;
         void printModel() override;
         bool get_bool_value(const SMTExpr& expr) override;
         void print_statistics() override;

@@ -76,6 +76,8 @@ namespace SMT {
         void deep_clean() override;
 
         void printExpr(const SMTExpr& e) override;
+        std::string exprValueAsString(const SMTExpr& expr) override;
+        int exprValueAsInt(const SMTExpr& expr) override;
         void printContext() override;
         void printContext(std::string filename) override;
 

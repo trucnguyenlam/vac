@@ -334,9 +334,17 @@ namespace SMT {
         log->info("{}", res);
         msat_free(res);
     }
+    std::string MathsatSolver::exprValueAsString(const SMTExpr& expr) {
+        log->critical("MathsatSolver::exprValueAsString is not implemented");
+        throw unexpected("MathsatSolver::exprValueAsString is not implemented");
+    }
+    int MathsatSolver::exprValueAsInt(const SMTExpr& expr) {
+        log->critical("MathsatSolver::exprValueAsInt is not implemented");
+        throw unexpected("MathsatSolver::exprValueAsInt is not implemented");
+    }
     void MathsatSolver::printModel() {
         log->critical("MathsatSolver::printModel is not implemented");
-        throw unexpected_error("MathsatSolver::printModel is not implemented", __FILE__, __LINE__, __FUNCTION__, __PRETTY_FUNCTION__);
+        throw unexpected("MathsatSolver::printModel is not implemented");
     }
     bool MathsatSolver::get_bool_value(const SMTExpr& expr) {
         msat_term t = msat_get_model_value(this->context, eto_m(expr));

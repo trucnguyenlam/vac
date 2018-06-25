@@ -109,10 +109,7 @@ namespace SMT {
         std::shared_ptr<std::pair<atomp, bool>> post_A_check;
         std::shared_ptr<std::pair<atomp, bool>> pre_A_blocked_check;
         std::shared_ptr<std::pair<atomp, bool>> post_A_blocked_check;
-        bool no_transition; /// Disable transition
-        bool no_skip;       /// Forbids the node to skip
-        bool no_priority;   /// Disable node exploration strategy
-        bool no_sfogo;      /// Do not count last node as sfogo
+        bool no_skip;               /// Forbids the node to skip
 
         //FOR LEAVES ONLY
         maybe_bool overapprox;    /// Forces/denies/leave free the overapproximation of the leaf
@@ -151,8 +148,8 @@ namespace SMT {
 
         void rebuild_weak_ptrs();
 
-        void get_nodes(proof_node* node,
-                       std::list<proof_node*>& list);
+//        void get_nodes(proof_node* node,
+//                       std::list<proof_node*>& list);
 
         void filter_nodes_tail(std::list<std::shared_ptr<proof_node>>& acc,
                                std::function<bool(std::shared_ptr<proof_node>&)> fn);
@@ -163,9 +160,16 @@ namespace SMT {
 
         void update_leaves_infos();
 
+        /**
+         * Function that expand a leaf of the tree if less than max_depth adding #child_count refinement children
+         * @param max_depth: the max depth for the refinement (< 0) for unlimited
+         * @param child_count: The number of child of the node
+         * @return true if the node has been refined, false otherways
+         **/
         bool refine_node(int max_depth, int child_count);
 
         std::list<std::weak_ptr<proof_node>> _ancestors;
+        std::list<std::weak_ptr<proof_node>> _right_siblings;
         std::weak_ptr<proof_node> _parent;
         std::vector<std::shared_ptr<proof_node>> _refinement_blocks;
 
@@ -175,21 +179,47 @@ namespace SMT {
         std::string uid;
         const int depth;
 
+
         node_invariants invariants;
         node_policy_infos node_infos;
         std::unique_ptr<leaves_infos> leaf_infos;
 
+        const bool nondet_after_trans;
 //        pruning_triggers triggers;
 
-        const std::list<std::weak_ptr<proof_node>>& ancestors() const {
+        const inline std::list<std::weak_ptr<proof_node>>& ancestors() const {
             return _ancestors;
         }
-        const std::weak_ptr<proof_node>& parent() const {
+        const inline std::weak_ptr<proof_node>& parent() const {
             return _parent;
         }
-        const std::vector<std::shared_ptr<proof_node>>& refinement_blocks() const {
+        const inline std::list<std::weak_ptr<proof_node>>& right_siblings() {
+            if (this->is_root()) {
+                return _right_siblings;
+            }
+
+            // Lazy initialize _right_siblings
+            if (_right_siblings.empty()) {
+                std::shared_ptr<proof_node> thisp = this->shared_from_this();
+                std::shared_ptr<proof_node> parent = this->parent().lock();
+                bool passed = false;
+                for (auto &&sibling : parent->_refinement_blocks) {
+                    if (passed) {
+                        _right_siblings.push_back(sibling);
+                    }
+                    if (sibling == thisp) {
+                        passed = true;
+                    }
+                }
+            }
+
+            return _right_siblings;
+        }
+        const inline std::vector<std::shared_ptr<proof_node>>& refinement_blocks() const {
             return _refinement_blocks;
         }
+        bool is_leftmost_child() const;
+
 
         std::list<std::shared_ptr<proof_node>> get_all_nodes();
 
@@ -210,15 +240,16 @@ namespace SMT {
                    std::unique_ptr<leaves_infos> _leaves_infos,
                    std::list<std::weak_ptr<proof_node>> ancestors,
                    std::weak_ptr<proof_node> parent,
-                   std::vector<std::shared_ptr<proof_node>> refinement_blocks);
+                   std::vector<std::shared_ptr<proof_node>> refinement_blocks,
+                   bool _nondet_after_trans = false);
 
         std::string tree_to_string();
 
         std::shared_ptr<proof_node> clone();
 
-        bool is_leaf();
+        bool is_leaf() const;
 
-        bool is_root();
+        bool is_root() const;
 
 //        bool pruning_enabled();
 
@@ -303,10 +334,33 @@ namespace SMT {
         UNSAFE_INCOMPLETE
     };
 
+    /**
+     * The abstract class extended by the proof checkers
+     */
     class proof_checker {
+
+        /**
+         * Verifies if the given proof is satisfiable and
+         * returns a pair containing the result and the refineable nodes (nodes where the gap is over-approximated)
+         * @param proof: the proof to be checked
+         * @return: a pair containing the result and the refineable nodes (nodes where the gap is over-approximated)
+         */
         virtual std::pair<over_analysis_result, std::list<std::shared_ptr<proof_node>>>
                 verify_proof_get_refinement(proofp proof) = 0;
+
+        /**
+         * Verifies if the given proof is satisfiable
+         * @param proof: the proof to be checked
+         * @return: the result of the satisfiability of the proof
+         */
         virtual over_analysis_result verify_proof(proofp proof) = 0;
+
+        /**
+         * Verifies if the given proof parametrized by some triggers is satisfiable
+         * @param proof: the proof to be checked
+         * @param triggers: a map from proof node to pruning triggers parametrizing the proof
+         * @return: the result of the satisfiability of the proof
+         */
         virtual over_analysis_result verify_proof(proofp proof,
                                                   std::map<std::shared_ptr<proof_node>, pruning_triggers> triggers) = 0;
     };

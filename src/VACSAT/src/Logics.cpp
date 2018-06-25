@@ -994,6 +994,7 @@ namespace SMT {
                         throw std::runtime_error("NOT expression MUST be located close to atoms (LITERAL, CONSTANT or EQ_EXPR)");
                         return nullptr;
                 }
+                break;
             }
 //            case Exprv::IMPL_EXPR: {
 //                std::shared_ptr<ImplExpr> implExpr = std::dynamic_pointer_cast<ImplExpr>(expr);
@@ -1097,6 +1098,7 @@ namespace SMT {
                         throw std::runtime_error("NOT expression MUST be located close to atoms (LITERAL, CONSTANT or EQ_EXPR)");
                         return nullptr;
                 }
+                break;
             }
 //            case Exprv::IMPL_EXPR: {
 //                std::shared_ptr<ImplExpr> implExpr = std::dynamic_pointer_cast<ImplExpr>(expr);

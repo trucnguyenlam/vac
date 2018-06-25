@@ -437,6 +437,49 @@ namespace SMT {
     void YicesSolver::printExpr(const SMTExpr& expr) {
         yices_pp_term(stdout, eto_y(expr), 120, 40, 0);
     }
+    std::string YicesSolver::exprValueAsString(const SMTExpr& expr) {
+        extract_model();
+
+        std::stringstream fmt;
+        bool is_bool = true;
+        int val = -1;
+        int res = yices_get_bool_value(model, eto_y(expr), &val);
+        if (res < 0) {
+            res = yices_get_bv_value(model, eto_y(expr), &val);
+            is_bool = false;
+            if (res < 0) {
+                std::list<SMTExpr> parts;
+                parts.push_back(expr);
+                yices_fail("YicesSolver::exprValueAsString", parts);
+            }
+        }
+        fmt << (is_bool ? bool_to_true_false((bool) val) : std::to_string(val));
+        return fmt.str();
+    }
+
+    int YicesSolver::exprValueAsInt(const SMT::SMTExpr &expr) {
+        extract_model();
+
+        term_t yexpr = eto_y(expr);
+
+        int bitsize = yices_term_bitsize(yexpr);
+
+        auto bv_val = new int[bitsize];
+        int res = yices_get_bv_value(model, eto_y(expr), bv_val);
+        if (res < 0) {
+            std::list<SMTExpr> parts;
+            parts.push_back(expr);
+            yices_fail("YicesSolver::exprValueAsInt", parts);
+        }
+
+        int value = 0;
+
+        for (int i = 0; i < bitsize; ++i) {
+            value += (int) pow(2, i) * bv_val[i];
+        }
+
+        return value;
+    }
 
     void YicesSolver::loadToSolver() {
         //TODO: consider using 

@@ -2,7 +2,6 @@
 // Created by esteffin on 11/05/17.
 //
 
-#include <mathsat.h>
 #include "SMT_Analysis.h"
 #include "Policy.h"
 #include "SMT_Pruning.h"
@@ -90,6 +89,7 @@ namespace SMT {
                 return true;
             case AnalysisType::SHOW_AFTERPRUNE_STATISTICS:
                 prune_policy(solver, policy);
+                /* FALLTHRU */
             case AnalysisType::SHOW_INITIAL_STATISTICS:
                 policy->show_policy_statistics(config.wanted_threads_count);
                 return true;
@@ -134,20 +134,13 @@ namespace SMT {
 
 //        bool over_result = overapprox(solver, policy, createEqExpr(createLiteralp(policy->goal_role), createConstantTrue()));
 //        solver->deep_clean();
-        bool over_result = execute_overapprox(solver, policy, createEqExpr(createLiteralp(policy->goal_role), createConstantTrue()), config);
 
+//        bool over_result = execute_overapprox(solver, policy, createEqExpr(createLiteralp(policy->goal_role), createConstantTrue()), config);
 
-//        log->info("old over: {}", over_result);
-//        log->info("new over: {}", ext_over_result);
-//        log->info("under: {}", under_result);
-//
-//        exit(0);
-
-//        bool over_result = extended_overapprox(solver, policy, to_check); //, std::set<rulep>(assigning_target.begin(), assigning_target.end()));
 //#endif
-        if (!over_result) {
-            return false;
-        } else { return true; }
+//        if (!over_result) {
+//            return false;
+//        } else { return true; }
         return arbac_to_smt_bmc(solver, policy, config.rounds, config.steps, config.wanted_threads_count);
     };
 

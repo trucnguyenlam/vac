@@ -29,6 +29,7 @@ namespace SMT {
 
     class smt_expr_t {
     public:
+        virtual ~smt_expr_t() = default;
         virtual Solver get_solver() = 0;
     };
 
@@ -36,6 +37,8 @@ namespace SMT {
 
     class SMTFactory {
         public:
+
+        virtual ~SMTFactory() = default;
 
         // virtual TType createBoolType() = 0;
         // virtual TType createBVType(int size) = 0;
@@ -69,6 +72,8 @@ namespace SMT {
         virtual void assertNow(const SMTExpr& expr) = 0;
         virtual SMTResult solve() = 0;
         virtual void printExpr(const SMTExpr& expr) = 0;
+        virtual std::string exprValueAsString(const SMTExpr& expr) = 0;
+        virtual int exprValueAsInt(const SMTExpr& expr) = 0;
         virtual void printModel() = 0;
         virtual void print_statistics() = 0;
         virtual bool get_bool_value(const SMTExpr& expr) = 0;

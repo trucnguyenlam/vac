@@ -165,18 +165,14 @@ namespace SMT {
             post_A_check(nullptr),
             pre_A_blocked_check(nullptr),
             post_A_blocked_check(nullptr),
-            no_transition(false),
             no_skip(false),
-            no_priority(false),
-            no_sfogo(false),
+//            nondet_after_trans(false),
             overapprox(maybe_bool::UNKNOWN),
             check_gap(false) { }
 
     pruning_triggers pruning_triggers::clone() {
-        bool _no_transition = no_transition;
         bool _no_skip = no_skip;
-        bool _no_priority = no_priority;
-        bool _no_sfogo = no_sfogo;
+//        bool _nondet_after_trans = nondet_after_trans;
 
         maybe_bool _overapprox = this->overapprox;
         bool _check_gap = this->check_gap;
@@ -220,10 +216,8 @@ namespace SMT {
         res.post_A_check = std::move(_post_A_check);
         res.pre_A_blocked_check = std::move(_pre_A_blocked_check);
         res.post_A_blocked_check = std::move(_post_A_blocked_check);
-        res.no_transition = _no_transition;
         res.no_skip = _no_skip;
-        res.no_priority = _no_priority;
-        res.no_sfogo = _no_sfogo;
+//        res.nondet_after_trans = _nondet_after_trans;
 
         res.overapprox = _overapprox;
         res.check_gap = _check_gap;
@@ -238,12 +232,10 @@ namespace SMT {
         this->post_A_check = nullptr;
         this->pre_A_blocked_check = nullptr;
         this->post_A_blocked_check = nullptr;
-        this->no_transition = false;
         this->no_skip = false;
-        this->no_priority = false;
+//        this->nondet_after_trans = false;
         this->overapprox = maybe_bool::UNKNOWN;
         this->check_gap = false;
-        this->no_sfogo = false;
     }
 
     bool pruning_triggers::probing_enabled() const {
@@ -253,12 +245,10 @@ namespace SMT {
                this->post_A_check != nullptr ||
                this->pre_A_blocked_check != nullptr ||
                this->post_A_blocked_check != nullptr ||
-               this->no_transition ||
                this->no_skip ||
-               this->no_priority ||
+//               this->nondet_after_trans ||
                this->overapprox != maybe_bool::UNKNOWN ||
-               this->check_gap ||
-               this->no_sfogo;
+               this->check_gap;
     }
 
     std::string JSON_stringify_all(const pruning_triggers& pt, const std::string& prefix) {
@@ -306,10 +296,8 @@ namespace SMT {
         } else {
             fmt << "null," <<std::endl;
         }
-        fmt << i_prefix << "no_transition: " << bool_to_true_false(pt.no_transition) << "," << std::endl;
         fmt << i_prefix << "no_skip: " << bool_to_true_false(pt.no_skip) << "," << std::endl;
-        fmt << i_prefix << "no_priority: " << bool_to_true_false(pt.no_priority) << "," << std::endl;
-        fmt << i_prefix << "no_sfogo: " << bool_to_true_false(pt.no_sfogo) << "," << std::endl;
+//        fmt << i_prefix << "no_left_sibling_skip: " << bool_to_true_false(pt.nondet_after_trans) << "," << std::endl;
         fmt << i_prefix << "overapprox: " << maybe_bool_to_string(pt.overapprox) << "," << std::endl;
         fmt << i_prefix << "check_gap: " << bool_to_true_false(pt.check_gap) << "," << std::endl;
 
@@ -352,18 +340,12 @@ namespace SMT {
             fmt << "{" << post_A_blocked_check->first->name << ", " << post_A_blocked_check->second << "}," << std::endl;
         }
 
-        if (this->no_transition != def.no_transition) {
-            fmt << i_prefix << "no_transition: " << bool_to_true_false(no_transition) << "," << std::endl;
-        }
         if (this->no_skip != def.no_skip) {
             fmt << i_prefix << "no_skip: " << bool_to_true_false(no_skip) << "," << std::endl;
         }
-        if (this->no_priority != def.no_priority) {
-            fmt << i_prefix << "no_priority: " << bool_to_true_false(no_priority) << "," << std::endl;
-        }
-        if (this->no_sfogo != def.no_sfogo) {
-            fmt << i_prefix << "no_sfogo: " << bool_to_true_false(no_sfogo) << "," << std::endl;
-        }
+//        if (this->nondet_after_trans != def.nondet_after_trans) {
+//            fmt << i_prefix << "nondet_after_trans: " << bool_to_true_false(nondet_after_trans) << "," << std::endl;
+//        }
         if (this->overapprox != def.overapprox) {
             fmt << i_prefix << "overapprox: " << maybe_bool_to_string(overapprox) << "," << std::endl;
         }
@@ -426,7 +408,11 @@ namespace SMT {
         }
 
         void tree_to_string (std::stringstream& stream, const proof_node* tree) {
-            stream << "(" << tree->uid << ")" << std::endl;
+            stream << "(" << tree->uid;
+            if (tree->nondet_after_trans) {
+                stream << "*";
+            }
+            stream << ")" << std::endl;
 
             auto ite = tree->refinement_blocks().begin();
 
@@ -456,6 +442,8 @@ namespace SMT {
         int c_depth = this->depth;
         bool c_is_leaf = this->is_leaf();
 
+        bool _nondet_after_trans = this->nondet_after_trans;
+
         node_invariants c_invariants = this->invariants.clone();
         node_policy_infos c_node_infos = this->node_infos.clone();
         std::unique_ptr<leaves_infos> c_leaf_infos = nullptr;
@@ -478,7 +466,8 @@ namespace SMT {
                                std::move(c_leaf_infos),
                                std::list<std::weak_ptr<proof_node>>(),
                                std::weak_ptr<proof_node>(),
-                               std::vector<std::shared_ptr<proof_node>>()));
+                               std::vector<std::shared_ptr<proof_node>>(),
+                               nondet_after_trans));
 
         for (auto &&child : this->_refinement_blocks) {
             std::shared_ptr<proof_node> c_child = child->memberwise_clone();
@@ -502,13 +491,13 @@ namespace SMT {
         }
     }
 
-    void proof_node::get_nodes(proof_node* node,
-                               std::list<proof_node*>& list) {
-        list.push_back(node);
-        for (auto &&child : node->_refinement_blocks) {
-            get_nodes(child.get(), list);
-        }
-    };
+//    void proof_node::get_nodes(proof_node* node,
+//                               std::list<proof_node*>& list) {
+//        list.push_back(node);
+//        for (auto &&child : node->_refinement_blocks) {
+//            get_nodes(child.get(), list);
+//        }
+//    };
 
     void proof_node::filter_nodes_tail(std::list<std::shared_ptr<proof_node>>& acc,
                                        std::function<bool(std::shared_ptr<proof_node>&)> fn) {
@@ -533,6 +522,7 @@ namespace SMT {
         std::string i_prefix = prefix + "\t";
         std::string omissis = "\"...\"";
         fmt << i_prefix << "uid: " << uid << "," << std::endl;
+        fmt << i_prefix << "nondet_after_trans: " << bool_to_true_false(nondet_after_trans) << "," << std::endl;
         fmt << i_prefix << "path: " << tree_path_to_string(path) << "," << std::endl;
         fmt << i_prefix << "depth: " << std::to_string(depth) << "," << std::endl;
         fmt << i_prefix << "node_infos: " << node_infos.JSON_stringify(i_prefix) << "," << std::endl;
@@ -556,7 +546,7 @@ namespace SMT {
     }
 
     void proof_node::update_leaves_infos() {
-        if (!this->is_leaf()) {
+        if (!this->is_leaf() && !this->nondet_after_trans) {
             return;
         }
         if (this->leaf_infos == nullptr) {
@@ -591,9 +581,8 @@ namespace SMT {
     }
 
     bool proof_node::refine_node(int max_depth, int child_count) {
-        if ( // overapprox_strategy.depth_strategy == OverapproxOptions::AT_MOST_DEPTH &&
-                this->depth >= max_depth &&
-                max_depth > -1) {
+        if (this->depth >= max_depth &&
+            max_depth > -1) {
             return false;
         } else if (this->node_infos.rules_a.empty()) {
             log->warn("No need to refine node {} since A is empty", this->uid);
@@ -623,8 +612,12 @@ namespace SMT {
                 return false;
             }
 
-            // This node is not a leaf anymore
-            this->leaf_infos = nullptr;
+            // if this->nondet_after_trans than even if after refinement the node is not a leaf anymore
+            // it still contains not null this->leaf_infos
+            if (!this->nondet_after_trans) {
+                // This node is not a leaf anymore
+                this->leaf_infos = nullptr;
+            }
 
             std::shared_ptr<proof_node> shared_this = this->shared_from_this();
             int i = 0;
@@ -684,7 +677,8 @@ namespace SMT {
             depth(_depth),
             invariants(node_invariants()),
             node_infos(_node_infos),
-            leaf_infos(std::move(_leaves_infos)) { }
+            leaf_infos(std::move(_leaves_infos)),
+            nondet_after_trans(false) { }
 
     proof_node::proof_node(tree_path _path,
                            std::string _uid,
@@ -694,7 +688,8 @@ namespace SMT {
                            std::unique_ptr<leaves_infos> _leaves_infos,
                            std::list<std::weak_ptr<proof_node>> ancestors,
                            std::weak_ptr<proof_node> parent,
-                           std::vector<std::shared_ptr<proof_node>> refinement_blocks):
+                           std::vector<std::shared_ptr<proof_node>> refinement_blocks,
+                           bool _nondet_after_trans):
             _ancestors(std::move(ancestors)),
             _parent(std::move(parent)),
             _refinement_blocks(std::move(refinement_blocks)),
@@ -703,7 +698,8 @@ namespace SMT {
             depth(_depth),
             invariants(std::move(_invariants)),
             node_infos(_node_infos),
-            leaf_infos(std::move(_leaves_infos)) { }
+            leaf_infos(std::move(_leaves_infos)),
+            nondet_after_trans(_nondet_after_trans) { };
 
     // PRINTING FUNCTIONS
     std::string proof_node::tree_to_string() {
@@ -719,11 +715,11 @@ namespace SMT {
         return cloned;
     }
 
-    bool proof_node::is_leaf() {
+    bool proof_node::is_leaf() const {
         return _refinement_blocks.empty();
     }
 
-    bool proof_node::is_root() {
+    bool proof_node::is_root() const {
         return depth == 0;
     }
 
@@ -783,7 +779,7 @@ namespace SMT {
         std::stringstream out;
         std::string structure = this->tree_to_string();
         std::string details = this->JSON_stringify();
-        if (heading_name != "") {
+        if (!heading_name.empty()) {
             out << "/**" << std::endl;
             out << " * " << heading_name << std::endl;
             out << " */" << std::endl;
@@ -798,6 +794,7 @@ namespace SMT {
         out << std::endl << std::endl;
         return out.str();
     }
+
     void proof_node::dump_tree(const std::string& fname,
                                bool javascript_compliant,
                                const std::string heading_name) {
@@ -834,6 +831,18 @@ namespace SMT {
 //        this->consolidate_tree();
 //        return res;
 //    }
+
+    bool proof_node::is_leftmost_child() const {
+        if (is_root()) {
+            return true;
+        }
+
+        std::shared_ptr<const proof_node> thisp = shared_from_this();
+
+        std::shared_ptr<const proof_node> leftmost_child = this->parent().lock()->refinement_blocks().front();
+
+        return thisp == leftmost_child;
+    }
 
     std::list<std::shared_ptr<proof_node>> proof_node::get_all_nodes() {
         std::list<std::shared_ptr<proof_node>> res;

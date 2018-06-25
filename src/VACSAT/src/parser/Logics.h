@@ -42,6 +42,7 @@ class Exprv {
 
     Exprv(void) {}
     Exprv(ExprType ty, std::set<Literalp> literals);
+    virtual ~Exprv() = default;
 
     bool containsLiteral(std::string full_name);
     bool containsLiteral(Literalp lit);
