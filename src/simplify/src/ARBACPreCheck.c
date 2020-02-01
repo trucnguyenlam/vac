@@ -36,16 +36,16 @@ quickSort(int a[], int l, int r)
 
 // Write simplification trace in order to find counter example
 static void
-write_trace(FILE *output)
+write_trace(FILE *tmp_out)
 {
     int i;
-    fprintf(output, "Trace\n");
+    fprintf(tmp_out, "Trace\n");
     for (i = 0; i < trace_array_size; i++)
     {
-        fprintf(output, "%d -> %d -> %d + %d -> %d + %d\n", trace_array[i].simplify_rule, trace_array[i].affected_role_index, trace_array[i].affected_rule_index, trace_array[i].affected_rule_type,
+        fprintf(tmp_out, "%d -> %d -> %d + %d -> %d + %d\n", trace_array[i].simplify_rule, trace_array[i].affected_role_index, trace_array[i].affected_rule_index, trace_array[i].affected_rule_type,
                 trace_array[i].related_rule_index, trace_array[i].related_rule_type);
     }
-    fprintf(output, "EndTrace\n");
+    fprintf(tmp_out, "EndTrace\n");
 }
 
 /**
@@ -76,16 +76,17 @@ write_small_policy(int hasPruning, int rules[], int rules_size, char *inputFile)
     int keep_roles[role_array_size];
     int keep_users[user_array_size];
     int hasSuper = 0;
-    FILE *output;
     char *newfile = 0;
 
+    /*
     newfile = malloc(strlen(inputFile) + strlen("_reduceAdmin.arbac") + 2);
     sprintf(newfile, "%s_reduceAdmin.arbac", inputFile);
-    output = fopen(newfile, "w");
+    tmp_out = fopen(newfile, "w");
+    */
 
-    fprintf(tmplog, "Pre-checking ARBAC Policy successful. There is no need to perform pruning algorithm.\n");
+    fprintf(tmp_log, "Pre-checking ARBAC Policy successful. There is no need to perform pruning algorithm.\n");
 
-    fprintf(simplifyLog, "---------------------------------------------\nSIMPLIFICATION LOG\n---------------------------------------------\n");
+    fprintf(tmp_debug, "---------------------------------------------\nSIMPLIFICATION LOG\n---------------------------------------------\n");
 
     // Create a quick dictionary
     for (i = 0; i < role_array_size; i++)
@@ -171,90 +172,90 @@ write_small_policy(int hasPruning, int rules[], int rules_size, char *inputFile)
         }
     }
 
-    fprintf(tmplog, "ARBAC system after reducing:\n");
+    fprintf(tmp_log, "ARBAC system after reducing:\n");
 
     //Write the roles
-    fprintf(simplifyLog, "Roles\n");
-    fprintf(output, "Roles ");
+    fprintf(tmp_debug, "Roles\n");
+    fprintf(tmp_out, "Roles ");
     for (i = 0; i < role_array_size; i++)
     {
         if (keep_roles[i])
         {
-            fprintf(output, "%s ", role_array[i]);
-            fprintf(simplifyLog, "%d -> %d\n", i, count);
+            fprintf(tmp_out, "%s ", role_array[i]);
+            fprintf(tmp_debug, "%d -> %d\n", i, count);
             count++;
         }
         else
         {
-            fprintf(simplifyLog, "%d -> -1\n", i);
+            fprintf(tmp_debug, "%d -> -1\n", i);
         }
     }
 
     if (hasPruning && hasSuper)
     {
-        fprintf(output, "SUPER_ROLE ");
-        fprintf(simplifyLog, "%d -> %d\n", role_array_size, count);
+        fprintf(tmp_out, "SUPER_ROLE ");
+        fprintf(tmp_debug, "%d -> %d\n", role_array_size, count);
         count++;
     }
-    fprintf(output, ";\n\n");
-    fprintf(simplifyLog, "EndR\n");
-    fprintf(tmplog, "Roles: %d\n", count);
+    fprintf(tmp_out, ";\n\n");
+    fprintf(tmp_debug, "EndR\n");
+    fprintf(tmp_log, "Roles: %d\n", count);
 
     //Write the users
     count = 0;
-    fprintf(simplifyLog, "Users\n");
-    fprintf(output, "Users ");
+    fprintf(tmp_debug, "Users\n");
+    fprintf(tmp_out, "Users ");
     for (i = 0; i < user_array_size; i++)
     {
         if (keep_users[i] && i != super_user_index)
         {
-            fprintf(output, "%s ", user_array[i]);
-            fprintf(simplifyLog, "%d -> %d\n", i, count);
+            fprintf(tmp_out, "%s ", user_array[i]);
+            fprintf(tmp_debug, "%d -> %d\n", i, count);
             count++;
         }
         else if (i == super_user_index)
         {
-            fprintf(output, "SUPER_USER ");
-            fprintf(simplifyLog, "%d -> -10\n", super_user_index);
+            fprintf(tmp_out, "SUPER_USER ");
+            fprintf(tmp_debug, "%d -> -10\n", super_user_index);
             count++;
         }
         else
         {
-            fprintf(simplifyLog, "%d -> -1\n", i);
+            fprintf(tmp_debug, "%d -> -1\n", i);
         }
     }
 
-    fprintf(output, ";\n\n");
-    fprintf(simplifyLog, "EndU\n");
-    fprintf(tmplog, "Users: %d\n", count);
+    fprintf(tmp_out, ";\n\n");
+    fprintf(tmp_debug, "EndU\n");
+    fprintf(tmp_log, "Users: %d\n", count);
 
     //Write the UA
     // UA: only for keep users and keep roles
-    fprintf(output, "UA ");
+    fprintf(tmp_out, "UA ");
     for (i = 0; i < ua_array_size; i++)
     {
         if (keep_users[ua_array[i].user_index] && keep_roles[ua_array[i].role_index])
         {
-            fprintf(output, "<%s,%s> ", get_user(ua_array[i].user_index), get_role(ua_array[i].role_index));
+            fprintf(tmp_out, "<%s,%s> ", get_user(ua_array[i].user_index), get_role(ua_array[i].role_index));
         }
     }
     if (hasPruning && hasSuper)
     {
-        fprintf(output, "<SUPER_USER,SUPER_ROLE> ");
+        fprintf(tmp_out, "<SUPER_USER,SUPER_ROLE> ");
     }
-    fprintf(output, ";\n\n");
+    fprintf(tmp_out, ";\n\n");
 
     //Write the CR
-    fprintf(simplifyLog, "CRs\n");
-    fprintf(output, "CR ;\n\n");
-    fprintf(simplifyLog, "EndCR\n");
-    fprintf(tmplog, "CR rules: 0\n");
+    fprintf(tmp_debug, "CRs\n");
+    fprintf(tmp_out, "CR ;\n\n");
+    fprintf(tmp_debug, "EndCR\n");
+    fprintf(tmp_log, "CR rules: 0\n");
 
     //Write CAs
     count = 0;
     int has_head = 0;
-    fprintf(simplifyLog, "CAs\n");
-    fprintf(output, "CA ");
+    fprintf(tmp_debug, "CAs\n");
+    fprintf(tmp_out, "CA ");
     for (i = 0; i < ca_array_size; i++)
     {
         if (belong_to(rules, rules_size, i) != -1)
@@ -262,17 +263,17 @@ write_small_policy(int hasPruning, int rules[], int rules_size, char *inputFile)
             // Check for the precondition of each role
             if (ca_array[i].type == 0)
             {
-                fprintf(output, "<%s,", get_role(ca_array[i].admin_role_index));
+                fprintf(tmp_out, "<%s,", get_role(ca_array[i].admin_role_index));
 
                 for (j = 0; j < ca_array[i].positive_role_array_size; j++)
                 {
                     if (has_head)
                     {
-                        fprintf(output, "&%s", get_role(ca_array[i].positive_role_array[j]));
+                        fprintf(tmp_out, "&%s", get_role(ca_array[i].positive_role_array[j]));
                     }
                     else
                     {
-                        fprintf(output, "%s", get_role(ca_array[i].positive_role_array[j]));
+                        fprintf(tmp_out, "%s", get_role(ca_array[i].positive_role_array[j]));
                         has_head = 1;
                     }
                 }
@@ -281,52 +282,52 @@ write_small_policy(int hasPruning, int rules[], int rules_size, char *inputFile)
                 {
                     if (has_head)
                     {
-                        fprintf(output, "&-%s", get_role(ca_array[i].negative_role_array[j]));
+                        fprintf(tmp_out, "&-%s", get_role(ca_array[i].negative_role_array[j]));
                     }
                     else
                     {
-                        fprintf(output, "-%s", get_role(ca_array[i].negative_role_array[j]));
+                        fprintf(tmp_out, "-%s", get_role(ca_array[i].negative_role_array[j]));
                         has_head = 1;
                     }
                 }
-                fprintf(output, ",%s> ", get_role(ca_array[i].target_role_index));
+                fprintf(tmp_out, ",%s> ", get_role(ca_array[i].target_role_index));
                 has_head = 0;
             }
             else if (ca_array[i].type == 1)
             {
-                fprintf(output, "<%s,TRUE,%s> ", get_role(ca_array[i].admin_role_index), get_role(ca_array[i].target_role_index));
+                fprintf(tmp_out, "<%s,TRUE,%s> ", get_role(ca_array[i].admin_role_index), get_role(ca_array[i].target_role_index));
             }
             else if (ca_array[i].type == 2)
             {
-                fprintf(output, "<%s,NEW,%s> ", get_role(ca_array[i].admin_role_index), get_role(ca_array[i].target_role_index));
+                fprintf(tmp_out, "<%s,NEW,%s> ", get_role(ca_array[i].admin_role_index), get_role(ca_array[i].target_role_index));
             }
-            fprintf(simplifyLog, "%d <- %d\n", count, i);
+            fprintf(tmp_debug, "%d <- %d\n", count, i);
             count++;
         }
     }
-    fprintf(output, ";\n\n");
-    fprintf(simplifyLog, "EndCA\n");
-    fprintf(tmplog, "CA rules: %d\n", count);
-    fprintf(tmplog, "Total rules: %d\n", count);
+    fprintf(tmp_out, ";\n\n");
+    fprintf(tmp_debug, "EndCA\n");
+    fprintf(tmp_log, "CA rules: %d\n", count);
+    fprintf(tmp_log, "Total rules: %d\n", count);
 
     //Write the SPEC
-    fprintf(output, "SPEC");
+    fprintf(tmp_out, "SPEC");
     if (goal_user_index != -13 && goal_user_index != -1)
     {
         if (goal_user_index == super_user_index)
         {
-            fprintf(output, " SUPER_USER");
+            fprintf(tmp_out, " SUPER_USER");
         }
         else
         {
-            fprintf(output, " %s", get_user(goal_user_index));
+            fprintf(tmp_out, " %s", get_user(goal_user_index));
         }
     }
-    fprintf(output, " %s ;", get_role(goal_role_index));
+    fprintf(tmp_out, " %s ;", get_role(goal_role_index));
 
     // Write the trace
-    write_trace(simplifyLog);
-    fprintf(simplifyLog, "---------------------------------------------\nEND SIMPLIFICATION LOG\n---------------------------------------------\n");
+    write_trace(tmp_debug);
+    fprintf(tmp_debug, "---------------------------------------------\nEND SIMPLIFICATION LOG\n---------------------------------------------\n");
 }
 
 static int

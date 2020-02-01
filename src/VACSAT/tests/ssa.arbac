@@ -1,0 +1,26 @@
+Roles r0 r1 r2 r3 rt rs ;
+
+Users u1;
+
+NEWUSERS
+    <n0, r0>
+;
+
+UA
+	<u1, rs>;
+
+CR 	<r0, r1>;
+
+CA
+    <r0, TRUE, r1>
+
+
+
+    <rs, r1, r2>
+
+    <r2, -rs, rt>
+
+
+	;
+
+SPEC rt ;

@@ -135,6 +135,7 @@ print_rule(int rule_number, int rule_type, FILE *outputFILE)
     }
 }
 
+/*
 static void
 redirect_stdout(char *outputFILENAME)
 {
@@ -156,6 +157,7 @@ redirect_stdout(char *outputFILENAME)
     }
     fclose(outputFILE);
 }
+*/
 
 void
 print_no_counter_example(FILE *outputFILE)
@@ -178,12 +180,14 @@ static void
 print_trace(Trace *trace, int trace_size, FILE *outputFILE)
 {
     int i, j, flag = 0;
-    fprintf(outputFILE, "Counter Example Trace:\n");
 
     if (trace_array_size == 0)
     {
-        fprintf(outputFILE, "error: Empty counter example trace.\n");
+        fprintf(stderr, "Error: Empty counter example trace.\n");
+        exit(EXIT_FAILURE);
     }
+
+    fprintf(outputFILE, "Counter Example Trace:\n");
 
     if (hasGoalUserMode)
     {
@@ -566,8 +570,8 @@ postprocess_counter_example_trace(int ToCheckRole_index)
 
         if (trace_index == -1)
         {
-            fprintf(stderr, "error: error 1 in counter example\n");
-            abort();
+            fprintf(stderr, "Error: error 1 in counter example\n");
+            exit(EXIT_FAILURE);
         }
 
         int i;
@@ -750,14 +754,14 @@ produce_counter_example(FILE *outputFILE, int silence)
                     }
                     else
                     {
-                        fprintf(stderr, "error: there is some thing wrong with the counter example from CBMC\n");
-                        abort();
+                        fprintf(stderr, "Error: there is some thing wrong with the counter example from CBMC\n");
+                        exit(EXIT_FAILURE);
                     }
                 }
                 else
                 {
-                    fprintf(stderr, "error: there is some problem with the counter example\n");
-                    abort();
+                    fprintf(stderr, "Error: there is a problem with the counter example\n");
+                    exit(EXIT_FAILURE);
                 }
 
                 if (trace_array[trace_array_size - 1].rule_type == 0)
@@ -772,8 +776,8 @@ produce_counter_example(FILE *outputFILE, int silence)
             }
             else
             {
-                fprintf(stderr, "error: there is some problem with the counter example\n");
-                abort();
+                fprintf(stderr, "Error: there is some problem with the counter example %d\n", index);
+                exit(EXIT_FAILURE);
             }
         }
         invalid_rule = 0;
@@ -1802,8 +1806,8 @@ produce_original_counter_example_help(void)
     // From the trace already obtained
     if (trace_array_size == 0)
     {
-        fprintf(stderr, "error: there is something wrong with original counterexample\n");
-        abort();
+        fprintf(stderr, "Error: there is something wrong with original counterexample\n");
+        exit(EXIT_FAILURE);
     }
     else
     {
@@ -1903,8 +1907,8 @@ produce_original_counter_example_help(void)
             }
             else
             {
-                fprintf(stderr, "error: problem 2 in counterexample\n");
-                abort();
+                fprintf(stderr, "Error: problem 2 in counterexample\n");
+                exit(EXIT_FAILURE);
             }
         }
 
@@ -1973,87 +1977,73 @@ END:
 
 // Generating counter example from all the files (full version)
 void
-generate_counter_example(int argc, char **argv)
+generate_counter_example(char *cbmc_xml, char *cbmc_input, char *orig_arbac, FILE *out_file)
 {
-    char *cefilename = 0;
-    FILE *ceFILE;
-
-    cefilename = malloc(strlen(argv[5]) + strlen("_CounterExample") + 2);
-    sprintf(cefilename, "%s_CounterExample", argv[5]);
-    ceFILE = fopen(cefilename, "w");
-
+    
     // Read CBMC Log XML
-    readCBMCXMLLog(argv[1]);
+    readCBMCXMLLog(cbmc_xml);
 
     // No counter example found
     if (!hasCounterExample)
     {
         // Read ARBAC file
-        readARBAC(argv[3]);
-        print_no_counter_example(ceFILE);
-        fclose(ceFILE);
+        readARBAC(orig_arbac);
+        print_no_counter_example(out_file);
+        /*fclose(ceFILE);
         redirect_stdout(cefilename);
-        free(cefilename);
+        free(cefilename);*/
         free_ARBAC_data();
         return;
     }
 
     // Read CBMC translated file
-    readCBMCTranslated(argv[2]);
+    readCBMCTranslated(cbmc_input);
 
     // Read ARBAC file
-    readARBAC(argv[3]);
+    readARBAC(orig_arbac);
 
     // Produce Counter Example from simplified ARBAC policies
-    produce_counter_example(ceFILE, 0);
+    produce_counter_example(out_file, 0);
 
-    fclose(ceFILE);
+    /*fclose(ceFILE);
     redirect_stdout(cefilename);
-    free(cefilename);
+    free(cefilename);*/
 
 }
 
 // Generating counter example from all the files (full version)
 void
-generate_counter_example_full(int argc, char **argv)
+generate_counter_example_full(char *cbmc_xml, char *cbmc_input, char *simpl_pol, char *simpl_log, char *orig_arbac, FILE *out_file)
 {
-    char *cefilename = 0;
-    FILE *ceFILE;
-
-    cefilename = malloc(strlen(argv[5]) + strlen("_CounterExample") + 2);
-    sprintf(cefilename, "%s_CounterExample", argv[5]);
-    ceFILE = fopen(cefilename, "w");
-
     // Read CBMC Log XML
-    readCBMCXMLLog(argv[1]);
+    readCBMCXMLLog(cbmc_xml);
 
 
     // No counter example found
     if (!hasCounterExample)
     {
         // Read ARBAC file
-        readARBAC(argv[3]);
-        print_no_counter_example(ceFILE);
-        fclose(ceFILE);
-        redirect_stdout(cefilename);
-        free(cefilename);
+        readARBAC(simpl_pol);
+        print_no_counter_example(out_file);
+        //fclose(ceFILE);
+        //redirect_stdout(cefilename);
         free_ARBAC_data();
         return;
     }
 
     // Read CBMC translated file
-    readCBMCTranslated(argv[2]);
+    readCBMCTranslated(cbmc_input);
 
     // Read ARBAC file
-    readARBAC(argv[3]);
+    readARBAC(simpl_pol);
 
     // Produce Counter Example from simplified ARBAC policies
-    produce_counter_example(ceFILE, 1);
+    produce_counter_example(out_file, 1);
 
     // Read simplify log file
-    readSimplifyLog(argv[4]);
+    readSimplifyLog(simpl_log);
     // // Read original ARBAC file
-    readARBAC(argv[5]);
+    readARBAC(orig_arbac);
 
     previouslyHasNewUser = hasNewUserMode;
 
@@ -2061,10 +2051,9 @@ generate_counter_example_full(int argc, char **argv)
     reduction_finiteARBAC();
 
     // Produce Counter Example from original ARBAC policies
-    produce_original_counter_example(ceFILE);
+    produce_original_counter_example(out_file);
 
-    fclose(ceFILE);
-    redirect_stdout(cefilename);
-    free(cefilename);
+    //fclose(ceFILE);
+    //redirect_stdout(cefilename);
 
 }

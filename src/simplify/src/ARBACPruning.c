@@ -33,7 +33,7 @@ remove_roles()
     {
         if (ua_array[i].user_index != -13 && deleted_roles[ua_array[i].role_index] == 1)
         {
-            fprintf(tmplog, "USER ASSIGNMENT relation number %d <%s,%s> is removed by the above rule\n", i, get_user(ua_array[i].user_index), get_role(ua_array[i].role_index));
+            fprintf(tmp_log, "USER ASSIGNMENT relation number %d <%s,%s> is removed by the above rule\n", i, get_user(ua_array[i].user_index), get_role(ua_array[i].role_index));
 
             ua_array[i].user_index = -13; /* Mark as removal */
         }
@@ -46,9 +46,9 @@ remove_roles()
         {
             if (deleted_roles[ca_array[i].target_role_index] == 1)
             {
-                fprintf(tmplog, "CAN ASSIGN rule number %d ", i);
+                fprintf(tmp_log, "CAN ASSIGN rule number %d ", i);
                 print_ca_rule(i);
-                fprintf(tmplog, "is removed by the above rule.\n");
+                fprintf(tmp_log, "is removed by the above rule.\n");
                 ca_array[i].admin_role_index = -13;
             }
             else /* Drop this role from the precondition */
@@ -78,7 +78,7 @@ remove_roles()
     {
         if (cr_array[i].admin_role_index != -13 && deleted_roles[cr_array[i].target_role_index] == 1)
         {
-            fprintf(tmplog, "CAN REVOKE rule number %d <%s,%s> is removed by the above rule\n", i, get_role(cr_array[i].admin_role_index), get_role(cr_array[i].target_role_index));
+            fprintf(tmp_log, "CAN REVOKE rule number %d <%s,%s> is removed by the above rule\n", i, get_role(cr_array[i].admin_role_index), get_role(cr_array[i].target_role_index));
             cr_array[i].admin_role_index = -13;
         }
     }
@@ -350,7 +350,7 @@ rule_irrelevant_role()
         deleted_roles[i] = 0;
     }
 
-    fprintf(tmplog, "Pruning rule R 1-2-3 check--------------------------\n");
+    fprintf(tmp_log, "Pruning rule R 1-2-3 check--------------------------\n");
 
     for (i = 0; i < role_array_size; i++)
     {
@@ -366,7 +366,7 @@ rule_irrelevant_role()
 
         if (t1 == 1 && t2 == 1)
         {
-            fprintf(tmplog, "This role (%s) is not appear in any precondition so that this can be removed\n", get_role(i));
+            fprintf(tmp_log, "This role (%s) is not appear in any precondition so that this can be removed\n", get_role(i));
             change = 1;
             deleted_roles[i] = 1;
             // remove_role(i, 0);
@@ -374,46 +374,46 @@ rule_irrelevant_role()
         // If this is a non-negative role
         else if (t1 == 1 && t2 == 0)
         {
-            fprintf(tmplog, "This role (%s) is a non-negative role\n", get_role(i));
+            fprintf(tmp_log, "This role (%s) is a non-negative role\n", get_role(i));
             if (non_negative_property(i))
             {
-                fprintf(tmplog, "This role (%s) also satisfies the R2 property\n", get_role(i));
-                fprintf(tmplog, "RULE R2 Remove role (%s) from the system\n", get_role(i));
+                fprintf(tmp_log, "This role (%s) also satisfies the R2 property\n", get_role(i));
+                fprintf(tmp_log, "RULE R2 Remove role (%s) from the system\n", get_role(i));
 
                 change = 1;
                 deleted_roles[i] = 1;
                 // remove_role(i, 3);
-                fprintf(tmplog, "-----------------------------------\n");
+                fprintf(tmp_log, "-----------------------------------\n");
             }
         }
         // If this is a non-positive role
         else if (t1 == 0 && t2 == 1)
         {
-            fprintf(tmplog, "This role (%s) is a non-positive role\n", get_role(i));
+            fprintf(tmp_log, "This role (%s) is a non-positive role\n", get_role(i));
             if (non_positive_property(i))
             {
-                fprintf(tmplog, "This role (%s) also satisfies the R1 property\n", get_role(i));
-                fprintf(tmplog, "RULE R1 Remove role (%s) from the system\n", get_role(i));
+                fprintf(tmp_log, "This role (%s) also satisfies the R1 property\n", get_role(i));
+                fprintf(tmp_log, "RULE R1 Remove role (%s) from the system\n", get_role(i));
 
                 change = 1;
                 deleted_roles[i] = 1;
                 // remove_role(i, 2);
-                fprintf(tmplog, "-----------------------------------\n");
+                fprintf(tmp_log, "-----------------------------------\n");
             }
         }
         // If this is a mixed role
         else
         {
-            fprintf(tmplog, "This role (%s) is a mixed role\n", get_role(i));
+            fprintf(tmp_log, "This role (%s) is a mixed role\n", get_role(i));
             if (mixed_property(i))
             {
-                fprintf(tmplog, "This role (%s) also satisfies the R3 property\n", get_role(i));
-                fprintf(tmplog, "RULE R3 Remove role (%s) from the system\n", get_role(i));
+                fprintf(tmp_log, "This role (%s) also satisfies the R3 property\n", get_role(i));
+                fprintf(tmp_log, "RULE R3 Remove role (%s) from the system\n", get_role(i));
 
                 change = 1;
                 deleted_roles[i] = 1;
                 // remove_role(i, 4);
-                fprintf(tmplog, "-----------------------------------\n");
+                fprintf(tmp_log, "-----------------------------------\n");
             }
         }
     }
@@ -427,7 +427,7 @@ rule_irrelevant_role()
     deleted_roles = 0;
     deleted_roles_size = 0;
 
-    fprintf(tmplog, "End--------------------------\n");
+    fprintf(tmp_log, "End--------------------------\n");
 
     return change;
 }
@@ -677,7 +677,7 @@ rule_non_fireable()
     int i;
     int change = 0;
 
-    fprintf(tmplog, "Pruning rule R4 check--------------------------\n");
+    fprintf(tmp_log, "Pruning rule R4 check--------------------------\n");
 
     compute_init_config();
 
@@ -687,9 +687,9 @@ rule_non_fireable()
         if (ca_array[i].admin_role_index != -13
                 && non_fireable_property(i))
         {
-            fprintf(tmplog, "CAN ASSIGN rule number %d ", i);
+            fprintf(tmp_log, "CAN ASSIGN rule number %d ", i);
             print_ca_rule(i);
-            fprintf(tmplog, "is removed by Non-Fireable rule.\n");
+            fprintf(tmp_log, "is removed by Non-Fireable rule.\n");
 
             change = 1;
             ca_array[i].admin_role_index = -13;
@@ -701,7 +701,7 @@ rule_non_fireable()
     init_roles.array = 0;
     init_roles.array_size = 0;
 
-    fprintf(tmplog, "End--------------------------\n");
+    fprintf(tmp_log, "End--------------------------\n");
 
     return change;
 }
@@ -769,7 +769,7 @@ implied_property(int ca1, int ca2)
 //     int i, j;
 //     int change = 0;
 
-//     fprintf(tmplog, "Pruning rule R6 check--------------------------\n");
+//     fprintf(tmp_log, "Pruning rule R6 check--------------------------\n");
 
 //     for (i = 0; i < ca_array_size; i++)
 //     {
@@ -783,11 +783,11 @@ implied_property(int ca1, int ca2)
 //                     {
 //                         change = 1;
 
-//                         fprintf(tmplog, "CAN ASSIGN rule number %d ", j);
+//                         fprintf(tmp_log, "CAN ASSIGN rule number %d ", j);
 //                         print_ca_rule(j);
-//                         fprintf(tmplog, "is an implied rule of CAN ASSIGN rule number %d ", i);
+//                         fprintf(tmp_log, "is an implied rule of CAN ASSIGN rule number %d ", i);
 //                         print_ca_rule(i);
-//                         fprintf(tmplog, "\n");
+//                         fprintf(tmp_log, "\n");
 
 //                         // Remove this implied rule
 //                         ca_array[j].admin_role_index = -13;
@@ -796,11 +796,11 @@ implied_property(int ca1, int ca2)
 //                     {
 //                         change = 1;
 
-//                         fprintf(tmplog, "CAN ASSIGN rule number %d ", i);
+//                         fprintf(tmp_log, "CAN ASSIGN rule number %d ", i);
 //                         print_ca_rule(i);
-//                         fprintf(tmplog, "is an implied rule of CAN ASSIGN rule number %d ", j);
+//                         fprintf(tmp_log, "is an implied rule of CAN ASSIGN rule number %d ", j);
 //                         print_ca_rule(j);
-//                         fprintf(tmplog, "\n");
+//                         fprintf(tmp_log, "\n");
 
 //                         // Remove this implied rule
 //                         ca_array[i].admin_role_index = -13;
@@ -811,7 +811,7 @@ implied_property(int ca1, int ca2)
 //         }
 //     }
 
-//     fprintf(tmplog, "End--------------------------\n");
+//     fprintf(tmp_log, "End--------------------------\n");
 
 //     return change;
 // }
@@ -909,7 +909,7 @@ combining_2_rules(int ca1, int ca2, int role_index)
 //     int i, j;
 //     int change = 0;
 
-//     fprintf(tmplog, "Pruning rule R5 check--------------------------\n");
+//     fprintf(tmp_log, "Pruning rule R5 check--------------------------\n");
 
 //     for (i = 0; i < ca_array_size; i++)
 //     {
@@ -924,11 +924,11 @@ combining_2_rules(int ca1, int ca2, int role_index)
 //                     {
 //                         change = 1;
 
-//                         fprintf(tmplog, "TWO CAN ASSIGN rule number %d ", i);
+//                         fprintf(tmp_log, "TWO CAN ASSIGN rule number %d ", i);
 //                         print_ca_rule(i);
-//                         fprintf(tmplog, "and %d ", j);
+//                         fprintf(tmp_log, "and %d ", j);
 //                         print_ca_rule(j);
-//                         fprintf(tmplog, "are combinable rules by role %s.\n", get_role(role_index));
+//                         fprintf(tmp_log, "are combinable rules by role %s.\n", get_role(role_index));
 
 //                         trace_array_size++;
 //                         trace_array = realloc(trace_array, trace_array_size * sizeof(Trace));
@@ -951,11 +951,11 @@ combining_2_rules(int ca1, int ca2, int role_index)
 //                         {
 //                             change = 1;
 
-//                             fprintf(tmplog, "TWO CAN ASSIGN rule number %d ", i);
+//                             fprintf(tmp_log, "TWO CAN ASSIGN rule number %d ", i);
 //                             print_ca_rule(i);
-//                             fprintf(tmplog, "and %d ", j);
+//                             fprintf(tmp_log, "and %d ", j);
 //                             print_ca_rule(j);
-//                             fprintf(tmplog, "are combinable rules by role %s.\n", get_role(role_index));
+//                             fprintf(tmp_log, "are combinable rules by role %s.\n", get_role(role_index));
 
 //                             trace_array_size++;
 //                             trace_array = realloc(trace_array, trace_array_size * sizeof(Trace));
@@ -977,7 +977,7 @@ combining_2_rules(int ca1, int ca2, int role_index)
 //         }
 //     }
 
-//     fprintf(tmplog, "End--------------------------\n");
+//     fprintf(tmp_log, "End--------------------------\n");
 
 //     return change;
 // }
@@ -989,7 +989,7 @@ rule_combinable_and_implied()
     int i, j;
     int change = 0;
 
-    fprintf(tmplog, "Pruning rule R5 and R6 check--------------------------\n");
+    fprintf(tmp_log, "Pruning rule R5 and R6 check--------------------------\n");
 
     for (i = 0; i < ca_array_size; i++)
     {
@@ -1004,11 +1004,11 @@ rule_combinable_and_implied()
                     {
                         change = 1;
 
-                        fprintf(tmplog, "TWO CAN ASSIGN rule number %d ", i);
+                        fprintf(tmp_log, "TWO CAN ASSIGN rule number %d ", i);
                         print_ca_rule(i);
-                        fprintf(tmplog, "and %d ", j);
+                        fprintf(tmp_log, "and %d ", j);
                         print_ca_rule(j);
-                        fprintf(tmplog, "are combinable rules by role %s.\n", get_role(role_index));
+                        fprintf(tmp_log, "are combinable rules by role %s.\n", get_role(role_index));
 
                         trace_array_size++;
                         trace_array = realloc(trace_array, trace_array_size * sizeof(Trace));
@@ -1031,11 +1031,11 @@ rule_combinable_and_implied()
                         {
                             change = 1;
 
-                            fprintf(tmplog, "TWO CAN ASSIGN rule number %d ", i);
+                            fprintf(tmp_log, "TWO CAN ASSIGN rule number %d ", i);
                             print_ca_rule(i);
-                            fprintf(tmplog, "and %d ", j);
+                            fprintf(tmp_log, "and %d ", j);
                             print_ca_rule(j);
-                            fprintf(tmplog, "are combinable rules by role %s.\n", get_role(role_index));
+                            fprintf(tmp_log, "are combinable rules by role %s.\n", get_role(role_index));
 
                             trace_array_size++;
                             trace_array = realloc(trace_array, trace_array_size * sizeof(Trace));
@@ -1056,11 +1056,11 @@ rule_combinable_and_implied()
                             {
                                 change = 1;
 
-                                fprintf(tmplog, "CAN ASSIGN rule number %d ", j);
+                                fprintf(tmp_log, "CAN ASSIGN rule number %d ", j);
                                 print_ca_rule(j);
-                                fprintf(tmplog, "is an implied rule of CAN ASSIGN rule number %d ", i);
+                                fprintf(tmp_log, "is an implied rule of CAN ASSIGN rule number %d ", i);
                                 print_ca_rule(i);
-                                fprintf(tmplog, "\n");
+                                fprintf(tmp_log, "\n");
 
                                 // Remove this implied rule
                                 ca_array[j].admin_role_index = -13;
@@ -1069,11 +1069,11 @@ rule_combinable_and_implied()
                             {
                                 change = 1;
 
-                                fprintf(tmplog, "CAN ASSIGN rule number %d ", i);
+                                fprintf(tmp_log, "CAN ASSIGN rule number %d ", i);
                                 print_ca_rule(i);
-                                fprintf(tmplog, "is an implied rule of CAN ASSIGN rule number %d ", j);
+                                fprintf(tmp_log, "is an implied rule of CAN ASSIGN rule number %d ", j);
                                 print_ca_rule(j);
-                                fprintf(tmplog, "\n");
+                                fprintf(tmp_log, "\n");
 
                                 // Remove this implied rule
                                 ca_array[i].admin_role_index = -13;
@@ -1086,7 +1086,7 @@ rule_combinable_and_implied()
         }
     }
 
-    fprintf(tmplog, "End--------------------------\n");
+    fprintf(tmp_log, "End--------------------------\n");
 
     return change;
 }
@@ -1149,9 +1149,9 @@ remove_admin_role(void)
 int
 aggressive_pruning()
 {
-    fprintf(tmplog, "----------------------------\n");
-    fprintf(tmplog, "-----  PRUNING  CHECK  -----\n");
-    fprintf(tmplog, "----------------------------\n");
+    fprintf(tmp_log, "----------------------------\n");
+    fprintf(tmp_log, "-----  PRUNING  CHECK  -----\n");
+    fprintf(tmp_log, "----------------------------\n");
 
     // The system does not make sense if there are no user
     if (user_array_size == 0 || role_array_size == 0)

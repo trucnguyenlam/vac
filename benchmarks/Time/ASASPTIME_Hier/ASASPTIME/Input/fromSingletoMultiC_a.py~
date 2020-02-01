@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+
+import sys
+import random
+# The script takes two input arguments:
+# 1. the name of the file to translate
+# 2. the name of the file which will be saved
+# 3. max number of roles
+# 4. max cardinality of C_a  
+org_File = sys.argv[1]
+des_File = sys.argv[2]
+maxRoles = int(sys.argv[3])
+maxC_a = int(sys.argv[4])
+
+try:
+    input_file = open(org_File, 'r')
+    output_file = open(des_File, 'w')
+    nowDone = False
+    for line in input_file:
+	if (line.find("[Rules]") > -1):
+	    nowDone = True	    
+	    continue
+	elif(nowDone == False):
+	    output_file.write(line)
+	else:	
+	    cardinaC_a = random.randint(1,maxC_a)
+	    
+	    tok_lst = line.split(' ')
+	    i = 0
+	    addedRoles = []
+	    while (i < cardinaC_a):
+	        arandomRole = random.randint(1,maxRoles)
+	        if (str(arandomRole) in addedRoles):
+	            continue
+	        else:
+	            addedRoles.append(str(arandomRole))
+	            signedRole = random.randint(0,1)
+	            if(signedRole == 0):
+	                tok_lst.insert(1, '-' + str(arandomRole))
+	            else:
+	                tok_lst.insert(1, str(arandomRole))
+	            i = i + 1
+	    output_file.write(" ".join(tok_lst))    
+	       
+
+    input_file.close()
+    output_file.close()
+    
+except IOError as e: 
+    print 'No Mohawk file found!'

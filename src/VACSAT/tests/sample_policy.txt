@@ -1,0 +1,36 @@
+USERS
+u0
+u1
+u2
+u3*
+u4
+;
+
+// This is a comment
+
+ATTRIBUTES
+rule0[1]
+rule1[1]
+rule2[1]
+rule3[1]
+rule4[1]
+rule5[1]
+age[3]
+salary[10]
+;
+
+INIT
+<u0: rule0=1, age = 3>
+<u1: salary=30, rule2 = 1 >
+;
+
+RULES
+<TRUE, TRUE: x.age=3, x.salary=10>
+<x.rule0=1, x.age=1: x.salary=20>
+<1, x.rule0=1 && y.age=10: x.age=1, x.salary=20>
+<x.rule0=1 || y.age=10, x.age=0: x.rule0=1, x.salary=20>
+
+;
+QUERY
+x.rule5=1
+;

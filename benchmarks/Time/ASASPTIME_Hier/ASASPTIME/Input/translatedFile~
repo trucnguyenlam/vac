@@ -1,0 +1,57 @@
+:smt (define-type role (tuple bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool bool ))
+
+:smt (define all_false::role (mk-tuple false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false false ))
+
+:local a role 
+
+
+:initial
+:var x
+:cnj  (= a[x] all_false)
+
+:unsafe
+:var x
+:cnj (= (select a[x] 16) true)
+
+
+:comment 1
+:transition
+:var x
+:var y
+:var j
+:guard  (= (select a[x] 17) true)  (= (select a[x] 5) true)  (= (select a[y] 13) true) 
+:numcases 3
+:case (= x j)
+ :val a[j] 
+:case (= y j)
+ :val (update a[j] 16 true) 
+:case 
+ :val a[j] 
+
+:comment 2
+:transition
+:var x
+:var y
+:var j
+:guard  (= (select a[x] 1) false)  (= (select a[x] 6) false)  (= (select a[x] 23) true)  (= (select a[y] 13) true) 
+:numcases 3
+:case (= x j)
+ :val a[j] 
+:case (= y j)
+ :val (update a[j] 17 true) 
+:case 
+ :val a[j] 
+
+:comment 3
+:transition
+:var x
+:var y
+:var j
+:guard  (= (select a[x] 17) false)  (= (select a[x] 23) false)  (= (select a[x] 25) false)  (= (select a[x] 14) true)  (= (select a[y] 31) false) 
+:numcases 3
+:case (= x j)
+ :val a[j] 
+:case (= y j)
+ :val (update a[j] 13 true) 
+:case 
+ :val a[j] 

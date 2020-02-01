@@ -202,7 +202,7 @@ reduction_finiteARBAC(void)
         create_user_dict();
 
         // Free data
-        for(i = 0; i < newuser_array_size; i++)
+        for (i = 0; i < newuser_array_size; i++)
         {
             free(newuser_array[i].name);
             newuser_array[i].name = 0;
@@ -261,14 +261,17 @@ readCBMCXMLLog(char *inputfile)
 {
     // 1306 is the maximum string length
     char tmp1[1306] = " ";
-    char tmp2[6] = " ";
+    char tmp2[10] = " ";
+    char tmp3[10] = " ";
     char tmp_role[1306] = " ";
+    char bool_type = 0;
     int track_user;
     int a, i = 0;
+    int obtained_value = 0;
     assignment_array = 0;
     assignment_array_size = 0;
     node_t *root = roxml_load_doc(inputfile);
-    if(!root)
+    if (!root)
     {
         fprintf(stderr, "error: please input the correct log file from CBMC\n");
         abort();
@@ -296,11 +299,17 @@ readCBMCXMLLog(char *inputfile)
             // Fix for newer CBMC
             node_t *display_name = roxml_get_attr(assignment_node, "display_name", 0);
             node_t *value = roxml_get_chld(assignment_node, "value", 0);
+            node_t *type = roxml_get_chld(assignment_node, "type", 0);
             node_t *location = roxml_get_chld(assignment_node, "location", 0);
             node_t *line_attr = roxml_get_attr(location, "line", 0);
 
             roxml_get_content(display_name, tmp1, 1306, &a);
 
+            roxml_get_content(type, tmp3, 10, &a);
+            if (strcmp(tmp3, "_Bool") == 0)
+            {
+                bool_type = 1;
+            }
             // Only consider assignment to track variable
             if (strstr(tmp1, "track_") != NULL)
             {
@@ -311,9 +320,24 @@ readCBMCXMLLog(char *inputfile)
                 assignment_array[assignment_array_size - 1].role = 0;
                 assignment_array[assignment_array_size - 1].role = malloc(strlen(tmp_role) + 1);
                 strcpy(assignment_array[assignment_array_size - 1].role, tmp_role);
-                roxml_get_content(value, tmp2, 6, &a);
-                assignment_array[assignment_array_size - 1].value = atoi(tmp2);
-                roxml_get_content(line_attr, tmp2, 6, &a);
+                roxml_get_content(value, tmp2, 10, &a);
+                if (bool_type)
+                {
+                    if (strcmp(tmp2, "FALSE") == 0)
+                    {
+                        obtained_value = 0;
+                    }
+                    else
+                    {
+                        obtained_value = 1;
+                    }
+                }
+                else
+                {
+                    obtained_value = atoi(tmp2);
+                }
+                assignment_array[assignment_array_size - 1].value = obtained_value;
+                roxml_get_content(line_attr, tmp2, 10, &a);
                 assignment_array[assignment_array_size - 1].line = atoi(tmp2);
                 assignment_array[assignment_array_size - 1].type = 0;
                 // printCBMCAssignment(assignment_array[assignment_array_size - 1]);
@@ -325,9 +349,24 @@ readCBMCXMLLog(char *inputfile)
                 assignment_array = realloc(assignment_array, assignment_array_size * sizeof(CBMCAssignment));
                 assignment_array[assignment_array_size - 1].track_user = track_user;
                 assignment_array[assignment_array_size - 1].role = 0;
-                roxml_get_content(value, tmp2, 6, &a);
-                assignment_array[assignment_array_size - 1].value = atoi(tmp2);
-                roxml_get_content(line_attr, tmp2, 6, &a);
+                roxml_get_content(value, tmp2, 10, &a);
+                if (bool_type)
+                {
+                    if (strcmp(tmp2, "FALSE") == 0)
+                    {
+                        obtained_value = 0;
+                    }
+                    else
+                    {
+                        obtained_value = 1;
+                    }
+                }
+                else
+                {
+                    obtained_value = atoi(tmp2);
+                }
+                assignment_array[assignment_array_size - 1].value = obtained_value;
+                roxml_get_content(line_attr, tmp2, 10, &a);
                 assignment_array[assignment_array_size - 1].line = atoi(tmp2);
                 assignment_array[assignment_array_size - 1].type = 1;
                 // printCBMCAssignment(assignment_array[assignment_array_size - 1]);
@@ -466,9 +505,11 @@ readSimplifyLog(char *inputFile)
     {
         c = readline(input);
     }
+    printf("ping\n");
     while (strcmp(c, "EndR\n") != 0)
     {
         c = readline(input);
+        printf("got: %s\n", c);
         if (strcmp(c, "EndR\n") != 0)
         {
             sscanf(c, "%d -> %d", &original_index, &simplify_index);

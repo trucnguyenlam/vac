@@ -44,9 +44,9 @@ remove_roles(Dictionary *dict)
             if (belong_dict(dict, ca_array[j].target_role_index) ||
                     belong_dict(dict, ca_array[j].admin_role_index) )
             {
-                fprintf(tmplog, "CAN ASSIGN rule number %d ", j);
+                fprintf(tmp_log, "CAN ASSIGN rule number %d ", j);
                 print_ca_rule(j);
-                fprintf(tmplog, "is removed by slicing procedure\n");
+                fprintf(tmp_log, "is removed by slicing procedure\n");
 
                 ca_array[j].admin_role_index = -13; /* Mark as removal */
                 ca_array[j].target_role_index = -13; /* Mark as removal */
@@ -59,9 +59,9 @@ remove_roles(Dictionary *dict)
                     if (belong_dict(dict, ca_array[j].positive_role_array[i]))
                     {
 
-                        fprintf(tmplog, "CAN ASSIGN rule number %d ", j);
+                        fprintf(tmp_log, "CAN ASSIGN rule number %d ", j);
                         print_ca_rule(j);
-                        fprintf(tmplog, "is removed by slicing procedure\n");
+                        fprintf(tmp_log, "is removed by slicing procedure\n");
 
                         ca_array[j].admin_role_index = -13; /* Mark as removal */
                         ca_array[j].target_role_index = -13; /* Mark as removal */
@@ -92,7 +92,7 @@ remove_roles(Dictionary *dict)
             if (belong_dict(dict, cr_array[j].admin_role_index) ||
                     belong_dict(dict, cr_array[j].target_role_index))
             {
-                fprintf(tmplog, "CAN REVOKE rule number %d <%s,%s> is removed by slicing\n", j, get_role(cr_array[j].admin_role_index), get_role(cr_array[j].target_role_index));
+                fprintf(tmp_log, "CAN REVOKE rule number %d <%s,%s> is removed by slicing\n", j, get_role(cr_array[j].admin_role_index), get_role(cr_array[j].target_role_index));
 
                 cr_array[j].admin_role_index = -13; /* Mark as removal */
                 cr_array[j].target_role_index = -13; /* Mark as removal */
@@ -107,7 +107,7 @@ remove_roles(Dictionary *dict)
         {
             if (belong_dict(dict, ua_array[j].role_index))
             {
-                fprintf(tmplog, "USER ASSIGNMENT relation number %d <%s,%s> is removed by slicing\n", j, get_user(ua_array[j].user_index), get_role(ua_array[j].role_index));
+                fprintf(tmp_log, "USER ASSIGNMENT relation number %d <%s,%s> is removed by slicing\n", j, get_user(ua_array[j].user_index), get_role(ua_array[j].role_index));
 
                 ua_array[j].user_index = -13; /* Mark as removal */
                 ua_array[j].role_index = -13; /* Mark as removal */
@@ -268,12 +268,12 @@ slicing_forward()
     X = different_set(R, S_star);
     size_S = X.array_size;
 
-    fprintf(tmplog, "Set of useless roles from SLICING FORWARD\n");
+    fprintf(tmp_log, "Set of useless roles from SLICING FORWARD\n");
     for (i = 0; i < X.array_size; i++)
     {
-        fprintf(tmplog, "%s ", get_role(X.array[i]));
+        fprintf(tmp_log, "%s ", get_role(X.array[i]));
     }
-    fprintf(tmplog, "\nSlicing Forward Removing-------------\n");
+    fprintf(tmp_log, "\nSlicing Forward Removing-------------\n");
 
     sliced_role_dict = iDictionary.Create(sizeof(int *), role_array_size);
     for (i = 0; i < X.array_size; i++)
@@ -288,7 +288,7 @@ slicing_forward()
     remove_roles(sliced_role_dict);
     // purify_roles(X.array, X.array_size);
 
-    fprintf(tmplog, "\n-------------------------------------\n");
+    fprintf(tmp_log, "\n-------------------------------------\n");
 
     // Free data
     free(X.array);
@@ -383,12 +383,12 @@ slicing_backward()
     X = different_set(R, S_star);
     size_S = X.array_size;
 
-    fprintf(tmplog, "Set of useless roles from SLICING BACKWARD\n");
+    fprintf(tmp_log, "Set of useless roles from SLICING BACKWARD\n");
     for (i = 0; i < X.array_size; i++)
     {
-        fprintf(tmplog, "%s ", get_role(X.array[i]));
+        fprintf(tmp_log, "%s ", get_role(X.array[i]));
     }
-    fprintf(tmplog, "\nSlicing Backward Removing------------\n");
+    fprintf(tmp_log, "\nSlicing Backward Removing------------\n");
 
     sliced_role_dict = iDictionary.Create(sizeof(int *), role_array_size);
     for (i = 0; i < X.array_size; i++)
@@ -402,7 +402,7 @@ slicing_backward()
     remove_roles(sliced_role_dict);
     // purify_roles(X.array, X.array_size);
 
-    fprintf(tmplog, "\n-------------------------------------\n");
+    fprintf(tmp_log, "\n-------------------------------------\n");
 
     // Free data
     free(X.array);
@@ -415,9 +415,9 @@ slicing_backward()
 int
 slicing()
 {
-    fprintf(tmplog, "----------------------------\n");
-    fprintf(tmplog, "-----  SLICING  CHECK  -----\n");
-    fprintf(tmplog, "----------------------------\n");
+    fprintf(tmp_log, "----------------------------\n");
+    fprintf(tmp_log, "-----  SLICING  CHECK  -----\n");
+    fprintf(tmp_log, "----------------------------\n");
 
     // The system does not make sense if there are no user
     if (user_array_size == 0 || role_array_size == 0)
